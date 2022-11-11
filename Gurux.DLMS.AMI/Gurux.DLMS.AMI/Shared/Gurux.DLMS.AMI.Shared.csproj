@@ -5,6 +5,23 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  
+    <Company>Gurux Ltd</Company>
+    <Authors>Gurux Ltd</Authors>
+    <Copyright>Copyright (c) 1998-2022 Gurux Ltd. All rights reserved.</Copyright>
+    <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
+    <Description>Gurux.DLMS.AMI.Messages implements interfaces that are needed for Gurux DLMS AMI v4.</Description>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
+    <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
+    <PackageId>Gurux.DLMS.AMI.Shared</PackageId>
+    <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon> 
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+    <PackageIcon>gurux_dlms_ami.png</PackageIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,5 +31,8 @@
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
