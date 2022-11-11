@@ -5,7 +5,6 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
-  
     <Company>Gurux Ltd</Company>
     <Authors>Gurux Ltd</Authors>
     <Copyright>Copyright (c) 1998-2022 Gurux Ltd. All rights reserved.</Copyright>
@@ -23,7 +22,10 @@
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <PackageIcon>gurux_dlms_ami.png</PackageIcon>
   </PropertyGroup>
-
+ <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Gurux.Common" Version="8.4.2210.1201" />
     <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.10" />
