@@ -1,0 +1,24 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+
+<div class="form-group">
+    <label>@Properties.Resources.Script:</label>
+    <textarea id="scriptBox" value="@SourceCode" 
+        onchange="@((ChangeEventArgs __e) =>UpdateScript(Convert.ToString(__e.Value)))" 
+        rows="15" disabled="@IsDeleting" class="form-control" />
+</div>
+@code {
+    [Parameter]
+    public string? SourceCode { get; set; }
+
+    [Parameter]
+    public bool IsDeleting { get; set; }
+
+    [Parameter]
+    public EventCallback<string> ScriptChanged { get; set; }
+
+    private async Task UpdateScript(object? value)
+    {
+        SourceCode = Convert.ToString(value);
+        await ScriptChanged.InvokeAsync(SourceCode);
+    }  
+}

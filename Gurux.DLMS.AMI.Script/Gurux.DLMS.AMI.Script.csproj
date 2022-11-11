@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Company>Gurux Ltd</Company>
+    <Authors>Gurux Ltd</Authors>
+    <Copyright>Copyright (c) 1998-2022 Gurux Ltd. All rights reserved.</Copyright>
+    <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
+    <Description>Gurux.DLMS.AMI.Script implements scripting support for Gurux DLMS AMI v4.</Description>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
+    <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
+    <PackageId>Gurux.DLMS.AMI.Script</PackageId>
+    <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon> 
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+    <PackageIcon>gurux_dlms_ami.png</PackageIcon>
+  </PropertyGroup>
+ <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2211.1107" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="6.0.10" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.3.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="4.3.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+ <ItemGroup>
+    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
