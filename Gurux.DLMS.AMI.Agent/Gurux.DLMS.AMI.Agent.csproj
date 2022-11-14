@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gurux.DLMS.AMI.Agent.Shared" Version="4.0.2211.1402" />
+    <PackageReference Include="Gurux.DLMS.AMI.Agent.Worker" Version="4.0.2211.1401" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2211.1402" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
+  </ItemGroup>
+
+</Project>
