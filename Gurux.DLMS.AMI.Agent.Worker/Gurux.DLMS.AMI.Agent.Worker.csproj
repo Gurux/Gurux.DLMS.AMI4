@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <Company>Gurux Ltd</Company>
+    <Authors>Gurux Ltd</Authors>
+    <Copyright>Copyright (c) 1998-2022 Gurux Ltd. All rights reserved.</Copyright>
+    <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
+    <Description>Gurux.DLMS.AMI.Agent.Worker implements scripting support for Gurux DLMS AMI v4.</Description>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/gurux/gurux.dlms.ami4</RepositoryUrl>
+    <PackageTags>Gurux Device Framework Network DLMS AMI</PackageTags>
+    <PackageId>Gurux.DLMS.AMI.Agent.Worker</PackageId>
+    <ApplicationIcon>gurux_dlms_ami.ico</ApplicationIcon> 
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
+    <PackageIcon>gurux_dlms_ami.png</PackageIcon>
+  </PropertyGroup>
+ <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gurux.DLMS.AMI.Agent.Shared" Version="4.0.2211.1402" />
+    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2211.1404" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2211.1402" />
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2208.3001" />
+    <PackageReference Include="Gurux.Net" Version="8.4.2206.201" />
+    <PackageReference Include="Gurux.Serial" Version="8.4.2206.201" />
+    <PackageReference Include="Gurux.Terminal" Version="8.4.2206.201" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+  </ItemGroup>
+ <ItemGroup>
+    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
