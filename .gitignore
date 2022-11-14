@@ -175,7 +175,9 @@ pip-log.txt
 *.ide
 *.ide-wal
 *.ide-shm
-Gurux.DLMS.AMI/.vs/
-Gurux.DLMS.AMI/Gurux.DLMS.AMI/Shared/.vs/
 updateNugetPackages.bat
 *.zip
+Gurux.DLMS.AMI/.vs/
+Gurux.DLMS.AMI/Gurux.DLMS.AMI/Shared/.vs/
+Gurux.DLMS.AMI.Services/.vs/
+Gurux.DLMS.AMI.Script/.vs/
