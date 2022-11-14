@@ -1,0 +1,17 @@
+﻿@if (visible)
+{
+<div class="text-info alert-info alert-dismissible fade show" role="alert">
+    <hr>
+    <p>@ChildContent</p>
+</div>
+}
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    bool visible = true;
+    void Close()
+    {
+        visible = false;
+    }
+}
