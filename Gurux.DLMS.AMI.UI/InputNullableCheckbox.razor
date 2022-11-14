@@ -1,0 +1,28 @@
+﻿@using System.Diagnostics.CodeAnalysis
+
+@namespace Gurux.DLMS.AMI.UI
+
+@inherits InputBase<bool?>
+
+<input type="checkbox" checked="@CurrentValue"
+       class="@CssClass"
+       @attributes="AdditionalAttributes"
+       onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToBoolean(__e.Value))" />
+@code {
+
+    protected override bool TryParseValueFromString(string? value,
+        [MaybeNullWhen(false)] out bool? result,
+        [NotNullWhen(false)] out string validationErrorMessage)
+    {
+        validationErrorMessage = "";
+        if (value != null)
+        {
+            result = bool.Parse(value);
+        }
+        else
+        {
+            result = false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,5 @@
+﻿@inherits Microsoft.AspNetCore.Components.Forms.InputText
+<input type="search" value="@CurrentValue"
+       class="@CssClass"
+       @attributes="AdditionalAttributes"
+       onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToString(__e.Value))" />
