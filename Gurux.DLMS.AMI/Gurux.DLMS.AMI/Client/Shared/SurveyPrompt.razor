@@ -1,0 +1,55 @@
+﻿@using Gurux.DLMS.AMI.Module
+
+@implements IGXComponentView
+
+<div class="alert alert-secondary mt-4" role="alert">
+    @if (string.IsNullOrEmpty(Title))
+    {
+        <strong>@Title</strong>
+    }
+    <span class="text-nowrap">
+        @Text
+    </span>
+</div>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "Survey prompt";
+        }
+    }
+
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "";
+        }
+    }
+
+    /// <summary>
+    /// Survey prompt title.
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Survey prompt Text.
+    /// </summary>
+    [Parameter]
+    public string? Text { get; set; }
+}

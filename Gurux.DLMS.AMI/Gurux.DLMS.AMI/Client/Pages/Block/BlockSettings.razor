@@ -1,0 +1,33 @@
+﻿@page "/blocksettings"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject IGXNotifier Notifier
+
+<div class="row">
+    <div style="width:100%">
+        <div class="form-group">
+            <label>Count</label>
+            <InputNumber id="name" class="form-control" @bind-Value="@Count" />
+        </div>
+    </div>
+</div>
+@code {
+    /// <summary>
+    /// Amount of items shown in the block.
+    /// </summary>
+    public int Count
+    {
+        get;
+        set;
+    }
+
+    private GXBlock? _block;
+
+    protected override void OnInitialized()
+    {
+        //Get selected item.
+        _block = (GXBlock?)Notifier.GetData(GXPages.Block);
+    }
+}

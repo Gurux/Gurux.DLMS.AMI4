@@ -1,0 +1,210 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.Net
+@using Gurux.Serial
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Media
+@using System.Text.Json
+
+@inject IGXNotifier Notifier
+@inject GXModuleService modules
+
+@if (_moduleConfiguration != null && _moduleConfiguration.Any())
+{
+    foreach (var it in _moduleConfiguration)
+    {
+        RenderFragment renderFragment = (builder) =>
+        {
+            builder.OpenComponent(0, it.Key);
+            @if (it.Value.Settings != null)
+            {
+                builder.AddAttribute(1, "Settings", it.Value.Settings);
+            }
+            builder.AddComponentReferenceCapture(0, inst =>
+                            {
+                                _modules.Add(new KeyValuePair<string, IGXParameterSettings>(it.Value.Module, (IGXParameterSettings)inst));
+                            });
+            builder.CloseComponent();
+        };
+        <div>
+            @renderFragment
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public List<IGXParameter> Parameters { get; set; }
+
+    [Parameter]
+    public object Target { get; set; }
+
+    private List<KeyValuePair<string, IGXParameterSettings>> _modules = new List<KeyValuePair<string, IGXParameterSettings>>();
+
+    private struct ModuleInfo
+    {
+        ///Module name.
+        public string Module;
+        //Module settings.
+        public object? Settings;
+    }
+
+    private Dictionary<Type, ModuleInfo> _moduleConfiguration = new Dictionary<Type, ModuleInfo>();
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            //Get settings from the external modules.
+            Dictionary<string, List<Type>> list;
+            if (Target is GXDevice)
+            {
+                list = modules.GetMeterSettings();
+            }
+            else if (Target is GXObject)
+            {
+                list = modules.GetObjectSettings();
+            }
+            else if (Target is GXAttribute)
+            {
+                list = modules.GetAttributeSettings();
+            }
+            else if (Target is GXDevice)
+            {
+                list = modules.GetMeterSettings();
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            foreach (var module in list)
+            {
+                foreach (var type in module.Value)
+                {
+                    bool visible = false;
+                    if (typeof(IGXDeviceSettings).IsAssignableFrom(type))
+                    {
+                        IGXDeviceSettings? ds = (IGXDeviceSettings?)Activator.CreateInstance(type);
+                        visible = ds.IsVisible(Target);
+                    }
+                    else if (typeof(IGXObjectSettings).IsAssignableFrom(type))
+                    {
+                        IGXObjectSettings? os = (IGXObjectSettings?)Activator.CreateInstance(type);
+                        visible = os.IsVisible(Target);
+                    }
+                    else if (typeof(IGXAttributeSettings).IsAssignableFrom(type))
+                    {
+                        IGXAttributeSettings? s = (IGXAttributeSettings?)Activator.CreateInstance(type);
+                        visible = s.IsVisible(Target);
+                    }
+                    else if (typeof(IGXDeviceGroupSettings).IsAssignableFrom(type))
+                    {
+                        IGXDeviceGroupSettings? dgs = (IGXDeviceGroupSettings?)Activator.CreateInstance(type);
+                        visible = dgs.IsVisible(Target);
+                    }
+                    if (visible)
+                    {
+                        _moduleConfiguration[type] = new ModuleInfo() { Module = module.Key };
+                        var p = type.GetProperty("Settings");
+                        if (p != null)
+                        {
+                            foreach (var param in Parameters)
+                            {
+                                if (param.Name == module.Key)
+                                {
+                                    if (!string.IsNullOrEmpty(param.Settings))
+                                    {
+                                        _moduleConfiguration[type] = new ModuleInfo()
+                                            {
+                                                Module = module.Key,
+                                                Settings = JsonSerializer.Deserialize(param.Settings, p.PropertyType)
+                                            };
+                                    };
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void UpdateSettings<T>(List<T> parameters) where T : IGXParameter
+    {
+        try
+        {
+            string? id = null;
+            //Save module device settings.
+            foreach (var module in _modules)
+            {
+                if (module.Value is IGXParameterSettings ps)
+                {
+                    id = ps.Name;
+                    ps.Save();
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+            }
+            //Serialize module device settings.
+            foreach (var module in _modules)
+            {
+                var settings = module.Value.GetType().GetProperty("Settings");
+                if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                {
+                    var value = settings.GetValue(module.Value);
+                    if (value != null)
+                    {
+                        T? param = parameters.SingleOrDefault(w => w.Module.Id == id && w.Name == id);
+                        if (param == null)
+                        {
+                            param = Activator.CreateInstance<T>();
+                            param.Name = id;
+                            param.Module = new GXModule() { Id = module.Key };
+                            parameters.Add(param);
+                        }
+                        param.Settings = JsonSerializer.Serialize(value);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+    }
+
+    public void Cancel()
+    {
+        foreach (var module in _modules)
+        {
+            if (module.Value is IGXParameterSettings ps)
+            {
+                ps.Cancel();
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+        }
+    }
+}

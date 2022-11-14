@@ -1,0 +1,58 @@
+﻿@page "/scriptmethodselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@if (Scripts != null)
+{
+    <label style="margin:auto">Parsing script</label>
+    <select class="form-control" @bind="@ScriptMethod">
+        @foreach (var script in Scripts)
+        {
+            @foreach (var method in script.Methods)
+            {
+                <option value="@method.Id">@script.Name + "." + @method.Name</option>
+            }
+        }
+    </select>
+}
+@code {
+    Guid? _scriptMethod;
+
+    [Parameter]
+    public GXScript[]? Scripts { get; set; }
+
+    [Parameter]
+    public Guid? ScriptMethod
+    {
+        get
+        {
+            return _scriptMethod;
+        }
+        set
+        {
+            bool changed = _scriptMethod != value;
+            _scriptMethod = value;
+            if (changed)
+            {
+                SelectionChanged?.Invoke(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// User has selected a new script.
+    /// </summary>
+    [Parameter]
+    public Action<Guid?>? SelectionChanged { get; set; }
+}

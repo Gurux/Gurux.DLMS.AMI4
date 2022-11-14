@@ -1,0 +1,154 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Security.Claims
+@using System.Globalization
+
+@inject NavigationManager NavigationManager
+@inject IAccessTokenProvider AccessTokenProvider
+@implements IAsyncDisposable
+@inherits LayoutComponentBase
+@inject GXNotifierService Notifier
+@inject ILogger<MainLayout> Logger
+@inject SignOutSessionStateManager SignOutManager
+@inject HttpClient Http
+<div class="page">
+    <div class="sidebar">
+        <NavMenu @ref="NavMenu" />
+    </div>
+    <main>
+        <div class="top-row px-4 auth">
+            <TopMenu />
+            <LoginDisplay @ref="LoginDisplay" />
+            <AuthorizeView>
+                <Authorized>
+                    <a href=about/1>@Properties.Resources.About</a>
+                    <a href="authentication/profile"><span class="oi oi-person blue-color" aria-hidden="true"></span></a>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+        <StatusTile @ref=Status Closable=false />
+        <AuthorizeView>
+            <Authorized>
+                <BlockTile Location="BlockLocation.Header"></BlockTile>
+            </Authorized>
+        </AuthorizeView>
+        @if (Status == null || !Status.MaintenanceMode || (Status.IsAdmin != null && Status.IsAdmin.Value))
+        {
+            <div class="content px-4">
+                <GXErrorBoundary>
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                </GXErrorBoundary>
+            </div>
+        }
+        <AuthorizeView>
+            <Authorized>
+                <BlockTile Location="BlockLocation.Footer"></BlockTile>
+            </Authorized>
+        </AuthorizeView>
+    </main>
+    @if (_onProgress)
+    {
+        <div class="spinner"></div>
+    }
+</div>
+
+@code {
+    public static string GetUserName(ClaimsPrincipal user)
+    {
+        string tmp = user.FindFirst(c => c.Type == ClaimTypes.GivenName)?.Value;
+        if (tmp == null)
+        {
+            tmp = user.Identity.Name;
+        }
+        return tmp;
+    }
+
+    private LoginDisplay? LoginDisplay;
+    private NavMenu? NavMenu;
+
+    //Save or load is on progress.
+    private bool _onProgress;
+
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthState { get; set; }
+
+    /// <summary>
+    /// Status is shown here.
+    /// </summary>
+    public StatusTile? Status { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Wait until user has authenticated.
+            var t = await AuthState;
+            try
+            {
+                HttpResponseMessage response = await Http.GetAsync("api/Localization");
+                ClientHelpers.ValidateStatusCode(response);
+                string language = await response.Content.ReadAsStringAsync();
+                if (!string.IsNullOrEmpty(language))
+                {
+                    Logger.LogInformation("New language is " + language);
+                    CultureInfo culture = new CultureInfo(language);
+                    CultureInfo.DefaultThreadCurrentCulture = culture;
+                    CultureInfo.DefaultThreadCurrentUICulture = culture;
+                    if (LoginDisplay != null)
+                    {
+                        LoginDisplay.LanguageUpdated();
+                    }
+                    if (NavMenu != null)
+                    {
+                        NavMenu.LanguageUpdated();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                //It's OK if this fails.
+            }
+            Notifier.OnProgressStart += () =>
+            {
+                _onProgress = true;
+                StateHasChanged();
+            };
+            Notifier.OnProgressEnd += () =>
+            {
+                _onProgress = false;
+                StateHasChanged();
+            };
+            Notifier.OnClearStatus += () =>
+            {
+                Status?.Clear();
+            };
+            Notifier.OnProcessError += (ex) =>
+            {
+                Status?.ProcessError(ex);
+            };
+            Notifier.OnProcessErrors += (errors) =>
+            {
+                Status?.ProcessErrors(errors);
+            };
+            Notifier.OnShowInformation += (info, closable) =>
+            {
+                Status?.ShowInformation(info, closable);
+            };
+            await Notifier.StartAsync(NavigationManager, AccessTokenProvider);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Notifier.StopAsync();
+    }
+}

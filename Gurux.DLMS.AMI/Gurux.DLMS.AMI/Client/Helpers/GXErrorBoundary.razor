@@ -1,0 +1,34 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@inherits ErrorBoundary
+@ChildContent
+
+@code
+{
+    protected override async Task OnErrorAsync(Exception exception)
+    {
+        try
+        {
+            GXUserError ue = new GXUserError();
+            ue.Message = exception.Message;
+            ue.StackTrace = exception.StackTrace;
+            AddUserError req = new AddUserError();
+            req.Errors = new GXUserError[] { ue };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserError/Add", req))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+            }
+        }
+        catch (Exception ex)
+        {
+            //It's OK if this fails.
+        }
+        await base.OnErrorAsync(exception);
+    }
+
+    public new void Recover()
+    {
+        base.Recover();
+    }
+}

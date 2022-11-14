@@ -1,0 +1,534 @@
+﻿@page "/device"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.Net
+@using Gurux.Serial
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Media
+@using System.Text.Json
+@using System.Text.Encodings.Web
+@using System.Text.Json.Serialization
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, DeviceManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (_templateSettings != null && _device != null)
+{
+    @if (templates != null && templates.Any())
+    {
+        @if (Notifier.Action != CrudAction.Create)
+        {
+            <MenuControl RightCorner="true" Bottom="true">
+                <ChildContent>
+                    <MenuItem Text="Save as default" Icon="oi oi-pencil" OnClick="@(async () => OnDefault())" />
+                </ChildContent>
+            </MenuControl>
+        }
+        <EditForm Model="@_device">
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>Type:</label>
+                        <InputSelect id="type" class="form-control"
+                             @bind-Value="SelectedTemplate" disabled="@IsCreate()">
+                            @foreach (var it in templates)
+                            {
+                                <option value="@it.Name">@it.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="form-group">
+                        <label>Manufacturer:</label>
+                        <InputText id="manuacturer" class="form-control" readonly="readonly"
+                           @bind-Value="_templateSettings.Manufacturer" />
+                    </div>
+                    <div class="form-group">
+                        <label>Name:</label>
+                        <InputText id="name" class="form-control"
+                           @bind-Value="_device.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label style="margin:auto">&nbsp;Interface:&nbsp;</label>
+                        <select class="form-control" @bind="@_settings.InterfaceType">
+                            @foreach (var it in InterfaceList)
+                            {
+                                <option value="@Convert.ToInt32(it)">@it</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Authentication:</label>
+                        <InputText id="authentication" class="form-control" readonly="readonly"
+                           @bind-Value="Authentication" />
+                    </div>
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <InputText id="password" class="form-control"
+                           @bind-Value="Password" disabled="@IsAuthenticated()" />
+                    </div>
+                    <div class="form-group">
+                        <label style="margin:auto">Media:</label>
+                        <select class="form-control" @bind="@_device.MediaType">
+                            @foreach (var it in MediaList)
+                            {
+                                <option value="@it.Key"> @it.Value </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Wait time:</label>
+                        <InputNumber id="resend" class="form-control"
+                             @bind-Value="_device.WaitTime" />
+                    </div>
+                    <div class="form-group">
+                        <label>Resend count:</label>
+                        <InputNumber id="resend" class="form-control"
+                             @bind-Value="_device.ResendCount" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.TraceLevels:</label>
+                        <select class="form-control" @bind="_device.TraceLevel">
+                            @foreach (var it in TraceLevels)
+                            {
+                                <option value="@it">@it</option>
+                            }
+                        </select>
+                    </div>
+                    @if (_device.MediaType == typeof(GXNet).FullName)
+                    {
+                        <NetworkSettings @ref=networkSettings></NetworkSettings>
+                    }
+                    @if (_device.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(_device.MediaType))
+                    {
+                        <SerialSettings @ref=serialSettings></SerialSettings>
+                    }
+                    <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_device"></ParametersView>
+                </div>
+            </div>
+        </EditForm>
+    }
+    else if (templates != null)
+    {
+        Notifier.ShowInformation(string.Format("{0}Device templates{1} must be added before devices can be added.", "<a href=DeviceTemplateManage>", "</a>"));
+    }
+}
+@code {
+    private ParametersView? ParametersView;
+    private List<IGXParameter> Parameters = new List<IGXParameter>();
+    NetworkSettings? networkSettings;
+    SerialSettings? serialSettings;
+
+    List<Gurux.DLMS.Enums.InterfaceType> InterfaceList = new List<Gurux.DLMS.Enums.InterfaceType>();
+    Dictionary<string, string> MediaList = new Dictionary<string, string>();
+    private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _settings;
+    private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _templateSettings;
+    private string SubmitText;
+    private string? Title;
+    private GXDevice? _device;
+    /// <summary>
+    /// List of templates.
+    /// </summary>
+    List<GXDeviceTemplate>? templates;
+
+    TraceLevel[] TraceLevels = new TraceLevel[]
+       {
+        TraceLevel.Off,
+        TraceLevel.Error,
+        TraceLevel.Warning,
+        TraceLevel.Info,
+        TraceLevel.Verbose
+       };
+
+    Gurux.DLMS.Enums.InterfaceType InterfaceType
+    {
+        get
+        {
+            if (_settings != null)
+            {
+                return (Gurux.DLMS.Enums.InterfaceType)_settings.InterfaceType;
+            }
+            return Gurux.DLMS.Enums.InterfaceType.HDLC;
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.InterfaceType = (int)value;
+            }
+        }
+    }
+
+    string? IsCreate()
+    {
+        if (Notifier.Action == CrudAction.Create)
+        {
+            return null;
+        }
+        return "disabled";
+    }
+
+    string? IsAuthenticated()
+    {
+        if (_settings == null ||
+            _settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.None)
+        {
+            return null;
+        }
+        return "disabled";
+    }
+
+    string? Authentication
+    {
+        get
+        {
+            if (_device == null || _device.Template == null)
+            {
+                return null;
+            }
+            return Convert.ToString((Gurux.DLMS.Enums.Authentication)_templateSettings.Authentication);
+        }
+        set
+        {
+
+        }
+    }
+
+    string? Password
+    {
+        get
+        {
+            if (_settings == null ||
+                _settings.HexPassword == null ||
+                _settings.HexPassword.Length == 0)
+            {
+                return null;
+            }
+            return System.Text.ASCIIEncoding.ASCII.GetString(_settings.HexPassword);
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    _settings.HexPassword = null;
+                }
+                else
+                {
+                    _settings.HexPassword = System.Text.ASCIIEncoding.ASCII.GetBytes(value);
+                }
+            }
+        }
+    }
+
+    private string? SelectedTemplate
+    {
+        get
+        {
+            if (_device == null || _device.Template == null)
+            {
+                return null;
+            }
+            return _device.Template.Name;
+        }
+        set
+        {
+            if (_device != null && templates != null)
+            {
+                foreach (GXDeviceTemplate it in templates)
+                {
+                    if (it.Name == value)
+                    {
+                        _device.Template = it;
+                        _device.WaitTime = it.WaitTime;
+                        _device.ResendCount = it.ResendCount;
+                        _device.MediaType = it.MediaType;
+                        _device.MediaSettings = it.MediaSettings;
+                        _device.Settings = it.Settings;
+                        //Update template settings.
+                        _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Template.Settings);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copy meter settings.
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="source"></param>
+    public static void Copy(GXDevice target, GXDeviceTemplate source)
+    {
+        target.WaitTime = source.WaitTime;
+        target.ResendCount = source.ResendCount;
+        target.Settings = source.Settings;
+        target.Name = source.Name;
+        target.MediaType = source.MediaType;
+        target.MediaSettings = source.MediaSettings;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        MediaList.Add(typeof(GXNet).FullName, Properties.Resources.Network);
+        MediaList.Add(typeof(GXSerial).FullName, Properties.Resources.Serial);
+        HttpResponseMessage response;
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            _device = (GXDevice?)Notifier.GetData(GXPages.Devices);
+            if (_device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HDLC);
+            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.WRAPPER);
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    try
+                    {
+                        //Get default user settings.
+                        GXUserSetting? settings = await Http.GetFromJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
+                        if (settings != null && !string.IsNullOrEmpty(settings.Value))
+                        {
+                            Guid Id = JsonSerializer.Deserialize<Guid>(settings.Value);
+                            //Get device data.
+                            response = await Http.GetAsync(string.Format("api/Device?id={0}", Id));
+                            ClientHelpers.ValidateStatusCode(response);
+                            GXDevice? tmp = await response.Content.ReadFromJsonAsync<GXDevice>();
+                            if (tmp != null)
+                            {
+                                _device = tmp;
+                                _device.Id = Guid.Empty;
+                                _device.Name = null;
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        //It's OK if this fails.
+                    }
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Title = Notifier.Title;
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //If device settings are not read yet..
+            if (!_device.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get device data.
+                response = await Http.GetAsync(string.Format("api/Device?id={0}", _device.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _device = await response.Content.ReadFromJsonAsync<GXDevice>();
+                Notifier.UpdateData(GXPages.Devices, _device);
+                _device.Modified = true;
+            }
+            Notifier.ChangePage(GXPages.Device, _device);
+            ListDeviceTemplates req = new ListDeviceTemplates()
+                {
+                    Filter = new GXDeviceTemplate()
+                };
+            response = await Http.PostAsJsonAsync("api/DeviceTemplate/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplatesResponse>();
+            templates = new List<GXDeviceTemplate>();
+            templates.AddRange(ret.Templates);
+            if (_device.Template == null)
+            {
+                if (templates.Count != 0)
+                {
+                    _device.Template = templates[0];
+                    _device.WaitTime = _device.Template.WaitTime;
+                    _device.ResendCount = _device.Template.ResendCount;
+                }
+            }
+            if (_device.Template != null
+                && !string.IsNullOrEmpty(_device.Template.Settings))
+            {
+                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Template.Settings);
+            }
+            if (!string.IsNullOrEmpty(_device.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Settings);
+            }
+            else
+            {
+                //Use template settings as default meter settings when the meter is created.
+                _settings = _templateSettings;
+            }
+            if (string.IsNullOrEmpty(_device.MediaType))
+            {
+                _device.MediaType = typeof(GXNet).FullName;
+            }
+            Parameters.AddRange(_device.Parameters);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save device.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            if (_device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (networkSettings != null && _device.MediaType == "Gurux.Net.GXNet")
+            {
+                networkSettings.Validate();
+            }
+            else if (serialSettings != null && _device.MediaType == "Gurux.Serial.GXSerial")
+            {
+                serialSettings.Validate();
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            HttpResponseMessage response;
+            //Update device parameters.
+            ParametersView?.UpdateSettings<GXDeviceParameter>(_device.Parameters);
+            _device.Settings = JsonSerializer.Serialize(_settings);
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                response = await Http.PostAsJsonAsync("api/Device/Delete", new DeviceDelete() { Ids = new Guid[] { _device.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<DeviceDeleteResponse>();
+            }
+            else if (Notifier.Action == CrudAction.Create)
+            {
+                response = await Http.PostAsJsonAsync("api/Device/Add", new UpdateDevice() { Devices = new GXDevice[] { _device } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/Device/Update", new UpdateDevice() { Devices = new GXDevice[] { _device } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save current settings as a default settings.
+    /// </summary>
+    public async Task OnDefault()
+    {
+        try
+        {
+            if (_device != null && _device.Id != Guid.Empty)
+            {
+                //Get default user settings.
+                GXUserSetting? settings = await Http.GetFromJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
+                if (settings == null)
+                {
+                    settings = new GXUserSetting();
+                    settings.Name = "Ami.Device";
+                }
+                settings.Value = JsonSerializer.Serialize(_device.Id);
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserSetting/Add",
+                new GXUserSetting[] { settings }))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private void OnCancel()
+    {
+        if (Notifier != null)
+        {
+            try
+            {
+                ParametersView.Cancel();
+            }
+            catch (Exception ex)
+            {
+                Notifier.ProcessError(ex);
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Device);
+    }
+}

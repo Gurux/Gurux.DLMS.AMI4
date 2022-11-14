@@ -1,0 +1,338 @@
+﻿@page "/systemlog"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, SystemLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.SystemLogs (@Properties.Resources.Total: @Total)</PageTitle>
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+    </ChildContent>
+</MenuControl>
+
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+<p>
+<input type="checkbox"
+       @onchange="@((ChangeEventArgs __e) => ShowClosedErrors = @StatusTile.ToBoolean(__e.Value))"
+       id="showClosedErrors" />
+<label class="form-check-label" for="showClosedErrors">@Properties.Resources.ShowClosedErrors</label>
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by error..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <div>
+                    <input class="form-control" type="text" placeholder="Filter by level..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                </div>
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by close time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+        </tr>
+        <tr>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Error</th>
+            <th>@Properties.Resources.Level</th>
+            <th>@Properties.Resources.CloseTime</th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="error" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr>
+                    <td>@error.CreationTime</td>
+                    <td>@error.Message</td>
+                    <td>@ClientHelpers.LevelToString(error.Level)</td>
+                    <td>@error.Closed</td>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
+         OkTitle="@Properties.Resources.Clear" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.SystemLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+    /// <summary>
+    /// System error filter.
+    /// </summary>
+    private GXSystemLog filter = new GXSystemLog()
+        {
+            Level = null
+        };
+    /// <summary>
+    /// User is verified before system errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXSystemLog>? virtualize;
+
+    public bool IsActive(GXSystemLog item)
+    {
+        return item.Closed == null;
+    }
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), async () =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), (errors) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<Guid>>(this, nameof(IGXHubEvents.CloseSystemLogs), (errors) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.ChangePage(GXPages.SystemLogs, null, true);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXSystemLog>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+            ListSystemLogs req = new ListSystemLogs() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/List", req, request.CancellationToken))
+            {
+
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<ListSystemLogsResponse>();
+                Total = ret.Count;
+                Total = ret.Count;
+                //Get only selected amount of the system errors.
+                if (Count != 0)
+                {
+                    ret.Count = Count;
+                }
+                return new ItemsProviderResult<GXSystemLog>(ret.Errors, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex.ToString());
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.SystemLogs);
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Clear", new ClearSystemLog()))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

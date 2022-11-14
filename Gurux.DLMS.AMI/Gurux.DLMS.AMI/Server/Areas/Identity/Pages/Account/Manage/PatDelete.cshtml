@@ -1,0 +1,40 @@
+﻿@page
+
+@using Microsoft.AspNetCore.Builder
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.Extensions.Options
+@using System.Net.Http
+
+@model PatDelete
+@{
+    ViewData["Title"] = ViewData["Pat"];
+    ViewData["ActivePage"] = ManageNavPages.Pat;
+}
+
+<h4>@ViewData["Title"]</h4>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+<h2>Delete</h2>
+<div class="row">
+    <div class="col-md-6">
+        <form id="profile-form" asp-page-handler="Delete" method="post">
+            <div class="form-group">
+                <label>@ViewData["Name"]</label>
+                <input asp-for="Token.Name" class="form-control" disabled="disabled" />
+            </div>
+            <div class="form-group">
+                <label>@ViewData["Expiration"]</label>
+                <input asp-for="Token.Expiration" class="form-control" disabled="disabled" />
+            </div>
+        </form>
+        <form id="buttons-form" asp-page-handler="Delete" method="post">
+            <button id="delete" type="submit" class="btn btn-danger">@ViewData["Delete"]</button>
+            <input asp-for="Token.Id" type="hidden" id="id" name="id" />
+            <a id="cancel" asp-page="Pat" class="btn btn-secondary">@ViewData["Cancel"]</a>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,99 @@
+﻿@page "/registerview"
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization
+@using Gurux.DLMS.Enums
+
+@if (Target != null)
+{
+    <CascadingValue Value="this">
+        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="3" Name="Scaler" Text="@Scaler"></AttributeTile>
+        <AttributeTile Index="3" Attributes="@Target.Attributes" Name="Unit" Text="@Unit" Values="@Units"></AttributeTile>
+        @ChildContent
+    </CascadingValue>
+}
+
+@code {
+
+    [CascadingParameter]
+    private ObjectView Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    string[] Units;
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject Target { get; set; }
+
+    void Reset()
+    {
+        Parent.OnAction(1, (sbyte)0);
+    }
+
+    /// <summary>
+    /// Register scaler.
+    /// </summary>
+    [Parameter]
+    public string Scaler
+    {
+        get
+        {
+            string str = AttributeTile.GetAttribute(Target.Attributes, 3).Value;
+            if (string.IsNullOrEmpty(str))
+            {
+                return "";
+            }
+            GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(str);
+            return Convert.ToDouble(tmp[0], CultureInfo.InvariantCulture).ToString();
+        }
+        set
+        {
+            object[] tmp = (object[])GXDLMSTranslator.XmlToValue(AttributeTile.GetAttribute(Target.Attributes, 3).Value);
+            //TODO:
+        }
+    }
+
+    /// <summary>
+    /// Register unit.
+    /// </summary>
+    [Parameter]
+    public string Unit
+    {
+        get
+        {
+            string str = AttributeTile.GetAttribute(Target.Attributes, 3).Value;
+            if (string.IsNullOrEmpty(str))
+            {
+                return "";
+            }
+            GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(str);
+            return ((Unit)Convert.ToInt32(tmp[1])).ToString();
+        }
+        set
+        {
+            object[] tmp = (object[])GXDLMSTranslator.XmlToValue(AttributeTile.GetAttribute(Target.Attributes, 3).Value);
+            Unit unit = (Unit)Enum.Parse(typeof(Unit), value);
+            tmp[1] = Convert.ToInt32(unit);
+            AttributeTile.GetAttribute(Target.Attributes, 3).Value = GXDLMSTranslator.ValueToXml(tmp);
+        }
+    }
+
+    //Add action buttons.
+    protected override void OnInitialized()
+    {
+        Units = Enum.GetNames(typeof(Gurux.DLMS.Enums.Unit));
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+        }
+        Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
+            "oi oi-minus",
+            Reset,
+            Parent.CanInvokeAction(1)));
+    }
+}

@@ -1,0 +1,87 @@
+﻿@page "/agentsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, AgentGroupManager, AgentGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="agents" />
+    <SelectionList Title="Available" ItemList="AllAgents" />
+</SelectionContainer>
+
+@code {
+    List<GXAgent> AllAgents = new List<GXAgent>();
+    List<GXAgent> agents = new List<GXAgent>();
+
+    string GetName(object target)
+    {
+        return (target as GXAgent).Name;
+    }
+    string GetDescription(object target)
+    {
+        return (target as GXAgent).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.ChangePage(GXPages.AgentsSelector, null);
+            //Add selected user groups.
+            GXAgentGroup? userGroup = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroup);
+            if (userGroup == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            agents = userGroup.Agents;
+            ListAgents req = new ListAgents()
+                {
+                    Filter = new GXAgent()
+                };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListAgentsResponse>();
+            foreach (GXAgent it in ret.Agents)
+            {
+                if (!agents.Exists(q => q.Id == it.Id))
+                {
+                    AllAgents.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.AgentsSelector);
+    }
+}
+

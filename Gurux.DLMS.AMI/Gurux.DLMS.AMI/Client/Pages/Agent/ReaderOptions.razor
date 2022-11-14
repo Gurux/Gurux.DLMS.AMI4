@@ -1,0 +1,58 @@
+﻿@page "/readeroptions"
+@using Gurux.DLMS.AMI.Shared
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, AgentManager")]
+
+@if (Settings != null)
+{
+    <EditForm Model="@Settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputCheckbox @bind-Value="Settings.Active" />
+                    <label>@Properties.Resources.Active</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Threads:</label>
+                    <InputNumber id="threads" class="form-control"
+                             @bind-Value="Settings.Threads" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.TaskWaitTime:</label>
+                    <InputNumber id="taskWaitTime" class="form-control"
+                             @bind-Value="Settings.TaskWaitTime" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.AliveTime:</label>
+                    <InputNumber id="aliveTime" class="form-control"
+                             @bind-Value="Settings.AliveTime" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.TraceLevels:</label>
+                    <select class="form-control" @bind="Settings.TraceLevel">
+                        @foreach (var it in TraceLevels)
+                        {
+                            <option value="@it"> @it </option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    TraceLevel[] TraceLevels = new TraceLevel[] { TraceLevel.Off, TraceLevel.Error, TraceLevel.Warning, TraceLevel.Info, TraceLevel.Verbose };
+    [Parameter]
+    public ReaderSettings? Settings { get; set; }
+}

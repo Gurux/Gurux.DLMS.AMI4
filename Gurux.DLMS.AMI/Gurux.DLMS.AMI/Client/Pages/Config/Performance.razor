@@ -1,0 +1,205 @@
+﻿@page "/config/performance"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <h2>Ignored notifications</h2>
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Task)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Task, __e.Value))" />
+                    <label>@Properties.Resources.Tasks</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Device)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Device, __e.Value))" />
+                    <label>@Properties.Resources.Devices</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.DeviceError)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.DeviceError, __e.Value))" />
+                    <label>@Properties.Resources.DeviceErrors</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Object)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Object, __e.Value))" />
+                    <label>@Properties.Resources.Objects</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Attribute)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Attribute, __e.Value))" />
+                    <label>@Properties.Resources.Attributes</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Value)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Value, __e.Value))" />
+                    <label>@Properties.Resources.Values</label>
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" checked="@GetIgnoredState(TargetType.DeviceTrace)"
+                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.DeviceTrace, __e.Value))" />
+                    <label>@Properties.Resources.DeviceTraces</label>
+                </div>                
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private GXConfiguration? _active;
+    private string SubmitText = "";
+    PerformanceSettings? _settings;
+
+    private bool GetIgnoredState(TargetType value)
+    {
+        return (_settings.IgnoreNotification & value) != 0;
+    }
+
+    private void UpdateIgnoredState(TargetType value, object ignored)
+    {
+        if (Convert.ToBoolean(ignored))
+        {
+            _settings.IgnoreNotification |= value;
+        }
+        else
+        {
+            _settings.IgnoreNotification &= ~value;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Performance)
+                        {
+                            _settings = JsonSerializer.Deserialize<PerformanceSettings>(it.Settings);
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_active.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.Configuration, _active);
+                _active.Modified = true;
+            }
+            _settings = JsonSerializer.Deserialize<PerformanceSettings>(_active.Settings);
+            StateHasChanged();
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Performance, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            _active.Settings = JsonSerializer.Serialize(_settings);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { _active };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Performance);
+        Notifier.RemoveListener(this);
+    }
+}

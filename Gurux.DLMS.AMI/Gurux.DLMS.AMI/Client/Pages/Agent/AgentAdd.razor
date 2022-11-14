@@ -1,0 +1,181 @@
+﻿@page "/agentadd"
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Client.Pages.Agent
+@using System.Text.Json
+
+@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<h1>Configure your account</h1>
+Configure your account by following the steps outlined <a target="_blank" href="www.gurux.fi/agent-configure">here</a>.
+
+<EditForm Model="@this">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <button class="btn btn-secondary" @onclick="OnDownload">
+        <div class="oi oi-flash"></div>
+        &nbsp;@Properties.Resources.DownloadAgent
+    </button>
+    <p>
+        <hr />
+    </p>
+    <div class="form-group">
+        <label>@Properties.Resources.Name</label>
+        <InputText id="token" class="form-control" @bind-Value="TokenName" />
+    </div>
+    <div class="form-group">
+        <label>@Properties.Resources.Expiration</label>
+        <InputDate Type="@InputDateType.DateTimeLocal" id="expiration" class="form-control"
+                   @bind-Value="TokenExpiration" />
+    </div>
+    <button class="btn btn-secondary" @onclick="OnToken">
+        <div class="oi oi-flash"></div>
+        &nbsp;@Properties.Resources.GenerateAccessToken
+    </button>
+    @if (Token != null)
+    {
+        @Properties.Resources.TokenCreateSucceeded
+        <div class="form-group">
+            <label>@Properties.Resources.TokensTitle</label>
+            <InputText id="token" class="form-control" readonly="readonly"
+                   @bind-Value="Token" />
+        </div>
+        <p>
+            <div style="background: #f4e8d6; padding: 1.25rem 1.25rem 1.25rem 1.25rem; ">
+                <p>
+                    @Properties.Resources.TokenCreateSucceeded
+                </p>
+            </div>
+        </p>
+    }
+</EditForm>
+@code {
+    [Inject]
+    public IJSRuntime JSRuntime { get; set; }
+    //Token expiration time.
+    public DateTimeOffset? TokenExpiration
+    {
+        get;
+        set;
+    }
+
+    //Generated token.
+    public string TokenName { get; set; } = "Generated";
+
+    //Generated token.
+    public string? Token
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Download the latest agent.
+    /// </summary>
+    public async void OnDownload()
+    {
+        try
+        {
+            DownloadAgent req = new DownloadAgent();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Download", req);
+            ClientHelpers.ValidateStatusCode(response);
+            DownloadAgentResponse ret = await response.Content.ReadFromJsonAsync<DownloadAgentResponse>();
+            string? url = ret.Urls.FirstOrDefault();
+            IJSObjectReference module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./download.js");
+            await module.InvokeVoidAsync("saveFile", url);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Generate new token.
+    /// </summary>
+    public async void OnToken()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            GXPersonalToken token = new GXPersonalToken();
+            token.Name = TokenName;
+            token.Expiration = TokenExpiration;
+            token.Scopes = new string[] { "agent.view","agent.add", "agent.edit",
+            "task.view", "task.edit", "object.edit",
+            "device.view", "device-error.add",
+            "agent-error.add", "device-trace.add",
+            "device-action.add", "value.add", "attribute.edit"};
+
+            UpdateToken req = new UpdateToken() { Tokens = new GXPersonalToken[] { token } };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Token/Add", req);
+            ClientHelpers.ValidateStatusCode(response);
+            UpdateTokenResponse ret = await response.Content.ReadFromJsonAsync<UpdateTokenResponse>();
+            Token = ret.Token;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            Notifier.ChangePage(GXPages.Agent, null);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Agent);
+    }
+}

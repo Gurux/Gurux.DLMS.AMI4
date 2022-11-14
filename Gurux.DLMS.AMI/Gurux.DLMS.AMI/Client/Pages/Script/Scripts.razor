@@ -1,0 +1,396 @@
+﻿@page "/scripts"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = "Admin, ScriptManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Scripts (@Properties.Resources.Total: @Total)</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+        <p>
+            <input type="checkbox"
+               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
+            @Properties.Resources.ShowRemoved
+        </p>
+    </AuthorizeView>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by update time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Name</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Updated</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="script" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(script)) @onclick="@(()=>RowSelected(script))">
+                    <td><span class=@(ClientHelpers.GetActiveDot(script.Active))></span>@script.Name</td>
+                    <td>@script.CreationTime</td>
+                    <td>@script.Updated</td>
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptManager)>
+                        @if (_active == script)
+                        {
+                            <td>
+                                <ContextMenuController>
+                                    <ChildContent>
+                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                    </ChildContent>
+                                </ContextMenuController>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                        }
+                    </AuthorizeView>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Scripts;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-script";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Script filter.
+    /// </summary>
+    private GXScript filter = new GXScript() { Active = null };
+    /// <summary>
+    /// User is verified before script is removed.
+    /// </summary>
+    protected ConfirmBase DeleteConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXScript>? virtualize;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXScript? _active;
+
+    /// <summary>
+    /// Are removed items shown for the admin.
+    /// </summary>
+    bool ShowRemoved;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async void Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected string GetSelectedClass(GXScript script)
+    {
+        return _active != null && script.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXScript selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Scripts, _active);
+    }
+
+    protected override void OnInitialized()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            //Get last selected item.
+            _active = (GXScript?)Notifier.GetData(GXPages.Scripts);
+            Notifier.On<IEnumerable<GXScript>>(this, nameof(IGXHubEvents.ScriptUpdate), (scripts) =>
+            {
+                Updated();
+            });
+            Notifier.On<IEnumerable<GXScript>>(this, nameof(IGXHubEvents.ScriptDelete), (scripts) =>
+            {
+                Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            Notifier.ChangePage(GXPages.Scripts, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXScript>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (ShowRemoved)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListScripts req = new ListScripts() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the scripts.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }
+            return new ItemsProviderResult<GXScript>(ret.Scripts, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new script.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier.Title = "New Script";
+            Notifier.Action = CrudAction.Create;
+            Notifier.UpdateData(GXPages.Scripts, new GXScript() { Active = true });
+            NavigationManager.NavigateTo("/scripttab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit script.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Edit Script";
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/scripttab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected script.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Remove Script";
+            Notifier.Action = CrudAction.Delete;
+            NavigationManager.NavigateTo("/scripttab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Scripts);
+        Notifier.RemoveListener(this);
+    }
+}
+

@@ -1,0 +1,525 @@
+﻿@page "/devicetemplate"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@inject ILogger<DeviceTemplate> Logger
+
+@if (template != null)
+{
+    <EditForm Model="@template">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <table>
+            <tr>
+                <th>
+                    @if (isLoading)
+                    {
+                        <p>Loading @fileName...</p>
+                    }
+                    else
+                    {
+                        @if (IsAdding)
+                        {
+                            <p><InputFile OnChange="@LoadFile" /></p>
+                        }
+                        @if (templates != null && templates.Any())
+                        {
+                            @if (IsAdding)
+                            {
+                            <th>Type:</th>
+                            <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device template type">
+                                    @if (templates != null)
+                                    {
+                                        @foreach (var it in templates)
+                                        {
+                                        <option value="@it.Type">@it.Type</option>
+                                        }
+                                    }
+                            </InputSelect>
+                            }
+                        }
+                    }
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Name:
+                </th>
+                <th>
+                    <InputText id="name" disabled="@IsDeleting"
+                           @bind-Value="TemplateName"
+                           placeholder="Device template name" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Wait time:
+                </th>
+                <th>
+                    <InputNumber id="waitTime" disabled="@IsDeleting"
+                             @bind-Value="template.WaitTime" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Resend count:
+                </th>
+                <th>
+                    <InputNumber id="resendCount" disabled="@IsDeleting"
+                             @bind-Value="template.ResendCount" />
+                </th>
+            </tr>
+            @if (template.Removed != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Remove</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
+                       @bind-Value="template.Removed" />
+                </div>
+            }
+        </table>
+    </EditForm>
+}
+@code {
+    private bool isLoading;
+    private GXDeviceTemplate template = new GXDeviceTemplate();
+    List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
+    private string SubmitText;
+    private string? Title;
+    private string? fileName = null;
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    //User changes name of the template.
+    string? TemplateName
+    {
+        get
+        {
+            if (template == null)
+            {
+                return null;
+            }
+            return template.Name;
+        }
+        set
+        {
+            if (template != null)
+            {
+                template.Name = value;
+                Notifier.UpdateData(GXPages.DeviceTemplates, template);
+                Notifier.UpdateData(GXPages.DeviceTemplate, template);
+            }
+        }
+    }
+
+    public bool IsAdding
+    {
+        get
+        {
+            return Notifier.Action == CrudAction.Create;
+        }
+    }
+
+    internal class Password
+    {
+        //Don't change this.
+        public static string Key = "Gurux Ltd.";
+    }
+
+    private string TemplateType
+    {
+        get
+        {
+            return template.Type;
+        }
+        set
+        {
+            foreach (GXDeviceTemplate it in templates)
+            {
+                if (it.Type == value)
+                {
+                    template = it;
+                    Notifier.UpdateData(GXPages.DeviceTemplates, template);
+                    Notifier.UpdateData(GXPages.DeviceTemplate, template);
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copy meter settings.
+    /// </summary>
+    /// <param name="target"></param>
+    /// <param name="source"></param>
+    public static void Copy(GXDeviceTemplate target, GXDLMSDevice source)
+    {
+        target.WaitTime = source.WaitTime;
+        target.ResendCount = source.ResendCount;
+        target.Type = source.Name;
+        target.MediaType = source.MediaType;
+        target.MediaSettings = source.MediaSettings;
+        var settings = new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings();
+        settings.MaximumBaudRate = source.MaximumBaudRate;
+        settings.Authentication = (byte)source.Authentication;
+        settings.Standard = (byte)source.Standard;
+        settings.Password = source.Password;
+        settings.HexPassword = source.HexPassword;
+        settings.Security = (byte)source.Security;
+        settings.ClientSystemTitle = source.SystemTitle;
+        settings.DeviceSystemTitle = source.ServerSystemTitle;
+        settings.DedicatedKey = source.DedicatedKey;
+        settings.PreEstablished = source.PreEstablished;
+        settings.BlockCipherKey = source.BlockCipherKey;
+        settings.AuthenticationKey = source.AuthenticationKey;
+        settings.InvocationCounter = source.InvocationCounter;
+        settings.FrameCounter = source.FrameCounter;
+        settings.Challenge = source.Challenge;
+        settings.PhysicalAddress = source.PhysicalAddress;
+        settings.LogicalAddress = source.LogicalAddress;
+        settings.UtcTimeZone = source.UtcTimeZone;
+        settings.ClientAddress = source.ClientAddress;
+        settings.UseRemoteSerial = source.UseRemoteSerial;
+        settings.InterfaceType = (int)source.InterfaceType;
+        settings.MaxInfoTX = source.MaxInfoTX;
+        settings.MaxInfoRX = source.MaxInfoRX;
+        settings.WindowSizeTX = source.WindowSizeTX;
+        settings.WindowSizeRX = source.WindowSizeRX;
+        settings.PduSize = source.PduSize;
+        settings.UserId = source.UserId;
+        settings.NetworkId = source.NetworkId;
+        settings.InactivityTimeout = source.InactivityTimeout;
+        settings.ServiceClass = (byte)source.ServiceClass;
+        settings.Priority = (byte)source.Priority;
+        settings.ServerAddressSize = source.ServerAddressSize;
+        settings.Conformance = source.Conformance;
+        settings.Manufacturer = source.Manufacturer;
+        settings.HDLCAddressing = (int)source.HDLCAddressing;
+        settings.UseLogicalNameReferencing = source.UseLogicalNameReferencing;
+        settings.UseProtectedRelease = source.UseProtectedRelease;
+        target.Settings = JsonSerializer.Serialize(settings);
+    }
+
+    private async void UpdateDeviceTemplates(string xml)
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            isLoading = true;
+            StateHasChanged();
+            GXDLMSDevice[] devices;
+            using (var tr = new StringReader(xml))
+            {
+                List<Type> types = new List<Type>(Gurux.DLMS.GXDLMSClient.GetObjectTypes());
+                types.Add(typeof(GXDLMSAttributeSettings));
+                types.Add(typeof(GXDLMSAttribute));
+                XmlSerializer serializer = new XmlSerializer(typeof(GXDLMSDevice[]), null, types.ToArray(), null, "Gurux1");
+                devices = (GXDLMSDevice[])serializer.Deserialize(tr);
+            }
+            GXDeviceTemplate m = new GXDeviceTemplate();
+            foreach (GXDLMSDevice it in devices)
+            {
+                int AssociationViewVersion = 1;
+                GXDeviceTemplate t = new GXDeviceTemplate();
+                Copy(t, it);
+                List<GXObjectTemplate> list = new List<GXObjectTemplate>();
+                if (it.Objects.Count == 0)
+                {
+                    throw new Exception("There are no objects. Read the association view first.");
+                }
+
+                if (it.UseLogicalNameReferencing)
+                {
+                    GXDLMSObjectCollection objs = it.Objects.GetObjects(Enums.ObjectType.AssociationLogicalName);
+                    if (objs.Any())
+                    {
+                        GXDLMSAssociationLogicalName? ln = objs[0] as GXDLMSAssociationLogicalName;
+                        if (ln != null)
+                        {
+                            AssociationViewVersion = ln.Version;
+                        }
+                    }
+                }
+
+                foreach (GXDLMSObject value in it.Objects)
+                {
+                    string[] names = ((IGXDLMSBase)value).GetNames();
+                    GXObjectTemplate obj = new GXObjectTemplate();
+                    obj.LogicalName = value.LogicalName;
+                    obj.ObjectType = (int)value.ObjectType;
+                    obj.Name = value.Description;
+                    obj.Version = value.Version;
+                    obj.ShortName = value.ShortName;
+                    list.Add(obj);
+                    for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
+                    {
+                        GXAttributeTemplate a = new GXAttributeTemplate();
+                        a.Name = names[pos - 1];
+                        a.Index = pos;
+                        if (AssociationViewVersion < 3)
+                        {
+                            a.AccessLevel = (int)value.GetAccess(pos);
+                        }
+                        else
+                        {
+                            a.AccessLevel = (int)value.GetAccess3(pos);
+                        }
+                        a.DataType = (int)((IGXDLMSBase)value).GetDataType(pos);
+                        a.UIDataType = (int)((GXDLMSObject)value).GetUIDataType(pos);
+                        if (value.GetStatic(pos))
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
+                        {
+                            //Add enum values as list items.
+                            try
+                            {
+                                object tmp = value.GetValues()[pos - 1];
+                                if (tmp != null)
+                                {
+                                    foreach (var v in Enum.GetValues(tmp.GetType()))
+                                    {
+                                        GXAttributeListItem li = new()
+                                            {
+                                                UIValue = v.ToString(),
+                                                Value = Convert.ToInt32(v)
+                                            };
+                                        a.ListItems.Add(li);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                //It's OK if this fails.
+                                Logger.LogError(ex.Message);
+                            }
+                        }
+                        //Profile generic capture objects are not read as default.
+                        if (value is GXDLMSProfileGeneric && pos == 3)
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        obj.Attributes.Add(a);
+                    }
+                    string sb = "";
+                    if (AssociationViewVersion < 3)
+                    {
+                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
+                        {
+                            sb += ((int)value.GetMethodAccess(pos)).ToString();
+                        }
+                    }
+                    else
+                    {
+                        sb = "0x";
+                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
+                        {
+                            sb += ((int)value.GetMethodAccess3(pos)).ToString("X");
+                        }
+                    }
+                    obj.ActionAccessLevels = sb;
+                    t.Objects = list;
+                }
+                templates.Add(t);
+            }
+            if (templates.Count != 0)
+            {
+                template = templates[0];
+            }
+            Notifier.UpdateData(GXPages.AvailableDeviceTemplates, templates);
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        fileName = e.File.Name;
+        try
+        {
+            templates.Clear();
+            Notifier?.ClearStatus();
+            string xml;
+            using (StreamReader reader = new StreamReader(e.File.OpenReadStream(8000000)))
+            {
+                xml = await reader.ReadToEndAsync();
+            }
+            await Task.Run(() => UpdateDeviceTemplates(xml));
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            template = (GXDeviceTemplate?)Notifier.GetData(GXPages.DeviceTemplates);
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Title = Notifier.Title;
+            if (!template.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get device template data.
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTemplate?id={0}", template.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                template = await response.Content.ReadFromJsonAsync<GXDeviceTemplate>();
+                templates.Add(template);
+                Notifier.UpdateData(GXPages.DeviceTemplates, template);
+                template.Modified = true;
+            }
+            else
+            {
+                templates = (List<GXDeviceTemplate>)Notifier.GetData(GXPages.AvailableDeviceTemplates);
+                if (templates == null)
+                {
+                    templates = new List<GXDeviceTemplate>();
+                }
+            }
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.ChangePage(GXPages.DeviceTemplate, template);
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save device template.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            HttpResponseMessage response;
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Delete", new DeviceTemplateDelete() { Ids = new Guid[] { template.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<DeviceTemplateDeleteResponse>();
+            }
+            else if (Notifier.Action == CrudAction.Create)
+            {
+                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Add", new UpdateDeviceTemplate() { Templates = new GXDeviceTemplate[] { template } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceTemplateResponse>();
+            }
+            else
+            {
+                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Update", new UpdateDeviceTemplate() { Templates = new GXDeviceTemplate[] { template } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceTemplateResponse>();
+            }
+            Notifier.UpdateData(GXPages.AvailableDeviceTemplates, null);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.UpdateData(GXPages.AvailableDeviceTemplates, null);
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.DeviceTemplate);
+    }
+}

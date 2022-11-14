@@ -1,0 +1,63 @@
+﻿@page "/config/triggermanage"
+@using Gurux.DLMS.AMI.Client.Pages.Trigger
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.TriggerManager + "," + GXRoles.TriggerGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
+            <TabPage Text=@Properties.Resources.Triggers Icon="oi oi-flash">
+                <div style="position: relative; width: 100%; ">
+                    <Triggers></Triggers>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
+            <TabPage Text=@Properties.Resources.TriggerGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <TriggerGroups></TriggerGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+
+    private int ActiveTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+        Notifier.UpdateData(GXPages.TriggerManage, index);
+    }
+
+    protected override void OnInitialized()
+    {
+        object? data = Notifier.GetData(GXPages.TriggerManage);
+        if ((data is int value) && value != 0)
+        {
+            ActiveTab = value;
+        }
+        Notifier.ChangePage(GXPages.TriggerManage, data, true);
+    }
+}
+

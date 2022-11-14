@@ -1,0 +1,246 @@
+﻿@page "/activeSystemLogs"
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject IGXNotifier Notifier
+@implements IGXComponentView
+@implements IDisposable
+
+@attribute [Authorize(Roles = "Admin, SystemLogManager")]
+
+@if (ActiveErrors != null)
+{
+    @foreach (var it in ActiveErrors)
+    {
+        <StatusTile Title="@GetErrorTitle(@it.Level)" OnClose="@OnClose" Target="@it" Mode="@GetTraceLevel(it)">
+            @it.Message
+        </StatusTile>
+    }
+}
+<CascadingValue Value=this>
+    @ChildContent
+</CascadingValue>
+@code {
+
+    /// <summary>
+    /// Amount of the errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 5;
+
+    TraceLevel GetTraceLevel(GXSystemLog item)
+    {
+        return (TraceLevel)item.Level.GetValueOrDefault();
+    }
+
+    string GetErrorTitle(int? level)
+    {
+        return ((TraceLevel)level.GetValueOrDefault()).ToString();
+    }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "Active system errors";
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-warning";
+        }
+    }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    GXSystemLog[] ActiveErrors = null;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            ActiveErrors = null;
+            await GetActiveErrors();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), () =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), (errors) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.CloseSystemLogs), (errors) =>
+            {
+                Task.Run(Updated);
+            });
+            await GetActiveErrors();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Get active errors.
+    /// </summary>
+    private async Task GetActiveErrors()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            GXSystemLog filter = new GXSystemLog()
+            {
+                    Level = null
+            };
+            ListSystemLogs req = new ListSystemLogs() { Filter = filter };
+            req.Count = Count;
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListSystemLogsResponse>();
+            ActiveErrors = ret.Errors;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Close the selected system error.
+    /// </summary>
+    /// <param name="error"></param>
+    /// <returns></returns>
+    public async Task OnClose(object sender)
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            CloseSystemLog arg = new CloseSystemLog();
+            arg.Errors = new Guid[] { (sender as GXSystemLog).Id };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Close", arg))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+                List<GXSystemLog> list = new List<GXSystemLog>();
+                list.AddRange(ActiveErrors);
+                list.Remove(sender as GXSystemLog);
+                ActiveErrors = list.ToArray();
+                await Updated();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                Notifier?.ProgressStart();
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Clear", new ClearSystemLog()))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

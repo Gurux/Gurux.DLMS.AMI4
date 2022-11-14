@@ -1,0 +1,298 @@
+﻿@using Gurux.DLMS.AMI.Client.Shared
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Text.Json
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Collections.Concurrent
+
+@inject HttpClient Http
+@inject ILogger<BlockTile> Logger
+@inject IGXNotifier Notifier
+@inject NavigationManager NavigationManager
+@inject GXModuleService modules
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@implements IDisposable
+@if (!updated)
+{
+    int pos = 0;
+    @lock (_blocks)
+    {
+        @foreach (var block in _blocks)
+        {
+            @if (block.Location == Location)
+            {
+                @if (block.Closable)
+                {
+                    <div class="@block.CssClass" role="@block.CssRole" style="@block.Style">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close" @onclick="async () => OnClose(block)">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                }
+                @if (block.BlockType == BlockType.Html && !string.IsNullOrWhiteSpace(block.Body))
+                {
+                    <div class="@block.CssClass" role="@block.CssRole" style="@block.Style">
+                        @if (!string.IsNullOrWhiteSpace(block.Title))
+                        {
+                            <p class='markup'>@((MarkupString)block.Title)</p>
+                        }
+                        <p class='markup'>@((MarkupString)block.Body)</p>
+                    </div>
+                }
+                else if (block.BlockType == BlockType.Component && block.ComponentView != null)
+                {
+                    if (!string.IsNullOrWhiteSpace(block.Title))
+                    {
+                        <p class='markup'>@((MarkupString)block.Title)</p>
+                    }
+                    Type? type = Type.GetType(block.ComponentView.ClassName);
+                    if (type != null && !string.IsNullOrEmpty(block.Name))
+                    {
+                        RenderFragment renderFragment = (builder) =>
+                        {
+                            builder.OpenComponent(pos, type);
+                            ++pos;
+                            @if (values.ContainsKey(block.Name))
+                            {
+                                object? target = values[block.Name];
+                                if (target != null)
+                                {
+                                    foreach (var it in values[block.Name].GetType().GetProperties())
+                                    {
+                                        if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                                        {
+                                            builder.AddAttribute(pos, it.Name, it.GetValue(target));
+                                            ++pos;
+                                        }
+                                    }
+                                }
+                            }
+                            builder.CloseComponent();
+                        };
+                        <div>
+                            @renderFragment
+                        </div>
+                    }
+                    else
+                    {
+                        Logger.LogError("Unknown component {0}", block.ComponentView.ClassName);
+                    }
+                }
+                else if (block.BlockType == BlockType.Script && block.Name != null && values.ContainsKey(block.Name))
+                {
+                    <div class="@block.CssClass" role="@block.CssRole" style="@block.Style">
+                        @if (!string.IsNullOrWhiteSpace(block.Title))
+                        {
+                            <p class='markup'>@((MarkupString)block.Title)</p>
+                        }
+                        <p class='markup'>@(new MarkupString((string)values[block.Name]))</p>
+                    </div>
+                }
+            }
+        }
+    }
+}
+@code {
+    static bool updated = true;
+    [Parameter]
+    public BlockLocation Location { get; set; }
+
+    static ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
+    static List<GXBlock> _blocks = new List<GXBlock>();
+
+    /// <summary>
+    /// Close the selected block.
+    /// </summary>
+    /// <param name="block"></param>
+    /// <returns></returns>
+    public async Task OnClose(object sender)
+    {
+        try
+        {
+            CloseBlock arg = new CloseBlock();
+            arg.Blocks = new Guid[] { (sender as GXBlock).Id };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/Close", arg))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+                lock (_blocks)
+                {
+                    _blocks.Remove(sender as GXBlock);
+                }
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (updated)
+            {
+                //Blocks are read only once.
+                updated = false;
+                lock (_blocks)
+                {
+                    _blocks.Clear();
+                }
+                values.Clear();
+                GXBlock filter = new GXBlock();
+                //Get only active blocks.
+                filter.Active = true;
+                //Get only blocks for the current user. Admin needs this.
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                string? id = authState.User.FindFirst(c => c.Type == "sub")?.Value;
+                filter.User = new AMI.Shared.DTOs.Authentication.GXUser() { Id = id };
+                ListBlocks req = new ListBlocks() { Filter = filter };
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/List", req);
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<ListBlocksResponse>();
+                if (ret != null)
+                {
+                    foreach (var block in ret.Blocks)
+                    {
+                        if (block.BlockType == BlockType.Component &&
+                            !string.IsNullOrEmpty(block.Name) &&
+                            block.ComponentView != null)
+                        {
+                            Type? type = Type.GetType(block.ComponentView.ClassName);
+                            if (type == null)
+                            {
+                                await modules.LoadModules(Http);
+                                type = Type.GetType(block.ComponentView.ClassName);
+                                if (type == null)
+                                {
+                                    throw new ArgumentException("Unknown component name: " + block.ComponentView.ClassName);
+                                }
+                            }
+                            if (!string.IsNullOrEmpty(block.ComponentView.ClassName) && !string.IsNullOrEmpty(block.Body))
+                            {
+                                object? value = JsonSerializer.Deserialize(block.Body, type);
+                                if (value != null)
+                                {
+                                    values[block.Name] = value;
+                                }
+                            }
+                        }
+                        if (block.BlockType == BlockType.Script &&
+                            !string.IsNullOrEmpty(block.Name) &&
+                            block.ScriptMethod != null)
+                        {
+                            RunScript req2 = new RunScript() { MethodId = block.ScriptMethod.Id };
+                            response = await Http.PostAsJsonAsync("api/Script/Run", req2);
+                            ClientHelpers.ValidateStatusCode(response);
+                            RunScriptResponse? ret2 = await response.Content.ReadFromJsonAsync<RunScriptResponse>();
+                            if (ret2 != null && ret2.Result != null)
+                            {
+                                values[block.Name] = Convert.ToString(ret2.Result);
+                            }
+                        }
+                        if (block.BlockType == BlockType.Html)
+                        {
+                            //Get localized resource.
+                            List<GXLocalizedResource> resources = new List<GXLocalizedResource>();
+                            if (!string.IsNullOrEmpty(block.Title))
+                            {
+                                resources.Add(new GXLocalizedResource() { Value = block.Title });
+                            }
+                            if (!string.IsNullOrEmpty(block.Body))
+                            {
+                                resources.Add(new GXLocalizedResource() { Value = block.Body });
+                            }
+                            GXLanguage language = new GXLanguage() { Resources = resources.ToArray() };
+                            ListLanguages req2 = new ListLanguages() { Filter = language };
+                            response = await Http.PostAsJsonAsync("api/Localization/List", req2);
+                            ClientHelpers.ValidateStatusCode(response);
+                            ListLanguagesResponse? ret2 = await response.Content.ReadFromJsonAsync<ListLanguagesResponse>();
+                            if (ret2 != null && ret2.Languages != null && ret2.Languages.Length == 1)
+                            {
+                                if (ret2.Languages[0].Resources != null && ret2.Languages[0].Resources.Any())
+                                {
+                                    int pos = 0;
+                                    if (!string.IsNullOrEmpty(block.Title))
+                                    {
+                                        block.Title = ret2.Languages[0].Resources[pos].Value;
+                                        ++pos;
+                                    }
+                                    if (!string.IsNullOrEmpty(block.Body))
+                                    {
+                                        block.Body = ret2.Languages[0].Resources[pos].Value;
+                                    }
+                                    //Update UI.
+                                    StateHasChanged();
+                                }
+                            }
+                        }
+                    }
+                    if (ret.Blocks.Length != 0)
+                    {
+                        lock (_blocks)
+                        {
+                            _blocks.Clear();
+                            _blocks.AddRange(ret.Blocks);
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            updated = true;
+            Logger.LogError("Block list failed. {ex.Message}", ex);
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Blocks and scripts are listen because UI is updated if they change.
+            Notifier.On<IEnumerable<GXBlock>>(this, nameof(IGXHubEvents.BlockUpdate), async (blocks) =>
+            {
+                updated = true;
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXBlock>>(this, nameof(IGXHubEvents.BlockDelete), async (block) =>
+            {
+                updated = true;
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXScript>>(this, nameof(IGXHubEvents.ScriptUpdate), async (script) =>
+            {
+                updated = true;
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXScript>>(this, nameof(IGXHubEvents.ScriptDelete), async (script) =>
+            {
+                updated = true;
+                await Updated();
+            });
+            await Updated();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Block list failed. {ex.Message}", ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

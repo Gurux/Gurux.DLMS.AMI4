@@ -1,0 +1,618 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Toaster
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.Extensions.Logging
+@using System.Diagnostics
+@using Gurux.DLMS.AMI.Module
+@using System.Text
+@using System.Text.Json
+
+@inject ILogger<StatusTile> Logger
+@inject IGXNotifier Notifier
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject HttpClient Http
+
+@if (MaintenanceMode && MaintenanceModeMessage != null)
+{
+    <div class="alert alert-info alert-dismissible fade show" role="banner">
+        <p class='markup'>@((MarkupString)MaintenanceModeMessage)</p>
+        @if (MaintenanceModeEnds != null)
+        {
+            <hr />
+            <p>
+                @Properties.Resources.MaintenanceModeEnds
+                <br />
+                @MaintenanceModeEnds
+            </p>
+        }
+    </div>
+}
+@if (!MaintenanceMode || (IsAdmin != null && IsAdmin.Value))
+{
+    @if (Mode != TraceLevel.Off)
+    {
+        <div class="@GetDivClass()" role="@GetRole()">
+            @if (Closable)
+            {
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close" @onclick="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            }
+            @if (Title != null)
+            {
+                <h4 class="@GetClass()">@((MarkupString)Title)</h4>
+                <hr>
+            }
+            <p>@ChildContent</p>
+        </div>
+    }
+}
+@code {
+    string GetDivClass()
+    {
+        string str;
+        switch (Mode)
+        {
+            case TraceLevel.Info:
+                str = "alert alert-info alert-dismissible fade show";
+                break;
+            case TraceLevel.Warning:
+                str = "alert alert-warning alert-dismissible fade show";
+                break;
+            case TraceLevel.Error:
+                str = "alert alert-danger";
+                str = "alert alert-danger alert-dismissible fade show";
+                break;
+            default:
+                throw new ArgumentException(nameof(GetDivClass));
+        }
+        return str;
+    }
+
+    string GetRole()
+    {
+        string str;
+        switch (Mode)
+        {
+            case TraceLevel.Info:
+                str = "alert-info";
+                break;
+            case TraceLevel.Warning:
+                str = "alert";
+                break;
+            case TraceLevel.Error:
+                str = "alert-danger";
+                break;
+            default:
+                throw new ArgumentException(nameof(GetRole));
+        }
+        return str;
+    }
+
+    string GetClass()
+    {
+        string str;
+        switch (Mode)
+        {
+            case TraceLevel.Info:
+                str = "alert-heading";
+                break;
+            case TraceLevel.Warning:
+                str = "alert-heading";
+                break;
+            case TraceLevel.Error:
+                str = "alert-heading";
+                break;
+            default:
+                throw new ArgumentException(nameof(GetClass));
+        }
+        return str;
+    }
+
+    /// <summary>
+    /// Is status closable.
+    /// </summary>
+    [Parameter]
+    public bool Closable { get; set; } = true;
+
+    /// <summary>
+    /// Is site on maintenance mode.
+    /// </summary>
+    public bool MaintenanceMode { get; set; }
+
+    /// <summary>
+    /// If User is admin.
+    /// </summary>
+    public bool? IsAdmin { get; set; }
+
+    /// <summary>
+    /// Maintenance mode message.
+    /// </summary>
+    public string? MaintenanceModeMessage { get; set; }
+
+    /// <summary>
+    /// Maintenance mode ends.
+    /// </summary>
+    public DateTimeOffset? MaintenanceModeEnds { get; set; }
+
+    /// <summary>
+    /// Mode of the status tile.
+    /// </summary>
+    [Parameter]
+    public TraceLevel Mode { get; set; } = TraceLevel.Off;
+
+
+    /// <summary>
+    /// The title of the status tile.
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+
+    public void Clear()
+    {
+        bool changed = Title != null;
+        Title = null;
+        Mode = TraceLevel.Off;
+        if (changed)
+        {
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Show information text for the user.
+    /// </summary>
+    /// <param name="value">Information text</param>
+    public void ShowInformation(string value, bool closable = false)
+    {
+        Closable = closable;
+        Mode = TraceLevel.Info;
+        Title = value;
+        Title = Title.Replace(Environment.NewLine, "<br>");
+        Logger.LogInformation(value);
+        StateHasChanged();
+    }
+
+    public void ProcessError(Exception ex)
+    {
+        if (ex is GXMaintenanceException e)
+        {
+            MaintenanceMode = true;
+            MaintenanceModeMessage = e.Message;
+            MaintenanceModeEnds = e.EndTime;
+        }
+        else
+        {
+            Mode = TraceLevel.Error;
+            if (ex is GXAmiException e1)
+            {
+                Title = e1.Message;
+                Title = Title.Replace(Environment.NewLine, "<br>");
+                Logger.LogError("Error:ProcessError - Type: {Type} Message: {Message}, CreationTime: {CreationTime}, ID: {Id}",
+                    ex.GetType(), ex.Message, e1.CreationTime, e1.Id);
+            }
+            else
+            {
+                Title = ex.Message;
+                Title = Title.Replace(Environment.NewLine, "<br>");
+                Logger.LogError("Error:ProcessError - Type: {0} Message: {1}, {2}", ex.GetType(), ex.Message, ex.StackTrace);
+            }
+        }
+        StateHasChanged();
+    }
+    public void ProcessErrors(IEnumerable<object> errors)
+    {
+        Mode = TraceLevel.Error;
+        StringBuilder sb = new StringBuilder();
+        foreach (GXScriptException error in errors)
+        {
+            sb.AppendFormat("Line: {0}, ID: {1}, {2}", error.Line, error.Id, error.Message);
+        }
+        Title = sb.ToString(); ;
+        Title = Title.Replace(Environment.NewLine, "<br>");
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Content of the tile.
+    /// </summary>
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Tile is closed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<object> OnClose { get; set; }
+
+    /// <summary>
+    /// Target.
+    /// </summary>
+    [Parameter]
+    public object Target { get; set; }
+
+
+    protected async Task Close()
+    {
+        Mode = TraceLevel.Off;
+        await OnClose.InvokeAsync(Target);
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (IsAdmin == null)
+            {
+                //Read admin state only once.
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                if (user.Identity != null && user.Identity.IsAuthenticated)
+                {
+                    IsAdmin = user.IsInRole("Admin");
+                }
+                //Get the status of the maintenance mode.
+                if (IsAdmin != null && IsAdmin.Value)
+                {
+                    try
+                    {
+                        ListConfiquration req = new ListConfiquration()
+                            {
+                                Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
+                                {
+                                    Name = GXConfigurations.Maintenance
+                                }
+                            };
+                        HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/List", req);
+                        ClientHelpers.ValidateStatusCode(response);
+                        var ret = await response.Content.ReadFromJsonAsync<ListConfiqurationResponse>();
+                        if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
+                        {
+                            MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(ret.Configurations[0].Settings);
+                            if (settings != null)
+                            {
+                                MaintenanceMode = settings.MaintenanceMode;
+                                MaintenanceModeMessage = settings.Message;
+                                MaintenanceModeEnds = settings.EndTime;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ProcessError(ex);
+                    }
+                }
+            }
+
+            //If the maintenance mode has been changed.
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+            {
+                foreach (var it in configurations)
+                {
+                    if (it.Name == GXConfigurations.Maintenance && !string.IsNullOrEmpty(it.Settings))
+                    {
+                        //Notify if maintenance has been updated.
+                        MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
+                        if (settings != null)
+                        {
+                            MaintenanceMode = settings.MaintenanceMode;
+                            MaintenanceModeMessage = settings.Message;
+                            MaintenanceModeEnds = settings.EndTime;
+                        }
+                        StateHasChanged();
+                        break;
+                    }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Status tile failed. {ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// Convert value to data time.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted DateTime value.</returns>
+    public static DateTime ToDateTime(object value)
+    {
+        if (value == null || (value is string s) && s == "")
+        {
+            return DateTime.MinValue;
+        }
+        try
+        {
+            return Convert.ToDateTime(value);
+        }
+        catch (Exception)
+        {
+            return DateTime.MinValue;
+        }
+    }
+    /// <summary>
+    /// Convert value to data time.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted DateTime value.</returns>
+    public static DateTimeOffset? ToDateTimeOffset(object value)
+    {
+        if (value == null || (value is string s) && s == "")
+        {
+            return null;
+        }
+        try
+        {
+            return Convert.ToDateTime(value);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to Guid.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted Guid value.</returns>
+    public static Guid ToGuid(object value)
+    {
+        if ((value is string s) && s == "")
+        {
+            return Guid.Empty;
+        }
+        try
+        {
+            return Guid.Parse(Convert.ToString(value));
+        }
+        catch (Exception ex)
+        {
+            return Guid.Empty;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to signed byte.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted signed byte value.</returns>
+    public sbyte ToSByte(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToSByte(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to Int16.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted Int16 value.</returns>
+    public Int16 ToInt16(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToInt16(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to Int32.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted Int32 value.</returns>
+    public static Int32? ToInt32(object value)
+    {
+        if (value == null || (value is string s) && s == "")
+        {
+            return null;
+        }
+        try
+        {
+            return Convert.ToInt32(value);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+    /// <summary>
+    /// Convert value to Int64.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted Int64 value.</returns>
+    public Int64 ToInt64(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToInt64(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+
+    /// <summary>
+    /// Convert value to byte.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted byte value.</returns>
+    public byte ToByte(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToByte(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to UInt16.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted UInt16 value.</returns>
+    public UInt16 ToUInt16(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToUInt16(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to UInt32.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted UInt32 value.</returns>
+    public UInt32 ToUInt32(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToUInt32(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+    /// <summary>
+    /// Convert value to UInt64.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted UInt64 value.</returns>
+    public UInt64 ToUInt64(object value)
+    {
+        Clear();
+        if ((value is string s) && s == "")
+        {
+            return 0;
+        }
+        try
+        {
+            return Convert.ToUInt64(value);
+        }
+        catch (Exception ex)
+        {
+            ProcessError(ex);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Convert value to boolean.
+    /// </summary>
+    /// <remarks>
+    /// Error is handled and shown in Error tile.
+    /// </remarks>
+    /// <param name="value">Converted value.</param>
+    /// <returns>Converted boolean value.</returns>
+    public static bool ToBoolean(object value)
+    {
+        if ((value is string s) && s == "")
+        {
+            return false;
+        }
+        try
+        {
+            return Convert.ToBoolean(value);
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+    }
+}

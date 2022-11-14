@@ -1,0 +1,257 @@
+﻿@page "/scriptview"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Script)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<ScriptView> _logger;
+
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableCheckbox @bind-Value="@_active.Active" />
+                    <label>@Properties.Resources.Active</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <InputCheckbox @bind-Value="_active.ServerSide" />
+                    <label>@Properties.Resources.ServerSide</label>
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" @bind-Value="_active.Name" class="form-control" />
+                </div>
+                <ScriptEditor @bind-SourceCode="_active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
+                <button class="btn button" @onclick="OnValidate">
+                    <div class="oi oi-flash"></div>
+                    &nbsp;Validate
+                </button>
+                @if (_active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Updated" />
+                    </div>
+                }
+                @if (_active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_active.Removed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    private GXScript? _active;
+    private string SubmitText = "";
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            //Get selected item.
+            _active = (GXScript?)Notifier.GetData(GXPages.Scripts);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            if (!_active.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get script view data.
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Script?id={0}", _active.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _active = await response.Content.ReadFromJsonAsync<GXScript>();
+                Notifier.UpdateData(GXPages.Scripts, _active);
+                _active.Modified = true;
+            }
+            Notifier.ChangePage(GXPages.Script, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Validate the script.
+    /// </summary>
+    public async void OnValidate()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (string.IsNullOrEmpty(_active.SourceCode))
+            {
+                throw new Exception("No script to execute.");
+            }
+            ValidateScript req = new ValidateScript() { Script = _active.SourceCode };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/Validate", req);
+            ClientHelpers.ValidateStatusCode(response);
+            ValidateScriptResponse ret = await response.Content.ReadFromJsonAsync<ValidateScriptResponse>();
+            GXScriptException[]? errors = null;
+            if (!string.IsNullOrEmpty(ret.Errors))
+            {
+                errors = JsonSerializer.Deserialize<GXScriptException[]>(ret.Errors);
+            }
+            if (errors != null)
+            {
+                Notifier?.ProcessErrors(errors);
+            }
+            else
+            {
+                Notifier?.ShowInformation(string.Format("Script build {0}. Build time: {1} ms.", DateTime.Now, ret.CompileTime));
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save script.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/Delete", new DeleteScript() { ScriptIds = new Guid[] { _active.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<DeleteScriptResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/Script/Add";
+                }
+                else
+                {
+                    address = "api/Script/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateScript()
+                    {
+                        Scripts = new List<GXScript>() { _active }
+                    });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateScriptResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+}

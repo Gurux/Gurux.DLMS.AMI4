@@ -1,0 +1,484 @@
+﻿@page "/agentsmanage"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+@implements IGXComponentView
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter && filter != null)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by generation..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by detected..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Detected = Convert.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by available version..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by update version..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.UpdateVersion = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by version..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Name</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Detected</th>
+            <th>@Properties.Resources.Status</th>
+            <th>@Properties.Resources.AvailableVersion</th>
+            <th>@Properties.Resources.UpdateVersion</th>
+            <th>@Properties.Resources.Version</th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="agent" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(agent)) @onclick="@(()=>RowSelected(agent))">
+                    <td><span class=@(GetDot(agent))></span>@agent.Name</td>
+                    <td>@agent.CreationTime</td>
+                    <td>@agent.Detected</td>
+                    <td>@agent.Status</td>
+                    <td>@agent.AvailableVersion</td>
+                    <td>@agent.UpdateVersion</td>
+                    <td>@GetVersion(agent.Version)</td>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+@if (_active != null)
+{
+    <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+         ConfirmationMessage=@($"Are you sure you want to delete \"{_active.Name}\"?")>
+    </Confirm>
+    <Confirm @ref="UpdateConfirmation" ConfirmationChanged="OnUpdateConfirmation" OkTitle="@Properties.Resources.Update"
+         ConfirmationTitle="@Properties.Resources.ConfirmUpdate"
+         ConfirmationMessage=@(string.Format("Are you sure you want to update the agent {0}?\r\nAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete.", _active.Name))>
+    </Confirm>
+
+    <Confirm @ref="UpdatesConfirmation" ConfirmationChanged="OnUpdatesConfirmation" OkTitle="@Properties.Resources.Update"
+         ConfirmationTitle="@Properties.Resources.ConfirmUpdate"
+         ConfirmationMessage=@("Are you sure you want to update all agents in this agent group?\r\rAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete.")>
+    </Confirm>
+}
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "Agent updates";
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    //Green dot is shown if agent is update and yellow if there is a new version available.
+    protected string GetDot(GXAgent agent)
+    {
+        if (!string.IsNullOrEmpty(agent.UpdateVersion))
+        {
+            return "green-dot";
+        }
+        if (!string.IsNullOrEmpty(agent.AvailableVersion) && agent.AvailableVersion != agent.Version)
+        {
+            return "yellow-dot";
+        }
+        return "";
+    }
+
+    private string? GetVersion(string? version)
+    {
+        if (version == null)
+        {
+            return Properties.Resources.CustomBuild;
+        }
+        return version;
+    }
+
+    private GXAgent[]? agents = null;
+    private GXAgent filter = new GXAgent() { Template = true};
+    //Verify that agant can be removed.
+    protected ConfirmBase? DeleteConfirmation;
+    //Verify that agent can be updated.
+    protected ConfirmBase? UpdateConfirmation;
+    //Verify that all agent can be updated.
+    protected ConfirmBase? UpdatesConfirmation;
+
+    protected Virtualize<GXAgent>? virtualize;
+    private GXAgent? _active;
+
+    protected string GetSelectedClass(GXAgent agent)
+    {
+        return _active != null && agent.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected async void Updated()
+    {
+        if (virtualize != null)
+        {
+            Notifier?.ClearStatus();
+            await virtualize.RefreshDataAsync();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Agent status has changed.
+    /// </summary>
+    /// <param name="agent">Changed agent.</param>
+    protected async void StateChanged(IEnumerable<GXAgent> list)
+    {
+        try
+        {
+            if (agents != null)
+            {
+                foreach (var agent in list)
+                {
+                    foreach (var it in agents)
+                    {
+                        if (it.Id == agent.Id)
+                        {
+                            it.Status = agent.Status;
+                            if (agent.Detected != null)
+                            {
+                                it.Detected = agent.Detected;
+                            }
+                            if (agent.AvailableVersion != null)
+                            {
+                                it.AvailableVersion = agent.AvailableVersion;
+                            }
+                            break;
+                        }
+                    }
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            agents = null;
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), (agents) =>
+            {
+                Updated();
+            });
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), (agents) =>
+            {
+                Updated();
+            });
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentStatusChange), (agents) =>
+            {
+                StateChanged(agents);
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Update, Icon = "oi oi-trash", OnClick = OnUpdateVersion });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(ItemsProviderRequest request)
+    {
+        agents = null;
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListAgents req = new ListAgents()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListAgentsResponse>();
+            agents = ret.Agents;
+            Total = ret.Count;
+            //Get only selected amount of the devices.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }
+            ItemsProviderResult<GXAgent> value = new ItemsProviderResult<GXAgent>(ret.Agents, ret.Count);
+            return value;
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Update the selected agent to the new version.
+    /// </summary>
+
+    public void OnUpdateVersion()
+    {
+        try
+        {
+            UpdateConfirmation.Show();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+
+    /// <summary>
+    /// Remove the agent.
+    /// </summary>
+
+    public async Task OnDeleteConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm && _active != null)
+            {
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Delete",
+                    new AgentDelete() { Ids = new Guid[] { _active.Id } }))
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    /// <summary>
+    /// Update the agent.
+    /// </summary>
+
+    public async Task OnUpdateConfirmation(bool confirm)
+    {
+        if (confirm)
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            try
+            {
+                if (_active == null)
+                {
+                    throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                }
+                if (_active.Version == _active.AvailableVersion)
+                {
+                    throw new Exception("Version is already used.");
+                }
+                _active.UpdateVersion = _active.AvailableVersion;
+                UpdateAgent req = new UpdateAgent() { Agents = new GXAgent[] { _active } };
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/agent/Update", req);
+                ClientHelpers.ValidateStatusCode(response);
+            }
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier?.ProgressEnd();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update all agents in this agent group.
+    /// </summary>
+    public async Task OnUpdatesConfirmation(bool confirm)
+    {
+        if (confirm)
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            try
+            {
+                foreach (GXAgent agent in agents)
+                {
+                    agent.UpdateVersion = agent.AvailableVersion;
+                }
+                UpdateAgent req = new UpdateAgent() { Agents = agents };
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/agent/Update", req);
+                ClientHelpers.ValidateStatusCode(response);
+            }
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier?.ProgressEnd();
+            }
+        }
+    }
+
+
+    public void RowSelected(GXAgent selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Agents, _active);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Agents);
+        Notifier.RemoveListener(this);
+    }
+}

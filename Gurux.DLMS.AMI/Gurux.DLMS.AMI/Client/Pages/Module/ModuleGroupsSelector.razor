@@ -1,0 +1,116 @@
+﻿@page "/modulegroupsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, ModuleGroup, ModuleGroupManager, UserGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="moduleGroups" />
+    <SelectionList Title="Available" ItemList="AllModuleGroups" />
+</SelectionContainer>
+
+@code {
+    List<GXModuleGroup> AllModuleGroups = new List<GXModuleGroup>();
+    List<GXModuleGroup> moduleGroups = new List<GXModuleGroup>();
+
+
+    public void OnUpdated(object target)
+    {
+
+    }
+
+    public string GetName(object target)
+    {
+        return (target as GXModuleGroup).Name;
+    }
+    public string GetDescription(object target)
+    {
+        return (target as GXModuleGroup).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            string? page = Notifier.GetLastPage();
+            ListModuleGroups req = new ListModuleGroups()
+                {
+                    Filter = new GXModuleGroup()
+                };
+            if (page == GXPages.UserManage)
+            {
+                //Add selected module.
+                GXUserGroup userGroup = (GXUserGroup)Notifier.GetData(GXPages.UserGroup);
+                if (userGroup != null)
+                {
+                    moduleGroups = userGroup.ModuleGroups;
+                }
+            }
+            else if (page == GXPages.ModuleManage)
+            {
+                //Add selected module.
+                GXModule module = (GXModule)Notifier.GetData(GXPages.Module);
+                if (module != null)
+                {
+                    moduleGroups = module.ModuleGroups;
+                }
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !moduleGroups.Any();
+            Notifier.ChangePage(GXPages.ModuleGroupsSelector, null);
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ModuleGroup/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListModuleGroupsResponse>();
+            foreach (GXModuleGroup it in ret.ModuleGroups)
+            {
+                //Add default groups when new module is created.
+                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value && 
+                    !moduleGroups.Where(q => q.Id == it.Id).Any())
+                {
+                    moduleGroups.Add(it);
+                }
+                if (!moduleGroups.Exists(q => q.Id == it.Id))
+                {
+                    AllModuleGroups.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.ModuleGroupsSelector);
+    }
+}
+

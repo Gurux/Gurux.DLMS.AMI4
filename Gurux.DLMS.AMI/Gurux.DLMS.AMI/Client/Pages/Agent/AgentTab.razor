@@ -1,0 +1,59 @@
+﻿@page "/agenttab"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentManager + "," + GXRoles.AgentGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<TabControl SelectionChanged="SelectionChanged">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-browser">
+                <div style="position: relative; width: 100%; ">
+                    <Agent></Agent>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+            <TabPage Text=@Properties.Resources.AgentGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <AgentGroupsSelector></AgentGroupsSelector>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private string? Title;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+    }
+
+    protected override void OnInitialized()
+    {
+        Title = Notifier.Title;
+        Notifier.RemoveLastPage(GXPages.Agents);
+    }
+}
+

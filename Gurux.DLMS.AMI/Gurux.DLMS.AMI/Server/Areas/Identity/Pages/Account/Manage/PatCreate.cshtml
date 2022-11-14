@@ -1,0 +1,398 @@
+﻿@page
+
+@using Microsoft.AspNetCore.Builder
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.Extensions.Options
+@using System.Net.Http
+
+@model PatCreate
+@{
+    ViewData["Title"] = ViewData["Pat"];
+    ViewData["ActivePage"] = ManageNavPages.Pat;
+}
+
+
+@if (Model.PersonalUserToken == null)
+{
+    <h4>@ViewData["Title"]</h4>
+}
+else
+{
+    <h4>@ViewData["Succeeded"]</h4>
+}
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+@if (Model.PersonalUserToken != null)
+{
+    @ViewData["TokenCreateSucceeded"]
+    <p>
+        @Model.PersonalTokenName
+    </p>
+    @Environment.NewLine
+    <input id="pet" asp-for=@Model.PersonalUserToken readonly />
+    <button id="copy" class="btn btn-secondary" onclick="pageController.copyToClipboard('pet')">@ViewData["Copy"]</button>
+
+    <p>
+        <div style="background: #f4e8d6; padding: 1.25rem 1.25rem 1.25rem 1.25rem; ">
+            <p>
+                @ViewData["TokenCreateInfo"]
+            </p>
+        </div>
+    </p>
+    <a id="close" asp-page="Pat" class="btn btn-secondary">@ViewData["Close"]</a>
+}
+else
+{
+    <div class="row">
+        <div class="col-md-6">
+            <form id="profile-form" asp-page-handler="Create" method="post">
+                <div class="form-group">
+                    <label>@ViewData["Name"]</label>
+                    <input asp-for="TokenName" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@ViewData["Expiration"]</label>
+                    <input asp-for="TokenExpiration" class="form-control" />
+                    <span asp-validation-for="TokenExpiration" class="text-danger"></span>
+                </div>
+                <span>
+                    <h3>Scopes</h3>
+                    Authorize the scope of access associated with this token
+                    <br />
+                    <input type="radio" name="scopes" value="0" checked="checked" onchange="$('.Box').hide('slow')" />
+                    Full access
+                    <br />
+                    <input type="radio" name="scopes" value="1" onchange="$('.Box').show('slow')" />
+                    Custom defined
+                </span>
+                <div id="selectedscopes" class="Box" style="display:none">
+                    <hr />
+                    <b>Device</b>
+                    <br />
+                    User can manage device data.
+                    <br />
+                    <input type="checkbox" id="device.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="device.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="device.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="device.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Device group</b>
+                    <br />
+                    User can manage device group data.
+                    <br />
+                    <input type="checkbox" id="devicegroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="devicegroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="devicegroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="devicegroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>User</b>
+                    <br />
+                    User can manage user data.
+                    <br />
+                    <input type="checkbox" id="user.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="user.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="user.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="user.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>User group</b>
+                    <br />
+                    User can manage user group data.
+                    <br />
+                    <input type="checkbox" id="usergroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="usergroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="usergroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="usergroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Schedule</b>
+                    <br />
+                    User can manage schedule data.
+                    <br />
+                    <input type="checkbox" id="schedule.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="schedule.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="schedule.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="schedule.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Schedule group</b>
+                    <br />
+                    User can manage schedule group data.
+                    <br />
+                    <input type="checkbox" id="schedulegroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="schedulegroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="schedulegroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="schedulegroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Agent</b>
+                    <br />
+                    User can manage agent data.
+                    <br />
+                    <input type="checkbox" id="agent.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="agent.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="agent.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="agent.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Agent group</b>
+                    <br />
+                    User can manage agent group data.
+                    <br />
+                    <input type="checkbox" id="agentgroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="agentgroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="agentgroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="agentgroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Block</b>
+                    <br />
+                    User can manage block data.
+                    <br />
+                    <input type="checkbox" id="block.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="block.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="block.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="block.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Block group</b>
+                    <br />
+                    User can manage block group data.
+                    <br />
+                    <input type="checkbox" id="blockgroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="blockgroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="blockgroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="blockgroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Component view</b>
+                    <br />
+                    User can manage component view data.
+                    <br />
+                    <input type="checkbox" id="componentView.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="componentView.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="componentView.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="componentView.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Component view group</b>
+                    <br />
+                    User can manage component view group data.
+                    <br />
+                    <input type="checkbox" id="componentviewgroup.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="componentviewgroup.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="componentviewgroup.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="componentviewgroup.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Configuration</b>
+                    <br />
+                    User can manage configuration data.
+                    <br />
+                    <input type="checkbox" id="configuration.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="configuration.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="configuration.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="configuration.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <input type="checkbox" id="configuration.cron" />
+                    @ViewData["Cron"]&emsp;
+                    <hr />
+                    <b>Device template </b>
+                    <br />
+                    User can manage device template data.
+                    <br />
+                    <input type="checkbox" id="device-template.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="device-template.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="device-template.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="device-template.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>Device template group</b>
+                    <br />
+                    User can manage device template group data.
+                    <br />
+                    <input type="checkbox" id="device-template-group.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="device-template-group.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="device-template-group.edit" />
+                    @ViewData["Edit"]&emsp;
+                    <input type="checkbox" id="device-template-group.delete" />
+                    @ViewData["Delete"]&emsp;
+                    <hr />
+                    <b>System error</b>
+                    <br />
+                    User can manage system errors.
+                    <br />
+                    <input type="checkbox" id="systemerror.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="systemerror.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="systemerror.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Device error</b>
+                    <br />
+                    User can manage device errors.
+                    <br />
+                    <input type="checkbox" id="device-error.add" />
+                    @ViewData["Add"]&emsp;
+                    <input type="checkbox" id="device-error.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="device-error.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="device-error.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Workflow log</b>
+                    <br />
+                    User can manage workflow log.
+                    <br />
+                    <input type="checkbox" id="workflow-log.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="workflow-log.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="workflow-log.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Schedule logs</b>
+                    <br />
+                    User can manage schedule errors.
+                    <br />
+                    <input type="checkbox" id="schedule-log.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="schedule-log.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="schedule-log.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Script log</b>
+                    <br />
+                    User can manage script logs.
+                    <br />
+                    <input type="checkbox" id="script-log.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="script-log.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="script-log.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>User error</b>
+                    <br />
+                    User can manage user errors.
+                    <br />
+                    <input type="checkbox" id="user-error.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="user-error.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="user-error.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Module logs</b>
+                    <br />
+                    User can manage module logs.
+                    <br />
+                    <input type="checkbox" id="module-log.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="module-log.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="module-log.close" />
+                    @ViewData["Close"]
+                    <hr />
+                    <b>Agent error</b>
+                    <br />
+                    User can manage agent errors.
+                    <br />
+                    <input type="checkbox" id="agent-log.view" />
+                    @ViewData["View"]&emsp;
+                    <input type="checkbox" id="agent-log.clear" />
+                    @ViewData["Clear"]&emsp;
+                    <input type="checkbox" id="agent-log.close" />
+                    @ViewData["Close"]
+                    <hr />
+                </div>
+                <br />
+                <button type="submit" class="btn btn btn-primary" onclick="pageController.getCustomScopes()">@ViewData["Create"]</button>
+                <input type="hidden" id="customScopes" name="selectedScopes" value="" />
+                <a id="cancel" asp-page="Pat" class="btn btn-secondary">@ViewData["Cancel"]</a>
+            </form>
+        </div>
+    </div>
+}
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        'use strict';
+        let pageController = (function () {
+            // Get custom scopes.
+            function getCustomScopes() {
+                var checkedCbs = document.querySelectorAll("#selectedscopes input[type='checkbox']:checked");
+                var ids = [];
+                for (var i = 0; i < checkedCbs.length; i++) ids.push(checkedCbs[i].id);
+                document.getElementById("customScopes").value = ids;
+            }
+
+            // Copy token to the clipboard.
+            function copyToClipboard(containerid) {
+                var range = document.createRange();
+                range.selectNode(document.getElementById(containerid));
+                window.getSelection().removeAllRanges();
+                window.getSelection().addRange(range);
+                document.execCommand('copy');
+                window.getSelection().removeAllRanges();
+                alert('Personal access token copied to the clipboard.');
+            }
+
+            // Public Functions
+            return {
+                "getCustomScopes": getCustomScopes,
+                "copyToClipboard": copyToClipboard
+            }
+        })();
+    </script>
+}

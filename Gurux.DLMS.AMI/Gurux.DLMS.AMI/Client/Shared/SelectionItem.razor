@@ -1,0 +1,37 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs
+
+<li class="draggable" draggable="true" title="@Name" @ondragstart="@(() => HandleDragStart(Target))">
+    <p class="description">@Description</p>
+</li>
+
+@code {
+    [CascadingParameter]
+    SelectionContainer Container { get; set; }
+
+    [Parameter]
+    public object Target { get; set; }
+
+    public string Name
+    {
+        get
+        {
+            return Container.GetName(Target);
+        }
+    }
+    public string Description
+    {
+        get
+        {
+            return Container.GetDescription(Target);
+        }
+    }
+
+    [Parameter]
+    public System.Collections.IList SourceList { get; set; }
+
+    private void HandleDragStart(object selectedJob)
+    {
+        Container.SourceList = SourceList;
+        Container.Payload = selectedJob;
+    }
+}

@@ -1,0 +1,402 @@
+﻿@page "/workflow"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, WorkflowManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (_active != null && triggers != null)
+{
+    <EditForm Model="@_active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableCheckbox @bind-Value="@_active.Active" />
+                    <label>@Properties.Resources.Active</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.Name" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.Description" />
+                </div>
+                <div class="form-group">
+                    <label>Trigger</label>
+                    <select class="form-control" @bind="@SelectedTrigger">
+                        @foreach (var it in triggers)
+                        {
+                            <option value="@it.ClassName">@it.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Activities</label>
+                    <select class="form-control" @bind="@SelectedActivity">
+                        @foreach (var it in Activities)
+                        {
+                            <option value="@it.Name">@it.Name</option>
+                        }
+                    </select>
+                </div>
+                @if (_scriptMethods != null)
+                {
+                    <div class="form-group">
+                        <label>Condition</label>
+                        <select class="form-control" @bind="SelectedCondition">
+                            @foreach (var it in _scriptMethods)
+                            {
+                                <option value="@it.Name">@it.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+                @if (_active.CreationTime != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Updated" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    GXTrigger Trigger
+    {
+        get;
+        set;
+    }
+
+    private string? _selectedTrigger;
+
+    string? SelectedTrigger
+    {
+        get
+        {
+            return _selectedTrigger;
+        }
+        set
+        {
+            _selectedTrigger = value;
+            StateHasChanged();
+        }
+    }
+
+    ///Update trigger condition script.
+    string? SelectedCondition
+    {
+        get
+        {
+            if (_active == null || _active.TriggerMethod == null)
+            {
+                return null;
+            }
+
+            return _active.TriggerMethod.Name;
+        }
+        set
+        {
+            if (_active != null && _scriptMethods != null)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    _active.TriggerMethod = null;
+                }
+                else
+                {
+                    foreach (var method in _scriptMethods)
+                    {
+                        if (string.Compare(method.Name, value, true) == 0)
+                        {
+                            _active.TriggerMethod = method;
+                            break;
+                        }
+                    }
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+    string? SelectedActivity
+    {
+        get
+        {
+            if (_active == null || _active.TriggerActivity == null)
+            {
+                return null;
+            }
+            return _active.TriggerActivity.Name;
+        }
+        set
+        {
+            foreach (var trigger in triggers)
+            {
+                if (string.Compare(trigger.ClassName, SelectedTrigger, true) == 0)
+                {
+                    foreach (var activity in trigger.Activities)
+                    {
+                        if (string.Compare(activity.Name, value, true) == 0)
+                        {
+                            activity.Trigger = trigger;
+                            _active.TriggerActivity = activity;
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            StateHasChanged();
+        }
+    }
+
+    List<GXTriggerActivity> Activities
+    {
+        get
+        {
+            foreach (var it in triggers)
+            {
+                if (it.ClassName == SelectedTrigger)
+                {
+                    return it.Activities;
+                }
+            }
+            return new List<GXTriggerActivity>();
+        }
+    }
+
+    GXTrigger[]? triggers = null;
+    private GXWorkflow? _active = null;
+    private string SubmitText = "";
+    private GXScriptMethod[]? _scriptMethods = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            //Get selected item.
+            _active = (GXWorkflow?)Notifier.GetData(GXPages.Workflows);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+
+            //Get available script methods.
+            ListScripts req1 = new ListScripts();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req1);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret1 = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            _scriptMethods = null;
+            if (ret1.Scripts.Any())
+            {
+                List<GXScriptMethod> methods = new List<GXScriptMethod>();
+                //Add empty script method.
+                methods.Add(new GXScriptMethod() { });
+                foreach (var script in ret1.Scripts)
+                {
+                    foreach (var method in script.Methods)
+                    {
+                        if (method.Function)
+                        {
+                            methods.Add(method);
+                        }
+                    }
+
+                }
+                _scriptMethods = methods.ToArray();
+            }
+            //Get triggers.
+            ListTriggers req = new ListTriggers();
+            response = await Http.PostAsJsonAsync("api/Trigger/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListTriggersResponse>();
+            triggers = ret.Triggers;
+
+            if ((Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                if (!_active.Modified)
+                {
+                    //Get workflow data.
+                    _active = await Http.GetFromJsonAsync<GXWorkflow>(string.Format("api/Workflow?id={0}", _active.Id));
+                    Notifier.UpdateData(GXPages.Workflows, _active);
+                    _active.Modified = true;
+                }
+            }
+            else if (triggers.Any() && _active.TriggerActivity == null)
+            {
+                //Select first item if trigger is not selected.
+                _active.TriggerActivity = triggers[0].Activities[0];
+                _active.TriggerActivity.Trigger = triggers[0];
+            }
+            if (_active != null && _active.TriggerActivity != null && _active.TriggerActivity.Trigger != null)
+            {
+                SelectedTrigger = _active.TriggerActivity.Trigger.ClassName;
+            }
+            if (_active != null && _active.TriggerMethod != null &&
+                !string.IsNullOrEmpty(_active.TriggerMethod.Name))
+            {
+                SelectedCondition = _active.TriggerMethod.Name;
+            }
+            Notifier.ChangePage(GXPages.Workflow, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save workflow.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Object cycle is removed.
+            if (_active.TriggerActivity != null)
+            {
+                _active.TriggerActivity.Trigger = null;
+            }
+            if (_active.ScriptMethods != null)
+            {
+                foreach (GXScriptMethod method in _active.ScriptMethods)
+                {
+                    //Reset parent.
+                    method.Script = null;
+                }
+            }
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Workflow/Delete", new DeleteWorkflow() { Ids = new Guid[] { _active.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<DeleteWorkflowResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/Workflow/Add";
+                }
+                else
+                {
+                    address = "api/Workflow/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateWorkflow() { Workflows = new GXWorkflow[] { _active } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateWorkflowResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.Workflow);
+    }
+}

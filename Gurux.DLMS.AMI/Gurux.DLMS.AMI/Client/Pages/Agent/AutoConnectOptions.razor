@@ -1,0 +1,169 @@
+﻿@page "/autoconnectoptions"
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, AgentManager")]
+
+@if (Settings != null)
+{
+    <EditForm Model="@Settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputCheckbox @bind-Value="Settings.Active" />
+                    <label>@Properties.Resources.Active</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Port</label>
+                    <InputNumber id="threads" class="form-control"
+                             @bind-Value="Settings.Port" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Protocol</label>
+                    <select class="form-control" @bind="Settings.NetworkType">
+                        @foreach (var it in NetworkTypeList)
+                        {
+                            <option value="@Convert.ToInt32(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="margin:auto">Interface</label>
+                    <select class="form-control" @bind="@Settings.Interface">
+                        @foreach (var it in InterfaceList)
+                        {
+                            <option value="@Convert.ToInt32(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
+                    <label>@Properties.Resources.UseLogicalNameReferencing</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.ClientAddress</label>
+                    <InputNumber id="threads" class="form-control"
+                             @bind-Value="Settings.ClientAddress" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.ServerAddress</label>
+                    <InputNumber id="threads" class="form-control"
+                             @bind-Value="Settings.ServerAddress" />
+                </div>
+                <div class="form-group">
+                    <label style="margin:auto">Authentication</label>
+                    <select class="form-control" @bind="@Settings.Authentication">
+                        @foreach (var it in Authentications)
+                        {
+                            <option value="@Convert.ToInt32(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Password</label>
+                    <InputText id="name" class="form-control"
+                           @bind-Value="Settings.Password" />
+                </div>
+                <div class="form-group">
+                    <label style="margin:auto">@Properties.Resources.Security</label>
+                    <select class="form-control" @bind="@Settings.Security">
+                        @foreach (var it in Securities)
+                        {
+                            <option value="@Convert.ToInt32(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.InvocationCounter</label>
+                    <InputText id="name" class="form-control"
+                           @bind-Value="Settings.InvocationCounter" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.TraceLevels</label>
+                    <select class="form-control" @bind="Settings.TraceLevel">
+                        @foreach (var it in TraceLevels)
+                        {
+                            <option value="@it">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Script</label>
+                    <ScriptMethodSelector Scripts="@Scripts"
+                                      SelectionChanged="@SelectionChanged"
+                                      ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    //Available scripts.
+    [Parameter]
+    public GXScript[]? Scripts { get; set; }
+
+    [Parameter]
+    public ListenerSettings? Settings { get; set; }
+
+    InterfaceType[] InterfaceList = new InterfaceType[] 
+    { 
+        InterfaceType.HDLC, 
+        InterfaceType.WRAPPER 
+    };
+
+    Enums.Authentication[] Authentications = new Enums.Authentication[]
+    { 
+        Enums.Authentication.None, 
+        Enums.Authentication.Low, 
+        Enums.Authentication.High, 
+        Enums.Authentication.HighGMAC
+    };
+
+    Enums.Security[] Securities = new Enums.Security[]
+    {
+        Enums.Security.None,
+        Enums.Security.Encryption,
+        Enums.Security.Authentication,
+        Enums.Security.AuthenticationEncryption
+    };
+
+    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] 
+    { 
+        Gurux.Net.NetworkType.Tcp, 
+        Gurux.Net.NetworkType.Udp 
+    };
+
+    TraceLevel[] TraceLevels = new TraceLevel[] 
+    { 
+        TraceLevel.Off, 
+        TraceLevel.Error, 
+        TraceLevel.Warning, 
+        TraceLevel.Info, 
+        TraceLevel.Verbose 
+    };
+
+    ///<summary>
+    ///Script method has been changed.
+    ///</summary>
+    private void SelectionChanged(Guid? guid)
+    {
+        if (Settings != null)
+        {
+            Settings.ScriptMethod = guid;
+        }
+    }
+}

@@ -1,0 +1,401 @@
+﻿@page "/objects"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (!string.IsNullOrEmpty(DeviceName))
+{
+    <p>
+        <div class="oi oi-tablet" style="display: inline;">
+            <h2 style="display: inline;">@DeviceName</h2>
+        </div>
+    </p>
+    <hr />
+}
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter && filter != null && filter.Template != null)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                       type="text"
+                       @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by logical name..."
+                       type="text"
+                       @onchange="@((ChangeEventArgs __e) => filter.Template.LogicalName = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Name</th>
+            <th>@Properties.Resources.LogicalName</th>
+            <th>@Properties.Resources.ObjectType</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="item" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(item)) @onclick="@(()=>RowSelected(item))">
+                    <td><a href="@GetPath(item)" @onclick="() => OnSelect(item)">@item.Template?.Name</a></td>
+                    <td>@item.Template?.LogicalName</td>
+                    <td>@GetObjectType(item.Template.ObjectType)</td>
+                    @if (_active == item)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Read" Icon="oi oi-account-logout" OnClick="async () => OnRead()"></ContextMenuItem>
+                                    <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-zoom-in" OnClick="async () => OnShow()"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;&nbsp;&nbsp;</td>
+                    }
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Objects;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the objects to shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    //Get device path.
+    private string GetPath(GXObject target)
+    {
+        return "/objectview";
+    }
+
+    //Device is selected.
+    private void OnSelect(GXObject target)
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            if (target == null || target.Template == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.ClearStatus();
+            Notifier.Title = "Edit object";
+            Notifier.Action = CrudAction.Update;
+            Notifier.UpdateData(GXPages.Objects, target);
+            Notifier.UpdateData(GXPages.Object, target);
+            NavigationManager.NavigateTo("/objectview");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Object filter.
+    /// </summary>
+    private GXObject filter = new GXObject();
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase DeleteConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXObject>? virtualize;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXObject? _active;
+
+    /// <summary>
+    /// Device name.
+    /// </summary>
+    private string? DeviceName;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async void Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    //Get object type as a string.
+    public string GetObjectType(int value)
+    {
+        return ((Gurux.DLMS.Enums.ObjectType)value).ToString();
+    }
+
+    protected string GetSelectedClass(GXObject value)
+    {
+        return _active != null && value.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXObject selected)
+    {
+        this._active = selected;
+        Notifier.UpdateData(GXPages.Objects, selected);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            filter.Template = new GXObjectTemplate();
+            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
+            if (device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            DeviceName = device.Name;
+            _active = (GXObject?)Notifier.GetData(GXPages.Objects);
+            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
+            {
+                Updated();
+            });
+            Notifier.Clear();
+            Notifier.ChangePage(GXPages.Objects, _active);
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXObject>> GetItems(ItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier.ProgressStart();
+            //Get selected item.
+            //Get device object data.
+            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
+            if (device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (device.Objects == null || !device.Objects.Any())
+            {
+                ListObjects req = new ListObjects();
+                req.Filter = new GXObject();
+                req.Filter.Device = new GXDevice() { Id = device.Id };
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Object/List", req, request.CancellationToken);
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<ListObjectsResponse>();
+                device.Objects.AddRange(ret.Objects);
+            }
+            List<GXObject> list = new List<GXObject>();
+            list.AddRange(device.Objects);
+            if (!string.IsNullOrEmpty(filter.Template.Name))
+            {
+                list.RemoveAll(q => q.Template.Name.ToUpper().Contains(filter.Template.Name.ToUpper()) == false);
+            }
+            return new ItemsProviderResult<GXObject>(list, list.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Read selected object.
+    /// </summary>
+    public async void OnRead()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null || _active.Template == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            GXTask task = new GXTask();
+            task.Object = _active;
+            task.TaskType = TaskType.Read;
+            AddTask req = new AddTask();
+            req.Tasks = new GXTask[] { task };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Add", req);
+            ClientHelpers.ValidateStatusCode(response);
+            await response.Content.ReadFromJsonAsync<AddTaskResponse>();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+    }
+
+    /// <summary>
+    /// Show selected object.
+    /// </summary>
+    public async void OnShow()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null || _active.Template == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            //If object attributes are not read yet.
+            if (_active.Attributes.Count == 0)
+            {
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", _active.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _active = await response.Content.ReadFromJsonAsync<GXObject>();
+                Notifier.UpdateData(GXPages.Objects, _active);
+            }
+
+            Notifier.UpdateData(GXPages.Object, _active);
+            NavigationManager.NavigateTo("/objectview");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Objects);
+        Notifier.RemoveListener(this);
+    }
+}
+

@@ -1,0 +1,191 @@
+﻿@page "/attributetile"
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+<CascadingValue Value="this">
+    <div style="width:100%">
+        @if (Text != null)
+        {
+            <div class="form-group">
+                <label>@Index @Name</label>
+                @if (Values != null && Values.Any())
+                {
+                    <select class="form-control" @bind="Text" disabled="@IsDisabled()">
+                        @foreach (string it in Values)
+                        {
+                            <option value="@it">@it</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <input type="text" class="form-control" disabled="@IsDisabled()" value="@Text" />
+                }
+            </div>
+        }
+        else if (@Attribute != null && @Attribute.Template != null)
+        {
+            @if (@Attribute.Template.DataType == (int)Gurux.DLMS.Enums.DataType.Boolean)
+            {
+                <div class="form-group">
+                    <input type="checkbox" class="form-check-input" checked="@IsChecked()" disabled="@IsDisabled()"
+                   @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, Convert.ToBoolean(__e.Value)))"
+                   id="boolCb" />
+                    <label class="form-check-label" for="boolCb">@Attribute.Template.Index @Attribute.Template.Name</label>
+                </div>
+            }
+            else @if (@Attribute.Template.ListItems != null && @Attribute.Template.ListItems.Any())
+            {
+                <Tooltip Title="@LastRead"><label>@Attribute.Template.Index @Attribute.Template.Name</label></Tooltip>
+                <select class="form-control" value="@GetValue2(@Attribute)"
+                @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
+                disabled="@IsDisabled()">
+                    @foreach (var li in Attribute.Template.ListItems)
+                    {
+                        <option value="@li.Value">@li.UIValue</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <div class="form-group">
+                    <Tooltip Title="@LastRead"><label>@Attribute.Template.Index @Attribute.Template.Name</label></Tooltip>
+                    <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetValue2(@Attribute)"
+                   @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
+                </div>
+            }
+        }
+    </div>
+    @ChildContent
+</CascadingValue>
+
+@code {
+
+    GXAttribute? _attribute;
+
+    private string LastRead
+    {
+        get
+        {
+            return "Last read: " + Attribute.Read;
+        }
+    }
+
+    /// Get attribute value.
+    private string? GetValue2(GXAttribute attribute)
+    {
+        if (GetValue != null)
+        {
+            return GetValue.Invoke();
+        }
+        return attribute.Value;
+    }
+
+    /// Set attribute value.
+    private void UpdateValue(GXAttribute attribute, object? value)
+    {
+        if (value is bool b)
+        {
+            attribute.Value = b ? "1" : "0";
+        }
+        else
+        {
+            attribute.Value = Convert.ToString(value);
+        }
+        attribute.Modified = true;
+    }
+
+    //Is component disabled.
+    bool IsDisabled()
+    {
+        return Attribute == null ||
+            Attribute.Template == null ||
+            (Attribute.Template.AccessLevel & 0x2) == 0;
+    }
+
+    bool IsChecked()
+    {
+        try
+        {
+            return Convert.ToBoolean(Attribute.Value);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Target attribute.
+    /// </summary>
+    [Parameter]
+    public GXAttribute Attribute
+    {
+        get
+        {
+            if (Index != 0 && _attribute == null && Attributes != null)
+            {
+                return GetAttribute(Attributes, Index);
+            }
+            return _attribute;
+        }
+        set
+        {
+            _attribute = value;
+        }
+    }
+
+    /// <summary>
+    /// Target attribute.
+    /// </summary>
+    [Parameter]
+    public Func<string?>? GetValue{get; set; }
+
+    public static GXAttribute GetAttribute(List<GXAttribute> attributes, int index)
+    {
+        foreach (var it in attributes)
+        {
+            if (it.Template.Index == index)
+            {
+                return it;
+            }
+        }
+        throw new ArgumentOutOfRangeException(string.Format("Invalid attribute index {0}", index));
+    }
+
+    /// <summary>
+    /// Target attributes.
+    /// </summary>
+    [Parameter]
+    public List<GXAttribute> Attributes { get; set; }
+
+
+    /// <summary>
+    /// Attribute name.
+    /// </summary>
+    [Parameter]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// Attribute text.
+    /// </summary>
+    [Parameter]
+    public string Text { get; set; }
+
+    /// <summary>
+    /// Attribute index.
+    /// </summary>
+    [Parameter]
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Attribute enumerated values.
+    /// </summary>
+    [Parameter]
+    public string[]? Values { get; set; }
+
+}

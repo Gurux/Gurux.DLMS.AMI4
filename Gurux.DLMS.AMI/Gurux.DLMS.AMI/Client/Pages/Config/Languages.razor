@@ -1,0 +1,223 @@
+﻿@page "/config/languages"
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.AspNetCore.SignalR.Client
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (_languages != null)
+{
+    <h1>Available languages</h1>
+    <table class="table table-striped" width="100%">
+        <thead>
+            <tr>
+                <th>@Properties.Resources.Active</th>
+                <th>@Properties.Resources.Name</th>
+                <th>Default language</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var it in _languages)
+            {
+                <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
+                    <td>
+                        <input type="checkbox" checked="@it.Active" @onchange="@((ChangeEventArgs __e) => it.Active = Convert.ToBoolean(__e.Value))" />
+                    </td>
+                    <td>
+                        @it.EnglishName
+                    </td>
+                    <td>
+                        <input type="checkbox" disabled="@IsActive(it)" checked="@it.Default" @onchange="@((ChangeEventArgs __e) => it.Default = Convert.ToBoolean(__e.Value))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    GXLanguage[] _languages = null;
+    private GXLanguage? _active = null;
+    //If language is not active it can't be the default language.
+    protected string? IsActive(GXLanguage selected)
+    {
+        return selected.Active.HasValue && selected.Active.Value ? null : "disabled";
+    }
+
+    protected string GetSelectedClass(GXLanguage selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXLanguage selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Modules, _active);
+    }
+
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            _languages = null;
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages());
+            ClientHelpers.ValidateStatusCode(response);
+            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<IEnumerable<GXLanguage>>>(this, nameof(IGXHubEvents.LanguageUpdate), (languages) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Refresh, Icon = "oi oi-reload", OnClick = OnRefresh });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages());
+            ClientHelpers.ValidateStatusCode(response);
+            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Languages, _active);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            List<GXLanguage> list = new List<GXLanguage>();
+            //Only ID, Default and active states are sent.
+            bool defaultLanguage = false;
+            foreach (var it in _languages)
+            {
+                list.Add(new GXLanguage() { Id = it.Id, Active = it.Active, Default = it.Default });
+                if (it.Active.HasValue && it.Active.Value &&
+                    it.Default.HasValue && it.Default.Value)
+                {
+                    defaultLanguage = true;
+                }
+            }
+            if (!defaultLanguage)
+            {
+                throw new ArgumentException("Default language is not selected.");
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/Update", _languages);
+            ClientHelpers.ValidateStatusCode(response);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Refresh values.
+    /// </summary>
+    private async void OnRefresh()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            List<GXLanguage> list = new List<GXLanguage>();
+            //Only active language IDs are send.
+            foreach (var it in _languages)
+            {
+                if (it.Active.HasValue && it.Active.Value)
+                {
+                    list.Add(new GXLanguage() { Id = it.Id });
+                }
+            }
+            RefreshLocalization req = new RefreshLocalization();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/Refresh", req);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier?.ShowInformation(Properties.Resources.Refreshed);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Languages);
+        Notifier.RemoveListener(this);
+    }
+}

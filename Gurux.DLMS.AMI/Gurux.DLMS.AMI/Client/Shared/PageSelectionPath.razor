@@ -1,0 +1,53 @@
+﻿@using Gurux.DLMS.AMI.Client.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DIs
+@inject IGXNotifier Notifier
+@implements IGXComponentView
+
+<div class="btn-group" role="group">
+    @foreach (string it in Notifier.GetSelectionPath())
+    {
+        <a href="@it">@it/</a>
+    }
+</div>
+@code {
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.PageSelectionPath;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "";
+        }
+    }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Notifier.OnPageChanged += () =>
+        {
+            StateHasChanged();
+        };
+    }
+}

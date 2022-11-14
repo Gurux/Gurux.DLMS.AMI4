@@ -1,0 +1,22 @@
+﻿@page "/"
+@using System.Globalization
+@using Gurux.DLMS.AMI.Client.Helpers.Toaster
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.AspNetCore.Components.Authorization
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+
+<img src="footer.png" style="position: fixed; bottom: 0px; left: 0px; height:3px; width: 100%" />
+<img src="leaf.png" style="position:fixed; bottom:0px; left:0px" />
+<img src="factory.png" style="position:fixed; bottom:0px; right:0px" />
+<AuthorizeView>
+    <Authorized>
+        <BlockTile Location="BlockLocation.ContentHeader"></BlockTile>
+        <BlockTile Location="BlockLocation.Content"></BlockTile>
+        <BlockTile Location="BlockLocation.ContentFooter"></BlockTile>
+    </Authorized>
+    <Authorizing>
+        <h1>Authentication in progress</h1>
+    </Authorizing>
+</AuthorizeView>

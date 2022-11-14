@@ -1,0 +1,365 @@
+﻿@page "/devicetraces"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = "Admin, DeviceManager, Device")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Traces @SelectedDevice (@Properties.Resources.Total: @Total)</PageTitle>
+}
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTraceManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped" width="100%">
+    <thead width="100%">
+        @if (Filter)
+        {
+            <tr width="100%">
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by device name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Device.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                </th>
+            </tr>
+        }
+        <tr width="100%">
+            <th>@Properties.Resources.Device</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Type</th>
+            <th>@Properties.Resources.Data</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody width="100%">
+        <Virtualize @ref="virtualize" Context="trace" ItemsProvider="@GetItems" ItemSize="100">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(trace)) @onclick="@(()=>RowSelected(trace))">
+                    <td>@trace.Device?.Name</td>
+                    <td>@trace.CreationTime</td>
+                    <td>@GetDirection(trace)</td>
+                    <td>@trace.Frame</td>
+                    @if (_active == trace)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="OnEdit"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;</td>
+                    }
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
+         OkTitle=@($"Clear") ConfirmationMessage=@($"Are you sure you want to clear devices trace log?")>
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.DeviceTraces;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    private string GetDirection(GXDeviceTrace trace)
+    {
+        return trace.Send ? "Tx" : "Rx";
+    }
+
+    /// <summary>
+    /// Amount of the device traces shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+    /// <summary>
+    /// Device trace log filter.
+    /// </summary>
+    private GXDeviceTrace filter = new GXDeviceTrace() { Device = new GXDevice() };
+    /// <summary>
+    /// Device is verified before system errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXDeviceTrace>? virtualize;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXDeviceTrace? _active;
+
+    protected string GetSelectedClass(GXDeviceTrace selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXDeviceTrace selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.DeviceTraces, _active);
+    }
+
+    public string SelectedDevice
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            object? data = Notifier.GetData(GXPages.DeviceTraces);
+            _active = (GXDeviceTrace?)data;
+            Notifier.On<IEnumerable<GXDeviceTrace>>(this, nameof(IGXHubEvents.DeviceTraceAdd), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.DeviceTraceClear), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.ChangePage(GXPages.DeviceTraces, null);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceTrace>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListDeviceTrace req = new ListDeviceTrace() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTrace/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTraceResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the device traces.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }
+            return new ItemsProviderResult<GXDeviceTrace>(ret.Traces, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.DeviceTraces);
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Show device trace.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Device trace";
+            NavigationManager.NavigateTo("/devicetrace");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Clear the device traces.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTrace/Clear", new ClearDeviceTrace());
+                ClientHelpers.ValidateStatusCode(response);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

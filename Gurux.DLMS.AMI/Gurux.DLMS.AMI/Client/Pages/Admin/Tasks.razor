@@ -1,0 +1,483 @@
+﻿@page "/tasks"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, TaskManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IGXComponentView
+
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Tasks (@Properties.Resources.Total: @Total)</PageTitle>
+}
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+    </ChildContent>
+</MenuControl>
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter)
+        {
+            <tr>
+                <th>
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                </th>
+                <th>
+                    <div>
+                        <input class="form-control" placeholder="Filter by start time..."
+                           type="datetime-local"
+                           @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
+                    </div>
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by end time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Target</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.TaskType</th>
+            <th>@Properties.Resources.StartTime</th>
+            <th>@Properties.Resources.CompletedTime</th>
+            <th>@Properties.Resources.Result</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="task" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(task)) @onclick="@(()=>RowSelected(task))">
+                    <td>@task.Target</td>
+                    <td>@task.CreationTime</td>
+                    <td>@TaskTypeToString(task.TaskType)</td>
+                    <td>@task.Start</td>
+                    <td>@task.Ready</td>
+                    <td>@task.Result</td>
+                    @if (_active == task)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;&nbsp;&nbsp;</td>
+                    }
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="RemoveConfirmation" ConfirmationChanged="OnDeleteConfirmation" ConfirmationTitle=@($"Confirm delete")
+         OkTitle="@Properties.Resources.Remove" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@("Confirm Clear")
+         OkTitle="@Properties.Resources.Clear" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Tasks;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-pulse";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+
+    private static string TaskTypeToString(TaskType? type)
+    {
+        string str;
+        switch (type)
+        {
+            case TaskType.Read:
+                str = Properties.Resources.Read;
+                break;
+            case TaskType.Write:
+                str = Properties.Resources.Write;
+                break;
+            case TaskType.Action:
+                str = Properties.Resources.Action;
+                break;
+            case TaskType.Refresh:
+                str = Properties.Resources.Refresh;
+                break;
+            default:
+                str = type.ToString();
+                break;
+        }
+        return str;
+    }
+
+    private GXTask[]? tasks = null;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXTask? _active;
+    /// <summary>
+    /// Task filter.
+    ///</summary>
+    private GXTask filter = new GXTask();
+
+    /// <summary>
+    /// User is verified before tasks are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
+
+    /// <summary>
+    /// User is verified before tasks are cleared.
+    ///</summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    ///</summary>
+    protected Virtualize<GXTask>? virtualize;
+
+    protected string GetSelectedClass(GXTask device)
+    {
+        return _active != null && device.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXTask selected)
+    {
+        this._active = selected;
+        Notifier.UpdateData(GXPages.Tasks, selected);
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    ///</summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Agent status has changed.
+    /// </summary>
+    /// <param name="list">Changed tasks.</param>
+    protected async Task StateChanged(IEnumerable<GXTask> list)
+    {
+        try
+        {
+            if (tasks != null)
+            {
+                foreach (var task in list)
+                {
+                    foreach (var it in tasks)
+                    {
+                        if (it.Id == task.Id)
+                        {
+                            if (task.Start != null)
+                            {
+                                it.Start = task.Start;
+                            }
+                            if (task.Ready != null)
+                            {
+                                it.Ready = task.Ready;
+                            }
+                            if (task.Result != null)
+                            {
+                                it.Result = task.Result;
+                            }
+                            break;
+                        }
+                    }
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception)
+        {
+            tasks = null;
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), async (tasks) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskDelete), async (tasks) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), async (tasks) =>
+            {
+                await StateChanged(tasks);
+            });
+            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.TaskClear), async (tasks) =>
+            {
+                await Updated();
+            });
+            Notifier.ChangePage(GXPages.Tasks, null, true);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXTask>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            tasks = null;
+            ListTasks req = new ListTasks() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListTasksResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the tasks.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }
+            tasks = ret.Tasks;
+            return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex.ToString());
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+    public void OnRemove()
+    {
+        RemoveConfirmation.Show();
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+    public void OnClear()
+    {
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Delete the selected task list.
+    /// </summary>
+    public async Task OnDeleteConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                DeleteTask req = new DeleteTask();
+                if (_active == null)
+                {
+                    throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                }
+                req.Ids = new Guid[] { _active.Id };
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Delete", req))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Clear user tasks.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                ClearTask req = new ClearTask();
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Clear", req))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Tasks);
+        Notifier.RemoveListener(this);
+    }
+}

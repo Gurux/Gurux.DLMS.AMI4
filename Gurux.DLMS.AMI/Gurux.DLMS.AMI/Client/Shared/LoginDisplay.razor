@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Globalization
+
+@inject NavigationManager Navigation
+@inject SignOutSessionStateManager SignOutManager
+
+<AuthorizeView>
+    <Authorized>
+        <button class="nav-link btn btn-link" @onclick="BeginSignOut">@Properties.Resources.LogOut</button>
+    </Authorized>
+    <NotAuthorized>
+        <a href="authentication/register">@Properties.Resources.Register</a>
+        <a href="authentication/login">@Properties.Resources.Login</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code{
+    //Mainlayout notifies that the language has changed.
+    public void LanguageUpdated()
+    {
+        StateHasChanged();
+    }
+
+    private async Task BeginSignOut(MouseEventArgs args)
+    {
+        await SignOutManager.SetSignOutState();
+        Navigation.NavigateTo("authentication/logout");
+    }         
+}

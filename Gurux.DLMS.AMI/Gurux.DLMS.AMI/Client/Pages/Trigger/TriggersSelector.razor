@@ -1,0 +1,92 @@
+﻿@page "/triggersselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, TriggerGroupManager, TriggerGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="schedules" />
+    <SelectionList Title="Available" ItemList="AllTriggers" />
+</SelectionContainer>
+
+@code {
+    List<GXTrigger> AllTriggers = new List<GXTrigger>();
+    List<GXTrigger> schedules = new List<GXTrigger>();
+
+    string GetName(object target)
+    {
+        return (target as GXTrigger).Name;
+    }
+    string GetDescription(object target)
+    {
+        return (target as GXTrigger).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.ChangePage(GXPages.TriggersSelector, null);
+            //Add selected user groups.
+            GXTriggerGroup? userGroup = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroup);
+            if (userGroup == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            schedules = userGroup.Triggers;
+            ListTriggers req = new ListTriggers()
+                {
+                    Filter = new GXTrigger()
+                };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Trigger/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListTriggersResponse>();
+            foreach (GXTrigger it in ret.Triggers)
+            {
+                if (!schedules.Exists(q => q.Id == it.Id))
+                {
+                    AllTriggers.Add(it);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.TriggersSelector);
+    }
+}
+

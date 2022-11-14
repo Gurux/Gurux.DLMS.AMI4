@@ -1,0 +1,83 @@
+﻿@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Module.Tiles
+@using Gurux.DLMS.AMI.Client.Shared
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using static System.Net.WebRequestMethods
+
+@implements IGXComponentView
+@inject HttpClient Http
+
+<AuthorizeView>
+    <Authorized>
+        <h1>@Properties.Resources.Hello, @GetUserName(context.User)!</h1>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    static GXUser? _user;
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "User information";
+        }
+    }
+
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-person";
+        }
+    }
+
+    public string? GetUserName(ClaimsPrincipal user)
+    {
+        if (_user != null && !string.IsNullOrEmpty(_user.GivenName))
+        {
+            return _user.GivenName;
+        }
+        if (user.Identity != null)
+        {
+            return user.Identity.Name;
+        }
+        return null;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (_user == null)
+            {
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/User"));
+                ClientHelpers.ValidateStatusCode(response);
+                _user = await response.Content.ReadFromJsonAsync<GXUser>();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            _user = null;
+        }
+    }
+}

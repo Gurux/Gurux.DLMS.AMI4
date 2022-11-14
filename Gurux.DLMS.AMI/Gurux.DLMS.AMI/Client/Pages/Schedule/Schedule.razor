@@ -1,0 +1,235 @@
+﻿@page "/schedule"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Schedule)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (schedule != null)
+{
+    <EditForm Model="@schedule">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" @bind-Value="schedule.Name" class="form-control"
+                           placeholder=@Properties.Resources.ScheduleName />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.ScheduleExecutionTime</label>
+                    <input type="text" id="start" disabled="@IsDeleting" value="@GetDateTime()" class="form-control"
+                       @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
+                </div>
+                @if (schedule.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="schedule.CreationTime" />
+                    </div>
+                }
+                @if (schedule.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="schedule.Removed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    private GXSchedule? schedule;
+    private string SubmitText;
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    /// <summary>
+    /// Convert date-string from invaliant culture to user format.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    string GetDateTime()
+    {
+        try
+        {
+            if (schedule != null && !string.IsNullOrEmpty(schedule.Start))
+            {
+                GXDateTime tm = new GXDateTime(schedule.Start);
+                return tm.ToFormatString();
+            }
+            return "";
+        }
+        catch (Exception)
+        {
+            return schedule.Start;
+        }
+    }
+    /// <summary>
+    /// Date time is serialized to invariant culture.
+    /// </summary>
+    /// <param name="value"></param>
+    void SetDateTime(string value)
+    {
+        try
+        {
+            if (schedule != null)
+            {
+                Notifier?.ClearStatus();
+                GXDateTime tm = new GXDateTime(value);
+                schedule.Start = tm.ToFormatString();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            schedule = (GXSchedule?)Notifier.GetData(GXPages.Schedules);
+            if (schedule == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Notifier?.ClearStatus();
+            Notifier?.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            if (!schedule.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get schedule data.
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Schedule?id={0}", schedule.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                schedule = await response.Content.ReadFromJsonAsync<GXSchedule>();
+                Notifier.UpdateData(GXPages.Schedules, schedule);
+                schedule.Modified = true;
+            }
+            Notifier.ChangePage(GXPages.Schedule, schedule);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save schedule.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Schedule/Delete", new DeleteSchedule() { ScheduleIds = new Guid[] { schedule.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<DeleteScheduleResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/Schedule/Add";
+                }
+                else
+                {
+                    address = "api/Schedule/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateSchedule() { Schedules = new List<GXSchedule>() { schedule } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<UpdateScheduleResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+}

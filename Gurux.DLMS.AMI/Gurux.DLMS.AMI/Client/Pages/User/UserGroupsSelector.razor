@@ -1,0 +1,224 @@
+﻿@page "/usergroupsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, UserGroupManager, UserGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="userGroups" />
+    <SelectionList Title="Available" ItemList="AllUserGroups" />
+</SelectionContainer>
+
+@code {
+    List<GXUserGroup> AllUserGroups = new List<GXUserGroup>();
+    List<GXUserGroup> userGroups = new List<GXUserGroup>();
+
+
+    public void OnUpdated(object target)
+    {
+
+    }
+
+    public string GetName(object target)
+    {
+        return (target as GXUserGroup).Name;
+    }
+    public string GetDescription(object target)
+    {
+        string str = (target as GXUserGroup).Description;
+        if (string.IsNullOrEmpty(str))
+        {
+            str = (target as GXUserGroup).Name;
+        }
+        return str;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            string? page = Notifier.GetLastPage();
+            ListUserGroups req = new ListUserGroups()
+                {
+                    Filter = new GXUserGroup()
+                };
+            if (page == GXPages.ScheduleManage)
+            {
+                //Get user groups from selected schedule group.
+                GXScheduleGroup? scheduleGroup = (GXScheduleGroup?)Notifier.GetData(GXPages.ScheduleGroup);
+                if (scheduleGroup != null)
+                {
+                    userGroups = scheduleGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.DeviceTemplateManage)
+            {
+                //Get user groups from selected device template group.
+                GXDeviceTemplateGroup? deviceTemplateGroup = (GXDeviceTemplateGroup?)Notifier.GetData(GXPages.DeviceTemplateGroup);
+                if (deviceTemplateGroup != null)
+                {
+                    userGroups = deviceTemplateGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.DeviceManage)
+            {
+                //Get user groups from selected device group.
+                GXDeviceGroup? deviceGroup = (GXDeviceGroup?)Notifier.GetData(GXPages.DeviceGroup);
+                if (deviceGroup != null)
+                {
+                    userGroups = deviceGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.AgentManage)
+            {
+                //Get user groups from selected device group.
+                GXAgentGroup? agentGroup = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroup);
+                if (agentGroup != null)
+                {
+                    userGroups = agentGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.ModuleManage)
+            {
+                //Get user groups from selected module group.
+                GXModuleGroup? moduleGroup = (GXModuleGroup?)Notifier.GetData(GXPages.ModuleGroup);
+                if (moduleGroup != null)
+                {
+                    userGroups = moduleGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.WorkflowManage)
+            {
+                //Get user groups from selected workflow group.
+                GXWorkflowGroup? workflowGroup = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroup);
+                if (workflowGroup != null)
+                {
+                    userGroups = workflowGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.WorkflowGroups)
+            {
+                //Get user groups from selected workflow group.
+                GXWorkflowGroup? workflowGroup = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
+                if (workflowGroup != null)
+                {
+                    userGroups = workflowGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.TriggerManage)
+            {
+                //Get user groups from selected trigger group.
+                GXTriggerGroup? triggerGroup = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroup);
+                if (triggerGroup != null)
+                {
+                    userGroups = triggerGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.BlockManage)
+            {
+                //Get user groups from selected block group.
+                GXBlockGroup? blockGroup = (GXBlockGroup?)Notifier.GetData(GXPages.BlockGroup);
+                if (blockGroup != null)
+                {
+                    userGroups = blockGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.ComponentViewManage)
+            {
+                //Get user groups from selected block group.
+                GXComponentViewGroup? componentViewGroup = (GXComponentViewGroup?)Notifier.GetData(GXPages.ComponentViewGroup);
+                if (componentViewGroup != null)
+                {
+                    userGroups = componentViewGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.ScriptManage)
+            {
+                //Get selected script group.
+                GXScriptGroup? scriptGroup = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroup);
+                if (scriptGroup != null)
+                {
+                    userGroups = scriptGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.ScriptGroups)
+            {
+                //Get selected script group.
+                GXScriptGroup? scriptGroup = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroup);
+                if (scriptGroup != null)
+                {
+                    userGroups = scriptGroup.UserGroups;
+                }
+            }
+            else if (page == GXPages.UserManage)
+            {
+                //Get selected user group.
+                GXUser? user = (GXUser?)Notifier.GetData(GXPages.User);
+                if (user != null)
+                {
+                    userGroups = user.UserGroups;
+                }
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("Unknown manager " + page);
+            }
+            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !userGroups.Any();
+            Notifier.ChangePage(GXPages.UserGroupsSelector, null);
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserGroup/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListUserGroupsResponse>();
+            foreach (GXUserGroup it in ret.UserGroups)
+            {
+                //Add default groups when new object is created.
+                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
+                    !userGroups.Where(q => q.Id == it.Id).Any())
+                {
+                    userGroups.Add(it);
+                }
+                if (!userGroups.Exists(q => q.Id == it.Id))
+                {
+                    AllUserGroups.Add(it);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.UserGroupsSelector);
+    }
+}
+

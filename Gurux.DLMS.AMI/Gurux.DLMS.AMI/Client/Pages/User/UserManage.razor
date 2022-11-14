@@ -1,0 +1,72 @@
+﻿@page "/usermanage"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = "Admin, User, UserManager, UserGroup, UserGroupManager, UserError, UserErrorManager, UserAction, UserActionManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.User, GXRoles.UserManager)>
+            <TabPage Text=@Properties.Resources.UsersTitle Icon="oi oi-people">
+                <div style="position: relative; width: 100%; ">
+                    <Users></Users>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroup, GXRoles.UserGroupManager)>
+            <TabPage Text=@Properties.Resources.UserGroupsTitle>
+                <div style="position: relative; width: 100%; ">
+                    <UserGroups></UserGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserError, GXRoles.UserErrorManager)>
+            <TabPage Text=@Properties.Resources.UserErrors Icon="oi oi-warning">
+                <div style="position: relative; width: 100%; ">
+                    <UserErrors></UserErrors>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserAction, GXRoles.UserActionManager)>
+            <TabPage Text=@Properties.Resources.UserActions Icon="oi oi-info">
+                <div style="position: relative; width: 100%; ">
+                    <UserActions></UserActions>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private int ActiveTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+        Notifier.UpdateData(GXPages.UserManage, index);
+    }
+
+    protected override void OnInitialized()
+    {
+        object? data = Notifier.GetData(GXPages.UserManage);
+        if ((data is int value) && value != 0)
+        {
+            ActiveTab = value;
+        }
+        Notifier.ChangePage(GXPages.UserManage, data, true);
+    }
+}
+

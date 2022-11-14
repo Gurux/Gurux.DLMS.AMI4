@@ -1,0 +1,75 @@
+@namespace Gurux.DLMS.AMI.Client.Helpers.Toaster
+
+@inject IGXToasterService ToasterService
+
+@if (ToasterService.Any)
+{
+    <div>
+        <div class="toast-container position-absolute top-0 end-0 mt-5 pt-5 pe-2">
+            @foreach (var it in this.ToasterService.GetToasts())
+            {
+                var toast = GetCss(it);
+                <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header @toast">
+                        <strong class="me-auto">@((MarkupString)it.Title)</strong>
+                        <small class="@toast; markup">@it.PostedTimeText</small>
+                        <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="() => Close(it)"></button>
+                    </div>
+                    <div class="toast-body; markup">
+                        @((MarkupString)it.Message)
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code
+{
+    ///<summary>
+    ///Start listen toaster events.
+    ///</summary>
+    protected override void OnInitialized()
+    {
+        ToasterService.ToasterChanged += ToastChanged;
+        ToasterService.ToasterTimerElapsed += ToastChanged;
+    }
+
+    ///<summary>
+    ///Close toast.
+    ///</summary>
+    private void Close(GXToast toast)
+    {
+        ToasterService.Remove(toast);
+    }
+
+    ///<summary>
+    ///Toasts are changed. Update the UI.
+    ///</summary>
+    private void ToastChanged(object? sender, EventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    ///<summary>
+    ///Stop listen events.
+    ///</summary>
+    public void Dispose()
+    {
+        ToasterService.ToasterChanged -= ToastChanged;
+        ToasterService.ToasterTimerElapsed -= ToastChanged;
+    }
+
+    ///<summary>
+    ///Get toaster CSS.
+    ///</summary>
+    private string GetCss(GXToast toast)
+    {
+        var colour = Enum.GetName(typeof(Color), toast.Color)?.ToLower();
+        return toast.Color switch
+        {
+            Color.Light => "bg-light",
+            _ => $"bg-{colour} text-white"
+        };
+    }
+}

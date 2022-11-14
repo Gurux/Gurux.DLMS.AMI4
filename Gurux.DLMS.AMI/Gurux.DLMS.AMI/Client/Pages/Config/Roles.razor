@@ -1,0 +1,195 @@
+﻿@page "/config/roles"
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.AspNetCore.SignalR.Client
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (_roles != null)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+    <p>
+    </p>
+    <h1>Available roles</h1>
+    <table class="table table-striped" width="100%">
+        <thead>
+            <tr>
+                <th>
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+            <tr>
+                <th width="1%">@Properties.Resources.DefaultRole</th>
+                <th>@Properties.Resources.Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var it in _roles)
+            {
+                <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
+                    <td>
+                        <input type="checkbox" checked="@it.Default" @onchange="@((ChangeEventArgs __e) => it.Default = Convert.ToBoolean(__e.Value))" />
+                    </td>
+                    <td>
+                        @it.Name
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    /// <summary>
+    /// Role filter.
+    /// </summary>
+    private GXRole filter = new GXRole();
+
+    GXRole[]? _roles = null;
+    private GXRole? _active = null;
+    //If role is not active it can't be the default role.
+    protected string? IsDefault(GXRole selected)
+    {
+        return selected.Default.HasValue && selected.Default.Value ? null : "disabled";
+    }
+
+    protected string GetSelectedClass(GXRole selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXRole selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Modules, _active);
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            _roles = null;
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            ListRoles req = new ListRoles() { Filter = filter };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            _roles = (await response.Content.ReadFromJsonAsync<ListRolesResponse>()).Roles;
+            StateHasChanged();
+            filter.Name = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<IEnumerable<GXRole>>>(this, nameof(IGXHubEvents.RoleUpdate), (roles) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            ListRoles req = new ListRoles() { Filter = filter };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            _roles = (await response.Content.ReadFromJsonAsync<ListRolesResponse>()).Roles;
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _roles);
+            Notifier.ChangePage(GXPages.Roles, _roles);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            UpdateRole req = new UpdateRole() { Roles = _roles };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/Update", req);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.RemoveLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Roles);
+        Notifier.RemoveListener(this);
+    }
+}

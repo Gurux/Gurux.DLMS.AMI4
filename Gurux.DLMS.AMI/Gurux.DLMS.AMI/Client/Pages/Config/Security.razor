@@ -1,0 +1,261 @@
+﻿@page "/config/security"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <p>
+            <h2>Password</h2>
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>Required length</label>
+                        <InputNumber id="resend" class="form-control"
+                                 @bind-Value="_settings.RequiredLength" />
+                    </div>
+                    <div class="form-group">
+                        <label>Required unique chars</label>
+                        <InputNumber id="requiredUniqueChars" class="form-control"
+                                 @bind-Value="_settings.RequiredUniqueChars" />
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireNonAlphanumeric" @bind-Value="_settings.RequireNonAlphanumeric" />
+                        <label>Require non alphanumeric:</label>
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireLowercase" @bind-Value="_settings.RequireLowercase" />
+                        <label>Require lowercase:</label>
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireUppercase" @bind-Value="_settings.RequireUppercase" />
+                        <label>Require uppercase:</label>
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireDigit" @bind-Value="_settings.RequireDigit" />
+                        <label>Require digit:</label>
+                    </div>
+                </div>
+            </div>
+        </p>
+        <hr />
+        <p>
+            <h2>User</h2>
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>Allowed user name characters</label>
+                        <InputText id="allowedUserNameCharacters" class="form-control"
+                               @bind-Value="_settings.AllowedUserNameCharacters" />
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireUniqueEmail" @bind-Value="_settings.RequireUniqueEmail" />
+                        <label>Require unique email:</label>
+                    </div>
+                </div>
+            </div>
+        </p>
+        <hr />
+        <p>
+            <h2>SignIn</h2>
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <InputCheckbox id="requireConfirmedEmail" @bind-Value="_settings.RequireConfirmedEmail" />
+                        <label>Require confirmed email:</label>
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireConfirmedPhoneNumber" @bind-Value="_settings.RequireConfirmedPhoneNumber" />
+                        <label>Require confirmed phone number:</label>
+                    </div>
+                    <div class="form-group">
+                        <InputCheckbox id="requireConfirmedAccount" @bind-Value="_settings.RequireConfirmedAccount" />
+                        <label>Require confirmed account:</label>
+                    </div>
+                </div>
+            </div>
+        </p>
+        <hr />
+        <p>
+            <h2>Lockout</h2>
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <InputCheckbox id="allowedForNewUsers" @bind-Value="_settings.AllowedForNewUsers" />
+                        <label>Allowed for new users:</label>
+                    </div>
+                    <div class="form-group">
+                        <label>Maximum failed access attempts</label>
+                        <InputNumber id="maxFailedAccessAttempts" class="form-control"
+                                 @bind-Value="_settings.MaxFailedAccessAttempts" />
+                    </div>
+                    <div class="form-group">
+                        <label>Default lockout timespan in minutes</label>
+                        <InputDate Type="@InputDateType.Time" id="defaultLockoutTimeSpan" class="form-control"
+                               @bind-Value="DefaultLockoutTimeSpan" />
+                    </div>
+                </div>
+            </div>
+        </p>
+    </EditForm>
+}
+
+@code {
+
+    DateTime DefaultLockoutTimeSpan
+    {
+        get
+        {
+            return new DateTime(_settings.DefaultLockoutTimeSpan.Ticks);
+        }
+        set
+        {
+            _settings.DefaultLockoutTimeSpan = value.TimeOfDay;
+        }
+    }
+    private GXConfiguration? _active;
+    private string SubmitText = "";
+
+    SecuritySettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+
+            //Get selected item.
+            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Security)
+                        {
+                            _settings = JsonSerializer.Deserialize<SecuritySettings>(it.Settings);
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_active.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.Configuration, _active);
+                _active.Modified = true;
+            }
+            _settings = JsonSerializer.Deserialize<SecuritySettings>(_active.Settings);
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Security, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            _active.Settings = JsonSerializer.Serialize(_settings);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { _active };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Security);
+        Notifier.RemoveListener(this);
+    }
+}

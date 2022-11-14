@@ -1,0 +1,444 @@
+﻿@page "/deviceerrors"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, DeviceErrorManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.DeviceErrors (@Properties.Resources.Total: @Total)</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewGroupManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+@if (Filter)
+{
+    <p>
+        <input type="checkbox"
+           @onchange="@((ChangeEventArgs __e) => ShowClosedErrors = @StatusTile.ToBoolean(__e.Value))"
+           id="showClosedErrors" />
+        <label class="form-check-label" for="showClosedErrors">@Properties.Resources.ShowClosedErrors</label>
+    </p>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by error..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <div>
+                        <input class="form-control" type="text" placeholder="Filter by level..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                    </div>
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by close time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Error</th>
+            <th>@Properties.Resources.Level</th>
+            <th>@Properties.Resources.CloseTime</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="error" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(error)) @onclick="@(()=>RowSelected(error))">
+                    <td>@error.CreationTime</td>
+                    <td>@error.Message</td>
+                    <td>@ClientHelpers.LevelToString(error.Level)</td>
+                    <td>@error.Closed</td>
+                    @if (_selected == error)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnShow()"></ContextMenuItem>
+                                    <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="async () => OnClose()"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;</td>
+                    }
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
+         OkTitle="@Properties.Resources.Clear" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.ActiveDeviceErrors;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the device errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+    /// <summary>
+    /// Device error filter.
+    /// </summary>
+    private GXDeviceError filter = new GXDeviceError()
+        {
+            Level = null
+        };
+    /// <summary>
+    /// User is verified before device errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXDeviceError>? virtualize;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXDeviceError? _selected;
+
+    public bool IsActive(GXDeviceError item)
+    {
+        return item.Closed == null;
+    }
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    protected string GetSelectedClass(GXDeviceError selected)
+    {
+        return _selected != null && selected.Id == _selected.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXDeviceError selected)
+    {
+        _selected = selected;
+        Notifier.UpdateData(GXPages.DeviceLogs, _selected);
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            _selected = null;
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), async (errors) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.AddDeviceErrors), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.CloseDeviceErrors), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.ChangePage(GXPages.DeviceLogs, null);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceError>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+            ListDeviceErrors req = new ListDeviceErrors() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/List", req, request.CancellationToken))
+            {
+
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<ListDeviceErrorsResponse>();
+                Total = ret.Count;
+                //Get only selected amount of the device errors.
+                if (Count != 0)
+                {
+                    ret.Count = Count;
+                }
+                return new ItemsProviderResult<GXDeviceError>(ret.Errors, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show device error details.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_selected == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Device error";
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/devicelog");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected error.
+    /// </summary>
+    public async Task OnClose()
+    {
+        try
+        {
+            if (_selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.NoItemIsSelected);
+            }
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            CloseDeviceError arg = new CloseDeviceError();
+            arg.Errors = new Guid[] { (_selected as GXDeviceError).Id };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Close", arg))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+                _ = await response.Content.ReadFromJsonAsync<CloseDeviceErrorResponse>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.DeviceLogs);
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the device error list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the device error list.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Clear", new ClearDeviceErrors()))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

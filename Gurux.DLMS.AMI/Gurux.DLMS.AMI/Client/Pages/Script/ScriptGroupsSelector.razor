@@ -1,0 +1,113 @@
+﻿@page "/scriptgroupsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, ScriptGroup, ScriptGroupManager, UserGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="scriptGroups" />
+    <SelectionList Title="Available" ItemList="AllScriptGroups" />
+</SelectionContainer>
+
+@code {
+    List<GXScriptGroup> AllScriptGroups = new List<GXScriptGroup>();
+    List<GXScriptGroup> scriptGroups = new List<GXScriptGroup>();
+
+
+    public void OnUpdated(object target)
+    {
+
+    }
+
+    public string GetName(object target)
+    {
+        return (target as GXScriptGroup).Name;
+    }
+    public string GetDescription(object target)
+    {
+        return (target as GXScriptGroup).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            string? page = Notifier.GetLastPage();
+            ListScriptGroups req = new ListScriptGroups()
+                {
+                    Filter = new GXScriptGroup()
+                };
+            if (page == GXPages.UserManage)
+            {
+                //Add selected script.
+                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
+                if (userGroup != null)
+                {
+                    scriptGroups = userGroup.ScriptGroups;
+                }
+            }
+            else
+            {
+                //Add selected script.
+                GXScript? script = (GXScript?)Notifier.GetData(GXPages.Scripts);
+                if (script != null)
+                {
+                    scriptGroups = script.ScriptGroups;
+                }
+            }
+            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scriptGroups.Any();
+            Notifier.ChangePage(GXPages.ScriptGroupsSelector, null);
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScriptGroup/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListScriptGroupsResponse>();
+            foreach (GXScriptGroup it in ret.ScriptGroups)
+            {
+                //Add default groups when new script is created.
+                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
+                    !scriptGroups.Where(q => q.Id == it.Id).Any())
+                {
+                    scriptGroups.Add(it);
+                }
+                if (!scriptGroups.Exists(q => q.Id == it.Id))
+                {
+                    AllScriptGroups.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.ScriptGroupsSelector);
+    }
+}
+

@@ -1,0 +1,110 @@
+﻿@page "/devicetrace"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTrace)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Direction</label>
+                    <input type="text" id="direction" disabled="disabled" value="@GetDirection()" class="form-control" />
+                </div>
+
+                <div class="form-group">
+                    <label>@Properties.Resources.Message</label>
+                    <input type="text" id="frame" disabled="disabled" value="@_active.Frame" class="form-control" />
+                </div>
+                @if (_active.Device != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Device</label>
+                        <input type="text" id="device" disabled="disabled" value="@_active.Device.Name" class="form-control" />
+                    </div>
+                }
+                @if (_active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    private GXDeviceTrace? _active;
+    private string SubmitText = "";
+
+    private string GetDirection()
+    {
+        return _active != null && _active.Send ? "Tx" : "Rx";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXDeviceTrace?)Notifier.GetData(GXPages.DeviceTraces);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            SubmitText = Notifier.Title;
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //If device error is not read yet.
+            if (_active.Device == null)
+            {
+                //Get device error data.
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTrace?id={0}", _active.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _active = await response.Content.ReadFromJsonAsync<GXDeviceTrace>();
+            }
+            Notifier.ChangePage(GXPages.DeviceTrace, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage(GXPages.DeviceTrace);
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+}

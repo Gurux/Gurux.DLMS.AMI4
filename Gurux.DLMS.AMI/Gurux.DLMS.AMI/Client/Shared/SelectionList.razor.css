@@ -1,0 +1,23 @@
+.selection-status {
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+}
+
+    .selection-status ul {
+        flex: 1;
+    }
+
+.dropzone {
+    padding: 30px;
+    border: 1px dashed #75868a;
+    list-style: none;
+}
+
+.no-drop {
+    border: 2px dashed red;
+}
+
+.can-drop {
+    border: 2px dashed green;
+}

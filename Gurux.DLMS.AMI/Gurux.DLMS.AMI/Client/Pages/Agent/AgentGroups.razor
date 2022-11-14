@@ -1,0 +1,380 @@
+﻿@page "/agentgroups"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentGroup)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+    <p>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+            <input type="checkbox"
+               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
+            @Properties.Resources.ShowRemoved
+        </AuthorizeView>
+    </p>
+}
+
+<table class="table table-striped">
+    <thead>
+        @if (Filter)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Name</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Updated</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="group" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(group)) @onclick="@(()=>RowSelected(group))">
+                    <td>@group.Name</td>
+                    <td>@group.CreationTime</td>
+                    <td>@group.Updated</td>
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+                        @if (_active == group)
+                        {
+                            <td>
+                                <ContextMenuController>
+                                    <ChildContent>
+                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                    </ChildContent>
+                                </ContextMenuController>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>&nbsp;</td>
+                        }
+                    </AuthorizeView>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.AgentGroups;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the agent groups shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Agent group filter.
+    /// </summary>
+    private GXAgentGroup filter = new GXAgentGroup();
+    /// <summary>
+    /// User is verified before agent is removed.
+    /// </summary>
+    protected ConfirmBase DeleteConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXAgentGroup>? virtualize;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXAgentGroup? _active;
+    /// <summary>
+    /// Are removed items shown for the admin.
+    /// </summary>
+    bool ShowRemoved;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async void Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected string GetSelectedClass(GXAgentGroup group)
+    {
+        return _active != null && group.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXAgentGroup selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.AgentGroups, _active);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Return last selected item.
+            _active = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroups);
+            Notifier.On<IEnumerable<GXAgentGroup>>(this, nameof(IGXHubEvents.AgentGroupUpdate), (groups) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            Notifier.ChangePage(GXPages.AgentGroups, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(ItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            if (ShowRemoved)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListAgentGroups req = new ListAgentGroups() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentGroup/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListAgentGroupsResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the agent errors.
+            if (Total != 0)
+            {
+                ret.Count = Total;
+            }
+            return new ItemsProviderResult<GXAgentGroup>(ret.AgentGroups, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new agent group.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier.Title = "New agent group";
+            Notifier.Action = CrudAction.Create;
+            Notifier.UpdateData(GXPages.AgentGroups, new GXAgentGroup());
+            NavigationManager.NavigateTo("/agentgrouptab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit agent group.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Edit agent group";
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/agentgrouptab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected agent group.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Remove agent group";
+            Notifier.Action = CrudAction.Delete;
+            NavigationManager.NavigateTo("/agentgrouptab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.AgentGroups);
+        Notifier.RemoveListener(this);
+    }
+}
+

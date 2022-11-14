@@ -1,0 +1,196 @@
+﻿@page "/usergroup"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, UserGroupManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (_active != null)
+    {
+    <EditForm Model="@_active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.Name" />
+                </div>
+                <div class="form-group">
+                    <InputNullableCheckbox @bind-Value="_active.Default" />
+                    <label>@Properties.Resources.DefaultGroup</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.Description" />
+                </div>
+            @if (_active.Updated != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Updated</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Updated" />
+                </div>
+            }
+        </div>
+    </div>
+</EditForm>
+}
+@code {
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    private GXUserGroup? _active;
+    private string SubmitText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXUserGroup?)Notifier.GetData(GXPages.UserGroups);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            if (!_active.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get user group data.
+                _active = await Http.GetFromJsonAsync<GXUserGroup>(string.Format("api/UserGroup?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.UserGroups, _active);
+                _active.Modified = true;
+            }
+            Notifier.ChangePage(GXPages.UserGroup, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save user group.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserGroup/Delete", new RemoveUserGroup() { Ids = new Guid[] { _active.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<RemoveUserGroupResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/UserGroup/Add";
+                }
+                else
+                {
+                    address = "api/UserGroup/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddUserGroup() { UserGroups = new GXUserGroup[] { _active } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<AddUserGroupResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.UserGroup);
+    }
+}

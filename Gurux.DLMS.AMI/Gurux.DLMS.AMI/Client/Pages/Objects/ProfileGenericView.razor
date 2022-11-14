@@ -1,0 +1,342 @@
+﻿@page "/profilegenericview"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using System.Text.Json
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Target != null)
+{
+    <CascadingValue Value="this">
+        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="6" Attributes="@Target.Attributes" GetValue="@GetShortObject"></AttributeTile>
+        <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <td>
+                        <input class="form-control" placeholder="Filter by read time..."
+                           type="datetime-local"
+                           @onchange="@((ChangeEventArgs __e) => filter.Read = @StatusTile.ToDateTimeOffset(__e.Value))" />
+                    </td>
+                    <td>
+                        <MenuControl>
+                            <ChildContent>
+                                <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+                            </ChildContent>
+                        </MenuControl>
+                    </td>
+                </tr>
+                <tr>
+                    @foreach (var it in captureObjectNames)
+                    {
+                        <th>@it.Key <br> @it.Value</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (captureObjects != null)
+                {
+                    <Virtualize @ref="virtualize" Context="row" ItemsProvider="@GetItems">
+                        <ItemContent>
+                            <tr class=@(GetSelectedClass(row)) @onclick="@(()=>RowSelected(row))">
+                                @ResetPos()
+                            @foreach (var it in row)
+                            {
+                                @if (it is byte[] bt)
+                                {
+                                    @if (captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                                    {
+                                        <!--Show date time.-->
+                                        <td>
+                                            @GXDLMSClient.ChangeType(bt, DataType.DateTime,
+                            _templateSettings != null ? _templateSettings.UtcTimeZone : false)
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>@GXDLMSTranslator.ToHex(bt)</td>
+                                    }
+                                }
+                                else
+                                {
+                                    <td>@Convert.ToString(it)</td>
+                                }
+                                IncreasePos();
+                            }
+                        </tr>
+                    </ItemContent>
+                    <Placeholder>
+                        <p>
+                            @Properties.Resources.Loading&hellip;
+                        </p>
+                    </Placeholder>
+                </Virtualize>
+                }
+            </tbody>
+        </table>
+        @ChildContent
+    </CascadingValue>
+}
+
+@code {
+
+    int pos = 0;
+    private string? ResetPos()
+    {
+        pos = 0;
+        return null;
+    }
+    private string? IncreasePos()
+    {
+        ++pos;
+        return null;
+    }
+
+    [CascadingParameter]
+    private ObjectView Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject Target { get; set; }
+
+    private object? _active = null;
+    protected string GetSelectedClass(object value)
+    {
+        return _active != null && value == _active ? "table-info" : "table-striped";
+    }
+
+    public void RowSelected(object selected)
+    {
+        _active = selected;
+    }
+
+    GXDLMSSettings? _templateSettings = null;
+    private GXValue filter = new GXValue();
+    protected Virtualize<object[]>? virtualize;
+    private GXObject[]? deviceObjects = null;
+    private List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>> captureObjects = new();
+    private List<KeyValuePair<string, string>> captureObjectNames = new();
+
+    private string GetName(KeyValuePair<string, string> kp)
+    {
+        return "";
+    }
+
+    private string GetShortObject()
+    {
+        foreach (var it in Target.Attributes)
+        {
+            if (it.Template != null && it.Template.Index == 6 && !string.IsNullOrEmpty(it.Value))
+            {
+                GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
+                string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(tmp[1]);
+                if (str == "0.0.0.0.0.0")
+                {
+                    return "";
+                }
+                return str;
+            }
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async System.Threading.Tasks.Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+    private async ValueTask<ItemsProviderResult<object[]>> GetItems(ItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            List<object[]> rows = new();
+            ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Value/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListValuesResponse>();
+            foreach (var it in ret.Values)
+            {
+                GXStructure s = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
+                rows.Add(s.ToArray());
+            }
+            return new ItemsProviderResult<object[]>(rows, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Reset the buffer.
+    ///</summary>
+    private void Reset()
+    {
+        Parent.OnAction(1, (sbyte)0);
+    }
+
+    /// <summary>
+    /// Add new row for the buffer.
+    ///</summary>
+    private void Capture()
+    {
+        Parent.OnAction(2, (sbyte)0);
+    }
+
+    //Add action buttons.
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            if (Parent == null)
+            {
+                throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+            }
+            //Get capture objects.
+            GXDevice? dev = (GXDevice?)Notifier.GetData(GXPages.Device);
+            if (dev != null)
+            {
+                deviceObjects = dev.Objects.ToArray();
+                if (dev.Template != null && dev.Template.Settings != null)
+                {
+                    _templateSettings = JsonSerializer.Deserialize<GXDLMSSettings>(dev.Template.Settings);
+                }
+            }
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
+            "oi oi-minus",
+            Reset,
+            Parent.CanInvokeAction(1)));
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Capture,
+            "oi oi-plus",
+            Capture,
+            Parent.CanInvokeAction(1)));
+
+            //Search buffer attribute.
+            foreach (var it in Target.Attributes)
+            {
+                if (it.Template != null && it.Template.Index == 2)
+                {
+                    filter.Attribute = new GXAttribute() { Id = it.Id };
+                    break;
+                }
+            }
+            //Search capture objects.
+            foreach (var it in Target.Attributes)
+            {
+                if (it.Template != null && it.Template.Index == 3)
+                {
+                    if (!string.IsNullOrEmpty(it.Value))
+                    {
+                        GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(it.Value);
+                        foreach (GXStructure it2 in tmp)
+                        {
+                            GXDLMSObject? o = null;
+                            ObjectType ot = (ObjectType)Convert.ToInt32(it2[0]);
+                            string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
+                            KeyValuePair<string, string> kp = new KeyValuePair<string, string>("", "");
+                            int aIndex = Convert.ToInt32(it2[2]);
+                            int dIndex = Convert.ToInt32(it2[3]);
+                            GXDLMSCaptureObject co = new GXDLMSCaptureObject() { AttributeIndex = aIndex, DataIndex = dIndex };
+                            if (deviceObjects != null)
+                            {
+                                foreach (var obj in deviceObjects)
+                                {
+                                    if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
+                                        obj.Template.LogicalName == str)
+                                    {
+                                        o = GXDLMSClient.CreateObject(ot);
+                                        str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
+                                        kp = new KeyValuePair<string, string>(str, obj.Template.Name);
+                                        break;
+                                    }
+                                }
+                            }
+                            if (o == null)
+                            {
+                                throw new ArgumentException("Unknown capture object.");
+                            }
+                            captureObjects.Add(new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, co));
+                            captureObjectNames.Add(kp);
+                        }
+                    }
+                    break;
+                }
+            }
+            await Updated();
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

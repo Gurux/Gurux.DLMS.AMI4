@@ -1,0 +1,61 @@
+﻿@page "/logs"
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Client.Pages.User
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentManager + "," + GXRoles.AgentGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+<TabControl SelectionChanged="SelectionChanged">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SystemLogManager)>
+            <TabPage Text=@Properties.Resources.SystemLogs Icon="oi oi-warning">
+                <div style="position: relative; width: 100%; ">
+                    <SystemLog></SystemLog>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TaskManager)>
+            <TabPage Text=@Properties.Resources.Tasks Icon="oi oi-pulse">
+                <div style="position: relative; width: 100%; ">
+                    <Tasks></Tasks>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin">
+            <TabPage Text=@Properties.Resources.RESTStatistic Icon="oi oi-transfer">
+                <div style="position: relative; width: 100%; ">
+                    <RestStatistic></RestStatistic>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+    }
+
+    protected override void OnInitialized()
+    {
+    }
+}
+

@@ -1,0 +1,117 @@
+﻿@page "/agentgroupsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, AgentGroup, AgentGroupManager, UserGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="agentGroups" />
+    <SelectionList Title="Available" ItemList="AllAgentGroups" />
+</SelectionContainer>
+
+@code {
+    List<GXAgentGroup> AllAgentGroups = new List<GXAgentGroup>();
+    List<GXAgentGroup> agentGroups = new List<GXAgentGroup>();
+
+
+    public void OnUpdated(object target)
+    {
+
+    }
+
+    public string GetName(object target)
+    {
+        return (target as GXAgentGroup).Name;
+    }
+    public string GetDescription(object target)
+    {
+        return (target as GXAgentGroup).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            string? page = Notifier.GetLastPage();
+            ListAgentGroups req = new ListAgentGroups()
+                {
+                    Filter = new GXAgentGroup()
+                };
+            if (page == GXPages.DeviceManage)
+            {
+                //There are no default agent groups for the device.
+                //All agents can read the meter as a default.
+            }
+            else if (page == GXPages.AgentManage)
+            {
+                //Get selected agent.
+                GXAgent? agent = (GXAgent?)Notifier.GetData(GXPages.Agent);
+                if (agent != null)
+                {
+                    agentGroups = agent.AgentGroups;
+                }
+                else
+                {
+                    throw new ArgumentException(Properties.Resources.InvalidTarget);
+                }
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !agentGroups.Any();
+            Notifier.ChangePage(GXPages.AgentGroupsSelector, null);
+            Notifier.UpdateButtons();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentGroup/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListAgentGroupsResponse>();
+            foreach (GXAgentGroup it in ret.AgentGroups)
+            {
+                //Add default groups when new workflow is created.
+                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
+                    !agentGroups.Where(q => q.Id == it.Id).Any())
+                {
+                    agentGroups.Add(it);
+                }
+                if (!agentGroups.Exists(q => q.Id == it.Id))
+                {
+                    AllAgentGroups.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.AgentGroupsSelector);
+    }
+}
+

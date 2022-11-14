@@ -1,0 +1,31 @@
+﻿@page
+
+@using Microsoft.AspNetCore.Builder
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.Extensions.Options
+
+@model RolesModel
+
+@{
+    ViewData["Title"] = ViewData["Roles"];
+    ViewData["ActivePage"] = ManageNavPages.Roles;
+}
+
+<h4>@ViewData["Title"]</h4>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <ul>
+            @foreach (var role in Model.Roles)
+            {
+            <li>@role</li>
+            }
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

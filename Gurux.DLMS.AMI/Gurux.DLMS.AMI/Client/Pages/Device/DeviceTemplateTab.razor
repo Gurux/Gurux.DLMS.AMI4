@@ -1,0 +1,67 @@
+﻿@page "/devicetemplatetab"
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTemplateManager + "," + GXRoles.DeviceTemplateGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<TabControl SelectionChanged="SelectionChanged">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
+            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <DeviceTemplate></DeviceTemplate>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+            <TabPage Text=@Properties.Resources.DeviceTemplateGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <DeviceTemplateGroupsSelector></DeviceTemplateGroupsSelector>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
+            <TabPage Text=@Properties.Resources.ObjectTemplates Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <ObjectTemplates></ObjectTemplates>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private string? Title;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+    }
+
+    protected override void OnInitialized()
+    {
+        Title = Notifier.Title;
+        Notifier.RemoveLastPage(GXPages.DeviceTemplates);
+    }
+}
+

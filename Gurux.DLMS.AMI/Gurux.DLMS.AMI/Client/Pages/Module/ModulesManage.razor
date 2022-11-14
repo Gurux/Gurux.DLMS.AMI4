@@ -1,0 +1,267 @@
+﻿@page "/modules/manage"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject GXModuleService modules
+@implements IDisposable
+
+<h1>@Properties.Resources.ModulesTitle (@Properties.Resources.Total: @Total)</h1>
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                       @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by version..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by latest version..."
+                       @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by updated time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Updated = Convert.ToDateTime(__e.Value))" />
+            </th>
+        </tr>
+        <tr>
+            <th>@Properties.Resources.Name</th>
+            <th>@Properties.Resources.Version</th>
+            <th>@Properties.Resources.AvailableVersion</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Updated</th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="module" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(module)) @onclick="@(()=>RowSelected(module))">
+                    <td><span class="@module.Icon" aria-hidden="true"></span>@module.Id</td>
+                    <td>@module.Version</td>
+                    <td>@module.AvailableVersion</td>
+                    <td>@module.CreationTime</td>
+                    <td>@module.Updated</td>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+
+@code {
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+    private GXModule? _active;
+    /// <summary>
+    /// System error filter.
+    /// </summary>
+    private GXModule filter = new GXModule();
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXModule>? virtualize;
+
+    protected string GetSelectedClass(GXModule module)
+    {
+        return _active != null && module.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXModule selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Modules, _active);
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), (modules) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Install, Icon = "oi oi-plus", OnClick = OnInstall });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnRemove });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListModules req = new ListModules() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListModulesResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the modules.
+            return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Install new module.
+    /// </summary>
+    public async void OnInstall()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            UpdateModule req = new UpdateModule() { Module = _active };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/Install", req);
+            ClientHelpers.ValidateStatusCode(response);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    void OnClose(object sender)
+    {
+        NavigationManager.NavigateTo("/module");
+    }
+
+    /// <summary>
+    /// Remove selected module.
+    /// </summary>
+
+    public void OnRemove()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Remove Module";
+            Notifier.Action = CrudAction.Delete;
+            NavigationManager.NavigateTo("/moduletab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Modules);
+        Notifier.RemoveListener(this);
+    }
+}

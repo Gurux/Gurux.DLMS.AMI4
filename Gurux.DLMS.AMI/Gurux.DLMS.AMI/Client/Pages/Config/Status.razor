@@ -1,0 +1,247 @@
+﻿@page "/config/status"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Site version</label>
+                    <InputText id="siteVersion" class="form-control" readonly="readonly"
+                           @bind-Value="_settings.SiteVersion" />
+                </div>
+                <div class="form-group">
+                    <label>Start time</label>
+                    <input type="text" id="startTime" class="form-control" readonly="readonly"
+                       Value="@Convert.ToString(_settings.StartTime)" />
+                </div>
+                <div class="form-group">
+                    <label>System Up Time</label>
+                    <input type="text" id="upTime" class="form-control" readonly="readonly"
+                       Value="@Convert.ToString(DateTime.Now - _settings.StartTime)" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+@if (_assemblies != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by version..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by location..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Location = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+            <tr>
+                <th>@Properties.Resources.Name</th>
+                <th>@Properties.Resources.Version</th>
+                <th>@Properties.Resources.Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var assembly in _assemblies)
+            {
+                <tr class=@(GetSelectedClass(assembly)) @onclick="@(()=>RowSelected(assembly))">
+                    <td>@assembly.Name</td>
+                    <td>@assembly.Version</td>
+                    <td>@assembly.Location</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    private GXConfiguration? _active;
+    private string SubmitText = "";
+
+    StatusSettings? _settings;
+
+    /// <summary>
+    /// Script log filter.
+    /// </summary>
+    private GXAssembly filter = new GXAssembly();
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXAssembly? _selected;
+
+    protected string GetSelectedClass(GXAssembly selected)
+    {
+        return _selected != null && selected.Name == _selected.Name ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXAssembly selected)
+    {
+        _selected = selected;
+        Notifier.UpdateData(GXPages.ScriptLogs, _selected);
+    }
+
+    GXAssembly[]? _assemblies;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            _assemblies = null;
+            LoadedAssemblies req = new LoadedAssemblies() { Filter = filter };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Assemblies", req))
+            {
+
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<LoadedAssembliesResponse>();
+                _assemblies = ret.Assemblies;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXAssembly>? virtualize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            //Get selected item.
+            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Status)
+                        {
+                            _settings = JsonSerializer.Deserialize<StatusSettings>(it.Settings);
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_active.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.Configuration, _active);
+                _active.Modified = true;
+            }
+            _settings = JsonSerializer.Deserialize<StatusSettings>(_active.Settings);
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Status, _active);
+            await Updated();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Status);
+        Notifier.RemoveListener(this);
+    }
+}

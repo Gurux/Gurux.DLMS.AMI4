@@ -1,0 +1,50 @@
+﻿<div class="selection-status">
+<h3>(@Title @ItemList.Count)</h3>
+
+<ul class="dropzone @dropClass"
+    ondragover="event.preventDefault();"
+    ondragstart="event.dataTransfer.setData('', event.target.id);"
+    @ondrop="HandleDrop"
+    @ondragenter="HandleDragEnter"
+    @ondragleave="HandleDragLeave">
+
+    @foreach (var it in ItemList)
+    {
+        <SelectionItem SourceList="@ItemList" Target="@it" />
+    }
+</ul>
+</div>
+
+@code {
+    [CascadingParameter] SelectionContainer Container { get; set; }
+
+    /// <summary>
+    /// List title.
+    /// </summary>
+    [Parameter] public string Title { get; set; }
+
+    /// <summary>
+    /// Items in the list.
+    /// </summary>
+    [Parameter] public System.Collections.IList ItemList { get; set; }
+
+    string dropClass = "";
+
+    private void HandleDragEnter()
+    {
+        dropClass = "can-drop";
+    }
+
+    private void HandleDragLeave()
+    {
+        dropClass = "";
+    }
+
+    private async Task HandleDrop()
+    {
+        dropClass = "";
+        Container.SourceList.Remove(Container.Payload);
+        ItemList.Add(Container.Payload);
+        await Container.UpdateJobAsync(this, ItemList);
+    }
+}

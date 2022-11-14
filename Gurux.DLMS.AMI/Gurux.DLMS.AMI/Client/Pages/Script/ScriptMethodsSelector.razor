@@ -1,0 +1,103 @@
+﻿@page "/scriptmethodsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, ScriptGroupManager, ScriptGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="scriptMethods" />
+    <SelectionList Title="Available" ItemList="AllScriptMethods" />
+</SelectionContainer>
+
+@code {
+    List<GXScriptMethod> AllScriptMethods = new List<GXScriptMethod>();
+    List<GXScriptMethod> scriptMethods = new List<GXScriptMethod>();
+
+    string GetName(object target)
+    {
+        GXScriptMethod sm = target as GXScriptMethod;
+        return sm.Description;
+    }
+    string GetDescription(object target)
+    {
+        GXScriptMethod sm = target as GXScriptMethod;
+        return sm.Script.Name + "." + sm.Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            string? page = Notifier.GetLastPage();
+            if (page == GXPages.WorkflowManage)
+            {
+                //Get scripts from selected script group.
+                GXWorkflow? workflow = (GXWorkflow?)Notifier.GetData(GXPages.Workflow);
+                if (workflow != null && workflow.ScriptMethods != null)
+                {
+                    scriptMethods = workflow.ScriptMethods;
+                }
+            }
+            else
+            {
+                throw new ArgumentOutOfRangeException("Unknown manager " + page);
+            }
+            Notifier.ChangePage(GXPages.ScriptsSelector, null);
+            ListScripts req = new ListScripts();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            foreach (GXScript script in ret.Scripts)
+            {
+                foreach (GXScriptMethod method in script.Methods)
+                {
+                    //Update parent.
+                    method.Script = script;
+                    if (!scriptMethods.Exists(q => q.Id == method.Id))
+                    {
+                        AllScriptMethods.Add(method);
+                    }
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.ScriptsSelector);
+    }
+}
+

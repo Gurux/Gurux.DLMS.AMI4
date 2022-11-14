@@ -1,0 +1,173 @@
+﻿@page "/config/authentication"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Authentication service</label>
+                    <select class="form-control" @bind="@_active.Name">
+                        @foreach (var it in _services)
+                        {
+                            <option value="@it">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Client ID</label>
+                    <InputText id="name" class="form-control"
+                           @bind-Value="_active.ClientId" />
+                </div>
+                <div class="form-group">
+                    <label>Client Secret</label>
+                    <InputText id="name" class="form-control"
+                           @bind-Value="_active.ClientSecret" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private AuthenticationSettings? _active;
+    private List<AuthenticationSettings>? _authentications;
+
+    private string SubmitText = "";
+    private List<string> _services = new();
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _services.Add("GitHub");
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (AuthenticationSettings?)Notifier.GetData(GXPages.Authentication);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            _authentications = (List<AuthenticationSettings>?)Notifier.GetData(GXPages.Authentications);
+            if (_authentications == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                case CrudAction.Create:
+                case CrudAction.Delete:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Authentication, _active);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier.ProgressStart();
+        Notifier.ClearStatus();
+        try
+        {
+            if (_authentications != null && _active != null)
+            {
+                switch (Notifier.Action)
+                {
+                    case CrudAction.Create:
+                        foreach (var it in _authentications)
+                        {
+                            if (it.Name == _active.Name)
+                            {
+                                throw new ArgumentException("The external authentication service has already been added.");
+                            }
+                        }
+                        _authentications.Add(_active);
+                        break;
+                    case CrudAction.Delete:
+                        _authentications.Remove(_active);
+                        break;
+                    case CrudAction.Update:
+                        //Do nothing.
+                        break;
+                    default:
+                        NavigationManager.NavigateTo("/configurations");
+                        return;
+                }
+            }
+            //Get selected item.
+            GXConfiguration? conf = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            conf.Settings = JsonSerializer.Serialize(_authentications);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { conf };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Authentication);
+        Notifier.RemoveListener(this);
+    }
+}

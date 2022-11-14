@@ -1,0 +1,511 @@
+﻿@page "/users"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, UserManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.UsersTitle (@Properties.Resources.Total: @Total)</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+        <p>
+            <input type="checkbox"
+               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
+            @Properties.Resources.ShowRemoved
+        </p>
+    </AuthorizeView>
+}
+
+<table class="table table-striped">
+    <thead>
+        @if (Filter)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" placeholder="Filter by given name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.GivenName = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by surname..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Surname = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by email..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Email = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by email confirmed..."
+                       @onchange="@((ChangeEventArgs __e) => filter.EmailConfirmed = StatusTile.ToBoolean(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by role..."
+                       @onchange="@((ChangeEventArgs __e) => @UpdateRoles(Convert.ToString(__e.Value)))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by Updated..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Updated = StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by last login..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.LastLogin = StatusTile.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by access failed count..."
+                       @onchange="@((ChangeEventArgs __e) => filter.AccessFailedCount = StatusTile.ToInt32(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.GivenName</th>
+            <th>@Properties.Resources.Surname</th>
+            <th>@Properties.Resources.Email</th>
+            <th>@Properties.Resources.EmailConfirmed</th>
+            <th>@Properties.Resources.Roles</th>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Updated</th>
+            <th>@Properties.Resources.LastLogin</th>
+            <th>@Properties.Resources.AccessFailed</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody
+        <Virtualize @ref="virtualize" Context="user" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(user)) @onclick="@(()=>RowSelected(user))">
+                    <td>@user.GivenName</td>
+                    <td>@user.Surname</td>
+                    <td>@user.Email</td>
+                    <td>@user.EmailConfirmed</td>
+                    <td>@RolesToString(user.Roles)</td>
+                    <td>@user.CreationTime.ToShortTimeString()</td>
+                    <td>@user.Updated</td>
+                    <td>@user.LastLogin</td>
+                    <td>@user.AccessFailedCount</td>
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
+                        @if (active == user)
+                        {
+                            <td>
+                                <ContextMenuController>
+                                    <ChildContent>
+                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                        <ContextMenuItem Text="@Properties.Resources.Actions" Icon="oi oi-info" OnClick="async () => OnActions()"></ContextMenuItem>
+                                        <!--TODO:
+                                        <ContextMenuItem Text="@Properties.Resources.Agents" Icon="oi oi-wifi" OnClick="async () => OnAgents()"></ContextMenuItem>
+                                        -->
+                                    </ChildContent>
+                                </ContextMenuController>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>&nbsp;&nbsp;&nbsp;</td>
+                        }
+                    </AuthorizeView>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.UsersTitle;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-people";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Convert role array to string.
+    /// </summary>
+    /// <param name="roles"></param>
+    /// <returns></returns>
+    private static string RolesToString(List<string> roles)
+    {
+        string str = string.Join(',', roles);
+        //Truncate if string is too long...
+        if (str.Length > 30)
+        {
+            str = str.Substring(0, 30) + "...";
+        }
+        return str;
+    }
+
+    private void UpdateRoles(string roles)
+    {
+        filter.Roles.Clear();
+        if (!string.IsNullOrEmpty(roles))
+        {
+            filter.Roles.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries));
+        }
+    }
+
+    /// <summary>
+    /// User filter.
+    /// </summary>
+    private GXUser filter = new GXUser();
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase DeleteConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXUser>? virtualize;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXUser? active;
+
+    /// <summary>
+    /// Are removed items shown for the admin.
+    /// </summary>
+    bool ShowRemoved;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async void Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected string GetSelectedClass(GXUser user)
+    {
+        return active != null && user.Id == active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXUser selected)
+    {
+        active = selected;
+        Notifier.UpdateData("users", active);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            object? data = Notifier.GetData("users");
+            if (data is GXUser u)
+            {
+                active = u;
+            }
+            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.UserUpdate), (user) =>
+            {
+                Updated();
+            });
+            Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.UserDelete), (user) =>
+            {
+                Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            Notifier.RemoveLastPage(GXPages.UserGroups);
+            Notifier.ChangePage(GXPages.Users, active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXUser>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (ShowRemoved)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListUsers req = new ListUsers() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/User/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListUsersResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the users.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }
+            return new ItemsProviderResult<GXUser>(ret.Users, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new user.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier.Title = "New User";
+            Notifier.UpdateData("users", new GXUser());
+            Notifier.Action = CrudAction.Create;
+            NavigationManager.NavigateTo("/usertab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit user.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Edit User";
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/usertab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected user.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (string.IsNullOrEmpty(active.Id))
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Remove User";
+            Notifier.Action = CrudAction.Delete;
+            NavigationManager.NavigateTo("/usertab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Show user actions.
+    /// </summary>
+    public void OnActions()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (active == null || string.IsNullOrEmpty(active.Id))
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.UpdateData(GXPages.Users, active);
+            NavigationManager.NavigateTo($"/userActions");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Show user readers.
+    /// </summary>
+    public void OnAgents()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (string.IsNullOrEmpty(active.Id))
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.UpdateData(GXPages.Users, active);
+            NavigationManager.NavigateTo($"/agents");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Users);
+        Notifier.RemoveListener(this);
+    }
+}
+

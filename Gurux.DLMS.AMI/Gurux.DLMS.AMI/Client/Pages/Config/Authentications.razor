@@ -1,0 +1,223 @@
+﻿@page "/config/authentications"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.ManufacturerSettings
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+
+@if (_authentications != null)
+{
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+        </ChildContent>
+    </MenuControl>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>@Properties.Resources.Name</th>
+                <th>Client ID.</th>
+                <th width="1%"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var it in _authentications)
+            {
+                <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
+                    <td>@it.Name</td>
+                    <td>@it.ClientId</td>
+                    @if (_selected == it)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                    <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+
+    private string? GetVersion(string? version)
+    {
+        if (version == null)
+        {
+            return Properties.Resources.CustomBuild;
+        }
+        return version;
+    }
+
+    private GXConfiguration? _active;
+    private AuthenticationSettings? _selected;
+    private List<AuthenticationSettings> _authentications = new List<AuthenticationSettings>();
+
+    protected string GetSelectedClass(AuthenticationSettings selected)
+    {
+        return selected == _selected ? "table-info" : "table-striped";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_active.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.Configuration, _active);
+                _active.Modified = true;
+            }
+            if (!string.IsNullOrEmpty(_active.Settings))
+            {
+                _authentications.AddRange(JsonSerializer.Deserialize<AuthenticationSettings[]>(_active.Settings));
+            }
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Authentications, _authentications);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Delete selected authentication.
+    /// </summary>
+
+    public void OnRemove()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (_selected == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.UpdateData(GXPages.Authentication, _selected);
+            Notifier.Title = "Remove authentication";
+            Notifier.Action = CrudAction.Delete;
+            NavigationManager.NavigateTo("/config/authentication");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Add new authentication.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Title = "New authentication";
+            Notifier.Action = CrudAction.Create;
+            Notifier.UpdateData(GXPages.Authentication, new AuthenticationSettings());
+            NavigationManager.NavigateTo("/config/authentication");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit authentication.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (_selected == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Edit authentication";
+            Notifier.UpdateData(GXPages.Authentication, _selected);
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/config/authentication");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void RowSelected(AuthenticationSettings selected)
+    {
+        _selected = selected;
+        Notifier.UpdateData(GXPages.Authentication, _active);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Authentications);
+        Notifier.RemoveListener(this);
+    }
+}

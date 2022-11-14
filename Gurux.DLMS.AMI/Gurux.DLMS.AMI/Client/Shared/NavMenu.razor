@@ -1,0 +1,137 @@
+﻿@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.Extensions.Logging
+
+@inject GXModuleService modules
+@inject IHttpClientFactory HttpClientFactory
+@inject HttpClient Http
+@inject ILogger<App> Logger
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<div class="top-row pl-4 navbar navbar-dark">
+    <a class="navbar-brand" href="">Gurux.DLMS.AMI</a>
+    <button class="navbar-toggler" @onclick="ToggleNavMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span>@Properties.Resources.Home
+            </NavLink>
+        </li>
+        <AuthorizeView Roles="Admin, DeviceManager, DeviceGroupManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="Devicemanage">
+                    <span class="oi oi-tablet" aria-hidden="true"></span>@Properties.Resources.Devices
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin, ScheduleManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="schedulemanage">
+                    <span class="oi oi-timer" aria-hidden="true"></span>@Properties.Resources.SchedulesTitle
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin, TemplateManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="deviceTemplatemanage">
+                    <span class="oi oi-file" aria-hidden="true"></span>@Properties.Resources.DeviceTemplatesTitle
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin, UserManager, UserGroupManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="usermanage">
+                    <span class="oi oi-people" aria-hidden="true"></span>&nbsp; @Properties.Resources.UserManagement
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin, AgentManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="agentmanage">
+                    <span class="oi oi-wifi" aria-hidden="true"></span>@Properties.Resources.Agents
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin, LogManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="logs">
+                    <span class="oi oi-info" aria-hidden="true"></span> @Properties.Resources.Logs
+                </NavLink>
+            </li>
+        </AuthorizeView>
+        <AuthorizeView Roles="Admin">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="configurations">
+                    <span class="oi oi-cog" aria-hidden="true"></span>@Properties.Resources.Configuration
+                </NavLink>
+            </li>
+        </AuthorizeView>
+    </ul>
+</div>
+
+@code {
+
+    //Language has changed.
+    public void LanguageUpdated()
+    {
+        StateHasChanged();
+    }
+
+    List<Gurux.DLMS.AMI.Module.GXNavItem> navItems = new List<Gurux.DLMS.AMI.Module.GXNavItem>();
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity.IsAuthenticated)
+            {
+                if (modules.Assemblies.Count == 0)
+                {
+                    Logger.LogInformation("Loading assemblies.");
+                    await modules.LoadModules(Http);
+                }
+                else
+                {
+                    Logger.LogInformation("Assemblies already loaded.");
+                }
+                if (modules.Assemblies != null)
+                {
+                    foreach (var asm in modules.Assemblies)
+                    {
+                        Logger.LogError(asm.FullName);
+                        foreach (var type in asm.GetExportedTypes())
+                        {
+                            if (type.GetInterfaces().Contains(typeof(IGXModuleUI)))
+                            {
+                                IGXModuleUI tmp = (IGXModuleUI)asm.CreateInstance(type.FullName);
+                                if (tmp.NavItems != null && tmp.NavItems.Length != 0)
+                                {
+                                    navItems.AddRange(tmp.NavItems);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "An error occurred.");
+        }
+    }
+}

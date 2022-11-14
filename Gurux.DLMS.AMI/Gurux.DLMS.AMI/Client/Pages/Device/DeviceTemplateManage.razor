@@ -1,0 +1,61 @@
+﻿@page "/devicetemplatemanage"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTemplateManager + "," + GXRoles.DeviceTemplateGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplate)>
+            <TabPage Text=@Properties.Resources.DeviceTemplatesTitle Icon="">
+                <div style="position: relative; width: 100%; ">
+                    <DeviceTemplates></DeviceTemplates>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateGroupManager)>
+            <TabPage Text=@Properties.Resources.DeviceTemplateGroupsTitle Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <DeviceTemplateGroups></DeviceTemplateGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private int ActiveTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+        Notifier.UpdateData(GXPages.DeviceTemplateManage, index);
+    }
+
+    protected override void OnInitialized()
+    {
+        object? data = Notifier.GetData(GXPages.DeviceTemplateManage);
+        if ((data is int value) && value != 0)
+        {
+            ActiveTab = value;
+        }
+        Notifier.ChangePage(GXPages.DeviceTemplateManage, data, true);
+    }
+}
+

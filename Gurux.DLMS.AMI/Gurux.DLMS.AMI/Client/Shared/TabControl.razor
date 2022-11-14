@@ -1,0 +1,115 @@
+﻿<CascadingValue Value="this">
+    <div style="width:100%">
+        @foreach (var row in GetButtonRows())
+        {
+            <div class="btn-group" role="group" style="width:100%">
+                @foreach (TabPage tabPage in row)
+                {
+                    <button type="button"
+                    class="btn @GetButtonClass(tabPage)"
+                    @onclick=@( () => ActivatePage(tabPage) )>
+                        @if (TabTextTemplate != null)
+                        {
+                            @TabTextTemplate(tabPage)
+                        }
+                        else
+                        {
+                            if (!string.IsNullOrEmpty(@tabPage.IconLigature) && !string.IsNullOrEmpty(@tabPage.Icon))
+                            {
+                                <span class=@tabPage.Icon aria-hidden="true">@tabPage.IconLigature</span>
+                            }
+                            else
+                            {
+                                @if (!string.IsNullOrEmpty(@tabPage.Icon))
+                                {
+                                    <span class=@tabPage.Icon aria-hidden="true"></span>
+                                }
+                            }
+                            @tabPage.Text
+                        }
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    @ChildContent
+</CascadingValue>
+
+@code {
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    public delegate void SelectionChangedEventHandler(int index);
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public int InitialTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    [Parameter] public SelectionChangedEventHandler SelectionChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment<TabPage> TabTextTemplate { get; set; }
+
+    /// <summary>
+    /// Split buttons for multipe rows.
+    /// </summary>
+    private List<List<TabPage>> GetButtonRows()
+    {
+        List<List<TabPage>> result = new List<List<TabPage>>();
+        List<TabPage> list = new List<TabPage>();
+        result.Add(list);
+        foreach (var it in Pages)
+        {
+            list.Add(it);
+            if (list.Count == 5)
+            {
+                list = new List<TabPage>();
+                result.Add(list);
+            }
+        }
+        return result;
+    }
+
+    public TabPage? ActivePage { get; set; }
+    List<TabPage> Pages = new List<TabPage>();
+    internal void AddPage(TabPage tabPage)
+    {
+        tabPage.Index = Pages.Count;
+        Pages.Add(tabPage);
+        if (InitialTab == 0 && Pages.Count == 1)
+        {
+            ActivePage = tabPage;
+        }
+        if (InitialTab != 0 && Pages.Count - 1 == InitialTab)
+        {
+            ActivePage = Pages[InitialTab];
+        }
+        StateHasChanged();
+    }
+
+    string GetButtonClass(TabPage page)
+    {
+        return page == ActivePage ? "btn-primary" : "btn-secondary";
+    }
+    void ActivatePage(TabPage page)
+    {
+        ActivePage = page;
+        SelectionChanged?.Invoke(page.Index);
+    }
+
+    public void ActivatePage(int index)
+    {
+        if (Pages.Count > index)
+        {
+            ActivePage = Pages[index];
+            SelectionChanged?.Invoke(ActivePage.Index);
+        }
+    }
+}

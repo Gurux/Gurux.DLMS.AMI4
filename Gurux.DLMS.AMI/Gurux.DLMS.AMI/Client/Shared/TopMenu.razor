@@ -1,0 +1,68 @@
+﻿@using Gurux.DLMS.AMI.Client.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@inject IGXNotifier Notifier
+
+<CascadingValue Value=this>
+    @ChildContent
+</CascadingValue>
+<div class="btn-group" role="group">
+    @foreach (GXMenuItem it in Notifier.Items)
+    {
+        <button class="btn button" @onclick=it.OnClick>
+            @if (it.Icon != null)
+            {
+                <div class="@it.Icon"></div>
+            }
+            &nbsp;@it.Text
+        </button>
+    }
+</div>
+<!--Show help.-->
+<a href="@GetHelpPath()" target="_blank"><div class="oi oi-question-mark"></div></a>
+@code {
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    ///
+    string? _page;
+
+    private string GetHelpPath()
+    {
+        string str = "https://gurux.fi/gurux.dlms.ami4";
+        if (!string.IsNullOrEmpty(_page))
+        {
+            str += "/" + _page;
+        }
+        return str;
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Notifier.OnUpdateButtons += () =>
+        {
+            StateHasChanged();
+        };
+        Notifier.OnPageChanged += () =>
+        {
+            var path = Notifier.GetSelectionPath();
+            if (path.Count > 1 && path[path.Count - 2] == GXPages.Configurations)
+            {
+                _page = "configurations/" + Notifier.GetLastPage();
+            }
+            else
+            {
+                _page = Notifier.GetLastPage();
+            }
+            //
+            StateHasChanged();
+        };
+
+        if (Notifier.Items.Count != 0)
+        {
+            Notifier.Items.Clear();
+            StateHasChanged();
+        }
+    }
+}

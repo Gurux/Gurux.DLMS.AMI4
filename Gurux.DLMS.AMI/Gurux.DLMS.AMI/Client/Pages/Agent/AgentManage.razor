@@ -1,0 +1,74 @@
+﻿@page "/agentmanage"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Agent + "," +
+    GXRoles.AgentManager + "," + GXRoles.AgentGroup + "," + GXRoles.AgentGroupManager +
+    GXRoles.AgentLog + "," + GXRoles.AgentLogManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager)>
+            <TabPage Text=@Properties.Resources.Agents Icon="oi oi-wifi">
+                <div style="position: relative; width: 100%; ">
+                    <Agents></Agents>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroup, GXRoles.AgentGroupManager)>
+            <TabPage Text=@Properties.Resources.AgentGroups>
+                <div style="position: relative; width: 100%; ">
+                    <AgentGroups></AgentGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+            <TabPage Text=@Properties.Resources.Manage Icon="oi oi-cog">
+                <div style="position: relative; width: 100%; ">
+                    <AgentsManage></AgentsManage>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog, GXRoles.AgentLogManager)>
+            <TabPage Text=@Properties.Resources.AgentLogs Icon="oi oi-warning">
+                <div style="position: relative; width: 100%; ">
+                    <AgentLogs></AgentLogs>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+
+    private int ActiveTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.UpdateData(GXPages.AgentManage, index);
+    }
+
+    protected override void OnInitialized()
+    {
+        object? data = Notifier.GetData(GXPages.AgentManage);
+        if ((data is int value) && value != 0)
+        {
+            ActiveTab = value;
+        }
+        Notifier.ChangePage(GXPages.AgentManage, data, true);
+    }
+}
+

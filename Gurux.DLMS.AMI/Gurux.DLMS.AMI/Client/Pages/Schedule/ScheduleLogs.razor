@@ -1,0 +1,434 @@
+﻿@page "/schedulelogs"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, ScheduleLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.ScheduleLogs (@Properties.Resources.Total: @Total)</PageTitle>
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLogManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+@if (Filter)
+{
+    <p>
+        <input type="checkbox"
+           @onchange="@((ChangeEventArgs __e) => ShowClosedErrors = @StatusTile.ToBoolean(__e.Value))"
+           id="showClosedErrors" />
+        <label class="form-check-label" for="showClosedErrors">@Properties.Resources.ShowClosedErrors</label>
+    </p>
+}
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>
+                <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by user name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Schedule.Name = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by message..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <div>
+                    <input class="form-control" type="text" placeholder="Filter by level..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                </div>
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by close time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+        </tr>
+        <tr>
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.Schedule</th>
+            <th>@Properties.Resources.Message</th>
+            <th>@Properties.Resources.Level</th>
+            <th>@Properties.Resources.CloseTime</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="error" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(error)) @onclick="@(()=>RowSelected(error))">
+                    <td>@error.CreationTime</td>
+                    <td>@(error.Schedule != null ? error.Schedule.Name : "")</td>
+                    <td>@error.Message</td>
+                    <td>@ClientHelpers.LevelToString(error.Level)</td>
+                    <td>@error.Closed</td>
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+                        @if (_active == error)
+                        {
+                            <td>
+                                <ContextMenuController>
+                                    <ChildContent>
+                                        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnShow()"></ContextMenuItem>
+                                        <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="async () => OnClose()"></ContextMenuItem>
+                                    </ChildContent>
+                                </ContextMenuController>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>&nbsp;</td>
+                        }
+                    </AuthorizeView>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
+         OkTitle="@Properties.Resources.Clear" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.ScheduleLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the schedule errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Schedule error filter.
+    /// </summary>
+    private GXScheduleLog filter = new GXScheduleLog()
+        {
+            Level = null,
+            Schedule = new GXSchedule()
+        };
+    /// <summary>
+    /// User is verified before schedule log are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXScheduleLog>? virtualize;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXScheduleLog? _active;
+
+    public bool IsActive(GXScheduleLog item)
+    {
+        return item.Closed == null;
+    }
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    protected string GetSelectedClass(GXScheduleLog selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXScheduleLog selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.ScheduleLogs, _active);
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            _active = null;
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.On<IEnumerable<GXSchedule>?>(this, nameof(IGXHubEvents.ClearScheduleLog), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXScheduleLog>>(this, nameof(IGXHubEvents.AddScheduleLog), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXScheduleLog>>(this, nameof(IGXHubEvents.CloseScheduleLog), (error) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.ChangePage(GXPages.ScheduleLogs, null);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXScheduleLog>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListScheduleLogs req = new ListScheduleLogs() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/List", req, request.CancellationToken))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<ListScheduleLogsResponse>();
+                Total = ret.Count;
+                //Get only selected amount of the schedule errors.
+                if (Count != 0)
+                {
+                    ret.Count = Count;
+                }
+                return new ItemsProviderResult<GXScheduleLog>(ret.Logs, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show schedule log details.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Schedule error";
+            Notifier.Action = CrudAction.Update;
+            NavigationManager.NavigateTo("/schedulelog");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected error.
+    /// </summary>
+    public async Task OnClose()
+    {
+        try
+        {
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.NoItemIsSelected);
+            }
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            CloseScheduleLog arg = new CloseScheduleLog();
+            arg.Logs = new Guid[] { (_active as GXScheduleLog).Id };
+            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/Close", arg))
+            {
+                ClientHelpers.ValidateStatusCode(response);
+                _ = await response.Content.ReadFromJsonAsync<CloseScheduleLogResponse>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.ScheduleLogs);
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the schedule log list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the schedule log list.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/Clear", new ClearScheduleLogs()))
+                {
+                    ClientHelpers.ValidateStatusCode(response);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

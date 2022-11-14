@@ -1,0 +1,16 @@
+﻿@inject SignInManager<ApplicationUser> SignInManager
+@{ var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any(); }
+<ul class="nav nav-pills flex-column">
+    <li class="nav-item"><a class="nav-link @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">@ViewData["Profile"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.ProfilePictureNavClass(ViewContext)" id="profilePicture" asp-page="./ProfilePicture">@ViewData["ProfilePicture"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.RolesNavClass(ViewContext)" id="roles" asp-page="./Roles">@ViewData["Roles"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">@ViewData["Email"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">@ViewData["Password"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.PatNavClass(ViewContext)" id="pat" asp-page="./Pat">@ViewData["Pat"]</a></li>
+    @if (hasExternalLogins)
+    {
+<li id="external-logins" class="nav-item"><a id="external-login" class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">@ViewData["ExternalLogins"]</a></li>
+}
+    <li class="nav-item"><a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">@ViewData["TwoFactorAuthentication"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">@ViewData["PersonalData"]</a></li>
+</ul>

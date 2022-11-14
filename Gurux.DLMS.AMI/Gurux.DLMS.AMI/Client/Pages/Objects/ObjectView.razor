@@ -1,0 +1,411 @@
+﻿@page "/objectview"
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+
+@attribute [Authorize(Roles = "Admin, User")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@inject ILogger<ObjectView> logger
+
+@if (!string.IsNullOrEmpty(DeviceName))
+{
+    <p>
+        <div class="oi oi-tablet" style="display: inline;">
+            <h2 style="display: inline;">@DeviceName</h2>
+        </div>
+    </p>
+    <hr />
+}
+@if (_object != null && _object.Template != null)
+{
+    <CascadingValue Value="this">
+        <h3>@Convert.ToString((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType) Object</h3>
+        <div class="row">
+            <div style="width:100%">
+                @switch ((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType)
+                {
+                    case ObjectType.Data:
+                        <DataView Target="_object"></DataView>
+                        break;
+                    case ObjectType.Register:
+                        <RegisterView Target="_object"></RegisterView>
+                        break;
+                    case ObjectType.ProfileGeneric:
+                        <ProfileGenericView Target="_object"></ProfileGenericView>
+                        break;
+                    default:
+                        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@_object.Template.LogicalName"></AttributeTile>
+                        @foreach (var it in _object.Attributes.OrderBy(o => o.Template.Index))
+                        {
+                            <AttributeTile Attribute="@it"></AttributeTile>
+                        }
+                        break;
+                }
+            </div>
+        </div>
+        @ChildContent
+        <MenuControl MenuItems="MenuItems">
+            <ChildContent>
+            </ChildContent>
+        </MenuControl>
+    </CascadingValue>
+    <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_object"></ParametersView>
+}
+@code {
+    private ParametersView? ParametersView;
+    private List<IGXParameter> Parameters = new List<IGXParameter>();
+
+    private GXObject? _object;
+    private string SubmitText;
+
+    /// <summary>
+    /// Device name.
+    /// </summary>
+    private string? DeviceName;
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public List<MenuItem> MenuItems = new List<MenuItem>();
+
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
+            if (device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            DeviceName = device.Name;
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.ValueUpdate), (attributes) =>
+           {
+               //Update attribute value and last read time if it has been changed.
+               if (_object != null)
+               {
+                   foreach (var it in attributes)
+                   {
+                       if (it.Object != null && it.Object.Id == _object.Id)
+                       {
+                           foreach (var attribute in _object.Attributes)
+                           {
+                               if (it.Id == attribute.Id)
+                               {
+                                   attribute.Read = it.Read;
+                                   attribute.Value = it.Value;
+                                   StateHasChanged();
+                                   break;
+                               }
+                           }
+                           break;
+                       }
+                   }
+               }
+           });
+            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
+            {
+                if (_object != null)
+                {
+                    foreach (var it in objects)
+                    {
+                        if (it.Id == _object.Id)
+                        {
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), (attributes) =>
+            {
+                //Update attribute value and last read time if it has been changed.
+                if (_object != null)
+                {
+                    foreach (var it in attributes)
+                    {
+                        if (it.Object != null && it.Object.Id == _object.Id)
+                        {
+                            foreach (var attribute in _object.Attributes)
+                            {
+                                if (it.Id == attribute.Id)
+                                {
+                                    attribute.Read = it.Read;
+                                    if (!string.IsNullOrEmpty(it.Value))
+                                    {
+                                        attribute.Value = it.Value;
+                                    }
+                                    StateHasChanged();
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            });
+
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnRead });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Write, Icon = "oi oi-account-login", OnClick = OnWrite });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            GXObject? obj = (GXObject?)Notifier.GetData(GXPages.Objects);
+            if (obj == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            //If object attributes are not read yet.
+            if (obj.Attributes.Count == 0)
+            {
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", obj.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                obj = await response.Content.ReadFromJsonAsync<GXObject>();
+                Notifier.UpdateData(GXPages.Objects, obj);
+            }
+            _object = obj;
+            Parameters.AddRange(_object.Parameters);
+            Notifier.ChangePage(GXPages.Object, _object);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Check is action invoke allowed.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public bool CanInvokeAction(int index)
+    {
+        --index;
+        if (_object != null && _object.Template != null &&
+            _object.Template.ActionAccessLevels != null &&
+            _object.Template.ActionAccessLevels.Length > index)
+        {
+            return (Convert.ToUInt16(_object.Template.ActionAccessLevels[index]) & ~0x8000) != 0;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Invoke action.
+    /// </summary>
+    public async void OnAction(int index, object data)
+    {
+        GXTask task = new GXTask();
+        task.Object = _object;
+        task.TaskType = TaskType.Action;
+        task.Data = GXDLMSTranslator.ValueToXml(data);
+        task.Index = index;
+        await GenerateTask(new GXTask[] { task });
+    }
+
+    /// <summary>
+    /// Save device.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            if (_object == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            HttpResponseMessage response;
+            //Update object parameters.
+            ParametersView?.UpdateSettings<GXObjectParameter>(_object.Parameters);
+            response = await Http.PostAsJsonAsync("api/Object/Update", new UpdateObject() { Objects = new GXObject[] { _object } });
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Only modified values are written.
+    /// </summary>
+    public async void OnWrite()
+    {
+        List<GXTask> tasks = new();
+        foreach (var it in _object.Attributes)
+        {
+            if (it.Template == null)
+            {
+                throw new ArgumentNullException("Invalid attribute template");
+            }
+            if ((it.Template.AccessLevel & (int)AccessMode.Write) != 0 && it.Modified)
+            {
+                string str;
+                DataType d = (DataType)it.Template.DataType;
+                if (d == DataType.OctetString)
+                {
+                    if ((DataType)it.Template.UIDataType == DataType.OctetString)
+                    {
+                        str = GXDLMSTranslator.ValueToXml(GXDLMSTranslator.HexToBytes(it.Value));
+                    }
+                    else
+                    {
+                        str = GXDLMSTranslator.ValueToXml(System.Text.ASCIIEncoding.ASCII.GetBytes(it.Value));
+                    }
+                }
+                else
+                {
+                    if (d == DataType.Enum && !string.IsNullOrEmpty(it.Value))
+                    {
+                        str = GXDLMSTranslator.ValueToXml(new GXEnum(byte.Parse(it.Value)));
+                    }
+                    else
+                    {
+                        Type dt = GXDLMSConverter.GetDataType(d);
+                        object? tmp = Convert.ChangeType(it.Value, dt);
+                        str = GXDLMSTranslator.ValueToXml(tmp);
+                    }
+                }
+                GXTask task = new GXTask();
+                task.Attribute = it;
+                task.TaskType = TaskType.Write;
+                task.Data = str;
+                task.Index = it.Template.Index;
+                tasks.Add(task);
+                task.Order = tasks.Count;
+            }
+        }
+        Guid? batch = null;
+        if (tasks.Count > 1)
+        {
+            batch = Guid.NewGuid();
+            foreach (GXTask task in tasks)
+            {
+                task.Batch = batch;
+            }
+        }
+        await GenerateTask(tasks.ToArray());
+    }
+
+    /// <summary>
+    /// Button clicked.
+    /// </summary>
+    [Parameter]
+    public EventHandler OnClick { get; set; }
+
+    /// <summary>
+    /// Read object attributes.
+    /// </summary>
+    public async void OnRead()
+    {
+        Guid? batch = null;
+        if (_object.Attributes.Count != 0)
+        {
+            batch = Guid.NewGuid();
+        }
+        List<GXTask> tasks = new();
+        foreach (var it in _object.Attributes)
+        {
+            if (it.Template == null)
+            {
+                throw new ArgumentNullException("Invalid attribute template");
+            }
+            if ((it.Template.AccessLevel & (int)AccessMode.Read) != 0)
+            {
+                GXTask task = new GXTask()
+                    {
+                        TaskType = TaskType.Read,
+                        Batch = batch,
+                        Attribute = it,
+                    };
+                tasks.Add(task);
+                task.Order = tasks.Count;
+            }
+        }
+        await GenerateTask(tasks.ToArray());
+    }
+
+    private async System.Threading.Tasks.Task GenerateTask(GXTask[] tasks)
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            AddTask req = new AddTask();
+            req.Tasks = tasks;
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Add", req);
+            ClientHelpers.ValidateStatusCode(response);
+            await response.Content.ReadFromJsonAsync<AddTaskResponse>();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(GXPages.Objects);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Object);
+        Notifier.RemoveListener(this);
+    }
+}

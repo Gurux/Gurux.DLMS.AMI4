@@ -1,0 +1,119 @@
+﻿@page "/schedulelog"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleLog)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Message</label>
+                    <InputText id="name" disabled="disabled" @bind-Value="_active.Message" class="form-control" />
+                </div>
+                @if (!string.IsNullOrEmpty(_active.StackTrace))
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.StackTrace</label>
+                        <textarea id="Reply" @bind="_active.StackTrace" rows="10"
+                          readonly="readonly" class="form-control" />
+                    </div>
+                }
+               <div class="form-group">
+                    <label>@Properties.Resources.ErrorSeverityLevel</label>
+                    <input type="text" id="level" disabled="disabled"
+                       value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                </div>
+                @if (_active.Schedule != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Schedule</label>
+                        <InputText id="schedule" disabled="disabled" @bind-Value="_active.Schedule.Name" class="form-control" />
+                    </div>
+                }
+                @if (_active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Closed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Closed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Closed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    private GXScheduleLog? _active;
+    private string SubmitText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXScheduleLog?)Notifier.GetData(GXPages.ScheduleLogs);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            SubmitText = Notifier.Title;
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //If schedule error is not read yet.
+            if (_active.Schedule == null)
+            {
+                //Get schedule error data.
+                HttpResponseMessage response = await Http.GetAsync(string.Format("api/ScheduleLog?id={0}", _active.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _active = await response.Content.ReadFromJsonAsync<GXScheduleLog>();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel.
+    /// </summary>
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+}

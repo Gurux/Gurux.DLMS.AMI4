@@ -1,0 +1,45 @@
+﻿@page
+
+@using Microsoft.AspNetCore.Builder
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.Extensions.Options
+@using System.Net.Http
+
+
+@model ProfilePictureModel
+@{
+    ViewData["Title"] = ViewData["ProfilePicture"];
+    ViewData["ActivePage"] = ManageNavPages.ProfilePicture;
+}
+
+<h4>@ViewData["Title"]</h4>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <form id="profile-form" method="post" enctype="multipart/form-data">
+            <div class="form-floating">
+                @if (Model.Input.ProfilePicture != null)
+                {
+                    <img id="profilePicture" style="width:350px;height:350px; object-fit:cover" src="data:image/*;base64,@(Model.Input.ProfilePicture)">
+                }
+                else
+                {
+                    <img id="profilePicture" style="width:350px;height:350px; object-fit:cover" src="">
+                }
+                <input type="file"
+                       accept="image/png,image/jpg"
+                       asp-for="Input.ProfilePicture"
+                       class="form-control"
+                       style="border:0px!important;padding: 0px;padding-top: 10px;padding-bottom: 30px;"
+                       onchange="document.getElementById('profilePicture').src = window.URL.revokeObjectURL(window.URL.createObjectURL(this.files[0]))" />
+                <span asp-validation-for="Input.ProfilePicture" class="text-danger"></span>
+            </div>
+            <button id="update-profile-button" type="submit" class="btn btn-primary">Save</button>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

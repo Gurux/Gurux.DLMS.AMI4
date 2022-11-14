@@ -1,0 +1,209 @@
+﻿@page "/config/maintenance"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@using System.Text.Encodings.Web
+@using System.Text.Unicode
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputCheckbox id="maintenanceMode" @bind-Value="_settings.MaintenanceMode" />
+                    <label>Site is in maintenance mode</label>
+                    <p>
+                        When enabled, only admin users are able to access site to perform maintenance;<br />
+                        all other visitors see the maintenance mode message configured below.<br />
+                        Authorized users can log in directly via the user login page.
+                    </p>
+                </div>
+                @if (_settings != null)
+                {
+                    <MaintenanceLocalizer @ref="MaintenanceLocalizer" Configuration="_configuration" Settings="_settings"></MaintenanceLocalizer>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private GXConfiguration? _configuration;
+
+    MaintenanceSettings? _settings;
+    MaintenanceLocalizer? MaintenanceLocalizer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Notifier == null)
+        {
+            throw new ArgumentException(Properties.Resources.InvalidNotifier);
+        }
+        Notifier.ProgressStart();
+        Notifier.ClearStatus();
+        try
+        {
+            //Get selected item.
+            _configuration = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_configuration == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Maintenance)
+                        {
+                            _settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_configuration.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _configuration = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _configuration.Id));
+                Notifier.UpdateData(GXPages.Configuration, _configuration);
+                _configuration.Modified = true;
+            }
+            if (string.IsNullOrEmpty(_configuration.Settings))
+            {
+                _settings = new MaintenanceSettings();
+            }
+            else
+            {
+                _settings = JsonSerializer.Deserialize<MaintenanceSettings>(_configuration.Settings);
+                if (!string.IsNullOrEmpty(_settings.Message))
+                {
+                    _settings.Message = ((MarkupString)_settings.Message).ToString();
+                }
+            }
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _configuration);
+            Notifier.ChangePage(GXPages.Maintenance, _configuration);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            //This is needed to serialize special chars.
+            var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                    WriteIndented = true
+                };
+            _configuration.Languages = MaintenanceLocalizer.GetLocalizedTexts();
+            _configuration.Settings = JsonSerializer.Serialize(_settings, options);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { _configuration };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Run the cron.
+    /// </summary>
+    public async void OnRun()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            ConfigurationRunCron req = new ConfigurationRunCron();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Cron", req);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier?.ShowInformation("Cron started.");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Maintenance);
+        Notifier.RemoveListener(this);
+    }
+}

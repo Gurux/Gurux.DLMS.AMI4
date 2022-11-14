@@ -1,0 +1,52 @@
+﻿@namespace Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+
+@code {
+    [CascadingParameter]
+    private ContextMenuController? Parent { get; set; }
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+   
+    /// <summary>
+    /// Context menu item text.
+    /// </summary>
+    [Parameter]
+    public string Text { get; set; } = "";
+
+    /// <summary>
+    /// Context menu item Url.
+    /// </summary>
+    [Parameter]
+    public string Url{ get; set; } = "";
+
+    /// <summary>
+    /// Context menu item icon.
+    /// </summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    /// <summary>
+    /// Invoked on click event.
+    /// </summary>
+    [Parameter]
+    public Action? OnClick { get; set; }
+
+    /// <summary>
+    /// Invoke the click event.
+    /// </summary>
+    public void Click()
+    {
+        OnClick?.Invoke();
+        Parent?.Hide();
+    }
+
+    /// <summary>
+    /// Initialize context menu.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+            throw new ArgumentNullException(nameof(Parent), "MenuItem must exist within a ContextMenuController");
+        base.OnInitialized();
+        Parent.AddMenuItem(this);
+    }
+}

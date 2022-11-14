@@ -1,0 +1,239 @@
+﻿@page "/blocklocalizer"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@inject IGXNotifier Notifier
+@inject HttpClient Http
+
+<div class="row">
+    <div style="width:100%">
+        @if (_languages != null)
+        {
+            <label>@Properties.Resources.Language</label>
+            <select class="form-control" @bind="@SelectedLanguage">
+                @foreach (var it in _languages)
+                {
+                    <option value="@it.Id">@it.EnglishName</option>
+                }
+            </select>
+        }
+        @if (_selectedBlockItem != null)
+        {
+            <div class="form-group">
+                <label>@Properties.Resources.Title</label>
+                <InputText id="title" disabled="@IsDeleting" @bind-Value="_selectedBlockItem.Title" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label>@Properties.Resources.Body</label>
+                <textarea id="body" @bind="_selectedBlockItem.Body" class="form-control fill" />
+            </div>
+        }
+    </div>
+</div>
+@code {
+    /// <summary>
+    /// Language list.
+    ///</summary>
+    GXLanguage[]? _languages;
+
+    /// <summary>
+    /// Selected block item.
+    ///</summary>
+    BlockItem? _selectedBlockItem;
+
+    /// <summary>
+    /// Selected language.
+    ///</summary>
+    string? _selectedLanguage;
+
+    /// <summary>
+    /// Is configuration deleted.
+    ///</summary>
+    bool IsDeleting;
+
+    /// <summary>
+    /// Default language.
+    ///</summary>
+    private string? _defaultLanguage = null;
+
+    [Parameter]
+    public GXBlock Block { get; set; }
+
+    class BlockItem
+    {
+        //Block title.
+        public string? Title;
+        //Block body.
+        public string? Body;
+    }
+
+    /// <summary>
+    /// Localized blocks.
+    /// </summary>
+    Dictionary<string, BlockItem> localizedBlocks = new Dictionary<string, BlockItem>();
+
+    /// <summary>
+    /// Selected language.
+    ///</summary>
+    string? SelectedLanguage
+    {
+        get
+        {
+            return _selectedLanguage;
+        }
+        set
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                _selectedBlockItem = localizedBlocks[value];
+            }
+            _selectedLanguage = value;
+        }
+    }
+
+    /// <summary>
+    /// Get available languages.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+
+            //Get available active languages.
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages() { Filter = new GXLanguage() { Active = true } });
+            ClientHelpers.ValidateStatusCode(response);
+            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            if (_languages != null && _languages.Any())
+            {
+                foreach (var it in _languages)
+                {
+                    localizedBlocks[it.Id] = new BlockItem();
+                    if (it.Default.GetValueOrDefault(false))
+                    {
+                        _defaultLanguage = it.Id;
+                    }
+                }
+                SelectedLanguage = _languages[0].Id;
+            }
+            //Save default block values to localized blocks.
+            BlockItem defaultLanguage = localizedBlocks[_defaultLanguage];
+            defaultLanguage.Title = Block.Title;
+            defaultLanguage.Body = Block.Body;
+            if (Block.Languages != null)
+            {
+                foreach (var language in Block.Languages)
+                {
+                    BlockItem? item;
+                    if (!localizedBlocks.TryGetValue(language.Id, out item))
+                    {
+                        item = new BlockItem() { };
+                        localizedBlocks[language.Id] = item;
+                    }
+                    if (language.Resources != null)
+                    {
+                        foreach (var it in language.Resources)
+                        {
+                            if (!string.IsNullOrEmpty(Block.Title) && it.Hash == ClientHelpers.GetHashCode(Block.Title))
+                            {
+                                item.Title = it.Value;
+                            }
+                            else if (!string.IsNullOrEmpty(Block.Body) && it.Hash == ClientHelpers.GetHashCode(Block.Body))
+                            {
+                                item.Body = it.Value;
+                            }
+                            else
+                            {
+                                throw new Exception("Invalid hash.");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Returns localized texts.
+    /// </summary>
+    public GXLanguage[] GetLocalizedTexts()
+    {
+        List<GXLanguage> languages = new List<GXLanguage>();
+        //Update localized string.
+        foreach (var it in localizedBlocks)
+        {
+            if (it.Key == _defaultLanguage)
+            {
+                //Update default block strings.
+                Block.Title = it.Value.Title;
+                Block.Body = it.Value.Body;
+            }
+            else
+            {
+                List<GXLocalizedResource> resources = new List<GXLocalizedResource>();
+                if (!string.IsNullOrEmpty(it.Value.Title))
+                {
+                    if (string.IsNullOrEmpty(Block.Title))
+                    {
+                        throw new Exception("Default title is missing.");
+                    }
+                    //Add localized title.
+                    GXLocalizedResource res = new GXLocalizedResource()
+                        {
+                            //Server updates the hash.
+                            Hash = ClientHelpers.GetHashCode(Block.Title),
+                            Value = it.Value.Title,
+                        };
+                    resources.Add(res);
+                }
+                if (!string.IsNullOrEmpty(it.Value.Body))
+                {
+                    if (string.IsNullOrEmpty(Block.Body))
+                    {
+                        throw new Exception("Default body is missing.");
+                    }
+                    //Add localized body.
+                    GXLocalizedResource res = new GXLocalizedResource()
+                        {
+                            //Server updates the hash.
+                            Hash = ClientHelpers.GetHashCode(Block.Body),
+                            Value = it.Value.Body,
+                            Language = new GXLanguage() { Id = it.Key }
+                        };
+                    resources.Add(res);
+                }
+                if (resources.Any())
+                {
+                    GXLanguage language = new GXLanguage() { Id = it.Key };
+                    language.Resources = resources.ToArray();
+                    languages.Add(language);
+                }
+            }
+        }
+        return languages.ToArray();
+    }
+}

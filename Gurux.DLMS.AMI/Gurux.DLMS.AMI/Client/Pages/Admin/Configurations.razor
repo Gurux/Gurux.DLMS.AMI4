@@ -1,0 +1,282 @@
+﻿@page "/configurations"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<h1>@Properties.Resources.SettingsTitle</h1>
+<hr />
+
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+<input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th width="1%"></th>
+            <th width="1%" style="white-space: nowrap;">@Properties.Resources.Name</th>
+            <th style="display:table-cell; width:100%">@Properties.Resources.Description</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="conf" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(conf)) @onclick="@(()=>RowSelected(conf))">
+                    <td><span class="@conf.Icon" aria-hidden="true"></span></td>
+                    <td><a href="@GetPath(conf)" @onclick="() => OnSelect(conf)">@conf.Name</a></td>
+                    <td>
+                        @conf.Description
+                    </td>
+                    <td>
+                        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                            @if (_active == conf)
+                            {
+                                <td>
+                                    <ContextMenuController>
+                                        <ChildContent>
+                                            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                        </ChildContent>
+                                    </ContextMenuController>
+                                </td>
+                            }
+                            else
+                            {
+                                <td>&nbsp;</td>
+                            }
+                        </AuthorizeView>
+                    </td>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+
+
+@code {
+    GXConfiguration? _active;
+
+    private string GetPath(GXConfiguration target)
+    {
+        //If custom UI is used.
+        if (!string.IsNullOrEmpty(target.Path))
+        {
+            return target.Path;
+        }
+        return "/configurations";
+    }
+
+    private void OnSelect(GXConfiguration target)
+    {
+        Notifier.Title = "Edit configuration";
+        Notifier.Action = CrudAction.Update;
+        Notifier.UpdateData(GXPages.Configurations, target);
+        if (!string.IsNullOrEmpty(target.Path))
+        {
+            NavigationManager.NavigateTo(target.Path);
+        }
+        else
+        {
+            NavigationManager.NavigateTo("/configurations");
+        }
+    }
+
+    protected string GetSelectedClass(GXConfiguration target)
+    {
+        return _active != null && target.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+
+    protected void RowSelected(GXConfiguration selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Configurations, _active);
+    }
+
+    GXConfiguration[]? _configurations = null;
+    /// <summary>
+    /// Configuration filter.
+    /// </summary>
+    /// <remarks>
+    /// Don't localize the name.
+    /// </remarks>
+    private GXConfiguration filter = new GXConfiguration();
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase DeleteConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXConfiguration>? virtualize;
+
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        //Configurations are read from DB.
+        _configurations = null;
+        if (virtualize != null)
+        {
+            Notifier?.ClearStatus();
+            await virtualize.RefreshDataAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+
+        if (_configurations != null)
+        {
+            return new ItemsProviderResult<GXConfiguration>(_configurations, _configurations.Length);
+        }
+        _active = null;
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            ListConfiquration req = new ListConfiquration() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListConfiqurationResponse>();
+            _configurations = ret.Configurations;
+            return new ItemsProviderResult<GXConfiguration>(_configurations, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Return last selected item.
+            object? data = Notifier.GetData(GXPages.Configurations);
+            if (data is GXConfiguration c1)
+            {
+                _active = c1;
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            Notifier.ChangePage(GXPages.Configurations, _active, true);
+            await Updated();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Edit configuration.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "Edit configuration";
+            Notifier.Action = CrudAction.Update;
+            Notifier.UpdateData(GXPages.Configurations, _active);
+            //If custom UI is used.
+            if (!string.IsNullOrEmpty(_active.Path))
+            {
+                NavigationManager.NavigateTo(_active.Path);
+            }
+            else
+            {
+                throw new Exception("Invalid configuration path.");
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Configurations);
+        Notifier.RemoveListener(this);
+    }
+}

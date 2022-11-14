@@ -1,0 +1,251 @@
+﻿@page "/config/cron"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <p>
+        <MenuControl RightCorner=true>
+            <ChildContent>
+                <MenuItem Text="Run cron" Icon="oi oi-flash" OnClick="@(async () => OnRun())" />
+            </ChildContent>
+        </MenuControl>
+    </p>
+    <p>
+    </p>
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.LastExecutionTime</label>
+                    @if (_settings.Run != null)
+                    {
+                        <input class="form-control" type="text" readonly="readonly" value="@_settings.Run.ToString()" />
+                    }
+                    else
+                    {
+                        <label>@Properties.Resources.Never</label>
+                    }
+                    <p></p>
+                </div>
+                <div class="form-group">
+                    <label>Run cron every</label>
+                    <select class="form-control" @bind="@_settings.Interval">
+                        @foreach (var it in Intervals)
+                        {
+                            <option value="@it.Key">@it.Value</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Next estimated run time</label>
+                    @if (_settings.EstimatedNextTime != null)
+                    {
+                        <input class="form-control" type="text" readonly="readonly" value="@_settings.EstimatedNextTime.ToString()" />
+                    }
+                    else
+                    {
+                        <label>@Properties.Resources.Never</label>
+                    }
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private GXConfiguration? _active;
+    private string SubmitText = "";
+    Dictionary<int, string> Intervals = new Dictionary<int, string>();
+
+    CronSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Intervals.Add(0, "Never");
+        Intervals.Add(1, "1 hours");
+        Intervals.Add(3, "3 hours");
+        Intervals.Add(6, "6 hours");
+        Intervals.Add(12, "12 hours");
+        Intervals.Add(24, "1 day");
+        Intervals.Add(24 * 7, "1 week");
+
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+            {
+                try
+                {
+                    if (configurations != null)
+                    {
+                        foreach (var it in configurations)
+                        {
+                            if (it.Name == GXConfigurations.Cron)
+                            {
+                                _settings = JsonSerializer.Deserialize<CronSettings>(it.Settings);
+                                StateHasChanged();
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Notifier?.ProcessError(ex);
+                }
+            });
+            Notifier.On(this, nameof(IGXHubEvents.CronCompleate), async () =>
+            {
+                try
+                {
+                    //Get configuration data.
+                    GXConfiguration? tmp = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                    if (tmp != null)
+                    {
+                        _active = tmp;
+                        _settings = JsonSerializer.Deserialize<CronSettings>(_active.Settings);
+                        Notifier.UpdateData(GXPages.Configuration, _active);
+                        StateHasChanged();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Notifier?.ProcessError(ex);
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_active.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                Notifier.UpdateData(GXPages.Configuration, _active);
+                _active.Modified = true;
+            }
+            _settings = JsonSerializer.Deserialize<CronSettings>(_active.Settings);
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _active);
+            Notifier.ChangePage(GXPages.Cron, _active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            _active.Settings = JsonSerializer.Serialize(_settings);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { _active };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Run the cron.
+    /// </summary>
+    public async void OnRun()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            ConfigurationRunCron req = new ConfigurationRunCron();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Cron", req);
+            ClientHelpers.ValidateStatusCode(response);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.Cron);
+        Notifier.RemoveListener(this);
+    }
+}

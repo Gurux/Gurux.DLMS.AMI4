@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2210.301" />
+    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2211.1401" />
+    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2211.1401" />
+    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2211.1404" />
+    <PackageReference Include="Gurux.Net" Version="8.4.2210.1201" />
+    <PackageReference Include="Gurux.Serial" Version="8.4.2210.1201" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.10" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="6.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shared\Gurux.DLMS.AMI.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\scripts\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\download.js">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,40 @@
+﻿
+<div class="selection-container">
+    <CascadingValue Value="this">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    public delegate string GetNameEventHandler(object target);
+
+    public delegate string GetDescriptionEventHandler(object target);
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Item has moved between the lists.
+    /// </summary>
+    [Parameter] public EventCallback<object> OnUpdated { get; set; }
+
+    /// <summary>
+    /// Get name for the object.
+    /// </summary>
+    [Parameter] public GetNameEventHandler GetName { get; set; }
+
+    /// <summary>
+    /// Get description for the object.
+    /// </summary>
+    [Parameter] public GetDescriptionEventHandler GetDescription { get; set; }
+
+    public System.Collections.IList SourceList { get; set; }
+
+    public object Payload { get; set; }
+
+    public async Task UpdateJobAsync(SelectionList list, System.Collections.IList added)
+    {
+        StateHasChanged();
+        await OnUpdated.InvokeAsync(Payload);
+    }
+}

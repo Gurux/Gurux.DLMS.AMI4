@@ -1,0 +1,204 @@
+﻿@page "/config/maintenancelocalizer"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@inject IGXNotifier Notifier
+@inject HttpClient Http
+
+<div class="row">
+    <div style="width:100%">
+        @if (_languages != null)
+        {
+            <label>@Properties.Resources.Language</label>
+            <select class="form-control" @bind="@SelectedLanguage">
+                @foreach (var it in _languages)
+                {
+                    <option value="@it.Id">@it.EnglishName</option>
+                }
+            </select>
+        }
+        @if (SelectedLanguage != null)
+        {
+            <div class="form-group">
+                <label>Message</label>
+                <textarea id="body" @bind="localizedTexts[SelectedLanguage]" class="form-control fill markup" />
+            </div>
+        }
+    </div>
+</div>
+@code {
+    /// <summary>
+    /// Language list.
+    ///</summary>
+    GXLanguage[]? _languages;
+
+    /// <summary>
+    /// Selected language.
+    ///</summary>
+    string? _selectedLanguage;
+
+    /// <summary>
+    /// Is configuration deleted.
+    ///</summary>
+    bool IsDeleting;
+
+    /// <summary>
+    /// Default language.
+    ///</summary>
+    private string? _defaultLanguage = null;
+
+    [Parameter]
+    public GXConfiguration Configuration { get; set; }
+
+    /// <summary>
+    /// Maintenance settings.
+    ///</summary>
+    [Parameter]
+    public MaintenanceSettings Settings { get; set; }
+
+    /// <summary>
+    /// Localized texts.
+    /// </summary>
+    Dictionary<string, string> localizedTexts = new Dictionary<string, string>();
+
+    /// <summary>
+    /// Selected language.
+    ///</summary>
+    string? SelectedLanguage
+    {
+        get
+        {
+            return _selectedLanguage;
+        }
+        set
+        {
+            _selectedLanguage = value;
+        }
+    }
+
+    /// <summary>
+    /// Get available languages.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get available active languages.
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages() { Filter = new GXLanguage() { Active = true } });
+            ClientHelpers.ValidateStatusCode(response);
+            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            if (_languages != null && _languages.Any())
+            {
+                foreach (var it in _languages)
+                {
+                    localizedTexts[it.Id] = "";
+                    if (it.Default.GetValueOrDefault(false))
+                    {
+                        _defaultLanguage = it.Id;
+                    }
+                }
+                SelectedLanguage = _defaultLanguage;
+            }
+            //Save default maintenance values to localized values.
+            localizedTexts[_defaultLanguage] = Settings.Message;
+
+            if (Configuration.Languages != null)
+            {
+                foreach (var language in Configuration.Languages)
+                {
+                    string? item;
+                    if (!localizedTexts.TryGetValue(language.Id, out item))
+                    {
+                        localizedTexts[language.Id] = "";
+                    }
+                    if (language.Resources != null)
+                    {
+                        foreach (var it in language.Resources)
+                        {
+                            if (!string.IsNullOrEmpty(Settings.Message) && it.Hash == ClientHelpers.GetHashCode(Settings.Message))
+                            {
+                                localizedTexts[language.Id] = it.Value;
+                            }
+                            else
+                            {
+                                throw new Exception("Invalid hash.");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Returns localized texts.
+    /// </summary>
+    public GXLanguage[] GetLocalizedTexts()
+    {
+        List<GXLanguage> languages = new List<GXLanguage>();
+        //Update default block strings.
+        foreach (var it in localizedTexts)
+        {
+            if (it.Key == _defaultLanguage)
+            {
+                Settings.Message = it.Value;
+                break;
+            }
+        }
+        //Update localized string.
+        foreach (var it in localizedTexts)
+        {
+            if (it.Key != _defaultLanguage)
+            {
+                List<GXLocalizedResource> resources = new List<GXLocalizedResource>();
+                if (!string.IsNullOrEmpty(it.Value))
+                {
+                    if (string.IsNullOrEmpty(Settings.Message))
+                    {
+                        throw new Exception("Invalid maintenance message.");
+                    }
+                    //Add localized title.
+                    GXLocalizedResource res = new GXLocalizedResource()
+                        {
+                            //Server updates the hash.
+                            Hash = ClientHelpers.GetHashCode(Settings.Message),
+                            Value = it.Value
+                        };
+                    resources.Add(res);
+                }
+                if (resources.Any())
+                {
+                    GXLanguage language = new GXLanguage() { Id = it.Key };
+                    language.Resources = resources.ToArray();
+                    languages.Add(language);
+                }
+            }
+        }
+        return languages.ToArray();
+    }
+}

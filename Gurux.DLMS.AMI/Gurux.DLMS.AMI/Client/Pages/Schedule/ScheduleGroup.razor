@@ -1,0 +1,199 @@
+﻿@page "/schedulegroup"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@if (_scheduleGroup != null)
+{
+    <EditForm Model="@_scheduleGroup">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_scheduleGroup.Name" />
+                </div>
+                <div class="form-group">
+                    <InputNullableCheckbox @bind-Value="_scheduleGroup.Default" />
+                    <label>@Properties.Resources.DefaultGroup</label>
+                    <br />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_scheduleGroup.Description" />
+                </div>
+                @if (_scheduleGroup.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_scheduleGroup.Updated" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    private GXScheduleGroup? _scheduleGroup;
+    private string SubmitText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _scheduleGroup = (GXScheduleGroup?)Notifier.GetData(GXPages.ScheduleGroups);
+            if (_scheduleGroup == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            if (!_scheduleGroup.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get schedule group data.
+                _scheduleGroup = await Http.GetFromJsonAsync<GXScheduleGroup>(string.Format("api/ScheduleGroup?id={0}", _scheduleGroup.Id));
+                Notifier.UpdateData(GXPages.ScheduleGroups, _scheduleGroup);
+                _scheduleGroup.Modified = true;
+                StateHasChanged();
+            }
+            Notifier.ChangePage(GXPages.ScheduleGroup, _scheduleGroup);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save schedule group.
+    /// </summary>
+
+    public async void OnSave()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleGroup/Delete", new RemoveScheduleGroup() { Ids = new Guid[] { _scheduleGroup.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<RemoveScheduleGroupResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/ScheduleGroup/Add";
+                }
+                else
+                {
+                    address = "api/ScheduleGroup/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddScheduleGroup() { ScheduleGroups = new GXScheduleGroup[] { _scheduleGroup } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<AddScheduleGroupResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.ScheduleGroup);
+    }
+}

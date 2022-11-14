@@ -1,0 +1,78 @@
+﻿@page "/workflowtab"
+@using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.WorkflowManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowGroupManager)>
+            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-fork">
+                <div style="position: relative; width: 100%; ">
+                    <Workflow></Workflow>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+            <TabPage Text=@Properties.Resources.WorkflowGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <WorkflowGroupsSelector></WorkflowGroupsSelector>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+            <TabPage Text="@Properties.Resources.ScriptMethods" Icon="oi oi-script">
+                <div style="position: relative; width: 100%; ">
+                    <ScriptMethodsSelector></ScriptMethodsSelector>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private string? Title;
+    private int ActiveTab { get; set; } = 0;
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="index">Tab index.</param>
+    void SelectionChanged(int index)
+    {
+        Notifier.RemoveLastPage();
+        Notifier.UpdateData(GXPages.WorkflowTab, index);
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Notifier == null)
+        {
+            throw new ArgumentException(Properties.Resources.InvalidNotifier);
+        }
+        Title = Notifier.Title;
+        object data = Notifier.GetData(GXPages.WorkflowTab);
+        if ((data is int value) && value != 0)
+        {
+            ActiveTab = value;
+        }
+        Notifier.RemoveLastPage(GXPages.Workflows);
+    }
+}
+

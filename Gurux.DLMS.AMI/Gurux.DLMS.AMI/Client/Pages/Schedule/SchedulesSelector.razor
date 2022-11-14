@@ -1,0 +1,85 @@
+﻿@page "/schedulesselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, ScheduleGroupManager, ScheduleGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="schedules" />
+    <SelectionList Title="Available" ItemList="AllSchedules" />
+</SelectionContainer>
+
+@code {
+    List<GXSchedule> AllSchedules = new List<GXSchedule>();
+    List<GXSchedule> schedules = new List<GXSchedule>();
+
+    string GetName(object target)
+    {
+        return (target as GXSchedule).Name;
+    }
+    string GetDescription(object target)
+    {
+        return (target as GXSchedule).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ChangePage(GXPages.SchedulesSelector, null);
+            //Add selected user groups.
+            GXScheduleGroup? userGroup = (GXScheduleGroup?)Notifier.GetData(GXPages.ScheduleGroup);
+            if (userGroup == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            schedules = userGroup.Schedules;
+            ListSchedules req = new ListSchedules()
+                {
+                    Filter = new GXSchedule()
+                };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Schedule/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListSchedulesResponse>();
+            foreach (GXSchedule it in ret.Schedules)
+            {
+                if (!schedules.Exists(q => q.Id == it.Id))
+                {
+                    AllSchedules.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.SchedulesSelector);
+    }
+}
+

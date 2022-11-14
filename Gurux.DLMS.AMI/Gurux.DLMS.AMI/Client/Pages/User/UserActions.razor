@@ -1,0 +1,395 @@
+﻿@page "/useractions"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = "Admin, UserManager, User")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Actions (@Properties.Resources.Total: @Total)</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserManager, GXRoles.User)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped" width="100%">
+    <thead width="100%">
+        @if (Filter)
+        {
+            <tr width="100%">
+                <th>
+                    <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by user name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.User.UserName = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                </th>
+            </tr>
+        }
+        <tr width="100%">
+            <th>@Properties.Resources.CreationTime</th>
+            <th>@Properties.Resources.User</th>
+            <th>@Properties.Resources.Target</th>
+            <th>@Properties.Resources.Action</th>
+            <th>@Properties.Resources.Status</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody width="100%">
+        <Virtualize @ref="virtualize" Context="action" ItemsProvider="@GetItems" ItemSize="100">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(action)) @onclick="@(()=>RowSelected(action))">
+                    <td>@action.CreationTime</td>
+                    <td>@action.User?.UserName</td>
+                    <td>@action.Target</td>
+                    <td>@action.Action</td>
+                    <td>@action.Status</td>
+                    @if (_active == action)
+                    {
+                        <td>
+                            <ContextMenuController>
+                                <ChildContent>
+                                    <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnShow()"></ContextMenuItem>
+                                </ChildContent>
+                            </ContextMenuController>
+                        </td>
+                    }
+                    else
+                    {
+                        <td>&nbsp;</td>
+                    }
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
+         OkTitle="@Properties.Resources.Clear" ConfirmationMessage=@("Are you sure you want to clear users action log?")>
+</Confirm>
+
+@code {
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.UserActions;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-info";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+    /// <summary>
+    /// User action log filter.
+    /// </summary>
+    private GXUserAction filter = new GXUserAction()
+        {
+            User = new GXUser()
+            {
+                EmailConfirmed = null,
+                PhoneNumberConfirmed = null,
+                TwoFactorEnabled = null,
+                LockoutEnabled = null
+            }
+        };
+
+    /// <summary>
+    /// User is verified before system errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXUserAction>? virtualize;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXUserAction? _active;
+
+    protected string GetSelectedClass(GXUserAction selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXUserAction selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.UserActions, _active);
+    }
+
+    public string SelectedUser
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (virtualize != null)
+            {
+                Notifier?.ClearStatus();
+                await virtualize.RefreshDataAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            object? data = Notifier.GetData(GXPages.UserActions);
+            _active = data as GXUserAction;
+            string? page = Notifier.GetLastPage();
+            if (page == GXPages.Users)
+            {
+                //Show user actions for the selected user.
+                GXUser? user = (GXUser?)Notifier.GetData(GXPages.Users);
+                if (user != null)
+                {
+                    SelectedUser = "for " + user.UserName;
+                    filter.User = new GXUser() { Id = user.Id };
+                }
+            }
+            else
+            {
+                SelectedUser = "for all users";
+            }
+            Notifier.On<IEnumerable<GXUserAction>>(this, nameof(IGXHubEvents.UserActionAdd), (actions) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXUserAction>>(this, nameof(IGXHubEvents.UserActionDelete), (actions) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.On<IEnumerable<GXUser>?>(this, nameof(IGXHubEvents.UserActionClear), (actions) =>
+            {
+                Task.Run(Updated);
+            });
+            Notifier.ChangePage(GXPages.UserActions, null);
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            await Updated();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXUserAction>> GetItems(ItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListUserAction req = new ListUserAction() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserAction/List", req, request.CancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListUserActionResponse>();
+            Total = ret.Count;
+            //Get only selected amount of the user actions.
+            if (Count != 0)
+            {
+                ret.Count = Count;
+            }            
+            return new ItemsProviderResult<GXUserAction>(ret.Actions, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.UserActions);
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Show user action.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (_active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Notifier.Title = "User action";
+            NavigationManager.NavigateTo("/useraction");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Clear the user actions.
+    /// </summary>
+    public void OnClear()
+    {
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserAction/Clear", new ClearUserAction()))
+                {
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

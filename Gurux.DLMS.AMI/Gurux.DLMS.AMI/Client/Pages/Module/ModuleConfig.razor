@@ -1,0 +1,87 @@
+﻿@page "/moduleconfig"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using System.IO
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<ModuleConfig> Logger
+
+<GXModuleLayout></GXModuleLayout>
+@code {
+    private string? fileName = null;
+    private bool isAdding = false;
+    private GXModule module;
+    private string SubmitText;
+
+    protected override void OnInitialized()
+    {
+        Notifier?.ClearStatus();
+        try
+        {
+            object data = Notifier.GetData("moduleconfig");
+            if (data is GXModule m)
+            {
+                module = m;
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    isAdding = true;
+                    SubmitText = Properties.Resources.Add;
+                    //Note! Update data or notifier doesn't know what data is added.
+                    Notifier.UpdateData("moduleconfig", module);
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Notifier.ChangePage("moduleconfig", module);
+            NavigationManager.NavigateTo(module.ConfigurationUI);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            NavigationManager.NavigateTo("/modules");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo(Notifier.RemoveLastPage());
+    }
+}

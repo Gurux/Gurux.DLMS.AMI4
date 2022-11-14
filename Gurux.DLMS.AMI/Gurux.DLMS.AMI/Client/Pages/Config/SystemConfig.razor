@@ -1,0 +1,195 @@
+﻿@page "/config/system"
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Size of the database connection pool</label>
+                    <InputNumber id="poolSize" class="form-control"
+                           @bind-Value="_settings.PoolSize" />
+                </div>
+                <div class="form-group">
+                    <InputCheckbox id="useSwagger" @bind-Value="_settings.UseSwagger" />
+                    <label>@Properties.Resources.EnableSwagger</label>
+                </div>
+                <div class="form-group">
+                    <label>Site email address</label>
+                    <InputText id="siteEmailAddress" class="form-control"
+                           @bind-Value="_settings.SiteEmailAddress" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+<button type="button" class="btn btn-danger"
+        @onclick="() => OnRestart()">
+    Restart
+</button>
+
+
+@code {
+    private GXConfiguration? _configuration;
+    private string SubmitText = "";
+
+    SystemSettings? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            //Get selected item.
+            _configuration = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_configuration == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.System)
+                        {
+                            _settings = JsonSerializer.Deserialize<SystemSettings>(it.Settings);
+                            StateHasChanged();
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            switch (Notifier.Action)
+            {
+                case CrudAction.Update:
+                    break;
+                default:
+                    NavigationManager.NavigateTo("/configurations");
+                    return;
+            }
+            if (!_configuration.Modified &&
+            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get configuration data.
+                _configuration = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _configuration.Id));
+                Notifier.UpdateData(GXPages.Configuration, _configuration);
+                _configuration.Modified = true;
+            }
+            _settings = JsonSerializer.Deserialize<SystemSettings>(_configuration.Settings);
+            //Configurations needs to be update as well.
+            Notifier.ChangePage(GXPages.Configurations, _configuration);
+            Notifier.ChangePage(GXPages.System, _configuration);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            _configuration.Settings = JsonSerializer.Serialize(_settings);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { _configuration };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Restart the application.
+    /// </summary>
+    private async void OnRestart()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            StopApplicationRequest req = new StopApplicationRequest();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Restart", req);
+            ClientHelpers.ValidateStatusCode(response);
+            Notifier?.ShowInformation("System restarted.");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.System);
+        Notifier.RemoveListener(this);
+    }
+}

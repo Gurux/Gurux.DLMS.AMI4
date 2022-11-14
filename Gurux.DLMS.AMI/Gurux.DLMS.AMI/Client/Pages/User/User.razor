@@ -1,0 +1,317 @@
+﻿@page "/user"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = "Admin, UserManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@implements IDisposable
+
+@if (AvailableRoles.Any() && _active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.GivenName</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.GivenName" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Surname</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="_active.Surname" />
+                </div>
+
+                <div class="form-group">
+                    <label>@Properties.Resources.Email</label>
+                    <InputText id="start" disabled="@IsDisabled" class="form-control"
+                           @bind-Value="_active.Email" />
+                </div>
+
+                <div class="form-group">
+                    <label>@Properties.Resources.Roles</label>
+                    <table>
+                        @for (int pos = 0; pos < AvailableRoles.Count - 1; pos += 2)
+                        {
+                            string role1 = AvailableRoles[pos];
+                            string role2 = AvailableRoles[pos + 1];
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="@role1"
+                                   disabled="@OwnSettings(role1)" checked="@IsChecked(role1)"
+                                   @onchange="@((ChangeEventArgs __e) => @Check(role1, Convert.ToBoolean(__e.Value)))" />
+                                    &emsp;@role1
+                                </th>
+                                <th>
+                                    <input type="checkbox" id="@role2"
+                                   disabled="@OwnSettings(role2)" checked="@IsChecked(role2)"
+                                   @onchange="@((ChangeEventArgs __e) => @Check(role2, Convert.ToBoolean(__e.Value)))" />
+                                    &emsp;@role2
+                                </th>
+                            </tr>
+                        }
+                        @if (AvailableRoles.Count % 2 != 0)
+                        {
+                            string role = AvailableRoles[AvailableRoles.Count - 1];
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="@role"
+                                   disabled="@OwnSettings(role)" checked="@IsChecked(role)"
+                                   @onchange="@((ChangeEventArgs __e) => @Check(role, Convert.ToBoolean(__e.Value)))" />
+                                    &emsp;@role
+                                </th>
+                            </tr>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    int _count = 0;
+    private List<string> AvailableRoles = new List<string>();
+    private string? _currentUser = null;
+    private GXUser? _active;
+    private string SubmitText;
+
+    public bool IsChecked(string value)
+    {
+        return _active.Roles.Contains(value);
+    }
+
+    public string IsDisabled
+    {
+        get
+        {
+            if (Notifier.Action == CrudAction.Create)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    /// <summary>
+    /// If user modifying own settings.
+    /// </summary>
+    public string OwnSettings(string value)
+    {
+        if (_active != null && _active.Id == _currentUser)
+        {
+            return "disabled";
+        }
+        if (_active != null && _active.Roles.Contains(GXRoles.Admin) && value != GXRoles.Admin)
+        {
+            return "disabled";
+        }
+        return null;
+    }
+
+    public void Check(string role, bool check)
+    {
+        if (check)
+        {
+            _active.Roles.Add(role);
+        }
+        else
+        {
+            _active.Roles.Remove(role);
+        }
+    }
+
+    /// <summary>
+    /// Is user removed.
+    /// </summary>
+    private bool IsUserRemoved
+    {
+        get
+        {
+            return _active.Removed != null;
+        }
+        set
+        {
+            _active.Removed = DateTime.Now;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            _active = (GXUser?)Notifier.GetData(GXPages.Users);
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _currentUser = authState.User.FindFirst(c => c.Type == "sub")?.Value;
+            ListRoles req = new ListRoles();
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListRolesResponse>();
+            if (ret != null && ret.Roles != null)
+            {
+                foreach (GXRole role in ret.Roles)
+                {
+                    AvailableRoles.Add(role.Name);
+                    if (Notifier.Action == CrudAction.Create)
+                    {
+                        //Add default roles when new user is created.
+                        if (role.Default.GetValueOrDefault())
+                        {
+                            _active.Roles.Add(role.Name);
+                        }
+                    }
+                }
+            }
+            switch (Notifier.Action)
+            {
+                case CrudAction.Create:
+                    SubmitText = Properties.Resources.Add;
+                    break;
+                case CrudAction.Update:
+                    SubmitText = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    SubmitText = Properties.Resources.Remove;
+                    break;
+                default:
+                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    return;
+            }
+            Notifier.Clear();
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            if (!_active.Modified &&
+                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            {
+                //Get device template data.
+                response = await Http.GetAsync(string.Format("api/User/{0}", _active.Id));
+                ClientHelpers.ValidateStatusCode(response);
+                _active = await response.Content.ReadFromJsonAsync<GXUser>();
+                Notifier.UpdateData(GXPages.Users, _active);
+                _active.Modified = true;
+            }
+            Notifier.ChangePage(GXPages.User, _active);
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save user.
+    /// </summary>
+    public async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier.Action != CrudAction.Delete && _active.Roles == null)
+            {
+                throw new Exception("Select user role.");
+            }
+            if (Notifier.Action == CrudAction.Delete)
+            {
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/User/Delete", new RemoveUser() { Ids = new string[] { _active.Id } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<RemoveUserResponse>();
+            }
+            else
+            {
+                string address;
+                if (Notifier.Action == CrudAction.Create)
+                {
+                    address = "api/User/Add";
+                }
+                else
+                {
+                    address = "api/User/Update";
+                }
+                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddUser() { Users = new GXUser[] { _active } });
+                ClientHelpers.ValidateStatusCode(response);
+                var ret = await response.Content.ReadFromJsonAsync<AddUserResponse>();
+            }
+            Notifier.RemoveLastPage();
+            NavigationManager.NavigateTo(Notifier.GetLastPage());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        Notifier.RemoveLastPage();
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.User);
+    }
+}

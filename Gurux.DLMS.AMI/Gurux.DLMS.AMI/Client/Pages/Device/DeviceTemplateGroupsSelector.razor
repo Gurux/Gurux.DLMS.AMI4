@@ -1,0 +1,112 @@
+﻿@page "/devicetemplategroupsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, DeviceTemplateGroup, DeviceTemplateGroupManager, UserGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="deviceTemplateGroups" />
+    <SelectionList Title="Available" ItemList="AllDeviceTemplateGroups" />
+</SelectionContainer>
+
+@code {
+    List<GXDeviceTemplateGroup> AllDeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
+    List<GXDeviceTemplateGroup> deviceTemplateGroups = new List<GXDeviceTemplateGroup>();
+
+
+    public void OnUpdated(object target)
+    {
+
+    }
+
+    public string GetName(object target)
+    {
+        return (target as GXDeviceTemplateGroup).Name;
+    }
+    public string GetDescription(object target)
+    {
+        return (target as GXDeviceTemplateGroup).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            string? page = Notifier.GetLastPage();
+            ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
+                {
+                    Filter = new GXDeviceTemplateGroup()
+                };
+            if (page == GXPages.UserManage)
+            {
+                //Add selected device template.
+                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
+                if (userGroup != null)
+                {
+                    deviceTemplateGroups = userGroup.DeviceTemplateGroups;
+                }
+            }
+            else
+            {
+                //Add selected device template.
+                GXDeviceTemplate? devicetemplate = (GXDeviceTemplate?)Notifier.GetData(GXPages.DeviceTemplate);
+                if (devicetemplate != null)
+                {
+                    deviceTemplateGroups = devicetemplate.DeviceTemplateGroups;
+                }
+            }
+            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !deviceTemplateGroups.Any();
+            Notifier.ChangePage(GXPages.DeviceTemplateGroupsSelector, null);
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplateGroup/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplateGroupsResponse>();
+            foreach (GXDeviceTemplateGroup it in ret.DeviceTemplateGroups)
+            {
+                //Add default groups when new device template is created.
+                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
+                    !deviceTemplateGroups.Where(q => q.Id == it.Id).Any())
+                {
+                    deviceTemplateGroups.Add(it);
+                }
+                if (!deviceTemplateGroups.Exists(q => q.Id == it.Id))
+                {
+                    AllDeviceTemplateGroups.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveLastPage(GXPages.DeviceTemplateGroupsSelector);
+    }
+}
+

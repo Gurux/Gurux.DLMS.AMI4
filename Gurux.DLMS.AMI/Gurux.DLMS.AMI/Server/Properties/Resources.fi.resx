@@ -1,0 +1,510 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DeviceIdIsZero" xml:space="preserve">
+    <value>Laitetunnus on tyhjä.</value>
+  </data>
+  <data name="ReaderIdIsZero" xml:space="preserve">
+    <value>Reader Id is zero.</value>
+  </data>
+  <data name="InvalidEmailAddress" xml:space="preserve">
+    <value>Epäkelpo sähköpostiosoite.</value>
+  </data>
+  <data name="SiteName" xml:space="preserve">
+    <value>Sivuston nimi</value>
+  </data>
+  <data name="SiteNameDescription" xml:space="preserve">
+    <value>Sivuston nimi</value>
+  </data>
+  <data name="SiteDetails" xml:space="preserve">
+    <value>Site details</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Sähköposti</value>
+  </data>
+  <data name="SiteEmailAddressDescription" xml:space="preserve">
+    <value>Sivuston sähköpostiosoite. Tätä osoitetta käytetään sähköpostien lähettämiseen.</value>
+  </data>
+  <data name="SiteSlocan" xml:space="preserve">
+    <value>Sivuston iskulause</value>
+  </data>
+  <data name="SiteSlocanDescription" xml:space="preserve">
+    <value>Sivuston iskulause.</value>
+  </data>
+  <data name="SiteStatus" xml:space="preserve">
+    <value>Tila</value>
+  </data>
+  <data name="SiteVersion" xml:space="preserve">
+    <value>Versio</value>
+  </data>
+  <data name="SiteVersionDescription" xml:space="preserve">
+    <value>Versio</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Järjestelmä</value>
+  </data>
+  <data name="SystemSiteInformation" xml:space="preserve">
+    <value>Sivuston tiedot</value>
+  </data>
+  <data name="SystemSiteInformationDescription" xml:space="preserve">
+    <value>Muuta sivuston nimi, sähköpostiosoite tai iskulause.</value>
+  </data>
+  <data name="SystemStatus" xml:space="preserve">
+    <value>Tila</value>
+  </data>
+  <data name="SystemStatusInformation" xml:space="preserve">
+    <value>Tila</value>
+  </data>
+  <data name="SystemStatusInformationDescription" xml:space="preserve">
+    <value>Järjestelmän tila.</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Kirjaudu ulos</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Hei</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Kirjaudu sisään</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nimi</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Sähköposti</value>
+  </data>
+  <data name="PhoneNumber" xml:space="preserve">
+    <value>Puhelinnumero</value>
+  </data>
+  <data name="DateOfBirth" xml:space="preserve">
+    <value>Syntymäaika</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Kieli</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Salasana</value>
+  </data>
+  <data name="PersonalData" xml:space="preserve">
+    <value>Henkilökohtaiset tiedot</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profiili</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roolit</value>
+  </data>
+  <data name="TwoFactorAuthentication" xml:space="preserve">
+    <value>Kaksivaiheinen todennus</value>
+  </data>
+  <data name="ExternalLogins" xml:space="preserve">
+    <value>Ulkoiset kirjautumiset</value>
+  </data>
+  <data name="SystemSecurityDescription" xml:space="preserve">
+    <value>Järjestelmän suojaustiedot.</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Turvallisuus</value>
+  </data>
+  <data name="SystemSecurity" xml:space="preserve">
+    <value>systeemin turvallisuus</value>
+  </data>
+  <data name="PasswordOptions" xml:space="preserve">
+    <value>Salasanavaihtoehdot</value>
+  </data>
+  <data name="PasswordLength" xml:space="preserve">
+    <value>Salasanan pituus</value>
+  </data>
+  <data name="UniqueCharacters" xml:space="preserve">
+    <value>Yksilöllisiä merkkejä</value>
+  </data>
+  <data name="RequireNonAlphanumeric" xml:space="preserve">
+    <value>Vaadi ei-aakkosnumeerinen kirjain</value>
+  </data>
+  <data name="RequireLowercase" xml:space="preserve">
+    <value>Pieniä kirjaimia edellytetään</value>
+  </data>
+  <data name="RequireUppercase" xml:space="preserve">
+    <value>Isoja kirjaimia  edellytetään</value>
+  </data>
+  <data name="RequireDigit" xml:space="preserve">
+    <value>Numero edellytetään</value>
+  </data>
+  <data name="LockoutOptions" xml:space="preserve">
+    <value>Lukitusvaihtoehdot</value>
+  </data>
+  <data name="MaxFailedAccessAttempts" xml:space="preserve">
+    <value>Suurin mahdollinen epäonnistunut pääsyyritys</value>
+  </data>
+  <data name="DefaultLockoutTimeSpan" xml:space="preserve">
+    <value>Oletussulkuaika</value>
+  </data>
+  <data name="SignInOptions" xml:space="preserve">
+    <value>Kirjautumisvaihtoehdot</value>
+  </data>
+  <data name="RequireConfirmedEmail" xml:space="preserve">
+    <value>Vaadi vahvistettu sähköposti</value>
+  </data>
+  <data name="RequireConfirmedAccount" xml:space="preserve">
+    <value>Vaadi vahvistettu tili</value>
+  </data>
+  <data name="SystemSecuritySettings" xml:space="preserve">
+    <value>Järjestelmän suojausasetukset.</value>
+  </data>
+  <data name="TheMinimumLengthAPasswordMustBeDefaultsTo6" xml:space="preserve">
+    <value>Salasanan vähimmäispituus. Oletus on kuusi merkkiä.</value>
+  </data>
+  <data name="TheMinimumNumberOfUniqueCharactersWhichAPasswordMustContain" xml:space="preserve">
+    <value>Yksilöllisten merkkien vähimmäismäärä, jonka salasanassa on oltava</value>
+  </data>
+  <data name="PasswordsMustContainANonAlphanumericCharacter" xml:space="preserve">
+    <value>Salasanan tulee sisältää ei-aakkosnumeerinen merkki.</value>
+  </data>
+  <data name="PasswordsMustContainALowerCaseASCIICharacter" xml:space="preserve">
+    <value>Salasanassa tulee olla pieniä ASCII-merkkejä.</value>
+  </data>
+  <data name="PasswordsMustContainAUpperCaseASCIICharacter" xml:space="preserve">
+    <value>Salasanassa tulee olla suuria ASCII-merkkejä.</value>
+  </data>
+  <data name="PasswordsMustContainADigit" xml:space="preserve">
+    <value>Salasanan pitää sisältää numero.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedAccountBeforeTheyCanSignIn" xml:space="preserve">
+    <value>Käyttäjällä on oltava vahvistettu tili, ennen kuin hän voi kirjautua sisään.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedEmailAddressBeforeTheyCanSignIn" xml:space="preserve">
+    <value>Käyttäjällä on oltava vahvistettu sähköpostiosoite, ennen kuin hän voi kirjautua sisään.</value>
+  </data>
+  <data name="LocalizedResourceIsMissing" xml:space="preserve">
+    <value>Lokalisoitu resurssi puuttuu. </value>
+  </data>
+  <data name="OptionsForConfiguringSignIn" xml:space="preserve">
+    <value>Vaihtoehdot kirjautumisen määrittämiseen.</value>
+  </data>
+  <data name="TheLockOutTimeInMinutesIfAUserIsLockedOutForWhenALockoutOccurs" xml:space="preserve">
+    <value>Lukitusaika minuutteina, jos käyttäjä on lukittu ulos lukituksen tapahtuessa.</value>
+  </data>
+  <data name="TheNumberOfFailedAccessAttemptsAllowedBeforeAUserIsLockedOutIfLockoutIsEnabled" xml:space="preserve">
+    <value>Sallittujen epäonnistuneiden pääsy-yritysten määrä ennen käyttäjän lukitsemista, jos lukitus on käytössä.</value>
+  </data>
+  <data name="SystemException" xml:space="preserve">
+    <value>Järjestelmävirhe:</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Henkilökohtaiset käyttötunnukset</value>
+  </data>
+  <data name="LocalizedResourceDublicate" xml:space="preserve">
+    <value>lokalisoidun resurssin kaksoisarvo.</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Luomisaika</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Voimassaolon päättyminen</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Lisää</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Poista</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Tallenna</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Peruuta</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Luo</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Tyhjää</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Sulje</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>Näytä</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Muokkaa</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Kopioi</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>Onnistui</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Varoitus – Varmista, että kopioit yllä olevan tunnuksen nyt. Sitä ei tallenneta etkä voi nähdä sitä uudelleen.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>Olet lisännyt uuden henkilökohtaisen käyttötunnuksen. Kopioi tunnus nyt!</value>
+  </data>
+  <data name="YourProfileHasBeenUpdated" xml:space="preserve">
+    <value>Profiilisi on päivitetty</value>
+  </data>
+  <data name="ProfilePicture" xml:space="preserve">
+    <value>Profillikuva</value>
+  </data>
+  <data name="ModuleInstallationUnknownService" xml:space="preserve">
+    <value>Moduulin asennus epäonnistui. Moduuli vaatii {0} palvelua, jota ei ole upotettu.</value>
+  </data>
+  <data name="UnknownModule" xml:space="preserve">
+    <value>﻿Tuntematon moduuli {0}.</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Konfiguraatio</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Moduuli</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Etunimi</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Sukunimi</value>
+  </data>
+  <data name="ArrayIsEmpty" xml:space="preserve">
+    <value>Matriisi on tyhjä.</value>
+  </data>
+  <data name="YouCanRemoveYourself" xml:space="preserve">
+    <value>Et voi poistaa itseäsi.</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Oletusarvo</value>
+  </data>
+  <data name="Minutely" xml:space="preserve">
+    <value>Minuutittainen</value>
+  </data>
+  <data name="Hourly" xml:space="preserve">
+    <value>Tunneittain</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Päivittäin</value>
+  </data>
+  <data name="ContentEdited" xml:space="preserve">
+    <value>Päivitys epäonnistui. Toinen käyttäjä on muokannut sisältöä.</value>
+  </data>
+  <data name="UsersMustBelongToAtLeastOneUserGroup" xml:space="preserve">
+    <value>Käyttäjien on kuuluttava vähintään yhteen käyttäjäryhmään.</value>
+  </data>
+  <data name="InvalidUserRoleAtLeastOneRoleMustBeSelected" xml:space="preserve">
+    <value>Virheellinen käyttäjärooli. Ainakin yksi rooli on valittava.</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Virheellinen nimi.</value>
+  </data>
+  <data name="InvalidStartTime" xml:space="preserve">
+    <value>Virheellinen aloitusaika.</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>Väärä tunniste.</value>
+  </data>
+  <data name="UnknownTaskTarget" xml:space="preserve">
+    <value>Tuntematon tehtävän kohde.</value>
+  </data>
+  <data name="Cron" xml:space="preserve">
+    <value>Ajastustin</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agentit</value>
+  </data>
+  <data name="CronDescription" xml:space="preserve">
+    <value>Cron huolehtii säännöllisistä tehtävistä, kuten päivitysten tarkistamisesta.</value>
+  </data>
+  <data name="CronTitle" xml:space="preserve">
+    <value>Hallinnoi sivuston automaattisia kunnossapitotehtäviä.</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Työnkulut</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Liipaisimet</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Komponenttinäkymät</value>
+  </data>
+  <data name="Modules" xml:space="preserve">
+    <value>Moduulit</value>
+  </data>
+  <data name="RegionalAndLanguage" xml:space="preserve">
+    <value>Alue ja kieli</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Skriptit</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Tila</value>
+  </data>
+  <data name="Maintenance" xml:space="preserve">
+    <value>Huolto</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Lohkot</value>
+  </data>
+  <data name="StatisticDescription" xml:space="preserve">
+    <value>Tilastot auttavat parantamaan sivuston reaktionopeutta.</value>
+  </data>
+  <data name="Statistic" xml:space="preserve">
+    <value>Tilasto</value>
+  </data>
+  <data name="SchedulerServiceIsStarting" xml:space="preserve">
+    <value>Aikatauluttajapalvelu alkaa.</value>
+  </data>
+  <data name="SchedulerServiceIsWorking" xml:space="preserve">
+    <value>Ajastinpalvelu toimii.</value>
+  </data>
+  <data name="SchedulerServiceIsStopping" xml:space="preserve">
+    <value>Ajastinpalvelu pysähtyy.</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Rooleja käytetään käyttöoikeuksien hallintaan.</value>
+  </data>
+  <data name="TargetMustBelongToOneGroup" xml:space="preserve">
+    <value>Kohteen pitää kuulua ainakin yhteen ryhmään.</value>
+  </data>
+  <data name="UnknownTarget" xml:space="preserve">
+    <value>Tuntematon kohde.</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Yhdistetty</value>
+  </data>
+  <data name="Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Suorituskyky</value>
+  </data>
+  <data name="PerformanceDescription" xml:space="preserve">
+    <value>Ota ilmoitus käyttöön tai poista se käytöstä parantaaksesi suorituskykyä suurille mittarimäärille.</value>
+  </data>
+  <data name="CronStarted" xml:space="preserve">
+    <value>Cron aloitettu.</value>
+  </data>
+  <data name="CronCompleted" xml:space="preserve">
+    <value>Cron valmis.</value>
+  </data>
+  <data name="ExternalAuthenticationDescription" xml:space="preserve">
+    <value>Ulkoiset todennukset mahdollistavat kirjautumisen ulkoisten palvelujen kautta.</value>
+  </data>
+</root>

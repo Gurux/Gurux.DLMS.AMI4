@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>Gurux.DLMS.AMI.Server-45AAA5B7-BB81-4BF8-A95E-55DF7ED16853</UserSecretsId>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules\**" />
+    <Content Remove="Modules\**" />
+    <EmbeddedResource Remove="Modules\**" />
+    <None Remove="Modules\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2210.301" />
+    <PackageReference Include="Gurux.DLMS.AMI.Update" Version="4.0.2211.1401" />
+    <PackageReference Include="Gurux.Net" Version="8.4.2210.1201" />
+    <PackageReference Include="Gurux.Serial" Version="8.4.2210.1201" />
+    <PackageReference Include="Gurux.Service" Version="2.1.2211.1401" />
+    <PackageReference Include="Gurux.Terminal" Version="8.4.2210.1201" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="6.0.10" />
+    <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.2.1" />
+    <PackageReference Include="MySql.Data" Version="8.0.31" />
+    <PackageReference Include="MySql.EntityFrameworkCore" Version="6.0.7" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.80" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.116" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Client\Gurux.DLMS.AMI.Client.csproj" />
+    <ProjectReference Include="..\Shared\Gurux.DLMS.AMI.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.ApiAuthorization.IdentityServer" Version="6.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

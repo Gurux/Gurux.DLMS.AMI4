@@ -1,0 +1,93 @@
+﻿@page "/scriptsselector"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@attribute [Authorize(Roles = "Admin, User, ScriptGroupManager, ScriptGroup")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<SelectionContainer GetName="GetName" GetDescription="GetDescription">
+    <SelectionList Title="Selected" ItemList="scripts" />
+    <SelectionList Title="Available" ItemList="AllScripts" />
+</SelectionContainer>
+
+@code {
+    List<GXScript> AllScripts = new List<GXScript>();
+    List<GXScript> scripts = new List<GXScript>();
+
+    string GetName(object target)
+    {
+        return (target as GXScript).Description;
+    }
+    string GetDescription(object target)
+    {
+        return (target as GXScript).Name;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            string? page = Notifier.GetLastPage();
+            if (page == GXPages.ScriptGroups)
+            {
+                //Get scripts from selected script group.
+                GXScriptGroup scriptGroup = (GXScriptGroup)Notifier.GetData(GXPages.ScriptGroup);
+                scripts = scriptGroup.Scripts;
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ChangePage(GXPages.ScriptsSelector, null);
+            ListScripts req = new ListScripts()
+                {
+                    Filter = new GXScript()
+                };
+
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            foreach (GXScript it in ret.Scripts)
+            {
+                if (!scripts.Exists(q => q.Id == it.Id))
+                {
+                    AllScripts.Add(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemovePage(GXPages.ScriptsSelector);
+    }
+}
+

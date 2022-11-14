@@ -1,0 +1,120 @@
+﻿@page "/networksettings"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
+@inject IGXNotifier Notifier
+
+<div class="row">
+    <div style="width:100%">
+        <div class="form-group">
+            <label>@Properties.Resources.HostName</label>
+            <InputText id="name" class="form-control"
+                       @bind-Value="HostName" />
+        </div>
+        <div class="form-group">
+            <label>@Properties.Resources.Port:</label>
+            <InputNumber id="port" class="form-control"
+                         @bind-Value="Port" />
+        </div>
+        <div class="form-group">
+            <label>@Properties.Resources.Protocol:</label>
+            <select class="form-control" @bind="Protocol">
+                @foreach (var it in NetworkTypeList)
+                {
+                    <option value="@it"> @it </option>
+                }
+            </select>
+        </div>
+    </div>
+</div>
+@code {
+    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] { Gurux.Net.NetworkType.Tcp, Gurux.Net.NetworkType.Udp };
+
+    private GXDevice _device;
+    private Gurux.Net.GXNet _net;
+
+    public string? HostName
+    {
+        get
+        {
+            if (_net == null)
+            {
+                return null;
+            }
+
+            return _net.HostName;
+        }
+        set
+        {
+            _net.HostName = value;
+            _device.MediaSettings = _net.Settings;
+        }
+    }
+
+    public int Port
+    {
+        get
+        {
+            if (_net == null)
+            {
+                return 0;
+            }
+            return _net.Port;
+        }
+        set
+        {
+            _net.Port = value;
+            _device.MediaSettings = _net.Settings;
+        }
+    }
+
+    public Gurux.Net.NetworkType Protocol
+    {
+        get
+        {
+            if (_net == null)
+            {
+                return Gurux.Net.NetworkType.Tcp;
+            }
+            return _net.Protocol;
+        }
+        set
+        {
+            _net.Protocol = value;
+            _device.MediaSettings = _net.Settings;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            //Get device settings.
+            _device = (GXDevice)Notifier.GetData(GXPages.Device);
+            _net = new Gurux.Net.GXNet();
+            _net.Settings = _device.MediaSettings;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    //Validate network settings.
+    public void Validate()
+    {
+        _net.Validate();
+    }
+}
