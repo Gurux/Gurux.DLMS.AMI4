@@ -1,7 +1,7 @@
-﻿@namespace Gurux.DLMS.AMI.UI
+﻿@namespace Gurux.DLMS.AMI.Components
 
 @inherits Microsoft.AspNetCore.Components.Forms.InputText
-<input type="password" value="@CurrentValue"
+<input type="email" value="@CurrentValue"
        class="@CssClass"
        @attributes="AdditionalAttributes"
        onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToString(__e.Value))" />

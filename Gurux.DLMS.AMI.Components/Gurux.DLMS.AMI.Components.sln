@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.UI", "Gurux.DLMS.AMI.UI.csproj", "{B9A0D39D-66AD-4891-BED6-AF3FAD773365}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Components", "Gurux.DLMS.AMI.Components.csproj", "{B9A0D39D-66AD-4891-BED6-AF3FAD773365}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -9,18 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Client", "Gu
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Shared", "Gurux.DLMS.AMI\Shared\Gurux.DLMS.AMI.Shared.csproj", "{753DCB8A-1049-49FA-8092-7254F4024FC8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.Service", "..\..\GXCom\Gurux.Service\Development\Gurux.Service.csproj", "{189299FD-F831-4780-8F3E-0DB1CB7736FE}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Module", "..\Gurux.DLMS.AMI.Module\Gurux.DLMS.AMI.Module.csproj", "{4C64CACA-FFF0-4F77-ABA1-A110F3600596}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Script", "..\Gurux.DLMS.AMI.Script\Gurux.DLMS.AMI.Script.csproj", "{390178FB-AF62-411B-9CE2-AE5D6E3E2D00}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Update", "..\Gurux.DLMS.AMI.Update\Gurux.DLMS.AMI.Update.csproj", "{BD9981F3-C207-4D1C-850A-C030C895F17A}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Services", "..\Gurux.DLMS.AMI.Services\Gurux.DLMS.AMI.Services.csproj", "{5D615ED0-90F1-48FD-863F-DAB682713A4B}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI.UI", "..\Gurux.DLMS.AMI.UI\Gurux.DLMS.AMI.UI.csproj", "{D6FC05F4-03D8-4466-B13C-B2B3F8460834}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,30 +27,6 @@ Global
 		{753DCB8A-1049-49FA-8092-7254F4024FC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{753DCB8A-1049-49FA-8092-7254F4024FC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{753DCB8A-1049-49FA-8092-7254F4024FC8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{189299FD-F831-4780-8F3E-0DB1CB7736FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{189299FD-F831-4780-8F3E-0DB1CB7736FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{189299FD-F831-4780-8F3E-0DB1CB7736FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{189299FD-F831-4780-8F3E-0DB1CB7736FE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4C64CACA-FFF0-4F77-ABA1-A110F3600596}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4C64CACA-FFF0-4F77-ABA1-A110F3600596}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4C64CACA-FFF0-4F77-ABA1-A110F3600596}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4C64CACA-FFF0-4F77-ABA1-A110F3600596}.Release|Any CPU.Build.0 = Release|Any CPU
-		{390178FB-AF62-411B-9CE2-AE5D6E3E2D00}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{390178FB-AF62-411B-9CE2-AE5D6E3E2D00}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{390178FB-AF62-411B-9CE2-AE5D6E3E2D00}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{390178FB-AF62-411B-9CE2-AE5D6E3E2D00}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BD9981F3-C207-4D1C-850A-C030C895F17A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BD9981F3-C207-4D1C-850A-C030C895F17A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BD9981F3-C207-4D1C-850A-C030C895F17A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BD9981F3-C207-4D1C-850A-C030C895F17A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5D615ED0-90F1-48FD-863F-DAB682713A4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5D615ED0-90F1-48FD-863F-DAB682713A4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5D615ED0-90F1-48FD-863F-DAB682713A4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5D615ED0-90F1-48FD-863F-DAB682713A4B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D6FC05F4-03D8-4466-B13C-B2B3F8460834}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D6FC05F4-03D8-4466-B13C-B2B3F8460834}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D6FC05F4-03D8-4466-B13C-B2B3F8460834}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D6FC05F4-03D8-4466-B13C-B2B3F8460834}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
