@@ -1,0 +1,137 @@
+﻿@page "/module/smtp/config"
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.SMTP.Shared
+@using Gurux.DLMS.AMI.Module
+@using Microsoft.Extensions.Logging
+@using System.Net.Mail
+@using Microsoft.Extensions.Options
+
+@attribute [Authorize(Roles = "Admin, ModuleManager")]
+@inject HttpClient Http
+@inject NavigationManager NavigationManager
+@inject ILogger<Configuration> Logger
+
+@implements IGXModuleSettings
+@inject IGXNotifier Notifier
+
+@if (Settings != null)
+{
+    <EditForm Model="@Settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.SMTPServerAddress</label>
+                    <InputText id="host" @bind-Value="Settings.Host" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.SMTPServerPort</label>
+                    <InputNumber id="port" @bind-Value="Settings.Port" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Email</label>
+                    <InputEmail id="email" @bind-Value="Settings.Email" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Password</label>
+                    <InputPassword id="password" @bind-Value="Settings.Password" class="form-control" />
+                </div>
+                <hr />
+                <div class="form-group">
+                    <label>@Properties.Resources.TestEmail</label>
+                    <InputText id="testEmail" @bind-Value="TestEmailAddress" class="form-control" />
+                    <button type="button" class="btn btn-outline-primary" @onclick="SendTestEmail">Send test email.</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private string? TestEmailAddress;
+    private string? _password;
+    /// <summary>
+    /// Send test email.
+    /// </summary>
+    private async Task SendTestEmail()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Settings.Port == 0)
+            {
+                throw new ArgumentException("Invalid port.");
+            }
+            if (string.IsNullOrEmpty(Settings.Host))
+            {
+                throw new ArgumentException("Invalid host address.");
+            }
+            if (string.IsNullOrEmpty(TestEmailAddress))
+            {
+                throw new Exception("Invalid email address.");
+            }
+            HttpResponseMessage response;
+            SmtpTestMessage msg = new SmtpTestMessage() { Address = TestEmailAddress, Options = Settings };
+            if (string.IsNullOrEmpty(Settings.Password))
+            {
+                //Send old password.
+                Settings.Password = _password;
+            }
+            response = await Http.PostAsJsonAsync("api/Module/Smtp/Test", msg);
+            Settings.Password = null;
+            Helpers.ValidateStatusCode(response);
+            Notifier?.ShowInformation(string.Format("A test e-mail has been sent to {0}.", TestEmailAddress), true);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <inheritdoc />
+    public void Initialize()
+    {
+        //Reset original password.
+        _password = Settings.Password;
+        Settings.Password = null;
+        //Update UI.
+        StateHasChanged();
+    }
+
+    /// <inheritdoc />
+    public void Save()
+    {
+        if (Settings.Port == 0)
+        {
+            throw new ArgumentException("Invalid port.");
+        }
+        if (string.IsNullOrEmpty(Settings.Host))
+        {
+            throw new ArgumentException("Invalid host address.");
+        }
+        MailAddress? address;
+        if (!MailAddress.TryCreate(Settings.Email, out address))
+        {
+            throw new ArgumentException(Gurux.SMTP.Client.Properties.Resources.InvalidEmailAddress);
+        }
+        if (string.IsNullOrEmpty(Settings.Password))
+        {
+            //Send old password.
+            Settings.Password = _password;
+        }
+    }
+
+    ///<summary>
+    /// Module settings.
+    ///</summary>
+    [Parameter]
+    public SmtpOptions Settings { get; set; } = new SmtpOptions();
+
+    /// <inheritdoc />
+    public void Cancel()
+    {
+        //There is nothing to do.
+    }
+}
