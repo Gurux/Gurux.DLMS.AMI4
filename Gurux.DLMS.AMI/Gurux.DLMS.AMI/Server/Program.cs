@@ -23,7 +23,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using IdentityModel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Gurux.DLMS.AMI.Server.Repository;
 using Microsoft.Extensions.Options;
 using Gurux.DLMS.AMI.Server.Cron;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -34,14 +33,22 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Localization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Microsoft.Extensions.DependencyInjection;
-using Duende.IdentityServer.EntityFramework.Entities;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseServiceProviderFactory(context => new GXServiceProviderFactory());
 GXActionDescriptorChangeProvider adcp = new GXActionDescriptorChangeProvider();
 builder.Services.AddSingleton<IActionDescriptorChangeProvider>(adcp);
 builder.Services.AddSingleton(adcp);
+
+builder.Services.AddDataProtection().UseCryptographicAlgorithms(
+    new AuthenticatedEncryptorConfiguration
+    {
+        EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+        ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
+    });
 
 IGXHost host = ServerSettings.ConnectToDb(builder);
 ServerSettings.ServerAddress = builder.Configuration.GetSection("Server").Get<ServerOptions>().Address;
