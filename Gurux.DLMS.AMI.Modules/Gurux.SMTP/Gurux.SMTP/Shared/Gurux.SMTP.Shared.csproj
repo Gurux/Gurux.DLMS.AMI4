@@ -4,7 +4,10 @@
     <TargetFramework>net6.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+    <Description>Gurux.SMTP adds SMTP support for Gurux DLMS AMI v4.</Description>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
+    <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
+ </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2211.1402" />
