@@ -41,17 +41,7 @@ namespace Gurux.DLMS.AMI.Update
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Installation Url.
-        /// </summary>
-        public string? Url
-        {
-            get;
-            set;
-        }
+        }      
 
         /// <summary>
         /// Folder name.

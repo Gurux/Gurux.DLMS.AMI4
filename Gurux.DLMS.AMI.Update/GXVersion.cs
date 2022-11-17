@@ -57,9 +57,18 @@ namespace Gurux.DLMS.AMI.Update
         }
 
         /// <summary>
+        /// Url.
+        /// </summary>
+        public string? Url
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// File name.
         /// </summary>
-        public string FileName
+        public string? FileName
         {
             get;
             set;
@@ -68,7 +77,7 @@ namespace Gurux.DLMS.AMI.Update
         /// <summary>
         /// Version description.
         /// </summary>
-        public string Description
+        public string? Description
         {
             get;
             set;
