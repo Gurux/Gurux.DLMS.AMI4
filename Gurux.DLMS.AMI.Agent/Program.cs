@@ -30,19 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System;
-using System.IO;
 using System.Text.Json;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Diagnostics;
 using System.Runtime.Loader;
 using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Agent.Shared;
-using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gurux.DLMS.AMI.Agent
@@ -172,6 +166,8 @@ namespace Gurux.DLMS.AMI.Agent
                 else
                 {
                     options.Version = null;
+                    //MIKKO 
+                    options.Version = "1.0.0.1";
                 }
 
                 Task t = Task.Run(() => ClosePoller(cts));
@@ -197,6 +193,10 @@ namespace Gurux.DLMS.AMI.Agent
                         if (!string.IsNullOrEmpty(options.Version))
                         {
                             path = Path.Combine(path, "bin" + options.Version);
+                            if (!Directory.Exists(path))
+                            {
+                                path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                            }
                         }
                         try
                         {
