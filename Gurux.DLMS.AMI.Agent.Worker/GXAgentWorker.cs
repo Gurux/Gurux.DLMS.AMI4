@@ -255,6 +255,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                     }
                 }
+                else if (agent != null && agent.Version != Options.Version)
+                {
+                    //Update agent version.
+                    agent.Version = Options.Version;
+                    await UpdateAgentAsync(agent);
+                }
             }
             catch (Exception ex)
             {
@@ -789,7 +795,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     try
                     {
-                        await _hubConnection.StartAsync();
+                        if (_hubConnection != null && !cancellationToken.IsCancellationRequested)
+                        {
+                            await _hubConnection.StartAsync();
+                        }
                         break;
                     }
                     catch (Exception ex)
