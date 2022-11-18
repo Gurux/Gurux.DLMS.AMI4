@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS" Version="9.0.2210.301" />
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2211.1701" />
     <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2211.1401" />
     <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2211.1401" />
-    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2211.1404" />
+    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2211.1802" />
     <PackageReference Include="Gurux.Net" Version="8.4.2210.1201" />
     <PackageReference Include="Gurux.Serial" Version="8.4.2210.1201" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.10" />
