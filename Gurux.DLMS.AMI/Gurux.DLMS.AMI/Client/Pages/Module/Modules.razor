@@ -25,14 +25,6 @@
     <h1>@Properties.Resources.ModulesTitle (@Properties.Resources.Total: @Total)</h1>
 }
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
-
 @if (Filter)
 {
     <MenuControl>
@@ -175,6 +167,7 @@
             Active = null,
             Status = (ModuleStatus.Installed | ModuleStatus.CustomBuild)
         };
+
     /// <summary>
     /// Virtualize.
     /// </summary>
@@ -184,7 +177,6 @@
     {
         return _active != null && module.Id == _active.Id ? "table-info" : "table-striped";
     }
-
 
     protected void RowSelected(GXModule selected)
     {
@@ -285,30 +277,7 @@
             Notifier?.ProgressEnd();
         }
         return default;
-    }
-
-    /// <summary>
-    /// Add new module.
-    /// </summary>
-    public void OnAdd()
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.Title = "New Module";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Modules, new GXModule());
-            NavigationManager.NavigateTo("/moduletab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
+    }   
 
     void OnClose(object sender)
     {

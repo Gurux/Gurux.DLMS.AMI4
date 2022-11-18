@@ -99,22 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IsRequired]
         [Filter(FilterType.Exact)]
         public ModuleStatus? Status { get; set; }
-
-        /// <summary>
-        /// Installation Url.
-        /// </summary>
-        /// <remarks>
-        /// If module is added manually this is null.
-        /// </remarks>
-        [StringLength(256)]
-        [DefaultValue(null)]
-        [Filter(FilterType.Contains)]
-        public string? Url
-        {
-            get;
-            set;
-        }
-
+        
         /// <summary>
         /// Module file name.
         /// </summary>
@@ -448,7 +433,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Workflows = new List<GXWorkflow>();
         }
 
-        ///<inheritdoc cref="string.ToString()"/>
+        ///<inheritdoc />
         public override string ToString()
         {
             if (!string.IsNullOrEmpty(Id))

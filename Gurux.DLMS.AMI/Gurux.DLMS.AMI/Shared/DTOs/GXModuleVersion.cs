@@ -62,6 +62,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Installation Url.
+        /// </summary>
+        /// <remarks>
+        /// If module is added manually this is null.
+        /// </remarks>
+        [StringLength(256)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
+        public string? Url
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// File path.
         /// </summary>
         public string? FileName

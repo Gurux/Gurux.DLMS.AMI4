@@ -759,4 +759,7 @@
   <data name="Capture" xml:space="preserve">
     <value>Capture</value>
   </data>
+  <data name="UpgradeableModules" xml:space="preserve">
+    <value>Upgradeable modules</value>
+  </data>
 </root>

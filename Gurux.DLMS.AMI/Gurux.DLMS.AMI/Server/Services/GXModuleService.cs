@@ -200,7 +200,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             return list.ToArray();
         }
-       
+
         /// <summary>
         /// Update module settings.
         /// </summary>
@@ -292,6 +292,10 @@ namespace Gurux.DLMS.AMI.Server.Services
                         }
                     }
                 }
+            }
+            if (_modules.ContainsKey(module.Id))
+            {
+                _modules.Remove(module.Id);
             }
             _modules.Add(module.Id, info);
             //Load assemblies.
@@ -403,7 +407,10 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 try
                 {
-                    LoadModule(host, module.Id, services);
+                    if ((module.Status & (ModuleStatus.Installed | ModuleStatus.CustomBuild)) != 0)
+                    {
+                        LoadModule(host, module.Id, services);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -429,11 +436,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 try
                 {
-                    if (assembly.FullName == arg2.FullName)
-                    {
-                        return assembly;
-                    }
-                    if (assembly.GetName() == arg2)
+                    if (assembly.GetName().Name == arg2.Name)
                     {
                         return assembly;
                     }
@@ -443,7 +446,6 @@ namespace Gurux.DLMS.AMI.Server.Services
                     //It's OK if this fails. Assembly is skipped.
                 }
             }
-
             return arg1.LoadFromAssemblyPath(Path.Combine(((GXAssemblyLoadContext)arg1).SearchPath, arg2.Name) + ".dll");
         }
     }
@@ -595,6 +597,10 @@ namespace Gurux.DLMS.AMI.Server.Services
                             {
                                 throw new Exception(string.Format("{0} module version {1} already installed.", server.Name, module.Version));
                             }
+                            if (existing != null)
+                            {
+                                module.Status = existing.Status;
+                            }
                         }
                         else if (typeof(IGXModuleUI).IsAssignableFrom(type))
                         {
@@ -637,7 +643,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         }
                     }
                 }
-                //Check is module already installed.
+                //Check is module already added or new item is installed.
                 if (existing == null)
                 {
                     //New module.
@@ -678,14 +684,21 @@ namespace Gurux.DLMS.AMI.Server.Services
                 }
                 else
                 {
-                    module.Assemblies = assemblies;
                     module.Updated = DateTime.Now;
                     module.Status |= ModuleStatus.Installed;
                     module.Active = true;
-                    module.NewVersion = true;
-                    GXUpdateArgs args = GXUpdateArgs.Update(module);
-                    args.Exclude<GXModule>(e => e.CreationTime);
-                    await _host.Connection.UpdateAsync(args);
+                    module.NewVersion = false;
+                    {
+                        GXUpdateArgs args = GXUpdateArgs.Update(module);
+                        args.Exclude<GXModule>(e => e.CreationTime);
+                        await _host.Connection.UpdateAsync(args);
+                    }
+                    foreach (var it in assemblies)
+                    {
+                        GXInsertArgs args = GXInsertArgs.Insert(it);
+                        await _host.Connection.InsertAsync(args);
+                    }
+
                     server.Update(user, _serviceProvider, existing, module);
                     //Read updated module methods, etc...
                     module = await _moduleRepository.ReadAsync(user, module.Id);
@@ -725,16 +738,16 @@ namespace Gurux.DLMS.AMI.Server.Services
             if (!Directory.Exists(Path.Combine("Modules", module.Id, module.Version)))
             {
                 Directory.CreateDirectory(Path.Combine("Modules", module.Id, module.Version));
+                string path = Path.Combine(Directory.GetCurrentDirectory(), "Modules", module.Id, module.Version);
+                ZipFile.ExtractToDirectory(compressedFile, path, true);
             }
-            string path = Path.Combine(Directory.GetCurrentDirectory(), "Modules", module.Id, module.Version);
-            ZipFile.ExtractToDirectory(compressedFile, path, true);
             return module;
         }
 
         ///<inheritdoc />
         public void UpdateModuleSettings(GXModule module)
         {
-            _modulesService.UpdateModuleSettings(module);         
+            _modulesService.UpdateModuleSettings(module);
         }
 
         ///<inheritdoc />

@@ -1843,6 +1843,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Upgradeable modules.
+        /// </summary>
+        internal static string UpgradeableModules {
+            get {
+                return ResourceManager.GetString("UpgradeableModules", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Use logical name referencing.
         /// </summary>
         internal static string UseLogicalNameReferencing {

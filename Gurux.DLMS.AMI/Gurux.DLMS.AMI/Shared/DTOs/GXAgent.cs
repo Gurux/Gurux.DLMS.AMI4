@@ -103,20 +103,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Installation Url.
-        /// </summary>
-        /// <remarks>
-        /// Only agent template sets this.
-        /// </remarks>
-        [StringLength(256)]
-        [DefaultValue(null)]
-        public string? Url
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Executed tasks.
         /// </summary>
         [DataMember]

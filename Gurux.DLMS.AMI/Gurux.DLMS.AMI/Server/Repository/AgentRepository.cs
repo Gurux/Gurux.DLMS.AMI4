@@ -255,6 +255,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             arg.OrderBy.Add<GXAgent>(q => q.CreationTime);
+            arg.OrderBy.Add<GXAgentVersion>(q => q.CreationTime);
             GXAgent[] agents = (await _host.Connection.SelectAsync<GXAgent>(arg)).ToArray();
             if (response != null)
             {
@@ -369,7 +370,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    if (!agent.AgentGroups.Any() && string.IsNullOrEmpty(agent.Url))
+                    if (!agent.AgentGroups.Any())
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }

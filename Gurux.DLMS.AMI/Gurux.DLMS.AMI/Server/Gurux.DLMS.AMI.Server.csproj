@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <PackageReference Include="Gurux.DLMS" Version="9.0.2210.301" />
-    <PackageReference Include="Gurux.DLMS.AMI.Update" Version="4.0.2211.1401" />
+    <PackageReference Include="Gurux.DLMS.AMI.Update" Version="4.0.2211.1701" />
     <PackageReference Include="Gurux.Net" Version="8.4.2210.1201" />
     <PackageReference Include="Gurux.Serial" Version="8.4.2210.1201" />
     <PackageReference Include="Gurux.Service" Version="2.1.2211.1401" />

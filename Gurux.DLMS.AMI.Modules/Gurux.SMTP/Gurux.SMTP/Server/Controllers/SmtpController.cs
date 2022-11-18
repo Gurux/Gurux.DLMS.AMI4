@@ -93,8 +93,7 @@ namespace Gurux.SMTP.Server
                     Message = message + " send to " + message.Address +
                     ", Host: " + options.Host +
                     ", Port: " + options.Port +
-                    ", Sender: " + options.Email + 
-                    ", Password: " + options.Password,
+                    ", Sender: " + options.Email,
                     Module = new GXModule() { Id = "Smtp" }
                 };
                 await _moduleLogRepository.AddAsync(User, new GXModuleLog[] { log });

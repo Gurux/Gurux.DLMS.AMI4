@@ -176,10 +176,9 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             {
                 foreach (var it in agent.Versions)
                 {
-                    if (agent.Url != null && it.Number != null && new Version(it.Number) == version)
+                    if (!string.IsNullOrEmpty(it.Url) && it.Number != null && new Version(it.Number) == version)
                     {
-                        string url = agent.Url.TrimEnd('/') + "/" + it.Number + "/" + it.FileName;
-                        urls.Add(url);
+                        urls.Add(it.Url);
                         break;
                     }
                 }

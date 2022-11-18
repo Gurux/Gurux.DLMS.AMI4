@@ -88,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXModulePolicies.View)]
         public async Task<ActionResult<ListModulesResponse>> Post(
-            ListModules request, 
+            ListModules request,
             CancellationToken cancellationToken)
         {
             ListModulesResponse response = new ListModulesResponse();
@@ -243,8 +243,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return BadRequest("Invalid Url.");
             }
             GXModule? module = await _moduleRepository.ReadAsync(User, request.Module.Id);
-            GXModuleVersion version;
-            if (string.IsNullOrEmpty(module.Version))
+            GXModuleVersion? version;
+            if (string.IsNullOrEmpty(request.Module.Version))
             {
                 //Install the latest version.
                 version = module.Versions.Where(s => s.Number == module.AvailableVersion).SingleOrDefault();
@@ -252,7 +252,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 //Install proposed version.
-                version = module.Versions.Where(s => s.Number == module.Version).SingleOrDefault();
+                version = module.Versions.Where(s => s.Number == request.Module.Version).SingleOrDefault();
             }
             if (version == null)
             {
@@ -260,7 +260,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             //Load module from url.
             HttpClient client = new HttpClient();
-            HttpResponseMessage response = await client.GetAsync(module.Url + "/" + module.Id + "/" + version.Number + "/" + version.FileName);
+            HttpResponseMessage response = await client.GetAsync(version.Url);
             ClientHelpers.ValidateStatusCode(response);
             string zip = Path.GetTempFileName();
             InstallModuleResponse ret = new InstallModuleResponse();
@@ -271,11 +271,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     await response.Content.CopyToAsync(fileStream);
                 }
+                if ((module.Status & Shared.DTOs.Enums.ModuleStatus.Installed) != 0)
+                {
+                    //Remove old version.
+                    ret.Restart |= _moduleService.DeleteModule(User, module);
+                    await _moduleRepository.DeleteAsync(User, new string[] { module.Id });
+                }
                 GXModule? module2 = await _moduleService.AddModuleAsync(User, zip, version.FileName);
-                module2.Url = module.Url;
                 module2.AvailableVersion = module.AvailableVersion;
                 await _moduleRepository.UpdateAsync(User, module2);
-                ret.Restart = _moduleService.EnableModule(module2);
+                ret.Restart |= _moduleService.EnableModule(module2);
             }
             catch (Exception ex)
             {

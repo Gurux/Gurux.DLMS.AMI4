@@ -1,4 +1,5 @@
 ﻿@page "/modulesupdates"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -35,10 +36,6 @@
         {
             <tr>
                 <th>
-                </th>
-                <th>
-                </th>
-                <th>
                     <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
                        @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
                 </th>
@@ -47,36 +44,44 @@
                        @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
                 </th>
                 <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by updated time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = Convert.ToDateTime(__e.Value))" />
+                    <input class="form-control" type="text" placeholder="Filter by available version..."
+                       @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
                 </th>
             </tr>
         }
         <tr>
-            <th></th>
-            <th>@Properties.Resources.Active</th>
             <th>@Properties.Resources.Name</th>
             <th>@Properties.Resources.Version</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
+            <th>@Properties.Resources.AvailableVersion</th>
+            <th width="1%"></th>
         </tr>
     </thead>
     <tbody>
         <Virtualize @ref="virtualize" Context="module" ItemsProvider="@GetItems">
             <ItemContent>
                 <tr class=@(GetSelectedClass(module)) @onclick="@(()=>RowSelected(module))">
-                    <td><span class="@module.Icon" aria-hidden="true"></span></td>
-                    <td>@module.Active</td>
-                    <td>@module.Id</td>
+                    <td>
+                        <span class=@(ClientHelpers.GetActiveDot(module.Active))>
+                        </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
+                    </td>
                     <td>@module.Version</td>
-                    <td>@module.CreationTime</td>
-                    <td>@module.Updated</td>
+                    <td>@module.AvailableVersion</td>
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+                        @if (_active == module)
+                        {
+                            <td>
+                                <ContextMenuController>
+                                    <ChildContent>
+                                        <ContextMenuItem Text="@Properties.Resources.Update" Icon="oi oi-pencil" OnClick="@OnUpdate"></ContextMenuItem>
+                                    </ChildContent>
+                                </ContextMenuController>
+                            </td>
+                        }
+                        else
+                        {
+                            <td>&nbsp;</td>
+                        }
+                    </AuthorizeView>
                 </tr>
             </ItemContent>
             <Placeholder>
@@ -88,6 +93,9 @@
     </tbody>
 </table>
 <br />
+<Confirm @ref="RestartConfirmation" ConfirmationChanged="OnRestartConfirmation" ConfirmationTitle="Confirm restart"
+         OkTitle="@Properties.Resources.Restart" ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
+</Confirm>
 
 @code {
     /// <inheritdoc />
@@ -95,7 +103,7 @@
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.ModulesTitle;
+            return Gurux.DLMS.AMI.Client.Properties.Resources.UpgradeableModules;
         }
     }
 
@@ -116,6 +124,11 @@
             return "oi oi-puzzle-piece";
         }
     }
+
+    /// <summary>
+    /// User is asked should server restart.
+    /// </summary>
+    protected ConfirmBase? RestartConfirmation;
 
     /// <summary>
     /// Amount of the devices shown on the view.
@@ -168,7 +181,6 @@
     protected void RowSelected(GXModule selected)
     {
         _active = selected;
-        Notifier.UpdateData(GXPages.Modules, _active);
     }
 
     /// <summary>
@@ -191,7 +203,7 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -206,9 +218,6 @@
                 Task.Run(Updated);
             });
             Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Add, Icon = "oi oi-plus", OnClick = OnAdd });
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Edit, Icon = "oi oi-pencil", OnClick = OnEdit });
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnRemove });
             Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -271,49 +280,29 @@
         return default;
     }
 
-    /// <summary>
-    /// Add new module.
-    /// </summary>
-    public void OnAdd()
-    {
-        try
-        {
-            Notifier?.ClearStatus();
-            Notifier.Title = "New Module";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Modules, new GXModule());
-            NavigationManager.NavigateTo("/moduletab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
     void OnClose(object sender)
     {
         NavigationManager.NavigateTo("/module");
     }
 
     /// <summary>
-    /// Edit module.
+    /// Update selected module.
     /// </summary>
-    public void OnEdit()
+    public async void OnUpdate()
     {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
         try
         {
-            Notifier?.ClearStatus();
-            if (string.IsNullOrEmpty(_active.Id))
+            _active.Version = _active.AvailableVersion;
+            UpdateModule req = new UpdateModule() { Module = _active };
+            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/Install", req);
+            ClientHelpers.ValidateStatusCode(response);
+            UpdateModuleResponse? ret = await response.Content.ReadFromJsonAsync<UpdateModuleResponse>();
+            if (ret != null && RestartConfirmation != null && ret.Restart)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                RestartConfirmation.Show();
             }
-            Notifier.Title = "Edit Module";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/moduletab");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -323,25 +312,25 @@
         {
             Notifier?.ProcessError(ex);
         }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 
-
     /// <summary>
-    /// Remove selected module.
+    /// Ask should the application restart.
     /// </summary>
-
-    public void OnRemove()
+    public async Task OnRestartConfirmation(bool confirm)
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (confirm)
             {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+                StopApplicationRequest req = new StopApplicationRequest();
+                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Restart", req);
+                ClientHelpers.ValidateStatusCode(response);
             }
-            Notifier.Title = "Remove Module";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/moduletab");
         }
         catch (AccessTokenNotAvailableException exception)
         {

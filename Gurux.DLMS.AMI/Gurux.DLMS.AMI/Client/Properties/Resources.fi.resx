@@ -759,4 +759,7 @@
   <data name="Capture" xml:space="preserve">
     <value>Kaappaa</value>
   </data>
+  <data name="UpgradeableModules" xml:space="preserve">
+    <value>Päivitettävät moduulit</value>
+  </data>
 </root>

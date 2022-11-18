@@ -49,17 +49,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXHost _host;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
+        private readonly IModuleGroupRepository _moduleGroupRepository;
+
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public ModuleRepository(IGXHost host,
             IUserRepository userRepository,
-            IGXEventsNotifier eventsNotifier)
+            IGXEventsNotifier eventsNotifier,
+            IModuleGroupRepository moduleGroupRepository)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
+            _moduleGroupRepository = moduleGroupRepository;
         }
 
         /// <inheritdoc />
@@ -125,6 +129,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         c.Updated,
                         c.Version
                     }));
+                    //Delete module assemblies.
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.Delete<GXModuleAssembly>(where => where.Module == module));
                 }
             }
             foreach (var it in updates)
@@ -250,6 +256,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             module.ModuleGroups = await _host.Connection.SelectAsync<GXModuleGroup>(arg);
             //Get assemblies.
             arg = GXSelectArgs.SelectAll<GXModuleAssembly>(where => where.Module == module);
+            arg.Distinct = true;
             arg.Columns.Exclude<GXModuleAssembly>(e => e.Module);
             module.Assemblies = await _host.Connection.SelectAsync<GXModuleAssembly>(arg);
             return module;
@@ -307,6 +314,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (it.CreationTime == DateTime.MinValue)
                 {
                     it.CreationTime = now;
+                }
+                if (!it.ModuleGroups.Any())
+                {
+                    ListModuleGroups request = new ListModuleGroups() { Filter = new GXModuleGroup() { Default = true } };
+                    GXModuleGroup[] groups = await _moduleGroupRepository.ListAsync(User, request, null, CancellationToken.None);
+                    it.ModuleGroups.AddRange(groups);
                 }
                 it.Creator = user;
             }

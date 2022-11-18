@@ -1,8 +1,7 @@
 {
   "profiles": {
     "Gurux.DLMS.AMI.Agent": {
-      "commandName": "Project",
-      "commandLineArgs": "-h https://localhost:44338/"
+      "commandName": "Project"
     }
   }
 }

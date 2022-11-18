@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Helpers;
-using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Server.Cron;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -47,27 +46,43 @@ namespace Gurux.DLMS.AMI.Scheduler
     {
         private readonly IModuleRepository _moduleRepository;
         private readonly IAgentRepository _agentRepository;
+        private readonly ISystemLogRepository _systemLogRepository;
         /// <summary>
         /// Constructor.
         /// </summary>
         public GXUpdater(IModuleRepository moduleRepository,
-            IAgentRepository agentRepository)
+            IAgentRepository agentRepository,
+            ISystemLogRepository systemLogRepository)
         {
             _moduleRepository = moduleRepository;
             _agentRepository = agentRepository;
+            _systemLogRepository = systemLogRepository;
         }
 
-        private static void AddModuleVersion(Shared.DTOs.GXModule module, GXVersion version)
+        private void AddModuleVersion(ClaimsPrincipal user, Shared.DTOs.GXModule module, GXVersion version)
         {
             var ver = new Shared.DTOs.GXModuleVersion();
             ver.Module = module;
             ver.CreationTime = version.CreationTime;
             ver.Number = version.Number;
+            ver.Url = version.Url;
             ver.FileName = version.FileName;
             ver.Prerelease = version.Prerelease;
             ver.Description = version.Description;
             module.Versions.Add(ver);
-            module.AvailableVersion = version.Number;
+            try
+            {
+                if (string.IsNullOrEmpty(module.AvailableVersion) ||
+                    new Version(module.AvailableVersion) < new Version(version.Number))
+                {
+                    module.AvailableVersion = version.Number;
+                    module.NewVersion = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _systemLogRepository.AddAsync(user, ex).Wait();
+            }
         }
 
         private static void AddAgentVersion(Shared.DTOs.GXAgent agent, GXVersion version)
@@ -76,6 +91,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             ver.Agent = agent;
             ver.CreationTime = version.CreationTime;
             ver.Number = version.Number;
+            ver.Url = version.Url;
             ver.FileName = version.FileName;
             ver.Prerelease = version.Prerelease;
             ver.Description = version.Description;
@@ -104,17 +120,14 @@ namespace Gurux.DLMS.AMI.Scheduler
                     if (mod != null)
                     {
                         //Installed module.
-
-                        //Check if url has changed.
-                        bool updated = mod.Url != module.Url;
-                        mod.Url = module.Url;
+                        bool updated = false;
                         foreach (var version in module.Versions)
                         {
                             var installedVersion = mod.Versions.Where(q => q.Number == version.Number).SingleOrDefault();
                             if (installedVersion == null)
                             {
                                 updated = true;
-                                AddModuleVersion(mod, version);
+                                AddModuleVersion(user, mod, version);
                             }
                         }
                         if (updated)
@@ -129,10 +142,9 @@ namespace Gurux.DLMS.AMI.Scheduler
                         mod.Active = false;
                         mod.Status = ModuleStatus.Installable;
                         mod.Id = module.Name;
-                        mod.Url = module.Url;
                         foreach (var version in module.Versions)
                         {
-                            AddModuleVersion(mod, version);
+                            AddModuleVersion(user, mod, version);
                         }
                         newModules.Add(mod);
                     }
@@ -179,9 +191,8 @@ namespace Gurux.DLMS.AMI.Scheduler
                 a.Name = loadAgent.Name;
                 if (a.Name == null)
                 {
-                    a.Name = "DLMS template";
+                    a.Name = "DLMS agent";
                 }
-                a.Url = loadAgent.Url + "/" + loadAgent.FolderName;
                 foreach (var version in loadAgent.Versions)
                 {
                     AddAgentVersion(a, version);
