@@ -58,9 +58,9 @@ namespace Gurux.DLMS.AMI.Agent
         /// </summary>
         /// <returns></returns>
         public static async Task RegisterAgent(
-            IServiceCollection services, 
-            AutoResetEvent newVersion, 
-            IGXAgentWorker worker, 
+            IServiceCollection services,
+            AutoResetEvent newVersion,
+            IGXAgentWorker worker,
             AgentOptions options)
         {
             string name = System.Net.Dns.GetHostName();
@@ -125,7 +125,7 @@ namespace Gurux.DLMS.AMI.Agent
 
                 AgentOptions options = new AgentOptions();
                 //Default docker address.
-                options.Address = "https://localhost:8080";
+                options.Address = "https://localhost:8001";
                 Settings settings = new Settings();
                 ////////////////////////////////////////
                 //Handle command line parameters.
@@ -157,13 +157,21 @@ namespace Gurux.DLMS.AMI.Agent
                     worker = null;
                 }
                 options = JsonSerializer.Deserialize<AgentOptions>(File.ReadAllText(settingsFile));
-                if (options.Token == null || options.Token.Length != 64)
+                if (options == null || options.Token == null || options.Token.Length != 64)
                 {
                     throw new ArgumentException("Invalid token.");
                 }
                 if (options.Id == Guid.Empty)
                 {
                     throw new ArgumentException("Invalid agent Id.");
+                }
+                if (info.ProductVersion != null && !info.ProductVersion.Contains("-local"))
+                {
+                    options.Version = info.ProductVersion;
+                }
+                else
+                {
+                    options.Version = null;
                 }
 
                 Task t = Task.Run(() => ClosePoller(cts));
