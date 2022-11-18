@@ -57,19 +57,19 @@ Note! Connection strings might vary for the used database version.
 
 Run a container using Microsoft database: 
 
-docker run --rm -it -e "Database:Type=MSSQL" -e "Database:Settings=Server=DATABASE_SERVER;Database=DATABASE_NAME;User ID=USER_ID;Password=DATABASE_PASSWORD" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxdlmsamiserver:latest
+docker run --rm -it -e "Database:Type=MSSQL" -e "Database:Settings=Server=DATABASE_SERVER;Database=DATABASE_NAME;User ID=USER_ID;Password=DATABASE_PASSWORD" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxorg/guruxdlmsamiserver:latest
 
 Run a container using MariaDB or MySQL database: 
 
-docker run --rm -it -e "Database:Type=MySQL" -e "Database:Settings=Server=HOST;Database=DATABASE_SERVER;UID=USER_ID;Password=DATABASE_PASSWORD" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxdlmsamiserver:latest
+docker run --rm -it -e "Database:Type=MySQL" -e "Database:Settings=Server=HOST;Database=DATABASE_SERVER;UID=USER_ID;Password=DATABASE_PASSWORD" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxorg/guruxdlmsamiserver:latest
 
 Run a container using Oracle database: 
 
-docker run --rm -it -e "Database:Type=Oracle" -e "Database:Settings=User Id=USER_ID;Password=DATABASE_PASSWORD;Data Source=DATABASE_SERVER" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxdlmsamiserver:latest
+docker run --rm -it -e "Database:Type=Oracle" -e "Database:Settings=User Id=USER_ID;Password=DATABASE_PASSWORD;Data Source=DATABASE_SERVER" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxorg/guruxdlmsamiserver:latest
 
 Run a container using SQLite in-memory database: 
 
-docker run --rm -it -e "Database:Type=SQLite" -e "Database:Settings=Filename=:memory:" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxdlmsamiserver:latest
+docker run --rm -it -e "Database:Type=SQLite" -e "Database:Settings=Filename=:memory:" -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORT=8001 -e ASPNETCORE_ENVIRONMENT=Development -e ASPNETCORE_Kestrel__Certificates__Default__Password="YOUR_CREDENTIAL_PASSWORD" -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/Gurux.DLMS.AMI.Server.pfx -v %USERPROFILE%\.aspnet\https:/https/ guruxorg/guruxdlmsamiserver:latest
 
 Support
 =========================== 
