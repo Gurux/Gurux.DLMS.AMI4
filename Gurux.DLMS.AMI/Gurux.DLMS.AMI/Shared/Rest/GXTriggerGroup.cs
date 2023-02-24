@@ -32,9 +32,32 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get trigger group.
+    /// </summary>
+    public class GetTriggerGroupResponse
+    {
+        /// <summary>
+        /// Script group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXTriggerGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get trigger group list.
     /// </summary>
@@ -63,6 +86,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter trigger groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXTriggerGroup),
+            nameof(GXTriggerGroup.Triggers),
+            nameof(GXTriggerGroup.UserGroups))]
         public GXTriggerGroup? Filter
         {
             get;
@@ -81,6 +107,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -93,6 +131,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of trigger groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXTriggerGroup),
+            nameof(GXTriggerGroup.Triggers),
+            nameof(GXTriggerGroup.UserGroups))]
         public GXTriggerGroup[] TriggerGroups
         {
             get;
@@ -120,6 +161,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New trigger group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXTrigger), nameof(GXTrigger.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         public GXTriggerGroup[] TriggerGroups
         {
             get;
@@ -134,9 +177,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddTriggerGroupResponse
     {
         /// <summary>
-        /// New trigger groups.
+        /// New trigger group IDs.
         /// </summary>
-        public GXTriggerGroup[] TriggerGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -154,6 +197,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

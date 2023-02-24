@@ -45,12 +45,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
+        public GXWorkflowLog()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         /// <remarks>
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
-        public GXWorkflowLog() : this((int)TraceLevel.Error)
+        /// <param name="level">Error severity level</param>
+        public GXWorkflowLog(TraceLevel level) : this((int)level)
         {
         }
+
 
         /// <summary>
         /// Constructor.
@@ -177,7 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             }
             if (str != "")
             {
-                return Message;
+                return str;
             }
             return nameof(GXWorkflowLog);
         }

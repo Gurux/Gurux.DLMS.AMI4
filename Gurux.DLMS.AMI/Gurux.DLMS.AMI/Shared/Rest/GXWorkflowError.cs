@@ -33,9 +33,26 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get workflow log.
+    /// </summary>
+    public class GetWorkflowLogResponse
+    {
+        /// <summary>
+        /// Workflow log information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflowLog.Id))]
+        public GXWorkflowLog? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from workflow logs.
     /// </summary>
@@ -45,6 +62,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
+             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
+             nameof(GXWorkflow.User),
+             nameof(GXWorkflow.UserGroup),
+             nameof(GXWorkflow.Device),
+             nameof(GXWorkflow.DeviceGroup),
+             nameof(GXWorkflow.ScriptMethods),
+             nameof(GXWorkflow.Modules),
+             nameof(GXWorkflow.WorkflowGroups),
+             nameof(GXWorkflow.Logs))]
         public GXWorkflowLog? Filter
         {
             get;
@@ -80,7 +107,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }      
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -93,6 +132,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Workflow logs.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
+             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
+             nameof(GXWorkflow.User),
+             nameof(GXWorkflow.UserGroup),
+             nameof(GXWorkflow.Device),
+             nameof(GXWorkflow.DeviceGroup),
+             nameof(GXWorkflow.ScriptMethods),
+             nameof(GXWorkflow.Modules),
+             nameof(GXWorkflow.WorkflowGroups),
+             nameof(GXWorkflow.Logs))]
         public GXWorkflowLog[]? Logs
         {
             get;
@@ -119,6 +168,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New workflow log(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [ExcludeSwagger(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
         public GXWorkflowLog[] Logs
         {
             get;
@@ -148,7 +199,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }      
+        }
     }
 
     /// <summary>

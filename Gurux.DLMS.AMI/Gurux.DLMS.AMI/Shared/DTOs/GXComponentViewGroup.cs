@@ -30,10 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +43,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [DataContract(Name = "GXComponentViewGroup"), Serializable]
     public class GXComponentViewGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXComponentViewGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new component view group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Component view group name.</param>
+        public GXComponentViewGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            ComponentViews = new List<GXComponentView>();
+            Name = string.Empty;
+            Description = string.Empty;
+        }
+
         /// <summary>
         /// Component view group ID.
         /// </summary>
@@ -71,7 +94,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Component view group description.
         /// </summary>
 		[DataMember]
-        public string Description
+        [StringLength(256)]
+        [Description("Description.")]
+        //Filter uses default value.
+        [DefaultValue(null)]
+        public string? Description
         {
             get;
             set;
@@ -120,6 +147,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -145,7 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this Component view group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupComponentViewGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -155,7 +183,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of Component views that this Component view group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXComponentView), typeof(GXComponentViewGroupComponentView))]
-        public List<GXComponentView> ComponentViews
+        public List<GXComponentView>? ComponentViews
         {
             get;
             set;
@@ -172,26 +200,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXComponentViewGroup()
-        {
-            UserGroups = new List<GXUserGroup>();
-            ComponentViews = new List<GXComponentView>();
-            Name = string.Empty;
-            Description = string.Empty;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXComponentViewGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

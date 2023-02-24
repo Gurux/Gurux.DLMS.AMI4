@@ -32,6 +32,9 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -102,6 +105,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -156,7 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If device identifier is given, all tasks for that device are retreaved.
         /// </remarks>
         [DataMember]
-        public Guid DeviceId
+        public Guid? DeviceId
         {
             get;
             set;
@@ -267,7 +282,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }
+        }        
     }
 
     /// <summary>

@@ -30,12 +30,17 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle schedules.
+    /// </summary>
     public interface IScheduleRepository
     {
         /// <summary>
@@ -53,22 +58,33 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="id">Schedule id.</param>
-        /// <returns></returns>
-        Task<GXSchedule> ReadAsync(ClaimsPrincipal user, Guid id);
+        /// <returns>Read schedule.</returns>
+        /// <remarks>
+        /// Required extra info can be used to read following extra information:
+        /// TargetType.User: Creator.
+        /// </remarks>
+        Task<GXSchedule> ReadAsync(
+            ClaimsPrincipal user, 
+            Guid id);
 
         /// <summary>
         /// Update schedule(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="schedulers">Updated schedule(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXSchedule> schedulers);
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXSchedule> schedulers,
+            Expression<Func<GXSchedule, object?>>? columns = null);
 
         /// <summary>
         /// Delete schedule(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="schedulers">Schedule(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> schedulers);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> schedulers, bool delete);
 
         /// <summary>
         /// Get all users that can access this scheduler.

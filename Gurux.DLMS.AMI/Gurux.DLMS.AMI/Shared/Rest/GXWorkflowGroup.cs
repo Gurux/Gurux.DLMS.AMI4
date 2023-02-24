@@ -32,9 +32,33 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get workflow group.
+    /// </summary>
+    public class GetWorkflowGroupResponse
+    {
+        /// <summary>
+        /// Workflow group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id),
+            nameof(GXWorkflow.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+            nameof(GXUserGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXWorkflowGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get workflow group list.
     /// </summary>
@@ -63,6 +87,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter workflow groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXWorkflowGroup),
+             nameof(GXWorkflowGroup.Workflows),
+             nameof(GXWorkflowGroup.UserGroups))]
         public GXWorkflowGroup? Filter
         {
             get;
@@ -80,6 +107,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -92,6 +131,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of workflow groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXWorkflowGroup),
+             nameof(GXWorkflowGroup.Workflows),
+             nameof(GXWorkflowGroup.UserGroups))]
         public GXWorkflowGroup[] WorkflowGroups
         {
             get;
@@ -116,9 +158,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddWorkflowGroup : IGXRequest<AddWorkflowGroupResponse>
     {
         /// <summary>
-        /// New workflow group(s).
+        /// Add new workflow group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         public GXWorkflowGroup[] WorkflowGroups
         {
             get;
@@ -133,9 +177,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddWorkflowGroupResponse
     {
         /// <summary>
-        /// New workflow groups.
+        /// New workflow group IDs.
         /// </summary>
-        public GXWorkflowGroup[] WorkflowGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -153,6 +197,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

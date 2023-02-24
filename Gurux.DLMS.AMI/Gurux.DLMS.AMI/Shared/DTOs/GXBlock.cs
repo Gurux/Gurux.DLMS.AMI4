@@ -45,6 +45,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXBlock : GXTableBase, IUnique<Guid>
     {
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXBlock()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new device is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Block name.</param>
+        public GXBlock(string? name)
+        {
+            Active = true;
+            Name = name;
+            BlockGroups = new List<GXBlockGroup>();
+        }
+        /// <summary>
         /// Block ID.
         /// </summary>
         [DataMember(Name = "ID")]
@@ -216,7 +236,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXBlockGroupBlock))]
         [Filter(FilterType.Contains)]
-        public List<GXBlockGroup> BlockGroups
+        public List<GXBlockGroup>? BlockGroups
         {
             get;
             set;
@@ -240,7 +260,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -301,6 +321,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -368,15 +389,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXBlock()
-        {
-            Name = "";
-            BlockGroups = new List<GXBlockGroup>();
         }
 
         /// <inheritdoc/>

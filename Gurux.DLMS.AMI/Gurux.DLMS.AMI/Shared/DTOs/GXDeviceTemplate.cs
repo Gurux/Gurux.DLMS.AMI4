@@ -33,6 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -46,13 +47,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public GXDeviceTemplate()
         {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new device template group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Device template name.</param>
+        public GXDeviceTemplate(string? name)
+        {
+            Name = name;
             Objects = new List<GXObjectTemplate>();
             DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
-            Type = "";
             WaitTime = 5;
             ResendCount = 3;
-            MediaType = "";
-            MediaSettings = "";
         }
 
         /// <summary>
@@ -67,7 +77,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Template type.
         /// </summary>
-        public string Type
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
+        [IsRequired]
+        public string? Type
         {
             get;
             set;
@@ -134,7 +148,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Media type.
         /// </summary>
         [StringLength(64)]
-        public virtual string MediaType
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
+        public virtual string ?MediaType
         {
             get;
             set;
@@ -143,7 +160,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Media settings as a string.
         /// </summary>
-        public string MediaSettings
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
+        public string? MediaSettings
         {
             get;
             set;
@@ -155,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -176,6 +196,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -216,7 +237,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [Description("Object templates.")]
         [ForeignKey(typeof(GXObjectTemplate))]
-        public List<GXObjectTemplate> Objects
+        public List<GXObjectTemplate>? Objects
         {
             get;
             set;
@@ -227,7 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceTemplateGroup), typeof(GXDeviceTemplateGroupDeviceTemplate))]
-        public List<GXDeviceTemplateGroup> DeviceTemplateGroups
+        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
         {
             get;
             set;

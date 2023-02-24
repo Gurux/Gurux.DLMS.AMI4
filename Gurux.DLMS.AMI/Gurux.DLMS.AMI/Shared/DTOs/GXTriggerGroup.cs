@@ -33,12 +33,37 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    /// <summary>
+    /// Trigger group.
+    /// </summary>
     [DataContract(Name = "GXTriggerGroup"), Serializable]
     public class GXTriggerGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXTriggerGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new trigger group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Trigger group name.</param>
+        public GXTriggerGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Triggers = new List<GXTrigger>();
+        }
+
         /// <summary>
         /// Trigger group ID.
         /// </summary>
@@ -114,6 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -138,7 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this trigger group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupTriggerGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -148,7 +174,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of Triggers that this Trigger group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXTrigger), typeof(GXTriggerGroupTrigger))]
-        public List<GXTrigger> Triggers
+        public List<GXTrigger>? Triggers
         {
             get;
             set;
@@ -163,26 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXTriggerGroup()
-        {
-            Name = "";
-            UserGroups = new List<GXUserGroup>();
-            Triggers = new List<GXTrigger>();
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXTriggerGroup(string name) : this()
-        {
-            Name = name;
-        }
+        }       
 
         /// <summary>
         /// Update creation time before update.

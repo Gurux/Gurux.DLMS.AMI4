@@ -54,7 +54,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Name of the component view class.
         /// </summary>
         [StringLength(128)]
-        public string ClassName
+        [IsRequired]
+        public string? ClassName
         {
             get;
             set;
@@ -106,7 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of component view groups where this component view belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXComponentViewGroup), typeof(GXUserGroupComponentViewGroup))]
-        public List<GXComponentViewGroup> ComponentViewGroups
+        public List<GXComponentViewGroup>? ComponentViewGroups
         {
             get;
             set;
@@ -151,19 +152,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXComponentView()
-        {
-            Name = "";
-            ClassName = "";
-            ComponentViewGroups = new List<GXComponentViewGroup>();
-        }
-
+        /// <inheritdoc/>
         public override string ToString()
         {
-            return Name;
+            string str;
+            if (!string.IsNullOrEmpty(Name))
+            {
+                str = Name;
+            }
+            else
+            {
+                str = nameof(GXComponentView);
+            }
+            return str;
         }
     }
 }

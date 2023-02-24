@@ -32,9 +32,44 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get user group.
+    /// </summary>
+    public class GetUserGroupResponse
+    {
+        /// <summary>
+        /// User group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id),
+            nameof(GXUser.GivenName), nameof(GXUser.Surname))]
+        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
+            nameof(GXScheduleGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+            nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.DeviceTemplateGroups),
+            nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.ModuleGroups),
+            nameof(GXUserGroup.WorkflowGroups),
+            nameof(GXUserGroup.TriggerGroups),
+            nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ScriptGroups))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXUserGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get user group list.
     /// </summary>
@@ -63,6 +98,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXUserGroup),
+            nameof(GXUserGroup.Users),
+            nameof(GXUserGroup.DeviceGroups),
+            nameof(GXUserGroup.ScheduleGroups),
+            nameof(GXUserGroup.DeviceTemplateGroups),
+            nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.ModuleGroups),
+            nameof(GXUserGroup.WorkflowGroups),
+            nameof(GXUserGroup.TriggerGroups),
+            nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ScriptGroups))]
         public GXUserGroup? Filter
         {
             get;
@@ -81,6 +128,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             set;
         }
 
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -93,6 +151,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of user groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXUserGroup),
+            nameof(GXUserGroup.Users),
+            nameof(GXUserGroup.DeviceGroups),
+            nameof(GXUserGroup.ScheduleGroups),
+            nameof(GXUserGroup.DeviceTemplateGroups),
+            nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.ModuleGroups),
+            nameof(GXUserGroup.WorkflowGroups),
+            nameof(GXUserGroup.TriggerGroups),
+            nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ScriptGroups))]
         public GXUserGroup[] UserGroups
         {
             get;
@@ -120,6 +190,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New user group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
+        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeSwagger(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
+        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeSwagger(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
+        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
         public GXUserGroup[] UserGroups
         {
             get;
@@ -134,9 +215,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddUserGroupResponse
     {
         /// <summary>
-        /// New user groups.
+        /// New user group IDs.
         /// </summary>
-        public GXUserGroup[] UserGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -154,6 +235,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

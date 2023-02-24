@@ -103,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="DeviceId">Device Id</param>
         /// <param name="listener">Is agent in listener mode.</param>
         /// <returns>Collections of tasks to execute.</returns>
-        Task<GXTask[]> GetNextAsync(ClaimsPrincipal user, Guid agentId, Guid DeviceId, bool listener);
+        Task<GXTask[]> GetNextAsync(ClaimsPrincipal user, Guid agentId, Guid? DeviceId, bool listener);
 
         /// <summary>
         /// Clear tasks.

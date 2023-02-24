@@ -33,9 +33,39 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get script.
+    /// </summary>
+    public class GetScriptResponse
+    {
+        /// <summary>
+        /// Script information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id),
+            nameof(GXScriptGroup.Name))]
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id),
+            nameof(GXWorkflow.Name))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
+            nameof(GXScriptMethod.Name))]
+        [ExcludeSwagger(typeof(GXScript), nameof(GXScript.Logs)
+            , nameof(GXScript.Resources), nameof(GXScript.Languages), 
+            nameof(GXScript.ByteAssembly), nameof(GXScript.Module))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXScript Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from scripts.
     /// </summary>
@@ -64,12 +94,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter scripts.
         /// </summary>
+        [ExcludeSwagger(typeof(GXScript),
+        nameof(GXScript.ScriptGroups),
+             nameof(GXScript.Workflows),
+             nameof(GXScript.Methods),
+             nameof(GXScript.Logs),
+             nameof(GXScript.Creator),
+             nameof(GXScript.Resources), 
+             nameof(GXScript.Languages),
+             nameof(GXScript.Module))]
         public GXScript? Filter
         {
             get;
             set;
         }
-
 
         /// <summary>
         /// Admin user can access scripts from all users.
@@ -78,6 +116,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, scripts from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -96,7 +146,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of script items.")]
         [DataMember]
-        public GXScript[] Scripts
+        [ExcludeSwagger(typeof(GXScript),
+        nameof(GXScript.ScriptGroups),
+            nameof(GXScript.Workflows),
+            nameof(GXScript.Methods),
+            nameof(GXScript.Logs), 
+            nameof(GXScript.Resources), 
+            nameof(GXScript.Languages), 
+            nameof(GXScript.Module))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        public GXScript[]? Scripts
         {
             get;
             set;
@@ -121,23 +180,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class UpdateScript : IGXRequest<UpdateScriptResponse>
     {
         /// <summary>
-        /// Constructor.
-        /// </summary>
-        public UpdateScript()
-        {
-            Scripts = new List<GXScript>();
-        }
-
-        /// <summary>
         /// Scripts to update.
         /// </summary>
         [DataMember]
         [Description("Scripts to update.")]
-        public List<GXScript> Scripts
-        {
-            get;
-            set;
-        }
+        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeSwagger(typeof(GXScript),
+            nameof(GXScript.Workflows),
+            nameof(GXScript.Methods),
+            nameof(GXScript.Logs),
+            nameof(GXScript.Creator),
+            nameof(GXScript.Resources),
+            nameof(GXScript.Languages),
+            nameof(GXScript.Module))]
+        public List<GXScript> Scripts{get; set;} = new List<GXScript>();
     }
 
     /// <summary>
@@ -152,7 +209,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("New script identifiers.")]
-        public Guid[] ScriptIds
+        public Guid[]? ScriptIds
         {
             get;
             set;
@@ -163,14 +220,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Delete scripts.
     /// </summary>
     [DataContract]
-    public class DeleteScript : IGXRequest<DeleteScriptResponse>
+    public class RemoveScript : IGXRequest<RemoveScriptResponse>
     {
         /// <summary>
         /// Removed script identifiers.
         /// </summary>
         [DataMember]
-        [Description("Removed script identifiers.")]
-        public Guid[] ScriptIds
+        public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -181,8 +251,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Reply from Delete script.
     /// </summary>
     [DataContract]
-    [Description("Reply from Delete script.")]
-    public class DeleteScriptResponse
+    public class RemoveScriptResponse
     {
     }
 
@@ -200,6 +269,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
         /// <summary>
         /// Additional name spaces.
         /// </summary>

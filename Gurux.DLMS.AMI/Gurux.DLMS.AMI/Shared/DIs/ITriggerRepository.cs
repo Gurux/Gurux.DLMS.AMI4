@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -63,15 +64,20 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Update trigger(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="triggerrs">Updated trigger(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXTrigger> triggerrs);
+        /// <param name="triggers">Updated trigger(s).</param>
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXTrigger> triggers,
+            Expression<Func<GXTrigger, object?>>? columns = null);
 
         /// <summary>
         /// Delete trigger(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="triggerrs">Trigger(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> triggerrs);
+        /// <param name="triggers">Trigger(s) to delete.</param>
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> triggers, bool delete);
 
         /// <summary>
         /// Get all users that can access this trigger.

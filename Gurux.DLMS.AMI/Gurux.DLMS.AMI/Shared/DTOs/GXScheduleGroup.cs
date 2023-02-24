@@ -30,10 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +43,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [DataContract(Name = "GXScheduleGroup"), Serializable]
     public class GXScheduleGroup : GXTableBase, IUnique<Guid>
     {
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXScheduleGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new schedule group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Schedule group name.</param>
+        public GXScheduleGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Schedules = new List<GXSchedule>();
+            Description = string.Empty;
+        }
+
         /// <summary>
         /// Schedule group ID.
         /// </summary>
@@ -71,8 +94,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Schedule group description.
         /// </summary>
 		[DataMember]
+        [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string Description
+        public string? Description
         {
             get;
             set;
@@ -85,7 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -120,6 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -145,7 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupScheduleGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -155,7 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of schedules that this schedule group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXSchedule), typeof(GXScheduleGroupSchedule))]
-        public List<GXSchedule> Schedules
+        public List<GXSchedule>? Schedules
         {
             get;
             set;
@@ -172,27 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXScheduleGroup() 
-        {
-            UserGroups = new List<GXUserGroup>();
-            Schedules = new List<GXSchedule>();
-            Name = string.Empty;
-            Description = string.Empty;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXScheduleGroup(string name) : this()
-        {
-            Name = name;
-        }
+        }        
 
         /// <summary>
         /// Update creation time before update.

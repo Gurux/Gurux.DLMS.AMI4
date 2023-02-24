@@ -118,13 +118,5 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             Updated = DateTime.Now;
         }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXTriggerActivity()
-        {
-            Name = "";
-        }
     }
 }

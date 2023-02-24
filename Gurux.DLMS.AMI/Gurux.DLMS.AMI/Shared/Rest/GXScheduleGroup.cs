@@ -32,9 +32,32 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get schedule group.
+    /// </summary>
+    public class GetScheduleGroupResponse
+    {
+        /// <summary>
+        /// Schedule group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXScheduleGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get schedule group list.
     /// </summary>
@@ -63,6 +86,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter schedule groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXScheduleGroup),
+           nameof(GXScheduleGroup.Schedules),
+           nameof(GXScheduleGroup.UserGroups))]
         public GXScheduleGroup? Filter
         {
             get;
@@ -81,6 +107,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -93,6 +131,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of schedule groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXScheduleGroup),
+           nameof(GXScheduleGroup.Schedules),
+           nameof(GXScheduleGroup.UserGroups))]
         public GXScheduleGroup[]? ScheduleGroups
         {
             get;
@@ -120,6 +161,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New schedule group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         public GXScheduleGroup[] ScheduleGroups
         {
             get;
@@ -134,9 +177,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddScheduleGroupResponse
     {
         /// <summary>
-        /// New schedule groups.
+        /// New schedule group IDs.
         /// </summary>
-        public GXScheduleGroup[]? ScheduleGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -154,6 +197,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

@@ -157,6 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -204,14 +205,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXConfiguration()
-        {
-            Name = "";
         }
 
         /// <summary>

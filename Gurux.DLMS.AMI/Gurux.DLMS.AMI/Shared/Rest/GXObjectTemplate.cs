@@ -30,23 +30,40 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Add or Update role information.
+    /// Get object template.
     /// </summary>
-    [DataContract]
-    public class UpdateRole : IGXRequest<UpdateRoleResponse>
+    public class GetObjectTemplateResponse
     {
         /// <summary>
-        /// Inserted or updated roles.
+        /// Object information.
+        /// </summary>        
+        public GXObjectTemplate? Item
+        {
+            get;
+            set;
+        }
+    }
+
+
+    /// <summary>
+    /// Add COSEM object template.
+    /// </summary>
+    [DataContract]
+    public class UpdateObjectTemplate : IGXRequest<UpdateObjectTemplateResponse>
+    {
+        /// <summary>
+        /// Added COSEM object templates.
         /// </summary>
         [DataMember]
-        public GXRole[] Roles
+        public GXObjectTemplate[] ObjectTemplates
         {
             get;
             set;
@@ -54,78 +71,121 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Update role response.
+    /// Add COSEM object template Reply.
     /// </summary>
     [DataContract]
-    public class UpdateRoleResponse
+    public class UpdateObjectTemplateResponse
     {
         /// <summary>
-        /// New role identifier(s).
+        /// Object template identifiers.
         /// </summary>
         [DataMember]
-        public string[] Ids
+        public Guid[] Ids
         {
             get;
             set;
         }
     }
 
+
     /// <summary>
-    /// Get available roles.
+    /// Get object templates.
     /// </summary>
     [DataContract]
-    public class ListRoles : IGXRequest<ListRolesResponse>
+    public class ListObjectTemplates : IGXRequest<ListObjectTemplatesResponse>
     {
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
+        public UInt64 Index
         {
             get;
             set;
-
         }
 
         /// <summary>
-        /// Amount of the roles to retreave.
+        /// Amount of the modules to retreave.
         /// </summary>
+        [DataMember]
+        public UInt64 Count
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Filter can be used to filter object templates.
+        /// </summary>
+        public GXObjectTemplate? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// List COSEM object template response.
+    /// </summary>
+    [DataContract]
+    public class ListObjectTemplatesResponse
+    {
+
+        /// <summary>
+        /// List of COSEM object templates.
+        /// </summary>
+        [DataMember]
+        public GXObjectTemplate[] ObjectTemplates
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// Total count of the object templates.
+        /// </summary>
+        [DataMember]
         public int Count
         {
             get;
             set;
         }
-
-        /// <summary>
-        /// Filter can be used to filter roles.
-        /// </summary>
-        public GXRole? Filter
-        {
-            get;
-            set;
-        }
     }
 
     /// <summary>
-    /// Returns roles.
+    /// Delete COSEM object templates.
     /// </summary>
-    [DataContract]
-    public class ListRolesResponse
+    public class RemoveObjectTemplate : IGXRequest<RemoveObjectTemplateResponse>
     {
         /// <summary>
-        /// List of roles.
+        /// Removed COSEM object templates identifiers.
         /// </summary>
         [DataMember]
-        public GXRole[] Roles
+        public Guid[] Ids
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Total count of the roles.
+        /// Items are removed from the database.
         /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
         [DataMember]
-        public int Count
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -133,27 +193,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete role.
+    /// Delete COSEM object template response.
     /// </summary>
     [DataContract]
-    public class RoleDelete : IGXRequest<RoleDeleteResponse>
-    {
-        /// <summary>
-        /// Removed roles.
-        /// </summary>
-        [DataMember]
-        public string[] Ids
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Delete roles response.
-    /// </summary>
-    [DataContract]
-    public class RoleDeleteResponse
+    public class RemoveObjectTemplateResponse
     {
     }
 }

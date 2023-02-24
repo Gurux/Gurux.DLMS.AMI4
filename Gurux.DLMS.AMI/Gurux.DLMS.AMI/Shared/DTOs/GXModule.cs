@@ -157,7 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModuleAssembly))]
-        public List<GXModuleAssembly> Assemblies
+        public List<GXModuleAssembly>? Assemblies
         {
             get;
             set;
@@ -168,7 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScript))]
-        public List<GXScript> Scripts
+        public List<GXScript>? Scripts
         {
             get;
             set;
@@ -179,7 +179,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule))]
-        public List<GXSchedule> Schedules
+        public List<GXSchedule>? Schedules
         {
             get;
             set;
@@ -190,7 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXWorkflow))]
-        public List<GXWorkflow> Workflows
+        public List<GXWorkflow>? Workflows
         {
             get;
             set;
@@ -200,7 +200,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of user groups that this module belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -211,7 +211,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModuleGroup), typeof(GXModuleGroupModule))]
-        public List<GXModuleGroup> ModuleGroups
+        public List<GXModuleGroup>? ModuleGroups
         {
             get;
             set;
@@ -221,7 +221,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Module logs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXModuleLog))]
-        public List<GXModuleLog> Logs
+        public List<GXModuleLog>? Logs
         {
             get;
             set;
@@ -231,7 +231,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Module versions.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXModuleVersion))]
-        public List<GXModuleVersion> Versions
+        public List<GXModuleVersion>? Versions
         {
             get;
             set;
@@ -242,7 +242,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceParameter))]
-        public List<GXDeviceParameter> DeviceParameters
+        public List<GXDeviceParameter>? DeviceParameters
         {
             get;
             set;
@@ -253,7 +253,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXObjectParameter))]
-        public List<GXObjectParameter> ObjectParameters
+        public List<GXObjectParameter>? ObjectParameters
         {
             get;
             set;
@@ -264,7 +264,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXAttributeParameter))]
-        public List<GXAttributeParameter> AttributeParameters
+        public List<GXAttributeParameter>? AttributeParameters
         {
             get;
             set;
@@ -315,7 +315,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -337,6 +337,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -413,24 +414,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXModule()
-        {
-            UserGroups = new List<GXUserGroup>();
-            ModuleGroups = new List<GXModuleGroup>();
-            Logs = new List<GXModuleLog>();
-            Versions = new List<GXModuleVersion>();
-            Scripts = new List<GXScript>();
-            Assemblies = new List<GXModuleAssembly>();
-            DeviceParameters = new List<GXDeviceParameter>();
-            ObjectParameters = new List<GXObjectParameter>();
-            AttributeParameters = new List<GXAttributeParameter>();
-            Schedules = new List<GXSchedule>();
-            Workflows = new List<GXWorkflow>();
         }
 
         ///<inheritdoc />

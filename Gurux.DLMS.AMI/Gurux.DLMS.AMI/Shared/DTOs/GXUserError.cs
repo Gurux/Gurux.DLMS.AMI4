@@ -32,7 +32,6 @@
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 

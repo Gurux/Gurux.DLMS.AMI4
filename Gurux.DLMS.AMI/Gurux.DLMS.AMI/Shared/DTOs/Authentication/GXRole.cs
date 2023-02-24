@@ -43,13 +43,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     public partial class GXRole : IUnique<string>
     {
         /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXRole()
-        {
-        }
-
-        /// <summary>
         /// Role Identifier.
         /// </summary>
         [StringLength(36)]
@@ -57,11 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public string? Id
-        {
-            get;
-            set;
-        }
+        public string Id{get; set; } = "";
 
         /// <summary>
         /// Name of the role.

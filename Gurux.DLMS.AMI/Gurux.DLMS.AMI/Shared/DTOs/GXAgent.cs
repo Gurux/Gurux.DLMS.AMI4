@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +44,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXAgent : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXAgent()
+        {
+        }
+
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new agent is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Agent name.</param>
+        public GXAgent(string? name)
+        {
+            Name = name;
+            Tasks = new List<GXTask>();
+            AgentGroups = new List<GXAgentGroup>();
+            Logs = new List<GXAgentLog>();
+            Versions = new List<GXAgentVersion>();
+            ScriptMethods = new List<GXScriptMethod>();
+        }
+
         /// <summary>
         /// Agent identifier.
         /// </summary>
@@ -108,7 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
-        public List<GXTask> Tasks
+        public List<GXTask>? Tasks
         {
             get;
             set;
@@ -120,7 +146,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember,
             ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupAgent))]
         [Filter(FilterType.Contains)]
-        public List<GXAgentGroup> AgentGroups
+        public List<GXAgentGroup>? AgentGroups
         {
             get;
             set;
@@ -131,7 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXAgentLog))]
         [Filter(FilterType.Contains)]
-        public List<GXAgentLog> Logs
+        public List<GXAgentLog>? Logs
         {
             get;
             set;
@@ -186,7 +212,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -209,6 +235,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -273,7 +300,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXAgentScriptMethod))]
         [Filter(FilterType.Contains)]
-        public List<GXScriptMethod> ScriptMethods
+        public List<GXScriptMethod>? ScriptMethods
         {
             get;
             set;
@@ -284,7 +311,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXAgentVersion))]
         [Filter(FilterType.Contains)]
-        public List<GXAgentVersion> Versions
+        public List<GXAgentVersion>? Versions
         {
             get;
             set;
@@ -327,18 +354,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXAgent()
-        {
-            Tasks = new List<GXTask>();
-            AgentGroups = new List<GXAgentGroup>();
-            Logs = new List<GXAgentLog>();
-            Versions = new List<GXAgentVersion>();
-            ScriptMethods = new List<GXScriptMethod>();
         }
 
         /// <summary>

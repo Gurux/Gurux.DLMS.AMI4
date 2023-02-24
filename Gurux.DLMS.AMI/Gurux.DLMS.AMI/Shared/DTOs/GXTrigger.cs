@@ -34,6 +34,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -54,7 +55,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Trigger class name.
         /// </summary>
         [StringLength(64)]
-        public string ClassName
+        [IsRequired]
+        public string? ClassName
         {
             get;
             set;
@@ -98,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Trigger activities.
         /// </summary>
         [ForeignKey(typeof(GXTriggerActivity))]
-        public List<GXTriggerActivity> Activities
+        public List<GXTriggerActivity>? Activities
         {
             get;
             set;
@@ -167,7 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule), typeof(GXScheduleTrigger))]
-        public List<GXSchedule> Schedules
+        public List<GXSchedule>? Schedules
         {
             get;
             set;
@@ -177,7 +179,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of workflows that this trigger invokes.
         /// </summary>
         [Ignore(IgnoreType.Db)]
-        public List<GXWorkflow> Workflows
+        public List<GXWorkflow>? Workflows
         {
             get;
             set;
@@ -188,7 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember,
             ForeignKey(typeof(GXTriggerGroup), typeof(GXTriggerGroupTrigger))]
-        public List<GXTriggerGroup> TriggerGroups
+        public List<GXTriggerGroup>? TriggerGroups
         {
             get;
             set;
@@ -211,7 +213,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -233,6 +235,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -296,19 +299,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXTrigger()
-        {
-            Workflows = new List<GXWorkflow>();
-            Activities = new List<GXTriggerActivity>();
-            TriggerGroups = new List<GXTriggerGroup>();
-            Schedules = new List<GXSchedule>();
-            Name = "";
-            ClassName = "";
         }
     }
 }

@@ -67,25 +67,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="agents">Updated agent(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXAgent> agents);
-
-        /// <summary>
-        /// Update agent(s).
-        /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="agents">Updated agent(s).</param>
         /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User, 
             IEnumerable<GXAgent> agents, 
-            Expression<Func<GXAgent, object?>>? columns);
+            Expression<Func<GXAgent, object?>>? columns = null);
 
         /// <summary>
         /// Delete agent(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="agentrs">Agent(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> agentrs);
+        /// <param name="agents">Agent(s) to delete.</param>
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> agents, bool delete);
 
         /// <summary>
         /// Get all users that can access this agent.

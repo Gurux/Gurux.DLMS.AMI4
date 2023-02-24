@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -64,18 +65,21 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="groups">Updated device template groups.</param>
+        /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
-            IEnumerable<GXDeviceTemplateGroup> groups);
+            IEnumerable<GXDeviceTemplateGroup> groups,
+            Expression<Func<GXDeviceTemplateGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete device template group(s).
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="groups">Device template groups to delete.</param>
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
             ClaimsPrincipal User,
-            IEnumerable<Guid> groups);
+            IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns device template groups list where device template belongs.

@@ -70,15 +70,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Delete values(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="objects">Values(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> objects);
+        /// <param name="values">Values(s) to delete.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> values);
 
         /// <summary>
         /// Clear device values(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="objects">Cleared devices.</param>
-        Task ClearDeviceAsync(ClaimsPrincipal User, IEnumerable<GXDevice> objects);
+        /// <param name="devices">Cleared devices.</param>
+        Task ClearDeviceAsync(ClaimsPrincipal User, IEnumerable<GXDevice> devices);
 
         /// <summary>
         /// Clear object values(s).

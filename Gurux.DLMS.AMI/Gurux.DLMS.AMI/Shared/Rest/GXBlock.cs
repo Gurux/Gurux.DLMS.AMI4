@@ -32,9 +32,41 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get block.
+    /// </summary>
+    public class GetBlockResponse
+    {
+        /// <summary>
+        /// Device information.
+        /// </summary>        
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]        
+        [ExcludeSwagger(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
+            nameof(GXLocalizedResource.Module), nameof(GXLocalizedResource.Block),
+            nameof(GXLocalizedResource.Script))]
+        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.Resources))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXBlock Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from blocks.
     /// </summary>
@@ -63,6 +95,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter blocks.
         /// </summary>
+        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.BlockGroups),
+            nameof(GXBlock.User),
+            nameof(GXBlock.Resources), nameof(GXBlock.Languages), 
+            nameof(GXBlock.ComponentView), nameof(GXBlock.ScriptMethod))]
         public GXBlock? Filter
         {
             get;
@@ -80,6 +116,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -92,6 +140,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of block items.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.BlockGroups),
+            nameof(GXBlock.User), nameof(GXBlock.Resources), nameof(GXBlock.Languages))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]        
         public GXBlock[] Blocks
         {
             get;
@@ -127,6 +182,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Blocks to update.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.Resources), nameof(GXBlock.Languages)
+            , nameof(GXBlock.User))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
         public List<GXBlock> Blocks
         {
             get;
@@ -144,7 +205,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New block identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] BlockIds
+        public Guid[]? Ids
         {
             get;
             set;
@@ -155,13 +216,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Delete blocks.
     /// </summary>
     [DataContract]
-    public class DeleteBlock : IGXRequest<DeleteBlockResponse>
+    public class RemoveBlock : IGXRequest<RemoveBlockResponse>
     {
         /// <summary>
         /// Removed block identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] BlockIds
+        public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -172,7 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Reply from Delete block.
     /// </summary>
     [DataContract]
-    public class DeleteBlockResponse
+    public class RemoveBlockResponse
     {
     }
 
@@ -183,10 +258,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class CloseBlock : IGXRequest<CloseBlockResponse>
     {
         /// <summary>
-        /// Blocks to close.
+        /// Blocks IDs to close.
         /// </summary>
         [DataMember]
-        public Guid[] Blocks
+        public Guid[] Ids
         {
             get;
             set;

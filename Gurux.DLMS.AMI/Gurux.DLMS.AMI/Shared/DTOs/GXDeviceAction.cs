@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
@@ -57,7 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -80,7 +81,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Action.
         /// </summary>
-        public DeviceActionType Type
+        [Filter(FilterType.Equals)]
+        [IsRequired]
+        [DefaultValue(null)]
+        public DeviceActionType? Type
         {
             get;
             set;

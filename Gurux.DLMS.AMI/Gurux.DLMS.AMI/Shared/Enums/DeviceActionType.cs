@@ -43,7 +43,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Connecting to the meter.
         /// </summary>
         [XmlEnum("1")]
-        Connect = 0x0,
+        Connect = 0x01,
         /// <summary>
         /// Disconnecting from the meter.
         /// </summary>

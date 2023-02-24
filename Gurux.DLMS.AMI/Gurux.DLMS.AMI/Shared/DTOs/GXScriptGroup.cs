@@ -33,12 +33,37 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    /// <summary>
+    /// Script group table.
+    /// </summary>
     [DataContract(Name = "GXScriptGroup"), Serializable]
     public class GXScriptGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXScriptGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new script group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Script group name.</param>
+        public GXScriptGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Scripts = new List<GXScript>();
+        }
+
         /// <summary>
         /// Script group ID.
         /// </summary>
@@ -80,7 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -115,6 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -140,7 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupScriptGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -150,7 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of script that this scrip group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXScript), typeof(GXScriptGroupScript))]
-        public List<GXScript> Scripts
+        public List<GXScript>? Scripts
         {
             get;
             set;
@@ -167,24 +193,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXScriptGroup() 
-        {
-            Name = "";
-            UserGroups = new List<GXUserGroup>();
-            Scripts = new List<GXScript>();
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXScriptGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

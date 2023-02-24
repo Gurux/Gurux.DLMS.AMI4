@@ -33,9 +33,41 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get user.
+    /// </summary>
+    public class GetUserResponse
+    {
+        /// <summary>
+        /// Agent information.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXUser),
+            nameof(GXUser.Password),
+            nameof(GXUser.PasswordHash),
+            nameof(GXUser.SecurityStamp),
+            nameof(GXUser.Actions),
+            nameof(GXUser.Roles),
+            nameof(GXUser.IpAddresses),
+            nameof(GXUser.BlockSettings),
+            nameof(GXUser.Errors),
+            nameof(GXUser.RestStatistics),
+            nameof(GXUser.Settings))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id)
+            , nameof(GXAgentGroup.Name)
+            , nameof(GXAgentGroup.Description))]
+        public GXUser? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get user list.
     /// </summary>
@@ -64,6 +96,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter users.
         /// </summary>
+        [ExcludeSwagger(typeof(GXUser),
+            nameof(GXUser.Password),
+            nameof(GXUser.PasswordHash),
+            nameof(GXUser.SecurityStamp),
+            nameof(GXUser.Actions),
+            nameof(GXUser.UserGroups),
+            nameof(GXUser.Roles),
+            nameof(GXUser.IpAddresses),
+            nameof(GXUser.BlockSettings),
+            nameof(GXUser.Errors),
+            nameof(GXUser.RestStatistics),
+            nameof(GXUser.Settings))]
         public GXUser? Filter
         {
             get;
@@ -82,6 +126,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -96,6 +152,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("List of users.")]
+        [ExcludeSwagger(typeof(GXUser),
+                nameof(GXUser.Password),
+                nameof(GXUser.PasswordHash),
+                nameof(GXUser.SecurityStamp),
+                nameof(GXUser.Actions),
+                nameof(GXUser.UserGroups),
+                nameof(GXUser.Roles),
+                nameof(GXUser.IpAddresses),
+                nameof(GXUser.BlockSettings),
+                nameof(GXUser.Errors),
+                nameof(GXUser.RestStatistics),
+                nameof(GXUser.Settings))]
         public GXUser[] Users
         {
             get;
@@ -151,15 +219,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Remove user.
     /// </summary>
     [DataContract]
-    [Description("Remove user.")]
     public class RemoveUser : IGXRequest<RemoveUserResponse>
     {
         /// <summary>
         /// User Ids to remove.
         /// </summary>
-        [Description("User Ids to remove.")]
         [DataMember]
         public string[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -170,7 +250,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Remove user response.
     /// </summary>
     [DataContract]
-    [Description("Remove user response.")]
     public class RemoveUserResponse
     {
     }

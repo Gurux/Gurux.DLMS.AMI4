@@ -30,47 +30,24 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get object.
-    /// </summary>
-    public class GetObjectResponse
-    {
-        /// <summary>
-        /// Object information.
-        /// </summary>        
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
-        public GXObject? Item
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Add COSEM object.
+    /// Add or Update role information.
     /// </summary>
     [DataContract]
-    public class UpdateObject : IGXRequest<UpdateObjectResponse>
+    public class UpdateRole : IGXRequest<UpdateRoleResponse>
     {
         /// <summary>
-        /// Added COSEM objects.
+        /// Inserted or updated roles.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        public GXObject[] Objects
+        public GXRole[] Roles
         {
             get;
             set;
@@ -78,55 +55,51 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add COSEM object Reply.
+    /// Update role response.
     /// </summary>
     [DataContract]
-    public class UpdateObjectResponse
+    public class UpdateRoleResponse
     {
         /// <summary>
-        /// Object identifiers.
+        /// New role identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public string[] Ids
         {
             get;
             set;
         }
     }
 
-
     /// <summary>
-    /// Get object.
+    /// Get available roles.
     /// </summary>
     [DataContract]
-    public class ListObjects : IGXRequest<ListObjectsResponse>
+    public class ListRoles : IGXRequest<ListRolesResponse>
     {
         /// <summary>
         /// Start index.
         /// </summary>
-        [DataMember]
-        public UInt64 Index
+        public int Index
+        {
+            get;
+            set;
+
+        }
+
+        /// <summary>
+        /// Amount of the roles to retreave.
+        /// </summary>
+        public int Count
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Amount of the modules to retreave.
+        /// Filter can be used to filter roles.
         /// </summary>
-        [DataMember]
-        public UInt64 Count
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Filter can be used to filter objects.
-        /// </summary>
-        [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject? Filter
+        public GXRole? Filter
         {
             get;
             set;
@@ -146,24 +119,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// List COSEM object response.
+    /// Returns roles.
     /// </summary>
     [DataContract]
-    public class ListObjectsResponse
+    public class ListRolesResponse
     {
-
         /// <summary>
-        /// List of COSEM objects.
+        /// List of roles.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject[] Objects
+        public GXRole[] Roles
         {
             get;
             set;
         }
+
         /// <summary>
-        /// Total count of the objects.
+        /// Total count of the roles.
         /// </summary>
         [DataMember]
         public int Count
@@ -174,29 +146,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete COSEM objects.
+    /// Delete role.
     /// </summary>
-    public class RemoveObject : IGXRequest<RemoveObjectResponse>
+    [DataContract]
+    public class RoleDelete : IGXRequest<RoleDeleteResponse>
     {
         /// <summary>
-        /// Removed COSEM objects identifiers.
+        /// Removed roles.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Items are removed from the database.
-        /// </summary>
-        /// <remarks>
-        /// If false, the Removed date is set for the items, but items are kept on the database.
-        /// </remarks>
-        [DataMember]
-        [Required]
-        public bool Delete
+        public string[] Ids
         {
             get;
             set;
@@ -204,10 +163,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete COSEM object response.
+    /// Delete roles response.
     /// </summary>
     [DataContract]
-    public class RemoveObjectResponse
+    public class RoleDeleteResponse
     {
     }
 }

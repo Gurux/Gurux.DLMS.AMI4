@@ -34,6 +34,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -42,6 +43,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXWorkflow : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXWorkflow()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new workflow is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Workflow name.</param>
+        public GXWorkflow(string? name)
+        {
+            Name = name;
+            ScriptMethods = new List<GXScriptMethod>();
+            WorkflowGroups = new List<GXWorkflowGroup>();
+            Logs = new List<GXWorkflowLog>();
+            Modules = new List<GXModule>();
+        }
         /// <summary>
         /// Workflow identifier.
         /// </summary>
@@ -169,7 +192,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXWorkflowScriptMethod))]
-        public List<GXScriptMethod> ScriptMethods
+        public List<GXScriptMethod>? ScriptMethods
         {
             get;
             set;
@@ -180,7 +203,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModule), typeof(GXWorkflowModule))]
-        public List<GXModule> Modules
+        public List<GXModule>? Modules
         {
             get;
             set;
@@ -191,7 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXWorkflowGroup), typeof(GXWorkflowGroupWorkflow))]
-        public List<GXWorkflowGroup> WorkflowGroups
+        public List<GXWorkflowGroup>? WorkflowGroups
         {
             get;
             set;
@@ -201,7 +224,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Workflow logs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXWorkflowLog))]
-        public List<GXWorkflowLog> Logs
+        public List<GXWorkflowLog>? Logs
         {
             get;
             set;
@@ -235,6 +258,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -280,17 +304,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXWorkflow()
-        {
-            ScriptMethods = new List<GXScriptMethod>();
-            WorkflowGroups = new List<GXWorkflowGroup>();
-            Logs = new List<GXWorkflowLog>();
-            Modules = new List<GXModule>();
         }
 
         /// <summary>

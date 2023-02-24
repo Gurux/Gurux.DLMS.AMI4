@@ -32,9 +32,38 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device group.
+    /// </summary>
+    public class GetDeviceGroupResponse
+    {
+        /// <summary>
+        /// Agent group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id),
+                nameof(GXDevice.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id),
+                nameof(GXAgentGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceGroupParameter), nameof(GXDeviceGroupParameter.DeviceGroup),
+                nameof(GXDeviceGroupParameter.Module))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDeviceGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
+
     /// <summary>
     /// Get device group list.
     /// </summary>
@@ -63,6 +92,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
+        nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups)
+            , nameof(GXDeviceGroup.Parameters))]
         public GXDeviceGroup? Filter
         {
             get;
@@ -81,6 +113,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -93,6 +137,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
+        nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups)
+            , nameof(GXDeviceGroup.Parameters))]
         public GXDeviceGroup[] DeviceGroups
         {
             get;
@@ -120,6 +167,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeSwagger(typeof(GXDeviceGroupParameter),
+            nameof(GXDeviceGroupParameter.Removed),
+            nameof(GXDeviceGroupParameter.Updated),
+            nameof(GXDeviceGroupParameter.CreationTime),
+            nameof(GXDeviceGroupParameter.DeviceGroup), 
+            nameof(GXDeviceGroupParameter.Module))]
         public GXDeviceGroup[] DeviceGroups
         {
             get;
@@ -136,7 +192,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New device groups.
         /// </summary>
-        public GXDeviceGroup[] DeviceGroups
+        public Guid[] Ids
         {
             get;
             set;
@@ -154,6 +210,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

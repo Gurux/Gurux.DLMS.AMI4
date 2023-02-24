@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -67,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
+        [JsonIgnore]
         public GXLanguage? Language
         {
             get;

@@ -30,8 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
@@ -65,14 +67,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="groups">Updated agent groups.</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXAgentGroup> groups);
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXAgentGroup> groups,
+            Expression<Func<GXAgentGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete user group(s).
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="groups">User groups to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Get all users that can access this agent group.

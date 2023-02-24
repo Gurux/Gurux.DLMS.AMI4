@@ -29,14 +29,38 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using System;
 using Gurux.Common;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get agent group.
+    /// </summary>
+    public class GetAgentGroupResponse
+    {
+        /// <summary>
+        /// Agent group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXAgent),nameof(GXAgent.Id),
+                nameof(GXAgent.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+                nameof(GXDeviceGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXAgentGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get agent group list.
     /// </summary>
@@ -65,6 +89,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agent groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
+            nameof(GXAgentGroup.UserGroups), nameof(GXAgentGroup.DeviceGroups))]
         public GXAgentGroup? Filter
         {
             get;
@@ -83,6 +109,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             set;
         }
 
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }        
     }
 
     /// <summary>
@@ -95,6 +132,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agent groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
+            nameof(GXAgentGroup.UserGroups), nameof(GXAgentGroup.DeviceGroups))]
         public GXAgentGroup[] AgentGroups
         {
             get;
@@ -122,6 +161,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         public GXAgentGroup[] AgentGroups
         {
             get;
@@ -138,7 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New agent groups.
         /// </summary>
-        public GXAgentGroup[] AgentGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -156,6 +198,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

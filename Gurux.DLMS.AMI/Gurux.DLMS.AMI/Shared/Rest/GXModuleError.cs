@@ -32,11 +32,29 @@
 
 using Gurux.Common;
 using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get module log.
+    /// </summary>
+    public class GetModuleLog
+    {
+        /// <summary>
+        /// Module log.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXModuleLog? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from module log.
     /// </summary>
@@ -80,7 +98,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }      
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

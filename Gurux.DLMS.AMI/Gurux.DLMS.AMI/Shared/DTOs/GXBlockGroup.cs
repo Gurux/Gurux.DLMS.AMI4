@@ -34,6 +34,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +44,32 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [DataContract(Name = "GXBlockGroup"), Serializable]
     public class GXBlockGroup : GXTableBase, IUnique<Guid>
     {
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXBlockGroup()
+        {
+        }
+
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new block group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Block group name.</param>
+        public GXBlockGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Blocks = new List<GXBlock>();
+            Roles = new List<GXRole>();
+            Name = string.Empty;
+            Description = string.Empty;
+        }
+
         /// <summary>
         /// Block group ID.
         /// </summary>
@@ -71,7 +98,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Block group description.
         /// </summary>
 		[DataMember]
-        public string Description
+        [StringLength(256)]
+        [Description("Description.")]
+        //Filter uses default value.
+        [DefaultValue(null)]
+        public string? Description
         {
             get;
             set;
@@ -120,6 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -145,7 +177,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of required roles to see this block.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXRole), typeof(GXBlockGroupRole))]
-        public List<GXRole> Roles
+        public List<GXRole>? Roles
         {
             get;
             set;
@@ -155,7 +187,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this Block group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupBlockGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -165,7 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of Blocks that this Block group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlock), typeof(GXBlockGroupBlock))]
-        public List<GXBlock> Blocks
+        public List<GXBlock>? Blocks
         {
             get;
             set;
@@ -182,27 +214,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXBlockGroup() 
-        {
-            UserGroups = new List<GXUserGroup>();
-            Blocks = new List<GXBlock>();
-            Roles = new List<GXRole>();
-            Name = string.Empty;
-            Description = string.Empty;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXBlockGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

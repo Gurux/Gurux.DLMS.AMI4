@@ -31,9 +31,28 @@
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get user settings.
+    /// </summary>
+    public class GetUserSettings
+    {
+        /// <summary>
+        /// User settings information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXUserSetting? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get user settings from the DB.
     /// </summary>
@@ -63,6 +82,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter user settings.
         /// </summary>
         public GXValue? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

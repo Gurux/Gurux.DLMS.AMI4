@@ -38,52 +38,60 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to handle attributes.
+    /// This interface is used to handle object templates.
     /// </summary>
-    public interface IAttributeRepository
+    public interface IObjectTemplateRepository
     {
         /// <summary>
-        /// List attributes.
+        /// List objects.
         /// </summary>
-        /// <returns>Attributes.</returns>
-        Task<GXAttribute[]> ListAsync(ClaimsPrincipal user,
-            ListAttributes? request,
-            ListAttributesResponse? response,
+        /// <returns>ObjectTemplates.</returns>
+        Task<GXObjectTemplate[]> ListAsync(ClaimsPrincipal user,
+            ListObjectTemplates? request,
+            ListObjectTemplatesResponse? response,
             CancellationToken cancellationToken);
 
         /// <summary>
-        /// Read attribute information.
+        /// Read object information.
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="id">Attribute id.</param>
-        /// <returns>Attribute information.</returns>
-        Task<GXAttribute> ReadAsync(ClaimsPrincipal user, Guid id);
+        /// <param name="id">ObjectTemplate id.</param>
+        /// <returns>ObjectTemplate information.</returns>
+        Task<GXObjectTemplate> ReadAsync(ClaimsPrincipal user, Guid id);
 
         /// <summary>
-        /// Update attribute(s).
+        /// Update object(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="attributers">Updated attribute(s).</param>
+        /// <param name="objects">Updated object(s).</param>
         /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user,
-            IEnumerable<GXAttribute> attributers,
-            Expression<Func<GXAttribute, object?>>? columns = null);
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXObjectTemplate> objects,
+            Expression<Func<GXObjectTemplate, object?>>? columns = null);
 
         /// <summary>
-        /// Delete attribute(s).
+        /// Delete object(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="attributes">Attribute(s) to delete.</param>
+        /// <param name="objects">ObjectTemplate(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> attributes, bool delete);
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> objects, bool delete);
 
         /// <summary>
-        /// Update attribute datatype.
+        /// Get all users that can access this object template.
         /// </summary>
-        /// <param name="user"></param>
-        /// <param name="attributes"></param>
-        /// <returns></returns>
-        Task UpdateDatatypeAsync(ClaimsPrincipal user, 
-            IEnumerable<GXAttribute> attributes);
+        /// <param name="user">Current user.</param>
+        /// <param name="objectId">ObjectTemplate id.</param>
+        /// <returns>Collection of User IDs.</returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? objectId);
+
+        /// <summary>
+        /// Get all users that can access object templates.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="objectIds">ObjectTemplate ids.</param>
+        /// <returns>Collection of User IDs.</returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? objectIds);
     }
 }

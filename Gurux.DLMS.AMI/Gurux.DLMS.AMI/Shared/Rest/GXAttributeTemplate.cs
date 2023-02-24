@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -39,38 +38,41 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get object.
+    /// Get attribute template.
     /// </summary>
-    public class GetObjectResponse
+    public class GetAttributeTemplateResponse
     {
         /// <summary>
-        /// Object information.
-        /// </summary>        
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
-        public GXObject? Item
+        /// AttributeTemplate information.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXAttributeTemplate),
+                nameof(GXAttributeTemplate.ObjectTemplate),
+                nameof(GXAttributeTemplate.ListItems))]
+        public GXAttributeTemplate? Item
         {
             get;
             set;
         }
     }
 
+
     /// <summary>
-    /// Add COSEM object.
+    /// Add COSEM attribute template.
     /// </summary>
     [DataContract]
-    public class UpdateObject : IGXRequest<UpdateObjectResponse>
+    public class UpdateAttributeTemplate : IGXRequest<UpdateAttributeTemplateResponse>
     {
         /// <summary>
-        /// Added COSEM objects.
+        /// Added COSEM attribute templates.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        public GXObject[] Objects
+        /// <summary>
+        /// AttributeTemplate information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
+        [ExcludeSwagger(typeof(GXAttributeTemplate),
+                nameof(GXAttributeTemplate.ListItems))]
+        public GXAttributeTemplate[]? AttributeTemplates
         {
             get;
             set;
@@ -78,31 +80,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add COSEM object Reply.
+    /// Add COSEM attribute template Reply.
     /// </summary>
     [DataContract]
-    public class UpdateObjectResponse
+    public class UpdateAttributeTemplateResponse
     {
         /// <summary>
-        /// Object identifiers.
+        /// AttributeTemplate identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
         }
     }
 
-
     /// <summary>
-    /// Get object.
+    /// Get attribute template.
     /// </summary>
     [DataContract]
-    public class ListObjects : IGXRequest<ListObjectsResponse>
+    public class ListAttributeTemplates : IGXRequest<ListAttributeTemplatesResponse>
     {
         /// <summary>
-        /// Start index.
+        /// Profile Generic Index. This is used only with Profile Generic attribute templates.
         /// </summary>
         [DataMember]
         public UInt64 Index
@@ -112,7 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the modules to retreave.
+        /// Profile Generic Count. This is used only with Profile Generic attribute templates.
         /// </summary>
         [DataMember]
         public UInt64 Count
@@ -122,11 +123,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Filter can be used to filter objects.
+        /// Filter can be used to filter attribute templates.
         /// </summary>
-        [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject? Filter
+        [ExcludeSwagger(typeof(GXAttributeTemplate),
+               nameof(GXAttributeTemplate.ObjectTemplate),
+               nameof(GXAttributeTemplate.ListItems))]
+        public GXAttributeTemplate? Filter
         {
             get;
             set;
@@ -146,24 +148,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// List COSEM object response.
+    /// List COSEM attribute template response.
     /// </summary>
     [DataContract]
-    public class ListObjectsResponse
+    public class ListAttributeTemplatesResponse
     {
 
         /// <summary>
-        /// List of COSEM objects.
+        /// List of COSEM attribute templates.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject[] Objects
+        [ExcludeSwagger(typeof(GXAttributeTemplate),
+                nameof(GXAttributeTemplate.ObjectTemplate),
+                nameof(GXAttributeTemplate.ListItems))]
+        public GXAttributeTemplate[]? AttributeTemplates
         {
             get;
             set;
         }
         /// <summary>
-        /// Total count of the objects.
+        /// Total count of the attribute templates.
         /// </summary>
         [DataMember]
         public int Count
@@ -174,15 +178,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete COSEM objects.
+    /// Remove COSEM attribute templates.
     /// </summary>
-    public class RemoveObject : IGXRequest<RemoveObjectResponse>
+    public class RemoveAttributeTemplate : IGXRequest<RemoveAttributeTemplateResponse>
     {
         /// <summary>
-        /// Removed COSEM objects identifiers.
+        /// Removed COSEM attribute templates identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -204,10 +208,39 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete COSEM object response.
+    /// Remove COSEM attribute template response.
     /// </summary>
     [DataContract]
-    public class RemoveObjectResponse
+    public class RemoveAttributeTemplateResponse
+    {
+    }
+
+    /// <summary>
+    /// Update data type of the attribute template.
+    /// </summary>
+    [DataContract]
+    public class UpdateAttributeTemplateDataType : IGXRequest<UpdateAttributeTemplateDataTypeResponse>
+    {
+        /// <summary>
+        /// Updated attribute templates.
+        /// </summary>
+        [DataMember]
+        [IncludeSwagger(typeof(GXAttributeTemplate),
+            nameof(GXAttributeTemplate.Id),
+            nameof(GXAttributeTemplate.DataType),
+            nameof(GXAttributeTemplate.UIDataType))]
+        public GXAttributeTemplate[]? Items
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Update data type of the attribute template reply.
+    /// </summary>
+    [DataContract]
+    public class UpdateAttributeTemplateDataTypeResponse
     {
     }
 }

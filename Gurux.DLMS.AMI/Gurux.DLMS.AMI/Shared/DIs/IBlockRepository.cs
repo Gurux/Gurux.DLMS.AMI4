@@ -30,12 +30,16 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle blocks.
+    /// </summary>
     public interface IBlockRepository
     {
         /// <summary>
@@ -61,14 +65,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="blocks">Updated block(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXBlock> blocks);
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXBlock> blocks,
+            Expression<Func<GXBlock, object?>>? columns = null);
 
         /// <summary>
         /// Delete block(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="blocks">Block(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> blocks);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> blocks, bool delete);
 
         /// <summary>
         /// Close block(s).

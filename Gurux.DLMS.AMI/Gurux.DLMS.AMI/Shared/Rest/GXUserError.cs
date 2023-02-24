@@ -33,10 +33,28 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get user errors.
+    /// </summary>
+    public class GetUserError
+    {
+        /// <summary>
+        /// User error.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXUserError? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from user errors.
     /// </summary>
@@ -81,7 +99,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }       
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

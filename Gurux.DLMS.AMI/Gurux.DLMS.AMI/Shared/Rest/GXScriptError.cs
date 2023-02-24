@@ -33,9 +33,29 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get script log.
+    /// </summary>
+    public class GetScriptLog
+    {
+        /// <summary>
+        /// User error.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXScriptLog? Item
+        {
+            get;
+            set;
+        }
+    }
+
+
     /// <summary>
     /// Get list from script logs.
     /// </summary>
@@ -77,6 +97,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Amount of the logs to retreave.
         /// </summary>
         public int Count
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

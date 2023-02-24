@@ -39,10 +39,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// <summary>
     /// Conficurationn update notification.
     /// </summary>
-    /// <param name="users">Users to notify.</param>
     /// <param name="configurations">Modified configurations.</param>
     public delegate void ConfigurationModifiedEventHandler(IEnumerable<GXConfiguration> configurations);
 
+
+    /// <summary>
+    /// This interface is used to handle configurations.
+    /// </summary>
     public interface IConfigurationRepository
     {
         /// <summary>
@@ -71,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="configurations">Updated configuration(s).</param>
         /// <param name="notify">Is update notified.</param>
         Task UpdateAsync(
-            ClaimsPrincipal User,
+        ClaimsPrincipal User,
             IEnumerable<GXConfiguration> configurations,
             bool notify);
 

@@ -33,6 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -42,16 +43,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [IndexCollection(true, nameof(Device), nameof(Template))]
     public class GXObject : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXObject()
-        {
-            Attributes = new();
-            Parameters = new();
-            Tasks = new();
-        }
-
         /// <summary>
         /// Object Id.
         /// </summary>
@@ -97,7 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -120,6 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -161,7 +153,67 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXObjectParameter> Parameters
+        public List<GXObjectParameter>? Parameters
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the object's attribute were last read.
+        /// </summary>
+        [DataMember]
+        [Description("When the object's attribute were last read.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastRead
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the object's attribute were last written.
+        /// </summary>
+        [DataMember]
+        [Description("When the object's attribute were last written.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastWrite
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the object's actions were last invoked.
+        /// </summary>
+        [DataMember]
+        [Description("When the object's actions were last invoked.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastAction
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the last error was occurred.
+        /// </summary>
+        [DataMember]
+        [Description("When the last error was occurred.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastError
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Last error message.
+        /// </summary>
+        [DataMember]
+        [Description("Last error message.")]
+        [IsRequired]
+        public string? LastErrorMessage
         {
             get;
             set;
@@ -173,7 +225,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
-        public List<GXAttribute> Attributes
+        public List<GXAttribute>? Attributes
         {
             get;
             set;
@@ -185,7 +237,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXTask> Tasks
+        public List<GXTask>? Tasks
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Object errors.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXObjectError))]
+        [Filter(FilterType.Contains)]
+        public List<GXObjectError>? Errors
         {
             get;
             set;

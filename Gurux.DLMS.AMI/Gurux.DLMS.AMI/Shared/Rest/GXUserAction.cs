@@ -30,11 +30,29 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get user action.
+    /// </summary>
+    public class GetUserAction
+    {
+        /// <summary>
+        /// User error.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXUserAction? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Adds a new User action.
     /// </summary>
@@ -104,6 +122,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, actions from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

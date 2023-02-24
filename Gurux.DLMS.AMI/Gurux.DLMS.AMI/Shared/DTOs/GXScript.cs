@@ -45,6 +45,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXScript : GXTableBase, IUnique<Guid>
     {
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXScript()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new script is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Script name.</param>
+        public GXScript(string? name)
+        {
+            Name = name;
+            ServerSide = true;
+            ScriptGroups = new List<GXScriptGroup>();
+            Workflows = new List<GXWorkflow>();
+            Methods = new List<GXScriptMethod>();
+            Logs = new List<GXScriptLog>();
+        }
+
+        /// <summary>
         /// Script identifier.
         /// </summary>
         [DataMember(Name = "ID")]
@@ -80,6 +104,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Filter(FilterType.Contains)]
+        [StringLength(256)]
+        //Filter uses default value.
+        [DefaultValue(null)]
         public string? Description
         {
             get;
@@ -163,7 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Filter(FilterType.Contains)]
-        public List<GXScriptMethod> Methods
+        public List<GXScriptMethod>? Methods
         {
             get;
             set;
@@ -175,7 +202,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXScriptGroup), typeof(GXScriptGroupScript))]
         [Filter(FilterType.Contains)]
-        public List<GXScriptGroup> ScriptGroups
+        public List<GXScriptGroup>? ScriptGroups
         {
             get;
             set;
@@ -187,7 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXWorkflow), typeof(GXWorkflowScriptMethod))]
         [Filter(FilterType.Contains)]
-        public List<GXWorkflow> Workflows
+        public List<GXWorkflow>? Workflows
         {
             get;
             set;
@@ -198,7 +225,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXScriptLog))]
         [Filter(FilterType.Contains)]
-        public List<GXScriptLog> Logs
+        public List<GXScriptLog>? Logs
         {
             get;
             set;
@@ -241,7 +268,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -276,6 +303,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -314,20 +342,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXScript()
-        {
-            Name = "";
-            ServerSide = true;
-            ScriptGroups = new List<GXScriptGroup>();
-            Workflows = new List<GXWorkflow>();
-            Methods = new List<GXScriptMethod>();
-            Logs = new List<GXScriptLog>();
-        }
+        }       
 
         /// <inheritdoc/>
         public override string ToString()

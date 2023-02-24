@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -66,14 +67,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="groups">Updated user groups.</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXUserGroup> groups);
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXUserGroup> groups,
+            Expression<Func<GXUserGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete user group(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="groups">User groups to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Get all users that can access this user group. 

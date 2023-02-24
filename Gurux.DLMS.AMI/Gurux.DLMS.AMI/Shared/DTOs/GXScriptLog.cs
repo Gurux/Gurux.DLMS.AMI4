@@ -47,10 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <remarks>
-        /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
-        /// </remarks>
-        public GXScriptLog() : this(TraceLevel.Error)
+        public GXScriptLog()
         {
         }
 
@@ -153,7 +150,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Error severity level.
         /// </summary>
         [DataMember]
-        [DefaultValue(0)]
+        [DefaultValue(1)]
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Level

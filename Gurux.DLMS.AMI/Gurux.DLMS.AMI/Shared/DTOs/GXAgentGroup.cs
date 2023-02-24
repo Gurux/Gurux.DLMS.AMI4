@@ -33,8 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.Properties;
-using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +42,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXAgentGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXAgentGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new agent group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Agent group name.</param>
+        public GXAgentGroup(string? name)
+        {
+            Name = name;
+            Active = true;
+            Default = true;
+            UserGroups = new List<GXUserGroup>();
+            Agents = new List<GXAgent>();
+            DeviceGroups = new List<GXDeviceGroup>();
+        }
         /// <summary>
         /// Agent group identifier.
         /// </summary>
@@ -96,7 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of agents that this agent group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXAgent), typeof(GXAgentGroupAgent))]
-        public List<GXAgent> Agents
+        public List<GXAgent>? Agents
         {
             get;
             set;
@@ -107,7 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupAgentGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -118,7 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXAgentGroupDeviceGroup))]
-        public List<GXDeviceGroup> DeviceGroups
+        public List<GXDeviceGroup>? DeviceGroups
         {
             get;
             set;
@@ -133,7 +155,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -169,6 +191,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -201,19 +224,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXAgentGroup()
-        {
-            Name = "";
-            Active = true;
-            Default = true;
-            UserGroups = new List<GXUserGroup>();
-            Agents = new List<GXAgent>();
-            DeviceGroups = new List<GXDeviceGroup>();
         }
 
         /// <summary>

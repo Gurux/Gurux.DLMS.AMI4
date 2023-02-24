@@ -49,18 +49,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public GXDevice()
         {
+
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new device is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Device name.</param>
+        public GXDevice(string? name)
+        {
+            Name = name;
             Parameters = new List<GXDeviceParameter>();
             Objects = new List<GXObject>();
-            TraceLevel = TraceLevel.Verbose;
+            TraceLevel = System.Diagnostics.TraceLevel.Verbose;
             Actions = new List<GXDeviceAction>();
             Traces = new List<GXDeviceTrace>();
             Errors = new List<GXDeviceError>();
             DeviceGroups = new List<GXDeviceGroup>();
             Tasks = new List<GXTask>();
-            Name = "";
-            Type = "";
-            MediaType = "";
-            Settings = "";
         }
 
         /// <summary>
@@ -166,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [DefaultValue(null)]
-        public string Type
+        public string? Type
         {
             get;
             set;
@@ -274,7 +283,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceParameter> Parameters
+        public List<GXDeviceParameter>? Parameters
         {
             get;
             set;
@@ -299,7 +308,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXObject> Objects
+        public List<GXObject>? Objects
         {
             get;
             set;
@@ -323,7 +332,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Description("Used trace level.")]
-        public TraceLevel TraceLevel
+        [IsRequired]
+        public TraceLevel? TraceLevel
         {
             get;
             set;
@@ -334,7 +344,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceAction))]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceAction> Actions
+        public List<GXDeviceAction>? Actions
         {
             get;
             set;
@@ -345,7 +355,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceTrace))]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceTrace> Traces
+        public List<GXDeviceTrace>? Traces
         {
             get;
             set;
@@ -356,7 +366,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceError))]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceError> Errors
+        public List<GXDeviceError>? Errors
         {
             get;
             set;
@@ -368,7 +378,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember,
             ForeignKey(typeof(GXDeviceGroup), typeof(GXDeviceGroupDevice))]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceGroup> DeviceGroups
+        public List<GXDeviceGroup>? DeviceGroups
         {
             get;
             set;
@@ -380,7 +390,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXTask> Tasks
+        public List<GXTask>? Tasks
         {
             get;
             set;
@@ -437,6 +447,66 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         public string? ProfilePicture { get; set; }
+
+        /// <summary>
+        /// When the device's attribute were last read.
+        /// </summary>
+        [DataMember]
+        [Description("When the device's attribute were last read.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastRead
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the device's attribute were last written.
+        /// </summary>
+        [DataMember]
+        [Description("When the device's attribute were last written.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastWrite
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the device's actions were last invoked.
+        /// </summary>
+        [DataMember]
+        [Description("When the device's actions were last invoked.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastAction
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the last error was occurred.
+        /// </summary>
+        [DataMember]
+        [Description("When the last error was occurred.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastError
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Last error message.
+        /// </summary>
+        [DataMember]
+        [Description("Last error message.")]
+        [IsRequired]
+        public string? LastErrorMessage
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Update creation time before update.

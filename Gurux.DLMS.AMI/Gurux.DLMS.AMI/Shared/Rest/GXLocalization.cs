@@ -33,6 +33,7 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -100,6 +101,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter localizations.
         /// </summary>
         public GXLanguage? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

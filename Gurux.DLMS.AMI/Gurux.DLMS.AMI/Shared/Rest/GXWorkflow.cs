@@ -33,9 +33,46 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get workflow.
+    /// </summary>
+    public class GetWorkflowResponse
+    {
+        /// <summary>
+        /// Workflow information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [ExcludeSwagger(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
+            nameof(GXLocalizedResource.Module), nameof(GXLocalizedResource.Block),
+            nameof(GXLocalizedResource.Script))]
+        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id),
+            nameof(GXWorkflowGroup.Name))]
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+            nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
+            nameof(GXWorkflow.TriggerActivity),
+            nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
+            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device), 
+            nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods), 
+            nameof(GXWorkflow.WorkflowGroups))]
+        public GXWorkflow? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from workflows.
     /// </summary>
@@ -64,6 +101,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter workflows.
         /// </summary>
+        /// 
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+            nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
+            nameof(GXWorkflow.TriggerActivity),
+            nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
+            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
+            nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
+            nameof(GXWorkflow.WorkflowGroups))]
         public GXWorkflow? Filter
         {
             get;
@@ -81,7 +126,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-
+        
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -94,7 +150,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of workflow items.
         /// </summary>
         [DataMember]
-        public GXWorkflow[] Workflows
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+            nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
+            nameof(GXWorkflow.TriggerActivity),
+            nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
+            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
+            nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
+            nameof(GXWorkflow.WorkflowGroups))]
+        public GXWorkflow[]? Workflows
         {
             get;
             set;
@@ -118,17 +181,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class UpdateWorkflow : IGXRequest<UpdateWorkflowResponse>
     {
         /// <summary>
-        /// Constructor.
-        /// </summary>
-        public UpdateWorkflow()
-        {
-        }
-
-        /// <summary>
         /// Workflows to update.
         /// </summary>
         [DataMember]
-        [Description("Workflows to update.")]
+        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+            nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
+            nameof(GXWorkflow.TriggerActivity),
+            nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
+            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
+            nameof(GXWorkflow.DeviceGroup))]
         public GXWorkflow[] Workflows
         {
             get;
@@ -148,7 +211,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("New workflow identifiers.")]
-        public Guid[] WorkflowIds
+        public Guid[]? WorkflowIds
         {
             get;
             set;
@@ -156,10 +219,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete workflows.
+    /// Remove workflows.
     /// </summary>
     [DataContract]
-    public class DeleteWorkflow : IGXRequest<DeleteWorkflowResponse>
+    public class RemoveWorkflow : IGXRequest<RemoveWorkflowResponse>
     {
         /// <summary>
         /// Removed workflow identifiers.
@@ -170,14 +233,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
-    /// Reply from Delete workflow.
+    /// Reply from Remove workflow.
     /// </summary>
     [DataContract]
-    [Description("Reply from Delete workflow.")]
-    public class DeleteWorkflowResponse
+    public class RemoveWorkflowResponse
     {
-    }   
+    }
 }

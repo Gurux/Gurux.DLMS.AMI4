@@ -34,6 +34,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -133,6 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -170,6 +172,54 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// When the object's attribute were last written.
+        /// </summary>
+        [DataMember]
+        [Description("When the object's attribute were last written.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastWrite
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the object's actions were last invoked.
+        /// </summary>
+        [DataMember]
+        [Description("When the object's actions were last invoked.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastAction
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the last error was occurred.
+        /// </summary>
+        [DataMember]
+        [Description("When the last error was occurred.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? LastError
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Last exception. Successful read nulls this.
+        /// </summary>
+        [DataMember]
+        [Description("Last exception.")]
+        [Filter(FilterType.Contains)]
+        public string? Exception
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
         /// </summary>
         [DataMember]
@@ -193,24 +243,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Last exception. Successful read nulls this.
-        /// </summary>
-        [DataMember]
-        [Description("Last exception.")]
-        [Filter(FilterType.Contains)]
-        public string? Exception
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Attribute parameters.
         /// </summary>
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXAttributeParameter> Parameters
+        public List<GXAttributeParameter>? Parameters
         {
             get;
             set;
@@ -222,7 +260,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXValue> Values
+        public List<GXValue>? Values
         {
             get;
             set;
@@ -234,7 +272,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXTask> Tasks
+        public List<GXTask>? Tasks
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Attribute errors.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXAttributeError))]
+        [Filter(FilterType.Contains)]
+        [JsonIgnore]
+        public List<GXAttributeError>? Errors
         {
             get;
             set;
@@ -257,16 +307,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXAttribute()
-        {
-            Parameters = new();
-            Values = new();
-            Tasks = new();
         }
 
         /// <inheritdoc/>

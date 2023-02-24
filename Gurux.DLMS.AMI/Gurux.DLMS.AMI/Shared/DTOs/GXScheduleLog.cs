@@ -45,10 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <remarks>
-        /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
-        /// </remarks>
-        public GXScheduleLog() : this(TraceLevel.Error)
+        public GXScheduleLog()
         {
         }
 
@@ -108,7 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;

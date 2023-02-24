@@ -33,9 +33,28 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get schedule log.
+    /// </summary>
+    public class GetScheduleLog
+    {
+        /// <summary>
+        /// Schedule log.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXScheduleLog? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from schedule logs.
     /// </summary>
@@ -77,6 +96,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Amount of the logs to retreave.
         /// </summary>
         public int Count
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

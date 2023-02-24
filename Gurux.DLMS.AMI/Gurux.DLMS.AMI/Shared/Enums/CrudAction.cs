@@ -64,5 +64,9 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Clear objects.
         /// </summary>
         Clear = 0x20,
+        /// <summary>
+        /// Agent asks the next task.
+        /// </summary>
+        Next = 0x40,
     }
 }

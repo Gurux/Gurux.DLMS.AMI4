@@ -31,10 +31,43 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get attribute.
+    /// </summary>
+    public class GetAttributeResponse
+    {
+        /// <summary>
+        /// Attribute information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXObject),
+                nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXModule),
+                nameof(GXModule.Id))]
+        [ExcludeSwagger(typeof(GXAttributeTemplate),
+                nameof(GXAttributeTemplate.ObjectTemplate))]
+        [ExcludeSwagger(typeof(GXAttributeParameter),
+                nameof(GXAttributeParameter.Attribute))]
+        [ExcludeSwagger(typeof(GXAttribute),
+            nameof(GXAttribute.Tasks),
+            nameof(GXAttribute.Values),
+            nameof(GXAttribute.Errors))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXAttribute Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
+
     /// <summary>
     /// Add COSEM attribute.
     /// </summary>
@@ -45,6 +78,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added COSEM attributes.
         /// </summary>
         [DataMember]
+        /// <summary>
+        /// Attribute information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
+        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
+        [ExcludeSwagger(typeof(GXAttributeParameter), nameof(GXAttributeParameter.Attribute))]
+        [ExcludeSwagger(typeof(GXAttribute),
+            nameof(GXAttribute.Tasks),
+            nameof(GXAttribute.Values),
+            nameof(GXAttribute.Errors))]
         public GXAttribute[] Attributes
         {
             get;
@@ -98,7 +142,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter attributes.
         /// </summary>
+        [ExcludeSwagger(typeof(GXAttribute),
+            nameof(GXAttribute.Object),
+            nameof(GXAttribute.Template),
+            nameof(GXAttribute.Tasks),
+            nameof(GXAttribute.Errors),
+            nameof(GXAttribute.Parameters),
+            nameof(GXAttribute.Values))]
         public GXAttribute? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -116,6 +179,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of COSEM attributes.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAttribute),
+            nameof(GXAttribute.Object),
+            nameof(GXAttribute.Tasks),
+            nameof(GXAttribute.Errors),
+            nameof(GXAttribute.Parameters),
+            nameof(GXAttribute.Values))]
+        [IncludeSwagger(typeof(GXAttributeTemplate),
+            nameof(GXAttributeTemplate.Id),
+            nameof(GXAttributeTemplate.Name))]
         public GXAttribute[] Attributes
         {
             get;
@@ -133,9 +205,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete COSEM attributes.
+    /// Remove COSEM attributes.
     /// </summary>
-    public class AttributeDelete : IGXRequest<AttributeDeleteResponse>
+    public class RemoveAttribute : IGXRequest<RemoveAttributeResponse>
     {
         /// <summary>
         /// Removed COSEM attributes identifiers.
@@ -146,13 +218,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
-    /// Delete COSEM attribute response.
+    /// Remove COSEM attribute response.
     /// </summary>
     [DataContract]
-    public class AttributeDeleteResponse
+    public class RemoveAttributeResponse
     {
     }
 
@@ -166,6 +252,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Updated attributes.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAttribute),
+            nameof(GXAttribute.Object),
+            nameof(GXAttribute.Tasks),
+            nameof(GXAttribute.Errors),
+            nameof(GXAttribute.Values),
+            nameof(GXAttribute.Parameters))]
+        [IncludeSwagger(typeof(GXAttributeTemplate),
+                nameof(GXAttributeTemplate.Id))]
         public GXAttribute[] Items
         {
             get;

@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -56,14 +57,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="componentviews">Updated component view(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXComponentView> componentviews);
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXComponentView> componentviews,
+            Expression<Func<GXComponentView, object?>>? columns = null);
 
         /// <summary>
         /// Delete component view(s).
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="componentviews">Component view(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> componentviews);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> componentviews, bool delete);
 
         /// <summary>
         /// Get all users that can access this component view.

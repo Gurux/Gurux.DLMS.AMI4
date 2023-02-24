@@ -33,12 +33,37 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    /// <summary>
+    /// Workg´flow group.
+    /// </summary>
     [DataContract(Name = "GXWorkflowGroup"), Serializable]
     public class GXWorkflowGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXWorkflowGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new workflow group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Workflow group name.</param>
+        public GXWorkflowGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Workflows = new List<GXWorkflow>();
+        }
+
         /// <summary>
         /// Workflow group ID.
         /// </summary>
@@ -79,7 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -114,6 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -139,7 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupWorkflowGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -149,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of schedules that this schedule group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXWorkflow), typeof(GXWorkflowGroupWorkflow))]
-        public List<GXWorkflow> Workflows
+        public List<GXWorkflow>? Workflows
         {
             get;
             set;
@@ -166,24 +192,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXWorkflowGroup()
-        {
-            Name = "";
-            UserGroups = new List<GXUserGroup>();
-            Workflows = new List<GXWorkflow>();
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXWorkflowGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

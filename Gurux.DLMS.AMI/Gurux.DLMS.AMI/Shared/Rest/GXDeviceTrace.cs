@@ -32,9 +32,28 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device trace.
+    /// </summary>
+    public class GetDeviceTrace
+    {
+        /// <summary>
+        /// Device trace.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXDeviceTrace? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Adds a new device trace.
     /// </summary>
@@ -104,6 +123,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, traces from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

@@ -32,9 +32,33 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get component view group.
+    /// </summary>
+    public class GetComponentViewGroupResponse
+    {
+        /// <summary>
+        /// Block group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id),
+                nameof(GXComponentView.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXComponentViewGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get component view group list.
     /// </summary>
@@ -63,6 +87,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter component view groups.
         /// </summary>
+        /// <summary>
+        /// Filter can be used to filter block groups.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
+            nameof(GXComponentViewGroup.UserGroups))]
         public GXComponentViewGroup? Filter
         {
             get;
@@ -80,6 +109,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -92,6 +133,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of component view groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
+            nameof(GXComponentViewGroup.UserGroups))]
         public GXComponentViewGroup[]? ComponentViewGroups
         {
             get;
@@ -119,6 +162,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New component view group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         public GXComponentViewGroup[] ComponentViewGroups
         {
             get;
@@ -135,7 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New component view groups.
         /// </summary>
-        public GXComponentViewGroup[]? ComponentViewGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -153,6 +198,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

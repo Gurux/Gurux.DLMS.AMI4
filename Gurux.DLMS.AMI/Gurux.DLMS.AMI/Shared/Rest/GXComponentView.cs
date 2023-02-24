@@ -32,9 +32,29 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get component view.
+    /// </summary>
+    public class GetComponentViewResponse
+    {
+        /// <summary>
+        /// Component view information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXComponentView Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
     /// <summary>
     /// Get list from component views.
     /// </summary>
@@ -63,12 +83,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter component views.
         /// </summary>
+        [ExcludeSwagger(typeof(GXComponentView),
+            nameof(GXComponentView.ComponentViewGroups),
+            nameof(GXComponentView.Icon))]
         public GXComponentView? Filter
         {
             get;
             set;
         }
-
 
         /// <summary>
         /// Admin user can access component views from all users.
@@ -77,6 +99,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, component views from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -93,6 +127,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of component view items.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXComponentViewGroup),
+            nameof(GXComponentViewGroup.ComponentViews),
+            nameof(GXComponentViewGroup.UserGroups))]
         public GXComponentView[] ComponentViews
         {
             get;
@@ -128,6 +165,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// ComponentViews to update.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXComponentViewGroup),
+            nameof(GXComponentViewGroup.Id))]
         public List<GXComponentView> ComponentViews
         {
             get;
@@ -156,13 +195,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Delete component views.
     /// </summary>
     [DataContract]
-    public class DeleteComponentView : IGXRequest<DeleteComponentViewResponse>
+    public class RemoveComponentView : IGXRequest<RemoveComponentViewResponse>
     {
         /// <summary>
         /// Removed component view identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] ComponentViewIds
+        public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -173,7 +226,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Reply from Delete component view.
     /// </summary>
     [DataContract]
-    public class DeleteComponentViewResponse
+    public class RemoveComponentViewResponse
     {
     }
 

@@ -33,12 +33,37 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    // <summary>
+    /// Module group table.
+    /// </summary>
     [DataContract(Name = "GXModuleGroup"), Serializable]
     public class GXModuleGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXModuleGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new module group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Module group name.</param>
+        public GXModuleGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            Modules = new List<GXModule>();
+        }
+
         /// <summary>
         /// Module group ID.
         /// </summary>
@@ -113,6 +138,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -139,7 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupModuleGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -149,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of schedules that this schedule group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXModule), typeof(GXModuleGroupModule))]
-        public List<GXModule> Modules
+        public List<GXModule>? Modules
         {
             get;
             set;
@@ -166,24 +192,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXModuleGroup()
-        {
-            UserGroups = new List<GXUserGroup>();
-            Modules = new List<GXModule>();
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXModuleGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

@@ -33,6 +33,8 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -83,11 +85,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }       
 
         /// <summary>
-        /// Get errors at this level or higher.
+        /// Selected extra information.
         /// </summary>
-        [DataMember]
-        [DefaultValue(0)]
-        public int Level
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;

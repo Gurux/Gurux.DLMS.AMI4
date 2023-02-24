@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Device Framework.
+// This file is a part of Gurux Object Framework.
 //
-// Gurux Device Framework is Open Source software; you can redistribute it
+// Gurux Object Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Device Framework is distributed in the hope that it will be useful,
+// Gurux Object Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -33,22 +33,16 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// Error that is caused by device.
+    /// Error that is caused by object.
     /// </summary>
     [DataContract]
-    public class GXDeviceError : GXTableBase, IUnique<Guid>
-    {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXDeviceError()
-        {
-        }
-
+    public class GXObjectError : GXTableBase, IUnique<Guid>
+    {      
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -56,7 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
         /// <param name="level">Error severity level</param>
-        public GXDeviceError(int level)
+        public GXObjectError(int level)
         {
             Level = level;
         }
@@ -68,7 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
         /// <param name="level">Error severity level</param>
-        public GXDeviceError(TraceLevel level) : this((int)level)
+        public GXObjectError(TraceLevel level) : this((int)level)
         {
         }
 
@@ -83,13 +77,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// The device that caused the error.
+        /// The object that caused the error.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [DefaultValue(null)]
-        public GXDevice? Device
+        public GXObject? Object
         {
             get;
             set;
@@ -174,9 +168,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override string ToString()
         {
             string str = "";
-            if (Device != null && !string.IsNullOrEmpty(Device.Name))
+            if (Object != null && Object.Template != null && !string.IsNullOrEmpty(Object.Template.Name))
             {
-                str = Device.Name;
+                str = Object.Template.Name;
             }
             if (!string.IsNullOrEmpty(Message))
             {
@@ -186,7 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             {
                 return str;
             }
-            return nameof(GXDeviceError);
+            return nameof(GXObjectError);
         }
     }
 }

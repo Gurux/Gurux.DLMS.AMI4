@@ -32,6 +32,7 @@
 using Gurux.Common.Db;
 using System.ComponentModel;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -87,6 +88,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? Read
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The user has entered a new value.
+        /// </summary>
+        /// <remarks>
+        /// If value is false then the value is read from the meter.
+        /// </remarks>
+        [DataMember]
+        [Description("The user has entered a new value.")]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(false)]
+        [IsRequired]
+        public bool? User
         {
             get;
             set;

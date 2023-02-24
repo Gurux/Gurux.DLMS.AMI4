@@ -30,8 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
@@ -62,15 +64,20 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Update object(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="objectrs">Updated object(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXObject> objectrs);
+        /// <param name="objects">Updated object(s).</param>
+        /// <param name="columns">Updated columns(s).</param>
+        Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXObject> objects,
+            Expression<Func<GXObject, object?>>? columns = null);
 
         /// <summary>
         /// Delete object(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="objects">Object(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> objects);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> objects, bool delete);
 
         /// <summary>
         /// Get all users that can access this object.

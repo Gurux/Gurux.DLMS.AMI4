@@ -33,19 +33,15 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    /// <summary>
+    /// Attribute template table.
+    /// </summary>
     public class GXAttributeTemplate : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXAttributeTemplate()
-        {
-            ListItems = new List<GXAttributeListItem>();
-        }
-
         /// <summary>
         /// Attribute template Id.
         /// </summary>
@@ -87,6 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(64)]
         [Index(false)]
         [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
         [IsRequired]
         public string? Name
         {
@@ -99,7 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey]
-        public List<GXAttributeListItem> ListItems
+        public List<GXAttributeListItem>? ListItems
         {
             get;
             set;
@@ -146,6 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -160,6 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// modify the target at the same time.
         /// </remarks>
         [DataMember]
+        [DefaultValue(null)]
         [StringLength(36)]
         public string? ConcurrencyStamp
         {
@@ -215,7 +214,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-      
+
+        /// <summary>
+        /// Attribute weight.
+        /// </summary>
+        /// <remarks>
+        /// Attribute weight can be used to ask to execute tasks in given order.
+        /// </remarks>
+        [DataMember]
+        [DefaultValue(0)]
+        public int Weight
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Default value.
+        /// </summary>
+        [DataMember]
+        [Description("Default value")]
+        [Filter(FilterType.Contains)]
+        public string? DefaultValue
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Update creation time before update.
         /// </summary>

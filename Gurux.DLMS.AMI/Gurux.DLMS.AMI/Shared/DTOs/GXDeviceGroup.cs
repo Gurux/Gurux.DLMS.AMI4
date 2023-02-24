@@ -33,6 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -42,6 +43,28 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [DataContract(Name = "GXDeviceGroup"), Serializable]
     public class GXDeviceGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXDeviceGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new device group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Device group name.</param>
+        public GXDeviceGroup(string? name)
+        {
+            Devices = new List<GXDevice>();
+            UserGroups = new List<GXUserGroup>();
+            AgentGroups = new List<GXAgentGroup>();
+            Parameters = new();
+        }
+
         /// <summary>
         /// Device group ID.
         /// </summary>
@@ -122,6 +145,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -149,7 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey]
-        public List<GXDeviceGroupParameter> Parameters
+        public List<GXDeviceGroupParameter>? Parameters
         {
             get;
             set;
@@ -159,7 +183,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of devices that belongs to this device group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDevice), typeof(GXDeviceGroupDevice))]
-        public List<GXDevice> Devices
+        public List<GXDevice>? Devices
         {
             get;
             set;
@@ -169,7 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of user groups that can access this device group
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -180,7 +204,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupDeviceGroup))]
-        public List<GXAgentGroup> AgentGroups
+        public List<GXAgentGroup>? AgentGroups
         {
             get;
             set;
@@ -197,17 +221,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-		public GXDeviceGroup()
-        {
-            Devices = new List<GXDevice>();
-            UserGroups = new List<GXUserGroup>();
-            AgentGroups = new List<GXAgentGroup>();
-            Parameters = new();
         }
 
         /// <summary>

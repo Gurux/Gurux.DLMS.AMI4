@@ -32,9 +32,33 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device template group.
+    /// </summary>
+    public class GetDeviceTemplateGroupResponse
+    {
+        /// <summary>
+        /// Device template  group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id),
+                nameof(GXDeviceTemplate.Name))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDeviceTemplateGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get device template group list.
     /// </summary>
@@ -63,6 +87,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device template groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXDeviceTemplateGroup), 
+            nameof(GXDeviceTemplateGroup.UserGroups),
+            nameof(GXDeviceTemplateGroup.DeviceTemplates))]
         public GXDeviceTemplateGroup? Filter
         {
             get;
@@ -80,6 +107,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -92,6 +131,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device template groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXDeviceTemplateGroup),
+            nameof(GXDeviceTemplateGroup.UserGroups),
+            nameof(GXDeviceTemplateGroup.DeviceTemplates))]
         public GXDeviceTemplateGroup[] DeviceTemplateGroups
         {
             get;
@@ -119,6 +161,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device template group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         public GXDeviceTemplateGroup[] DeviceTemplateGroups
         {
             get;
@@ -153,6 +197,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

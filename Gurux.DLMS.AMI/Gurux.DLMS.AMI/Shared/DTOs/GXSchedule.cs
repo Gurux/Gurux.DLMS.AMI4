@@ -33,8 +33,8 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -43,6 +43,34 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXSchedule : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXSchedule()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new schedule is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Schedule name.</param>
+        public GXSchedule(string? name)
+        {
+            Name = name;
+            Attributes = new List<GXAttribute>();
+            Objects = new List<GXObject>();
+            Devices = new List<GXDevice>();
+            ScriptMethods = new List<GXScriptMethod>();
+            DeviceGroups = new List<GXDeviceGroup>();
+            ScheduleGroups = new List<GXScheduleGroup>();
+            Triggers = new List<GXTrigger>();
+            Logs = new List<GXScheduleLog>();
+            Modules = new List<GXModule>();
+        }
+
         /// <summary>
         /// Reader identifier.
         /// </summary>
@@ -61,7 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXAttribute), typeof(GXScheduleToAttribute))]
-        public List<GXAttribute> Attributes
+        public List<GXAttribute>? Attributes
         {
             get;
             set;
@@ -72,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXObject), typeof(GXScheduleToObject))]
-        public List<GXObject> Objects
+        public List<GXObject>? Objects
         {
             get;
             set;
@@ -83,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDevice), typeof(GXScheduleToDevice))]
-        public List<GXDevice> Devices
+        public List<GXDevice>? Devices
         {
             get;
             set;
@@ -94,7 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXScheduleToDeviceGroup))]
-        public List<GXDeviceGroup> DeviceGroups
+        public List<GXDeviceGroup>? DeviceGroups
         {
             get;
             set;
@@ -105,7 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXScheduleScript))]
-        public List<GXScriptMethod> ScriptMethods
+        public List<GXScriptMethod>? ScriptMethods
         {
             get;
             set;
@@ -116,7 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModule), typeof(GXScheduleModule))]
-        public List<GXModule> Modules
+        public List<GXModule>? Modules
         {
             get;
             set;
@@ -127,7 +155,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXTrigger), typeof(GXScheduleTrigger))]
-        public List<GXTrigger> Triggers
+        public List<GXTrigger>? Triggers
         {
             get;
             set;
@@ -138,7 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember,
             ForeignKey(typeof(GXScheduleGroup), typeof(GXScheduleGroupSchedule))]
-        public List<GXScheduleGroup> ScheduleGroups
+        public List<GXScheduleGroup>? ScheduleGroups
         {
             get;
             set;
@@ -148,7 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Schedule logs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXScheduleLog))]
-        public List<GXScheduleLog> Logs
+        public List<GXScheduleLog>? Logs
         {
             get;
             set;
@@ -182,19 +210,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-
-        /// <summary>
-        /// Task type.
-        /// </summary>
-        [DataMember]
-        //Filter uses default value.
-        [DefaultValue(TaskType.None)]
-        public TaskType TaskType
-        {
-            get;
-            set;
-        }
-
+      
         /// <summary>
         /// Creation time.
         /// </summary>
@@ -203,7 +219,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -224,6 +240,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -282,25 +299,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXSchedule()
-        {
-            Start = "";
-            TaskType = TaskType.None;
-            Attributes = new List<GXAttribute>();
-            Objects = new List<GXObject>();
-            Devices = new List<GXDevice>();
-            ScriptMethods = new List<GXScriptMethod>();
-            DeviceGroups = new List<GXDeviceGroup>();
-            ScheduleGroups = new List<GXScheduleGroup>();
-            Triggers = new List<GXTrigger>();
-            Logs = new List<GXScheduleLog>();
-            Modules = new List<GXModule>();
-        }
+        }       
 
         /// <summary>
         /// Update creation time before update.

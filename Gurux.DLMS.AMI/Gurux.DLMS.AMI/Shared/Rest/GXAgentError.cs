@@ -30,12 +30,30 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get agent log.
+    /// </summary>
+    public class GetAgentLogResponse
+    {
+        /// <summary>
+        /// Agent log information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXAgent),
+                nameof(GXAgent.Id),
+                nameof(GXAgent.Name))]
+        public GXAgentLog? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from agent logs.
     /// </summary>
@@ -45,6 +63,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
+        [IncludeSwagger(typeof(GXAgent),
+                nameof(GXAgent.Id),
+                nameof(GXAgent.Name))]
         public GXAgentLog? Filter
         {
             get;
@@ -79,7 +100,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }          
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -92,6 +125,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Agent logs.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent),
+                nameof(GXAgent.Id),
+                nameof(GXAgent.Name))]
         public GXAgentLog[]? Logs
         {
             get;
@@ -117,6 +153,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent log.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent),
+                nameof(GXAgent.Id))]
         public GXAgentLog[] Logs
         {
             get;
@@ -146,7 +184,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }      
+        }
     }
 
     /// <summary>

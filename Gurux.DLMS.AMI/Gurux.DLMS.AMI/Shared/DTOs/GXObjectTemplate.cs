@@ -33,20 +33,16 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
+    /// <summary>
+    /// Object template.
+    /// </summary>
     [Description("COSEM object template.")]
     public class GXObjectTemplate : GXTableBase, IUnique<Guid>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXObjectTemplate()
-        {
-            Attributes = new List<GXAttributeTemplate>();
-        }
-
         /// <summary>
         /// Object template identifier.
         /// </summary>
@@ -169,6 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -207,7 +204,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Attribute templates")]
         [ForeignKey(typeof(GXAttributeTemplate))]
-        public List<GXAttributeTemplate> Attributes
+        public List<GXAttributeTemplate>? Attributes
         {
             get;
             set;

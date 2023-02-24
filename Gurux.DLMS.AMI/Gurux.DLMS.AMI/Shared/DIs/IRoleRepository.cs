@@ -30,7 +30,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -64,7 +66,9 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="roles">Updated role(s).</param>
-        Task<string[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXRole> roles);
+        Task<string[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXRole> roles);
 
         /// <summary>
         /// Delete role(s).

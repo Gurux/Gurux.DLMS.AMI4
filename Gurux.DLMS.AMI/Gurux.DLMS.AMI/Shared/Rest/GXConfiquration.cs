@@ -31,11 +31,37 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
-{   
+{
+    /// <summary>
+    /// Get configuration.
+    /// </summary>
+    public class GetConfigurationResponse
+    {
+        /// <summary>
+        /// Configuration information.
+        /// </summary>        
+        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeSwagger(typeof(GXConfiguration), nameof(GXConfiguration.Resources))]
+        [ExcludeSwagger(typeof(GXLocalizedResource),
+            nameof(GXLocalizedResource.Module),
+            nameof(GXLocalizedResource.Block),
+            nameof(GXLocalizedResource.Script),
+            nameof(GXLocalizedResource.Configuration),
+            nameof(GXLocalizedResource.Language))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXConfiguration Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get site information.
     /// </summary>
@@ -64,7 +90,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter system info.
         /// </summary>
+        [ExcludeSwagger(typeof(GXConfiguration),
+            nameof(GXConfiguration.Resources),
+            nameof(GXConfiguration.Languages))]
         public GXConfiguration? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -81,6 +122,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of configuration settings.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXConfiguration),
+            nameof(GXConfiguration.Resources),
+            nameof(GXConfiguration.Languages))]
         public GXConfiguration[]? Configurations
         {
             get;
@@ -107,6 +151,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Updated configurations.
         /// </summary>
+        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeSwagger(typeof(GXConfiguration), nameof(GXConfiguration.Resources))]
+        [ExcludeSwagger(typeof(GXLocalizedResource), 
+            nameof(GXLocalizedResource.Module),
+            nameof(GXLocalizedResource.Block),
+            nameof(GXLocalizedResource.Script),
+            nameof(GXLocalizedResource.Configuration),            
+            nameof(GXLocalizedResource.Language))]
         public GXConfiguration[]? Configurations
         {
             get;

@@ -32,9 +32,34 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get block group.
+    /// </summary>
+    public class GetBlockGroupResponse
+    {
+        /// <summary>
+        /// Block group information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXBlock), nameof(GXBlock.Id),
+                nameof(GXBlock.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXBlockGroup Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get block group list.
     /// </summary>
@@ -63,12 +88,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter block groups.
         /// </summary>
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
+            nameof(GXBlockGroup.UserGroups))]
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
         public GXBlockGroup? Filter
         {
             get;
             set;
         }
-
 
         /// <summary>
         /// Admin user can access groups from all users.
@@ -77,6 +104,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, groups from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -93,6 +132,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of block groups.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
+            nameof(GXBlockGroup.UserGroups))]
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
         public GXBlockGroup[]? BlockGroups
         {
             get;
@@ -120,6 +162,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New block group(s).
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXBlock), nameof(GXBlock.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles), nameof(GXBlockGroup.CreationTime), nameof(GXBlockGroup.Updated))]
         public GXBlockGroup[] BlockGroups
         {
             get;
@@ -134,9 +179,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddBlockGroupResponse
     {
         /// <summary>
-        /// New block groups.
+        /// New block group IDs.
         /// </summary>
-        public GXBlockGroup[]? BlockGroups
+        public Guid[]? Ids
         {
             get;
             set;
@@ -154,6 +199,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

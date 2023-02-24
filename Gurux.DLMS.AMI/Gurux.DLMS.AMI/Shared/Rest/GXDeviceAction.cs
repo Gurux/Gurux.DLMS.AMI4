@@ -32,9 +32,40 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device action.
+    /// </summary>
+    public class GetDeviceActionResponse
+    {
+        /// <summary>
+        /// Device information.
+        /// </summary>        
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDeviceAction Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
     /// <summary>
     /// Adds a new device action.
     /// </summary>
@@ -45,6 +76,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added Device action items.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         public GXDeviceAction[] Actions
         {
             get;
@@ -90,6 +132,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device actions.
         /// </summary>
+        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         public GXDeviceAction? Filter
         {
             get;
@@ -108,6 +162,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -120,7 +186,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device actions.
         /// </summary>
         [DataMember]
-        public GXDeviceAction[] Actions
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
+        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Traces),
+            nameof(GXDevice.Objects), nameof(GXDevice.Actions)
+            , nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        public GXDeviceAction[]? Actions
         {
             get;
             set;
@@ -148,6 +228,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public Guid[]? Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;

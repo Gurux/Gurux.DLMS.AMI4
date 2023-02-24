@@ -33,6 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -47,18 +48,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         public GXUser()
         {
-            Id = "";
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new user group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">User group name.</param>
+        public GXUser(string? name)
+        {
+            UserName = name;
             Actions = new List<GXUserAction>();
             UserGroups = new List<GXUserGroup>();
             Roles = new List<string>();
             IpAddresses = new List<GXIpAddress>();
-            Id = "";
-            UserName = "";
-            NormalizedUserName = "";
-            Email = "";
-            NormalizedEmail = "";
-            Password = "";
-            PasswordHash = "";
             BlockSettings = new List<GXBlock>();
             Errors = new List<GXUserError>();
             RestStatistics = new List<GXRestStatistic>();
@@ -77,7 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// User name.
@@ -86,7 +91,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string UserName
+        [IsRequired]
+        public string? UserName
         {
             get;
             set;
@@ -102,7 +108,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string NormalizedUserName
+        [IsRequired]
+        public string? NormalizedUserName
         {
             get;
             set;
@@ -115,7 +122,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string Email
+        [IsRequired]
+        public string? Email
         {
             get;
             set;
@@ -131,7 +139,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember, Index(Unique = true)]
         [StringLength(256)]
         [Filter(FilterType.Contains)]
-        public string NormalizedEmail
+        [IsRequired]
+        public string? NormalizedEmail
         {
             get;
             set;
@@ -152,25 +161,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <seealso cref="PasswordHash"/>
         [DataMember]
         [Ignore(IgnoreType.Db)]
-        public string Password
+        [IsRequired]
+        public string? Password
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Passwords are not saved to the database. Only the hash is saved by server.
+        /// Passwords are not saved to the database. Only the hash is saved by the server.
         /// </summary>
         /// <seealso cref="Password"/>
         [StringLength(256)]
         [DataMember]
-        public string PasswordHash
+        [JsonIgnore]
+        [IsRequired]
+        public string? PasswordHash
         {
             get;
             set;
         }
 
         [DataMember]
+        [JsonIgnore]
         public string? SecurityStamp
         {
             get;
@@ -247,7 +260,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember]
         [DefaultValue(0)]
-        public int? AccessFailedCount { get; set; } = 0;
+        public int? AccessFailedCount { get; set; }
 
         /// <summary>
         /// When user is created.
@@ -291,7 +304,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public List<string> Roles
+        public List<string>? Roles
         {
             get;
             set;
@@ -314,6 +327,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -340,7 +354,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupUser))]
         [Filter(FilterType.Contains)]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -352,7 +366,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         //Actions are not saved for the DB column.
         [DataMember, ForeignKey(typeof(GXUserAction))]
         [Filter(FilterType.Contains)]
-        public List<GXUserAction> Actions
+        public List<GXUserAction>? Actions
         {
             get;
             set;
@@ -363,7 +377,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserError))]
         [Filter(FilterType.Contains)]
-        public List<GXUserError> Errors
+        public List<GXUserError>? Errors
         {
             get;
             set;
@@ -380,7 +394,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DefaultValue(null)]
         [ForeignKey(typeof(GXIpAddress))]
         [Filter(FilterType.Contains)]
-        public List<GXIpAddress> IpAddresses
+        public List<GXIpAddress>? IpAddresses
         {
             get;
             set;
@@ -392,7 +406,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXBlock))]
         [Filter(FilterType.Contains)]
-        public List<GXBlock> BlockSettings
+        public List<GXBlock>? BlockSettings
         {
             get;
             set;
@@ -404,7 +418,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXUserSetting))]
         [Filter(FilterType.Contains)]
-        public List<GXUserSetting> Settings
+        public List<GXUserSetting>? Settings
         {
             get;
             set;
@@ -420,7 +434,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXRestStatistic))]
         [Filter(FilterType.Contains)]
-        public List<GXRestStatistic> RestStatistics
+        public List<GXRestStatistic>? RestStatistics
         {
             get;
             set;

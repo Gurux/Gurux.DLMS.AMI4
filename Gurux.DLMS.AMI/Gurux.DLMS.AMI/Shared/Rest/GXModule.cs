@@ -33,9 +33,37 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get module.
+    /// </summary>
+    public class GetModuleResponse
+    {
+        /// <summary>
+        /// Module information.
+        /// </summary>        
+        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+            nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
+            nameof(GXModule.Versions), nameof(GXModule.Scripts),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
+            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
+            nameof(GXModule.Schedules), nameof(GXModule.Workflows),
+            nameof(GXModule.Creator), nameof(GXModule.Resources),
+            nameof(GXModule.Languages))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXModule Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
+
     /// <summary>
     /// Add module response.
     /// </summary>
@@ -43,7 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddModuleResponse
     {
         /// <summary>
-        /// Modules to update.
+        /// Added modules.
         /// </summary>
         [DataMember]
         public GXModule[] Modules
@@ -142,12 +170,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter modules.
         /// </summary>
+        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups), 
+            nameof(GXModule.ModuleGroups), nameof(GXModule.Logs), 
+            nameof(GXModule.Versions), nameof(GXModule.Scripts), 
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters), 
+            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters), 
+            nameof(GXModule.Schedules), nameof(GXModule.Workflows),
+            nameof(GXModule.Creator), nameof(GXModule.Resources), 
+            nameof(GXModule.Languages))]
         public GXModule? Filter
         {
             get;
             set;
         }
-
 
         /// <summary>
         /// Admin user can access modules from all users.
@@ -177,7 +212,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }      
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -192,7 +239,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Installed modules.")]
-        public GXModule[] Modules
+        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+            nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
+            nameof(GXModule.Versions), nameof(GXModule.Scripts),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
+            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
+            nameof(GXModule.Schedules), nameof(GXModule.Workflows),
+            nameof(GXModule.Creator), nameof(GXModule.Resources),
+            nameof(GXModule.Languages))]
+        public GXModule[]? Modules
         {
             get;
             set;
@@ -215,13 +270,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// </summary>
     [DataContract]
     [Description("Delete module.")]
-    public class DeleteModule 
+    public class RemoveModule 
     {
         /// <summary>
         /// Removed modules.
         /// </summary>
         [DataMember]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string[] Modules
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -232,7 +289,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Delete module response.
     /// </summary>
     [DataContract]
-    public class DeleteModuleResponse
+    public class RemoveModuleResponse
     {
         /// <summary>
         /// Is restart required to remove the module.
@@ -254,7 +311,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Module name.
         /// </summary>
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string Name
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -270,7 +329,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// UI module and dependencies.
         /// </summary>
-        public string[] Modules
+        public string[]? Modules
         {
             get;
             set;

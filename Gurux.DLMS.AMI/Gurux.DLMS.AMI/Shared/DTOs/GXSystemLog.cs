@@ -30,12 +30,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Runtime.Serialization;
-using System.Xml.Linq;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -48,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXSystemLog() : this(TraceLevel.Error)
+        public GXSystemLog()
         {
         }
 
@@ -124,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Error severity level.
         /// </summary>
         [DataMember]
-        [DefaultValue(0)]
+        [DefaultValue(1)]
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Level

@@ -33,9 +33,36 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get trigger.
+    /// </summary>
+    public class GetTriggerResponse
+    {
+        /// <summary>
+        /// Trigger information.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXTrigger), nameof(GXTrigger.Schedules),
+            nameof(GXTrigger.Workflows), nameof(GXTrigger.TriggerGroups),
+            nameof(GXTrigger.Module))]
+        [ExcludeSwagger(typeof(GXTriggerActivity),
+             nameof(GXTriggerActivity.Trigger))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        public GXTrigger? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from triggers.
     /// </summary>
@@ -64,6 +91,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter triggers.
         /// </summary>
+        [ExcludeSwagger(typeof(GXTrigger),
+            nameof(GXTrigger.Workflows),
+            nameof(GXTrigger.Activities),
+            nameof(GXTrigger.TriggerGroups),
+            nameof(GXTrigger.Schedules),
+            nameof(GXTrigger.User), 
+            nameof(GXTrigger.UserGroup),
+            nameof(GXTrigger.Device), 
+            nameof(GXTrigger.DeviceGroup),
+            nameof(GXTrigger.Module))]
         public GXTrigger? Filter
         {
             get;
@@ -76,6 +113,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If true, triggers for all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
         {
             get;
             set;
@@ -94,17 +143,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of trigger items.")]
         [DataMember]
-        public GXTrigger[] Triggers
+        [ExcludeSwagger(typeof(GXTrigger),
+            nameof(GXTrigger.Workflows),
+            nameof(GXTrigger.Activities),
+            nameof(GXTrigger.TriggerGroups),
+            nameof(GXTrigger.Schedules),
+            nameof(GXTrigger.User),
+            nameof(GXTrigger.UserGroup),
+            nameof(GXTrigger.Device),
+            nameof(GXTrigger.DeviceGroup),
+            nameof(GXTrigger.Module))]
+        public GXTrigger[]? Triggers
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Total count of the triggerrs.
+        /// Total count of the triggers.
         /// </summary>
         [DataMember]
-        [Description("Total count of the triggerrs.")]
+        [Description("Total count of the triggers.")]
         public int Count
         {
             get;
@@ -130,7 +189,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Triggers to update.
         /// </summary>
         [DataMember]
-        [Description("Triggers to update.")]
+        [ExcludeSwagger(typeof(GXTrigger),
+            nameof(GXTrigger.Workflows),
+            nameof(GXTrigger.Activities),
+            nameof(GXTrigger.TriggerGroups),
+            nameof(GXTrigger.Schedules),
+            nameof(GXTrigger.User),
+            nameof(GXTrigger.UserGroup),
+            nameof(GXTrigger.Device),
+            nameof(GXTrigger.DeviceGroup),
+            nameof(GXTrigger.Module))]
         public List<GXTrigger> Triggers
         {
             get;
@@ -158,17 +226,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Delete triggers.
+    /// Remove triggers.
     /// </summary>
     [DataContract]
-    public class DeleteTrigger : IGXRequest<DeleteTriggerResponse>
+    public class RemoveTrigger : IGXRequest<RemoveTriggerResponse>
     {
         /// <summary>
         /// Removed trigger identifiers.
         /// </summary>
         [DataMember]
-        [Description("Removed trigger identifiers.")]
-        public Guid[] TriggerIds
+        public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -176,11 +257,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Reply from Delete trigger.
+    /// Reply from Remove trigger.
     /// </summary>
     [DataContract]
-    [Description("Reply from Delete trigger.")]
-    public class DeleteTriggerResponse
+    public class RemoveTriggerResponse
     {
     }
 

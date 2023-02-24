@@ -33,9 +33,44 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device.
+    /// </summary>
+    public class GetDeviceResponse
+    {
+        /// <summary>
+        /// Device information.
+        /// </summary>        
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
+        [ExcludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
+        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Traces),
+            nameof(GXDevice.Objects), nameof(GXDevice.Actions)
+            , nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDevice Item
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Add or Update device information. Device is added if ID is zero.
     /// </summary>
@@ -46,6 +81,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated devices.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Creator),
+            nameof(GXDevice.Objects),
+            nameof(GXDevice.Actions), nameof(GXDevice.Traces),
+            nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
+
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXDevice[] Devices
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -103,6 +153,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter devices.
         /// </summary>
+        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.DeviceGroups),
+                nameof(GXDevice.Creator), nameof(GXDevice.Parameters),
+            nameof(GXDevice.Objects), nameof(GXDevice.Actions), nameof(GXDevice.Errors),
+            nameof(GXDevice.Tasks), nameof(GXDevice.Traces)
+            , nameof(GXDevice.ProfilePicture)
+            , nameof(GXDevice.Settings)
+            , nameof(GXDevice.MediaSettings))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         public GXDevice? Filter
         {
             get;
@@ -121,6 +187,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             set;
         }
 
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -135,6 +212,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("List of devices.")]
+        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.DeviceGroups)
+            , nameof(GXDevice.Parameters), nameof(GXDevice.Objects)
+            , nameof(GXDevice.Actions), nameof(GXDevice.Errors),
+            nameof(GXDevice.Tasks), nameof(GXDevice.Traces))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXDevice[] Devices
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -157,31 +247,43 @@ namespace Gurux.DLMS.AMI.Shared.Rest
 
 
     /// <summary>
-    /// Delete Device.
+    /// Remove Device.
     /// </summary>
     [DataContract]
-    public class DeviceDelete : IGXRequest<DeviceDeleteResponse>
+    public class RemoveDevice : IGXRequest<RemoveDeviceResponse>
     {
         /// <summary>
         /// Removed devices.
         /// </summary>
         [DataMember]
-        [Description("Removed devices.")]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Guid[] Ids
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
-        }      
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
-    /// Delete Device response.
+    /// Remove device response.
     /// </summary>
     [DataContract]
-    [Description("Delete Device response.")]
-    public class DeviceDeleteResponse
+    public class RemoveDeviceResponse
     {
     }
 }

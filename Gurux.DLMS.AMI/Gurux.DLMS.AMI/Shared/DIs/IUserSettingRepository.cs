@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -64,7 +65,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="settings">User settings to add.</param>
-        Task UpdateAsync(ClaimsPrincipal User, IEnumerable<GXUserSetting> settings);
+        /// <param name="columns">Updated columns(s).</param>
+        Task UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXUserSetting> settings,
+            Expression<Func<GXUserSetting, object?>>? columns = null);
 
         /// <summary>
         /// Delete user settings.

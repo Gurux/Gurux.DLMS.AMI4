@@ -38,66 +38,60 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to handle devices.
+    /// This interface is used to handle attribute templates.
     /// </summary>
-    public interface IDeviceRepository
+    public interface IAttributeTemplateRepository
     {
         /// <summary>
-        /// List devices.
+        /// List attribute templates.
         /// </summary>
-        /// <returns>Devices.</returns>
-        Task<GXDevice[]> ListAsync(
-        ClaimsPrincipal user,
-        ListDevices? request,
-        ListDevicesResponse? response,
-        CancellationToken cancellationToken);
+        /// <returns>Attribute templates.</returns>
+        Task<GXAttributeTemplate[]> ListAsync(ClaimsPrincipal user,
+            ListAttributeTemplates? request,
+            ListAttributeTemplatesResponse? response,
+            CancellationToken cancellationToken);
 
         /// <summary>
-        /// Read device information.
+        /// Read attribute template information.
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="id">Device id.</param>
-        /// <returns>Device information.</returns>
-        Task<GXDevice> ReadAsync(ClaimsPrincipal user, Guid id);
+        /// <param name="id">Attribute template id.</param>
+        /// <returns>Attribute template information.</returns>
+        Task<GXAttributeTemplate> ReadAsync(ClaimsPrincipal user, Guid id);
 
         /// <summary>
-        /// Update device.
+        /// Update attribute template(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="devices">Updated device(s).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="templates">Updated attribute template(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
-            IEnumerable<GXDevice> devices,
-            CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns = null);
+            ClaimsPrincipal user, 
+            IEnumerable<GXAttributeTemplate> templates,
+            Expression<Func<GXAttributeTemplate, object?>>? columns = null);
 
         /// <summary>
-        /// Delete device(s).
+        /// Delete attribute template(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="devices">Deleted device(s).</param>
-        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(
-            ClaimsPrincipal user,
-            IEnumerable<Guid> devices, 
-            bool delete);
+        /// <param name="templates">AttributeTemplate(s) to delete.</param>
+        /// <param name="delete">If true, attribute templates are deleted, not marked as removed.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> templates, bool delete);
 
         /// <summary>
-        /// Returns list of users that can access this device.
+        /// Get all users that can access this attribute template.
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="deviceId">Device Id.</param>
-        /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? deviceId);
+        /// <param name="templateId">Attribute template id.</param>
+        /// <returns>Collection of User IDs.</returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? templateId);
 
         /// <summary>
-        /// Returns list of users that can access devices.
+        /// Get all users that can access attribute templates.
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="deviceIds">Device Ids.</param>
-        /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid> deviceIds);
+        /// <param name="templateIds">Attribute template ids.</param>
+        /// <returns>Collection of User IDs.</returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? templateIds);
     }
 }

@@ -61,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
+        [DefaultValue(null)]
         public GXUser? Creator
         {
             get;
@@ -74,7 +75,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Task order number can be used to execute tasks in given order.
         /// </remarks>
         [DataMember]
-        public int Order
+        [DefaultValue(0)]
+        [Filter(FilterType.Exact)]
+        public int? Order
         {
             get;
             set;
@@ -87,6 +90,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Task batching is used to run group of tasks in the same batch.
         /// </remarks>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid? Batch
         {
             get;
@@ -97,6 +102,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Target of the task as a string.
         /// </summary>
         [StringLength(256)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public string? Target
         {
             get;
@@ -109,6 +116,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXScriptMethod? ScriptMethod
         {
             get;
@@ -121,6 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXDeviceGroup? DeviceGroup
         {
             get;
@@ -133,6 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXDevice? Device
         {
             get;
@@ -145,6 +155,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXObject? Object
         {
             get;
@@ -157,6 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXAttribute? Attribute
         {
             get;
@@ -169,6 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXSchedule? TriggerSchedule
         {
             get;
@@ -181,6 +194,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXUser? TriggerUser
         {
             get;
@@ -193,6 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXScript? TriggerScript
         {
             get;
@@ -205,6 +220,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXScript? TriggerModule
         {
             get;
@@ -217,6 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
         public GXAgent? OperatingAgent
         {
             get;
@@ -229,6 +246,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// This information is added to ensure that multiple agents are not running on the same meter.
         /// </remarks>
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid? TargetDevice
         {
             get;
@@ -239,7 +259,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Task type.
         /// </summary>
         [DataMember]
-        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public TaskType? TaskType
@@ -255,7 +274,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        [DefaultValue(null)]
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -312,7 +332,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Attribute index.
         /// </summary>
         [DataMember]
-        public int Index
+        [DefaultValue(0)]
+        public int? Index
         {
             get;
             set;
@@ -322,6 +343,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Data to write.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
         public string? Data
         {
             get;

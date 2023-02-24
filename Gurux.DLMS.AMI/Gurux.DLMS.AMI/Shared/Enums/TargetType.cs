@@ -169,12 +169,12 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Agent error is changed.
         /// </summary>
         [XmlEnum("16777216")]
-        AgentError = 0x1000000,
+        AgentLog = 0x1000000,
         /// <summary>
         /// Schedule error is changed.
         /// </summary>
         [XmlEnum("33554432")]
-        ScheduleError = 0x2000000,
+        ScheduleLog = 0x2000000,
         /// <summary>
         /// Schedule error is changed.
         /// </summary>
@@ -240,5 +240,15 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         [XmlEnum("274877906944")]
         DeviceTrace = 0x4000000000,
+        /// <summary>
+        /// Cron is changed.
+        /// </summary>
+        [XmlEnum("549755813888")]
+        Cron = 0x8000000000,
+        /// <summary>
+        /// Cron is changed.
+        /// </summary>
+        [XmlEnum("1099511627776")]
+        Role = 0x10000000000,
     }
 }

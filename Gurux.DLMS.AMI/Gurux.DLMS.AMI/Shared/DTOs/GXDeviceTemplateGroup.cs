@@ -33,6 +33,7 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -42,6 +43,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     [DataContract(Name = "GXDeviceTemplateGroup"), Serializable]
     public class GXDeviceTemplateGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXDeviceTemplateGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new device template group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Device template group name.</param>
+        public GXDeviceTemplateGroup(string? name)
+        {
+            Name = name;
+            UserGroups = new List<GXUserGroup>();
+            DeviceTemplates = new List<GXDeviceTemplate>();
+        }
+
         /// <summary>
         /// Device templategroup ID.
         /// </summary>
@@ -70,6 +92,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Device template group description.
         /// </summary>
 		[DataMember]
+        [StringLength(256)]
+        [Description("Description.")]
+        [DefaultValue(null)]
         public string? Description
         {
             get;
@@ -83,7 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -118,6 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -144,7 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of users groups that belongs to this device template group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceTemplateGroup))]
-        public List<GXUserGroup> UserGroups
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -154,20 +180,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// List of  device templates that this device template group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceTemplate), typeof(GXDeviceTemplateGroupDeviceTemplate))]
-        public List<GXDeviceTemplate> DeviceTemplates
+        public List<GXDeviceTemplate>? DeviceTemplates
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXDeviceTemplateGroup()
-        {
-            Name = "";
-            UserGroups = new List<GXUserGroup>();
-            DeviceTemplates = new List<GXDeviceTemplate>();
         }
 
         /// <summary>
@@ -181,14 +197,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXDeviceTemplateGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

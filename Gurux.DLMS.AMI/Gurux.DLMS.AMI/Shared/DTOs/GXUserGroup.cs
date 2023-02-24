@@ -34,12 +34,44 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     [DataContract(Name = "GXUserGroup"), Serializable]
     public class GXUserGroup : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXUserGroup()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new user group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">User group name.</param>
+        public GXUserGroup(string? name)
+        {            
+            Name = name;
+            Description = "";
+            Users = new List<GXUser>();
+            DeviceGroups = new List<GXDeviceGroup>();
+            ScheduleGroups = new List<GXScheduleGroup>();
+            DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
+            AgentGroups = new List<GXAgentGroup>();
+            ModuleGroups = new List<GXModuleGroup>();
+            WorkflowGroups = new List<GXWorkflowGroup>();
+            TriggerGroups = new List<GXTriggerGroup>();
+            BlockGroups = new List<GXBlockGroup>();
+            ComponentViewGroups = new List<GXComponentViewGroup>();
+            ScriptGroups = new List<GXScriptGroup>();
+        }
+
         /// <summary>
         /// User group ID.
         /// </summary>
@@ -119,6 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
+        [JsonIgnore]
         public bool Modified
         {
             get;
@@ -146,7 +179,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXUser), typeof(GXUserGroupUser))]
         [DefaultValue(null)]
-        public List<GXUser> Users
+        public List<GXUser>? Users
         {
             get;
             set;
@@ -157,7 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceGroup), typeof(GXUserGroupDeviceGroup))]     
         [DefaultValue(null)]
-        public List<GXDeviceGroup> DeviceGroups
+        public List<GXDeviceGroup>? DeviceGroups
         {
             get;
             set;
@@ -168,7 +201,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>        
         [DataMember, ForeignKey(typeof(GXScheduleGroup), typeof(GXUserGroupScheduleGroup))]
         [DefaultValue(null)]
-        public List<GXScheduleGroup> ScheduleGroups
+        public List<GXScheduleGroup>? ScheduleGroups
         {
             get;
             set;
@@ -179,7 +212,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>      
         [DataMember, ForeignKey(typeof(GXDeviceTemplateGroup), typeof(GXUserGroupDeviceTemplateGroup))]
         [DefaultValue(null)]
-        public List<GXDeviceTemplateGroup> DeviceTemplateGroups
+        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
         {
             get;
             set;
@@ -190,7 +223,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>     
         [DataMember, ForeignKey(typeof(GXAgentGroup), typeof(GXUserGroupAgentGroup))]
         [DefaultValue(null)]
-        public List<GXAgentGroup> AgentGroups
+        public List<GXAgentGroup>? AgentGroups
         {
             get;
             set;
@@ -201,7 +234,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>      
         [DataMember, ForeignKey(typeof(GXModuleGroup), typeof(GXUserGroupModuleGroup))]
         [DefaultValue(null)]
-        public List<GXModuleGroup> ModuleGroups
+        public List<GXModuleGroup>? ModuleGroups
         {
             get;
             set;
@@ -212,7 +245,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>       
         [DataMember, ForeignKey(typeof(GXWorkflowGroup), typeof(GXUserGroupWorkflowGroup))]
         [DefaultValue(null)]
-        public List<GXWorkflowGroup> WorkflowGroups
+        public List<GXWorkflowGroup>? WorkflowGroups
         {
             get;
             set;
@@ -223,7 +256,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>       
         [DataMember, ForeignKey(typeof(GXTriggerGroup), typeof(GXUserGroupTriggerGroup))]
         [DefaultValue(null)]
-        public List<GXTriggerGroup> TriggerGroups
+        public List<GXTriggerGroup>? TriggerGroups
         {
             get;
             set;
@@ -234,7 +267,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXUserGroupBlockGroup))]
         [DefaultValue(null)]
-        public List<GXBlockGroup> BlockGroups
+        public List<GXBlockGroup>? BlockGroups
         {
             get;
             set;
@@ -245,7 +278,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXComponentViewGroup), typeof(GXUserGroupComponentViewGroup))]
         [DefaultValue(null)]
-        public List<GXComponentViewGroup> ComponentViewGroups
+        public List<GXComponentViewGroup>? ComponentViewGroups
         {
             get;
             set;
@@ -256,7 +289,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember, ForeignKey(typeof(GXScriptGroup), typeof(GXUserGroupScriptGroup))]
         [DefaultValue(null)]
-        public List<GXScriptGroup> ScriptGroups
+        public List<GXScriptGroup>? ScriptGroups
         {
             get;
             set;
@@ -273,34 +306,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXUserGroup()
-        {
-            Name = "";
-            Description = "";
-            Users = new List<GXUser>();
-            DeviceGroups = new List<GXDeviceGroup>();
-            ScheduleGroups = new List<GXScheduleGroup>();
-            DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
-            AgentGroups = new List<GXAgentGroup>();
-            ModuleGroups = new List<GXModuleGroup>();
-            WorkflowGroups = new List<GXWorkflowGroup>();
-            TriggerGroups = new List<GXTriggerGroup>();
-            BlockGroups = new List<GXBlockGroup>();
-            ComponentViewGroups = new List<GXComponentViewGroup>();
-            ScriptGroups = new List<GXScriptGroup>();
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXUserGroup(string name) : this()
-        {
-            Name = name;
         }
 
         /// <summary>

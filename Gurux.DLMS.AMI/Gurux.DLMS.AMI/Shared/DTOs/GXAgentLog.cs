@@ -45,10 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <remarks>
-        /// Log levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
-        /// </remarks>
-        public GXAgentLog() : this(TraceLevel.Error)
+        public GXAgentLog()
         {
         }
 
@@ -106,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
@@ -154,7 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Log severity level.
         /// </summary>
         [DataMember]
-        [DefaultValue(0)]
+        [DefaultValue(1)]
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Level

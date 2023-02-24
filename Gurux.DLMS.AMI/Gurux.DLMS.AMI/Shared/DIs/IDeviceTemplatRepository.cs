@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -63,18 +64,22 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="templates">Updated device templates.</param>
+        /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
             ClaimsPrincipal user,
-            IEnumerable<GXDeviceTemplate> templates);
+            IEnumerable<GXDeviceTemplate> templates,
+            Expression<Func<GXDeviceTemplate, object?>>? columns = null);
 
         /// <summary>
         /// Delete device template(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="templates">Device templates to delete.</param>
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
             ClaimsPrincipal user,
-            IEnumerable<Guid> templates);
+            IEnumerable<Guid> templates, 
+            bool delete);
 
         /// <summary>
         /// Get all users that can access device template.

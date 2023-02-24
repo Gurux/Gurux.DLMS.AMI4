@@ -54,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read device activity.
         /// </summary>
-        /// <param name="Device">Current device.</param>
+        /// <param name="user">Current user.</param>
         /// <param name="id">Device activity id.</param>
         /// <returns></returns>
         Task<GXDeviceTrace> ReadAsync(ClaimsPrincipal user, Guid id);

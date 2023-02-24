@@ -196,6 +196,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Insert new object.
         /// </summary>
         /// <typeparam name="T">Table class.</typeparam>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Inserted value.</param>
         void Insert<T>(IDbTransaction transaction, T value);
 
@@ -210,6 +211,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Insert new object as async.
         /// </summary>
         /// <typeparam name="T">Table class.</typeparam>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Inserted value.</param>
         Task InsertAsync<T>(IDbTransaction transaction, T value);
 
@@ -224,6 +226,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Update object.
         /// </summary>
         /// <typeparam name="T">Table class.</typeparam>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Inserted value.</param>
         void Update<T>(IDbTransaction transaction, T value);
 
@@ -239,6 +242,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Update object.
         /// </summary>
         /// <typeparam name="T">Table class.</typeparam>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Inserted value.</param>
         /// <param name="columns">Updated columns.</param>
         void Update<T>(IDbTransaction transaction, T value, Expression<Func<T, object>> columns);
@@ -252,7 +256,8 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Update object as async.
         /// </summary>
-        /// <param name="value"></param>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="value">Updated table,</param>
         Task UpdateAsync<T>(IDbTransaction transaction, T value);
 
         /// <summary>
@@ -265,6 +270,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Update object as async.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Updated value.</param>
         /// <param name="columns">Updated columns.</param>
         Task UpdateAsync<T>(IDbTransaction transaction, T value, Expression<Func<T, object>> columns);
@@ -279,6 +285,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Update object as async.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value"></param>
         /// <param name="cancellationToken">Cancellation token.</param>
         Task UpdateAsync<T>(IDbTransaction transaction, T value, CancellationToken cancellationToken);
@@ -295,6 +302,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Update object as async.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="value">Updated value.</param>
         /// <param name="columns">Updated columns.</param>
         /// <param name="cancellationToken">Cancellation token.</param>

@@ -33,6 +33,7 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -64,11 +65,33 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter values.
         /// </summary>
+        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
         public GXValue? Filter
         {
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Are values shown as descending order by read time.
+        /// </summary>
+        public bool Descending
+        {
+            get;
+            set;
+        }       
     }
 
     /// <summary>
@@ -81,7 +104,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of value items.
         /// </summary>
         [DataMember]
-        public GXValue[] Values
+        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
+        public GXValue[]? Values
         {
             get;
             set;
@@ -109,7 +133,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Values to add")]
-        public GXValue[] Values
+        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
+        public GXValue[]? Values
         {
             get;
             set;
@@ -127,7 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New value identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] ValueIds
+        public Guid[] Ids
         {
             get;
             set;
@@ -144,6 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Devices to clear.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
         public GXDevice[]? Devices
         {
             get;
@@ -153,6 +179,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Objects to clear.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
         public GXObject[]? Objects
         {
             get;
@@ -162,6 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Attributes to clear.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
         public GXAttribute[]? Attributes
         {
             get;

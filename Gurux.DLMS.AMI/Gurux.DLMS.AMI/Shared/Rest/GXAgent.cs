@@ -33,9 +33,36 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get agent.
+    /// </summary>
+    public class GetAgentResponse
+    {
+        /// <summary>
+        /// Agent information.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXAgent),
+                nameof(GXAgent.Template),
+                nameof(GXAgent.ScriptMethods),
+                nameof(GXAgent.Versions), nameof(GXAgent.Tasks), 
+                nameof(GXAgent.Logs))]
+        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id)
+            , nameof(GXAgentGroup.Name)
+            , nameof(GXAgentGroup.Description))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+            , nameof(GXUser.UserName))]
+        public GXAgent? Item
+        {
+            get;
+            set;
+        }
+    }
 
     /// <summary>
     /// Update agent.
@@ -47,7 +74,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent to add.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+            nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods)
+            , nameof(GXAgent.LastRun), nameof(GXAgent.Detected)
+            , nameof(GXAgent.CreationTime), nameof(GXAgent.Updated))]
+        [IncludeSwagger(typeof(GXAgentVersion), nameof(GXAgentVersion.Id))]
+        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [Required]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXAgent[] Agents
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -64,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] AgentIds
+        public Guid[]? AgentIds
         {
             get;
             set;
@@ -99,6 +135,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agents.
         /// </summary>
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+            nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
+            nameof(GXAgent.Versions), nameof(GXAgent.Template), nameof(GXAgent.ReaderSettings),
+            nameof(GXAgent.ListenerSettings), nameof(GXAgent.NotifySettings))]
         public GXAgent? Filter
         {
             get;
@@ -116,6 +156,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public TargetType Select
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -128,11 +180,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agents.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+            nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
+            nameof(GXAgent.Versions))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXAgent[] Agents
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
         }
+
         /// <summary>
         /// Total count of the agents.
         /// </summary>
@@ -172,6 +230,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agent installers.
         /// </summary>
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+      nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
+      nameof(GXAgent.Versions))]
         public GXAgent? Filter
         {
             get;
@@ -189,7 +250,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agent installers.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+            nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
+            nameof(GXAgent.Versions))]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXAgent[] Agents
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -209,14 +275,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Remove agents.
     /// </summary>
     [DataContract]
-    public class AgentDelete : IGXRequest<AgentDeleteResponse>
+    public class RemoveAgent : IGXRequest<RemoveAgentResponse>
     {
         /// <summary>
         /// Agent identifiers to remove.
         /// </summary>
         [DataMember]
-        [Description("Agent identifiers to remove.")]
+        [Required]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Guid[] Ids
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -224,11 +306,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Remove reased response.
+    /// Remove agent response.
     /// </summary>
     [DataContract]
-    [Description("Remove reased response.")]
-    public class AgentDeleteResponse
+    public class RemoveAgentResponse
     {
     }
 
@@ -269,6 +350,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agents to update and the version number.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+            nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
+            nameof(GXAgent.Versions))]
         public GXAgent? Agent
         {
             get;
