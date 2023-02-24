@@ -25,7 +25,7 @@
     <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2211.1401" />
     <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2211.1401" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.10" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.3" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
