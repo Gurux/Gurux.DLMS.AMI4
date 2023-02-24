@@ -166,8 +166,6 @@ namespace Gurux.DLMS.AMI.Agent
                 else
                 {
                     options.Version = null;
-                    //MIKKO 
-                    options.Version = "1.0.0.1";
                 }
 
                 Task t = Task.Run(() => ClosePoller(cts));
