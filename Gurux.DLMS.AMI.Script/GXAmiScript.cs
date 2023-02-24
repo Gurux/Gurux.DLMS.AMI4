@@ -264,7 +264,7 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <inheritdoc cref="IGXAmi.RemoveAsync"/>
-        public async Task RemoveAsync(object value)
+        public async Task RemoveAsync(object value, bool delete)
         {
             if (_serviceProvider == null)
             {
@@ -275,17 +275,17 @@ namespace Gurux.DLMS.AMI.Script
                 if (value is GXDeviceGroup dg)
                 {
                     IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { dg.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { dg.Id }, delete);
                 }
                 else if (value is GXDevice d)
                 {
                     IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { d.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { d.Id }, delete);
                 }
                 else if (value is GXObject o)
                 {
                     IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { o.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { o.Id }, delete);
                 }
                 else if (value is GXTask t)
                 {
@@ -295,32 +295,32 @@ namespace Gurux.DLMS.AMI.Script
                 else if (value is GXAgentGroup ag)
                 {
                     IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { ag.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { ag.Id }, delete);
                 }
                 else if (value is GXAgent a)
                 {
                     IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { a.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { a.Id }, delete);
                 }
                 else if (value is GXUserGroup ug)
                 {
                     IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { ug.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { ug.Id }, delete);
                 }
                 else if (value is GXUser u)
                 {
                     IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                    await repository.DeleteAsync(Claims, new string[] { u.Id });
+                    await repository.DeleteAsync(Claims, new string[] { u.Id }, delete);
                 }
                 else if (value is GXScheduleGroup sg)
                 {
                     IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { sg.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { sg.Id }, delete);
                 }
                 else if (value is GXSchedule s)
                 {
                     IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-                    await repository.DeleteAsync(Claims, new Guid[] { s.Id });
+                    await repository.DeleteAsync(Claims, new Guid[] { s.Id }, delete);
                 }
                 else if (value is GXUserError ue)
                 {
@@ -695,9 +695,9 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <inheritdoc cref="IGXAmi.Remove"/>
-        public void Remove(object value)
+        public void Remove(object value, bool delete)
         {
-            RemoveAsync(value).Wait();
+            RemoveAsync(value, delete).Wait();
         }
 
         /// <inheritdoc cref="IGXAmi.Update"/>

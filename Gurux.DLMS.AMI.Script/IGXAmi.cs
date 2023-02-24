@@ -114,13 +114,15 @@ namespace Gurux.DLMS.AMI.Script
         /// Remove value from the database.
         /// </summary>
         /// <param name="value">Removed value.</param>
-        Task RemoveAsync(object value);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        Task RemoveAsync(object value, bool delete);
 
         /// <summary>
         /// Remove value from the database.
         /// </summary>
         /// <param name="value">Removed value.</param>
-        void Remove(object value);
+        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        void Remove(object value, bool delete);
 
         /// <summary>
         /// Clear values from the database.
