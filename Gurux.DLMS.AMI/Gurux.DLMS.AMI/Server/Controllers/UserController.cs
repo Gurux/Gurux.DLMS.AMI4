@@ -66,15 +66,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _cancellationToken = applicationLifetime.ApplicationStopping;
         }
         /// <summary>
-        /// Get user information.
+        /// Get current user information.
         /// </summary>
-        /// <returns>User information.</returns>
+        /// <returns>Current user information.</returns>
         [HttpGet]
         [Authorize(Policy = GXUserPolicies.View)]
-        public async Task<ActionResult<GXUser>> Get()
+        public async Task<ActionResult<GetUserResponse>> Get()
         {
-            return await _userRepository.ReadAsync(User, null);
+            return new GetUserResponse()
+            {
+                Item = await _userRepository.ReadAsync(User, null)
+            };
         }
+
         /// <summary>
         /// Get user information.
         /// </summary>
@@ -82,9 +86,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>User information.</returns>
         [HttpGet("{id}")]
         [Authorize(Policy = GXUserPolicies.View)]
-        public async Task<ActionResult<GXUser>> Get(string id)
+        public async Task<ActionResult<GetUserResponse>> Get(string id)
         {
-            return await _userRepository.ReadAsync(User, id);
+            return new GetUserResponse()
+            {
+                Item = await _userRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -119,7 +126,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXUserPolicies.View)]
         public async Task<ActionResult<ListUsersResponse>> Post(
-            ListUsers request, 
+            ListUsers request,
             CancellationToken cancellationToken)
         {
             ListUsersResponse ret = new ListUsersResponse();
@@ -135,7 +142,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest("Access not allowed.");
             }
-            await _userRepository.DeleteAsync(User, request.Ids);
+            await _userRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveUserResponse();
         }
     }

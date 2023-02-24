@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Agent Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Agent Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Agent Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -39,7 +39,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
-using Org.BouncyCastle.Ocsp;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -73,7 +73,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXUserSetting> list = _host.Connection.Select<GXUserSetting>(arg);
             foreach (GXUserSetting it in list)
             {
-                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserSetting>(it));
+                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserSetting>(it.Id));
             }
             await _eventsNotifier.UserSettingDelete(new string[] { user.Id }, list);
         }
@@ -129,7 +129,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task UpdateAsync(
             ClaimsPrincipal User,
-            IEnumerable<GXUserSetting> settings)
+            IEnumerable<GXUserSetting> settings,
+            Expression<Func<GXUserSetting, object?>>? columns)
         {
             GXUser user = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             DateTime now = DateTime.Now;
@@ -160,7 +161,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXUserSetting>(q => new { q.CreationTime, q.User });
                     _host.Connection.Update(args);
                 }

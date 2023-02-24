@@ -4,6 +4,7 @@
 @if (Target != null && Target.Attributes.Any())
 {
     <CascadingValue Value="this">
+        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
         <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
         @ChildContent

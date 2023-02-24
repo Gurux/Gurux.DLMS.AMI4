@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux DeviceTemplate Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux DeviceTemplate Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux DeviceTemplate Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -41,10 +41,11 @@ using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
-    /// <inheritdoc cref="IDeviceTemplateGroupRepository"/>
+    /// <inheritdoc />
     public class DeviceTemplateGroupRepository : IDeviceTemplateGroupRepository
     {
         private readonly IGXHost _host;
@@ -183,10 +184,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return list;
         }
 
-        /// <inheritdoc cref="IDeviceTemplateGroupRepository.DeleteAsync"/>
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> deviceTemplateGrouprs)
+        /// <inheritdoc />
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> deviceTemplateGrouprs,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceTemplateGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceTemplateGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -200,7 +203,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = GetUsers(userId, it.Id, isAdmin);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceTemplateGroup>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -254,7 +264,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return groups;
         }
 
-        /// <inheritdoc cref="IDeviceTemplateGroupRepository.ReadAsync"/>
+        /// <inheritdoc />
         public async Task<GXDeviceTemplateGroup> ReadAsync(
             ClaimsPrincipal user,
             Guid id)
@@ -289,7 +299,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get device templates that belongs for this device template group.
-            arg = GXSelectArgs.SelectAll<GXDeviceTemplate>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXDeviceTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(j => j.DeviceTemplateId, j => j.Id);
             arg.Where.And<GXDeviceTemplateGroupDeviceTemplate>(q => q.Removed == null && q.DeviceTemplateGroupId == id);
@@ -297,7 +307,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this device template group.
-            arg = GXSelectArgs.SelectAll<GXUserGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupDeviceTemplateGroup>(q => q.Removed == null && q.DeviceTemplateGroupId == id);
@@ -305,8 +315,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
-        /// <inheritdoc cref="IDeviceTemplateGroupRepository.UpdateAsync"/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXDeviceTemplateGroup> DeviceTemplateGroups)
+        /// <inheritdoc />
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User,
+            IEnumerable<GXDeviceTemplateGroup> DeviceTemplateGroups,
+            Expression<Func<GXDeviceTemplateGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             bool isAdmin = true;
@@ -358,7 +371,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXDeviceTemplateGroup>(e => e.UserGroups);
                     args.Exclude<GXDeviceTemplateGroup>(q => new { q.CreationTime, q.UserGroups, q.DeviceTemplates });
                     _host.Connection.Update(args);

@@ -241,9 +241,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplateGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplateGroupsResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the device template groups.
             if (Count != 0)
@@ -283,10 +281,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New device template group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.DeviceTemplateGroups, new GXDeviceTemplateGroup());
+            Notifier.UpdateData(GXPages.DeviceTemplateGroups, new GXDeviceTemplateGroup(""));
             NavigationManager.NavigateTo("/devicetemplategrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

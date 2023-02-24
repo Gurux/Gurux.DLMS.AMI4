@@ -243,9 +243,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceGroupsResponse>();
+            var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the block groups.
             if (Count != 0)
@@ -286,10 +284,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New device group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.DeviceGroups, new GXDeviceGroup());
+            Notifier.UpdateData(GXPages.DeviceGroups, new GXDeviceGroup(""));
             NavigationManager.NavigateTo("/devicegrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

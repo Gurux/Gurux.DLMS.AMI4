@@ -61,9 +61,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Script information.</returns>
         [HttpGet]
         [Authorize(Policy = GXScriptPolicies.View)]
-        public async Task<ActionResult<GXScript>> Get(Guid id)
+        public async Task<ActionResult<GetScriptResponse>> Get(Guid id)
         {
-            return await _scriptrRepository.ReadAsync(User, id);
+            return new GetScriptResponse()
+            {
+                Item = await _scriptrRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -72,7 +75,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXScriptPolicies.View)]
         public async Task<ActionResult<ListScriptsResponse>> Post(
-            ListScripts request, 
+            ListScripts request,
             CancellationToken cancellationToken)
         {
             ListScriptsResponse ret = new ListScriptsResponse();
@@ -101,14 +104,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXScriptPolicies.Delete)]
-        public async Task<ActionResult<DeleteScriptResponse>> Post(DeleteScript request)
+        public async Task<ActionResult<RemoveScriptResponse>> Post(RemoveScript request)
         {
-            if (request.ScriptIds == null || request.ScriptIds.Length == 0)
+            if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _scriptrRepository.DeleteAsync(User, request.ScriptIds);
-            return new DeleteScriptResponse();
+            await _scriptrRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveScriptResponse();
         }
 
         /// <summary>

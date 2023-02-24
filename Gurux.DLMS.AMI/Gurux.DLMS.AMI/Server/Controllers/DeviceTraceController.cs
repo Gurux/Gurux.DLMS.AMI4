@@ -63,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Device trace.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceTracePolicies.View)]
-        public async Task<ActionResult<GXDeviceTrace>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceTrace>> Get(Guid id)
         {
-            return await _deviceTraceRepository.ReadAsync(User, id);
+            return new GetDeviceTrace()
+            {
+                Item = await _deviceTraceRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -74,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXDeviceTracePolicies.View)]
         public async Task<ActionResult<ListDeviceTraceResponse>> Post(
-            ListDeviceTrace request, 
+            ListDeviceTrace request,
             CancellationToken cancellationToken)
         {
             ListDeviceTraceResponse ret = new ListDeviceTraceResponse();

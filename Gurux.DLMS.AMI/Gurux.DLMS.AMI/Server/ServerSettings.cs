@@ -1,3 +1,35 @@
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
@@ -25,6 +57,12 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared;
 using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
+using System.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
+using System;
+using AutoMapper.Internal;
+using System.Collections.Generic;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -455,7 +493,9 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IDeviceRepository, DeviceRepository>();
             services.AddTransient<IDeviceErrorRepository, DeviceErrorRepository>();
             services.AddTransient<IObjectRepository, ObjectRepository>();
+            services.AddTransient<IObjectTemplateRepository, ObjectTemplateRepository>();
             services.AddTransient<IAttributeRepository, AttributeRepository>();
+            services.AddTransient<IAttributeTemplateRepository, AttributeTemplateRepository>();
             services.AddTransient<IValueRepository, ValueRepository>();
             services.AddTransient<IDeviceGroupRepository, DeviceGroupRepository>();
             services.AddTransient<IScheduleGroupRepository, ScheduleGroupRepository>();
@@ -555,7 +595,7 @@ namespace Gurux.DLMS.AMI.Server
         /// Connect to the database.
         /// </summary>
         /// <param name="builder"></param>
-        internal static IGXHost ConnectToDb(WebApplicationBuilder builder)
+        internal static IGXHost ConnectToDb(WebApplicationBuilder builder, ILogger<GXConfiguration> logger)
         {
             // Add services to the container.
             DatabaseOptions db = builder.Configuration.GetSection("Database").Get<DatabaseOptions>();
@@ -564,12 +604,12 @@ namespace Gurux.DLMS.AMI.Server
             bool disabled = db.Disabled;
             if (disabled)
             {
-                Console.WriteLine("Database service is disabled.");
+                logger.LogInformation("Database service is disabled.");
             }
             else
             {
-                Console.WriteLine("Database type: " + type);
-                Console.WriteLine("Connecting: " + settings);
+                logger.LogDebug("Database type: " + type);
+                logger.LogDebug("Connecting: " + settings);
             }
             int connectionCount;
             List<DbConnection> connections = new List<DbConnection>();
@@ -590,6 +630,7 @@ namespace Gurux.DLMS.AMI.Server
             else if (string.Compare(type, "MSSQL", true) == 0)
             {
                 connection = new SqlConnection(settings);
+
                 connectionCount = GetConnectionPoolSize(new GXDbConnection(connection, null));
                 for (int pos = 0; pos != connectionCount; ++pos)
                 {
@@ -669,6 +710,22 @@ namespace Gurux.DLMS.AMI.Server
                 {
                     //Is admin added.
                     AdminAdded = host.Connection.SingleOrDefault<int>(GXSelectArgs.Select<GXUser>(q => GXSql.Count(q))) != 0;
+                    //LastRead, LastWrite and LastAction added for GXAttribute, GXObject and GXDevice.
+                    host.Connection.UpdateTable<GXAttribute>();
+                    host.Connection.UpdateTable<GXObject>();
+                    host.Connection.UpdateTable<GXDevice>();
+                    host.Connection.UpdateTable<GXValue>();
+                    host.Connection.UpdateTable<GXAttributeTemplate>();
+                    /*
+                    if (!host.Connection.TableExist<GXObjectError>())
+                    {
+                        host.Connection.CreateTable<GXObjectError>();
+                    }
+                    if (!host.Connection.TableExist<GXAttributeError>())
+                    {
+                        host.Connection.CreateTable<GXAttributeError>();
+                    }
+                    */
                 }
             }
             else
@@ -698,6 +755,10 @@ namespace Gurux.DLMS.AMI.Server
                 arg = GXSelectArgs.SelectAll<GXRole>();
                 arg.Joins.AddInnerJoin<GXRole, GXUserRole>(a => a.Id, b => b.RoleId);
                 arg.Where.And<GXUserRole>(where => where.UserId == admin.Id);
+                if (admin.Roles == null)
+                {
+                    admin.Roles = new List<string>();
+                }
                 admin.Roles.AddRange(host.Connection.Select<GXRole>(arg).Select(s => s.Name).ToList());
                 return CreateClaimsPrincipalFromUser(admin);
             }

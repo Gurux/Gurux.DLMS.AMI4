@@ -81,7 +81,7 @@
                 //Get device error data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceAction?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXDeviceAction>();
+                _active = (await response.Content.ReadFromJsonAsync<GetDeviceActionResponse>()).Item;
             }
             Notifier.ChangePage(GXPages.DeviceAction, _active);
         }

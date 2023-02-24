@@ -762,4 +762,31 @@
   <data name="UpgradeableModules" xml:space="preserve">
     <value>Upgradeable modules</value>
   </data>
+  <data name="AgentTokenCreateSucceeded" xml:space="preserve">
+    <value>You have successfully added a new agent access token. Copy the token now!</value>
+  </data>
+  <data name="LastRead" xml:space="preserve">
+    <value>Last read</value>
+  </data>
+  <data name="LastWrite" xml:space="preserve">
+    <value>Last write</value>
+  </data>
+  <data name="LastAction" xml:space="preserve">
+    <value>Last action</value>
+  </data>
+  <data name="LastError" xml:space="preserve">
+    <value>Last error</value>
+  </data>
+  <data name="FilterByObjectType" xml:space="preserve">
+    <value>Filter by object type...</value>
+  </data>
+  <data name="FilterByLogicalName" xml:space="preserve">
+    <value>Filter by logical name...</value>
+  </data>
+  <data name="TargetDisableQuestion" xml:space="preserve">
+    <value>Disable the target and unpublish its content.</value>
+  </data>
+  <data name="TargetDeleteQuestion" xml:space="preserve">
+    <value>Delete the target and its content. This action cannot be undone.</value>
+  </data>
 </root>

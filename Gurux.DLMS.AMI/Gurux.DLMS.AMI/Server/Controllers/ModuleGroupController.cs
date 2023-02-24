@@ -32,8 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -56,7 +54,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             _ModuleGroupRepository = ModuleGroupRepository;
         }
-     
+
         /// <summary>
         /// Get module group information.
         /// </summary>
@@ -64,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Module group.</returns>
         [HttpGet]
         [Authorize(Policy = GXModuleGroupPolicies.View)]
-        public async Task<ActionResult<GXModuleGroup>> Get(Guid id)
+        public async Task<ActionResult<GetModuleGroupResponse>> Get(Guid id)
         {
-            return await _ModuleGroupRepository.ReadAsync(User, id);
+            return new GetModuleGroupResponse()
+            {
+                Item = await _ModuleGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -78,7 +79,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddModuleGroupResponse>> Post(AddModuleGroup request)
         {
             await _ModuleGroupRepository.UpdateAsync(User, request.ModuleGroups);
-            return new AddModuleGroupResponse() { ModuleGroups = request.ModuleGroups };
+            return new AddModuleGroupResponse()
+            {
+                Ids = request.ModuleGroups.Select(s => s.Id).ToArray()
+            };
         }
 
         /// <summary>
@@ -87,7 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXModuleGroupPolicies.View)]
         public async Task<ActionResult<ListModuleGroupsResponse>> Post(
-            ListModuleGroups request, 
+            ListModuleGroups request,
             CancellationToken cancellationToken)
         {
             ListModuleGroupsResponse ret = new ListModuleGroupsResponse();
@@ -103,7 +107,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _ModuleGroupRepository.DeleteAsync(User, request.Ids);
+            await _ModuleGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveModuleGroupResponse();
         }
     }

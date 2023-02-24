@@ -114,29 +114,29 @@
                     <td>@user.Email</td>
                     <td>@user.EmailConfirmed</td>
                     <td>@RolesToString(user.Roles)</td>
-                    <td>@user.CreationTime.ToShortTimeString()</td>
+                    <td>@user.CreationTime</td>
                     <td>@user.Updated</td>
                     <td>@user.LastLogin</td>
                     <td>@user.AccessFailedCount</td>
                     <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
                         @if (active == user)
                         {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Actions" Icon="oi oi-info" OnClick="async () => OnActions()"></ContextMenuItem>
-                                        <!--TODO:
-                                        <ContextMenuItem Text="@Properties.Resources.Agents" Icon="oi oi-wifi" OnClick="async () => OnAgents()"></ContextMenuItem>
-                                        -->
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
+                                <td>
+                                    <ContextMenuController>
+                                        <ChildContent>
+                                            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
+                                            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
+                                            <ContextMenuItem Text="@Properties.Resources.Actions" Icon="oi oi-info" OnClick="async () => OnActions()"></ContextMenuItem>
+                                            <!--TODO:
+                                            <ContextMenuItem Text="@Properties.Resources.Agents" Icon="oi oi-wifi" OnClick="async () => OnAgents()"></ContextMenuItem>
+                                            -->
+                                        </ChildContent>
+                                    </ContextMenuController>
+                                </td>
                         }
                         else
                         {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
+                                <td>&nbsp;&nbsp;&nbsp;</td>
                         }
                     </AuthorizeView>
                 </tr>
@@ -210,8 +210,12 @@
     /// </summary>
     /// <param name="roles"></param>
     /// <returns></returns>
-    private static string RolesToString(List<string> roles)
+    private static string? RolesToString(List<string>? roles)
     {
+        if (roles == null)
+        {
+            return null;
+        }
         string str = string.Join(',', roles);
         //Truncate if string is too long...
         if (str.Length > 30)
@@ -223,10 +227,13 @@
 
     private void UpdateRoles(string roles)
     {
-        filter.Roles.Clear();
-        if (!string.IsNullOrEmpty(roles))
+        if (filter != null && filter.Roles != null)
         {
-            filter.Roles.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            filter.Roles.Clear();
+            if (!string.IsNullOrEmpty(roles))
+            {
+                filter.Roles.AddRange(roles.Split(',', StringSplitOptions.RemoveEmptyEntries));
+            }
         }
     }
 
@@ -234,10 +241,6 @@
     /// User filter.
     /// </summary>
     private GXUser filter = new GXUser();
-    /// <summary>
-    /// User is verified before schedule is removed.
-    /// </summary>
-    protected ConfirmBase DeleteConfirmation;
     /// <summary>
     /// Virtualize.
     /// </summary>
@@ -341,9 +344,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/User/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListUsersResponse>();
+            var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the users.
             if (Count != 0)
@@ -385,7 +386,7 @@
         {
             Notifier?.ClearStatus();
             Notifier.Title = "New User";
-            Notifier.UpdateData("users", new GXUser());
+            Notifier.UpdateData("users", new GXUser(null));
             Notifier.Action = CrudAction.Create;
             NavigationManager.NavigateTo("/usertab");
         }

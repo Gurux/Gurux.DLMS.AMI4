@@ -244,9 +244,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentView/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListComponentViewsResponse>();
+            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the block groups.
             if (Count != 0)
@@ -288,9 +286,7 @@
         {
             Notifier?.ClearStatus();
             RefreshComponentView req = new RefreshComponentView();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentView/Refresh", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<RefreshComponentViewResponse>();
+            var ret = await Http.PostAsJson<RefreshComponentViewResponse>("api/ComponentView/Refresh", req);
             if (ret.NewItems)
             {
                 Updated();

@@ -85,9 +85,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !blockGroups.Any();
             Notifier.ChangePage(GXPages.BlockGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/BlockGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListBlockGroupsResponse>();
+            var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);
             foreach (GXBlockGroup it in ret.BlockGroups)
             {
                 //Add default groups when new block is created.

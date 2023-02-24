@@ -203,7 +203,7 @@
         return str;
     }
 
-    private GXTask[]? tasks = null;
+    private GXTask[]? _tasks = null;
 
     /// <summary>
     /// Selected item.
@@ -261,43 +261,42 @@
     }
 
     /// <summary>
-    /// Agent status has changed.
+    /// Task status has changed.
     /// </summary>
     /// <param name="list">Changed tasks.</param>
     protected async Task StateChanged(IEnumerable<GXTask> list)
     {
         try
         {
-            if (tasks != null)
+            bool updated = false;
+            if (_tasks != null)
             {
-                foreach (var task in list)
+                foreach (var it in list)
                 {
-                    foreach (var it in tasks)
+                    GXTask? task = _tasks.Where(w => w.Id == it.Id).SingleOrDefault();
+                    if (task != null)
                     {
-                        if (it.Id == task.Id)
+                        updated = true;
+                        if (it.Start != null)
                         {
-                            if (task.Start != null)
-                            {
-                                it.Start = task.Start;
-                            }
-                            if (task.Ready != null)
-                            {
-                                it.Ready = task.Ready;
-                            }
-                            if (task.Result != null)
-                            {
-                                it.Result = task.Result;
-                            }
-                            break;
+                            task.Start = it.Start;
+                        }
+                        if (it.Ready != null)
+                        {
+                            task.Ready = it.Ready;
+                            task.Result = it.Result;
                         }
                     }
                 }
-                StateHasChanged();
+            }
+            if (updated)
+            {
+                StateHasChanged();                
             }
         }
         catch (Exception)
         {
-            tasks = null;
+            _tasks = null;
             if (virtualize != null)
             {
                 Notifier?.ClearStatus();
@@ -357,22 +356,20 @@
         Notifier?.ProgressStart();
         try
         {
-            tasks = null;
+            _tasks = null;
             ListTasks req = new ListTasks() { Index = request.StartIndex, Count = request.Count, Filter = filter };
             if (Count != 0)
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListTasksResponse>();
+            var ret = await Http.PostAsJson<ListTasksResponse>("api/Task/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the tasks.
             if (Count != 0)
             {
                 ret.Count = Count;
             }
-            tasks = ret.Tasks;
+            _tasks = ret.Tasks;
             return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
         }
         catch (TaskCanceledException)
@@ -431,11 +428,8 @@
                     throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
                 }
                 req.Ids = new Guid[] { _active.Id };
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Delete", req))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<DeleteTaskResponse>("api/Task/Delete", req);
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -458,11 +452,8 @@
             if (confirm)
             {
                 ClearTask req = new ClearTask();
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Clear", req))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearTaskResponse>("api/Task/Clear", req);
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

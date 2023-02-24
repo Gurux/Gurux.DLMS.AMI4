@@ -77,9 +77,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !deviceTemplateGroups.Any();
             Notifier.ChangePage(GXPages.DeviceTemplateGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplateGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplateGroupsResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req);
             foreach (GXDeviceTemplateGroup it in ret.DeviceTemplateGroups)
             {
                 //Add default groups when new device template is created.

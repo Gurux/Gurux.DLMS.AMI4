@@ -85,9 +85,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !componentViewGroups.Any();
             Notifier.ChangePage(GXPages.ComponentViewGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentViewGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListComponentViewGroupsResponse>();
+            var ret = await Http.PostAsJson<ListComponentViewGroupsResponse>("api/ComponentViewGroup/List", req);
             foreach (GXComponentViewGroup it in ret.ComponentViewGroups)
             {
                 //Add default groups when new workflow is created.

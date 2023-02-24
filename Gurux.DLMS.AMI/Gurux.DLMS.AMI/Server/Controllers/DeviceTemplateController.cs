@@ -32,7 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -81,9 +80,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Device template information.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceTemplatePolicies.View)]
-        public async Task<ActionResult<GXDeviceTemplate>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceTemplateResponse>> Get(Guid id)
         {
-            return await _deviceTemplateRepository.ReadAsync(User, id);
+            return new GetDeviceTemplateResponse()
+            {
+                Item = await _deviceTemplateRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -94,7 +96,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXDeviceTemplatePolicies.View)]
         public async Task<ActionResult<ListDeviceTemplatesResponse>> Post(
-            ListDeviceTemplates request, 
+            ListDeviceTemplates request,
             CancellationToken cancellationToken)
         {
             ListDeviceTemplatesResponse ret = new ListDeviceTemplatesResponse();
@@ -107,14 +109,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXDeviceTemplatePolicies.Delete)]
-        public async Task<ActionResult<DeviceTemplateDeleteResponse>> Post(DeviceTemplateDelete request)
+        public async Task<ActionResult<RemoveDeviceTemplateResponse>> Post(RemoveDeviceTemplate request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _deviceTemplateRepository.DeleteAsync(User, request.Ids);
-            return new DeviceTemplateDeleteResponse();
+            await _deviceTemplateRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveDeviceTemplateResponse();
         }
     }
 }

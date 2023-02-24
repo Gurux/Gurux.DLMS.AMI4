@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using System.Data;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -51,6 +52,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IServiceProvider _serviceProvider;
         private readonly IDeviceGroupRepository _deviceGroupRepository;
         private readonly IUserRepository _userRepository;
+        private GXPerformanceSettings _performanceSettings;
 
         /// <summary>
         /// Constructor.
@@ -60,13 +62,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IServiceProvider serviceProvider,
             IDeviceGroupRepository deviceGroupRepository,
             IGXEventsNotifier eventsNotifier,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _serviceProvider = serviceProvider;
             _eventsNotifier = eventsNotifier;
             _deviceGroupRepository = deviceGroupRepository;
             _userRepository = userRepository;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
@@ -100,9 +104,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> devices)
+        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> devices,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -115,7 +120,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDevice>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -142,9 +154,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetDevicesByUser(userId, Guid.Empty);
             }
-            arg.Columns.Add<GXDeviceTemplate>();
-            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
-            arg.Where.And<GXDeviceTemplate>(w => w.Removed == null);
+            if (request != null && (request.Select & TargetType.DeviceTemplate) != 0)
+            {
+                arg.Columns.Add<GXDeviceTemplate>();
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
+                arg.Where.And<GXDeviceTemplate>(w => w.Removed == null);
+            }
+            arg.Columns.Exclude<GXDevice>(e => new { e.Settings, e.MediaSettings });
             if (request != null && request.Filter != null)
             {
                 arg.Where.FilterBy(request.Filter);
@@ -166,6 +182,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.OrderBy.Add<GXDevice>(q => q.CreationTime);
             GXDevice[] devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
+            //Empty non needed values.
+            foreach (var it in devices)
+            {
+                it.Actions = null;
+                it.DeviceGroups = null;
+                it.Errors = null;
+                it.Objects = null;
+                it.Parameters = null;
+                it.Tasks = null;
+                it.Traces = null;
+            }
+
             if (response != null)
             {
                 response.Devices = devices;
@@ -186,7 +214,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSelectArgs arg = GXQuery.GetDevicesByUser(userId, id);
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             arg.Columns.Add<GXDeviceTemplate>();
-            arg.Columns.Add<GXDeviceGroup>();
+            arg.Columns.Add<GXDeviceGroup>(s => new { s.Id, s.Name });
             arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
             arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
@@ -198,7 +226,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg);
             if (device == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get device parameters.
             arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
@@ -213,7 +241,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
             IEnumerable<GXDevice> devices,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Expression<Func<GXDevice, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
@@ -226,7 +255,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 foreach (GXDevice device in devices)
                 {
                     bool newDevice = device.Id == Guid.Empty;
-                    if (string.IsNullOrEmpty(device.Name))
+                    if (string.IsNullOrEmpty(device.Name) && (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.Name))))
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
                     }
@@ -305,57 +334,78 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     else
                     {
-                        if (device.DeviceGroups == null || !device.DeviceGroups.Any())
+                        if ((device.DeviceGroups == null || !device.DeviceGroups.Any()) &&
+                            (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups))))
                         {
                             throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                         }
                         device.Updated = DateTime.Now;
-                        GXUpdateArgs args = GXUpdateArgs.Update(device);
+                        GXUpdateArgs args = GXUpdateArgs.Update(device, columns);
                         args.Exclude<GXDevice>(q => new { q.CreationTime, q.DeviceGroups, device.Type, q.Parameters, q.Template, q.Creator });
                         _host.Connection.Update(args);
                         {
                             //Update device parameters.
-                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
-                            var deviceParameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
-                            var comparer = new UniqueComparer<GXDeviceParameter, Guid>();
-                            List<GXDeviceParameter> removedDeviceParameters = deviceParameters.Except(device.Parameters, comparer).ToList();
-                            List<GXDeviceParameter> addedDeviceGroupParameters = device.Parameters.Except(deviceParameters, comparer).ToList();
-                            List<GXDeviceParameter> updatedDeviceGroupParameters = device.Parameters.Union(deviceParameters, comparer).ToList();
-                            if (removedDeviceParameters.Any())
+                            if (device.Parameters == null)
                             {
-                                RemoveDeviceParameters(device, removedDeviceParameters);
-                            }
-                            if (addedDeviceGroupParameters.Any())
-                            {
-                                await AddDeviceParameters(transaction, device, addedDeviceGroupParameters, cancellationToken);
-                            }
-                            if (updatedDeviceGroupParameters.Any())
-                            {
-                                foreach (var it in updatedDeviceGroupParameters)
+                                if (ServerHelpers.Contains(columns, nameof(GXDevice.Parameters)))
                                 {
-                                    GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
-                                    await _host.Connection.UpdateAsync(u);
+                                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                                }
+                            }
+                            else
+                            {
+                                GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
+                                var deviceParameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
+                                var comparer = new UniqueComparer<GXDeviceParameter, Guid>();
+                                List<GXDeviceParameter> removedDeviceParameters = deviceParameters.Except(device.Parameters, comparer).ToList();
+                                List<GXDeviceParameter> addedDeviceGroupParameters = device.Parameters.Except(deviceParameters, comparer).ToList();
+                                List<GXDeviceParameter> updatedDeviceGroupParameters = device.Parameters.Union(deviceParameters, comparer).ToList();
+                                if (removedDeviceParameters.Any())
+                                {
+                                    RemoveDeviceParameters(device, removedDeviceParameters);
+                                }
+                                if (addedDeviceGroupParameters.Any())
+                                {
+                                    await AddDeviceParameters(transaction, device, addedDeviceGroupParameters, cancellationToken);
+                                }
+                                if (updatedDeviceGroupParameters.Any())
+                                {
+                                    foreach (var it in updatedDeviceGroupParameters)
+                                    {
+                                        GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
+                                        await _host.Connection.UpdateAsync(u);
+                                    }
                                 }
                             }
                         }
                         //Map device groups to device.
                         {
-                            List<GXDeviceGroup> deviceGroups;
-                            using (IServiceScope scope = _serviceProvider.CreateScope())
-                            {
-                                IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                                deviceGroups = await deviceGroupRepository.GetDeviceGroupsByDeviceId(User, device.Id);
-                            }
                             var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
-                            List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(device.DeviceGroups, comparer).ToList();
-                            List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups, comparer).ToList();
-                            if (removedDeviceGroups.Any())
+                            if (device.DeviceGroups == null)
                             {
-                                RemoveDevicesFromDeviceGroup(device.Id, removedDeviceGroups);
+                                if (ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups)))
+                                {
+                                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                                }
                             }
-                            if (addedDeviceGroups.Any())
+                            else
                             {
-                                await AddDeviceToDeviceGroups(transaction, device.Id, addedDeviceGroups, cancellationToken);
+                                List<GXDeviceGroup> deviceGroups;
+                                using (IServiceScope scope = _serviceProvider.CreateScope())
+                                {
+                                    IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
+                                    deviceGroups = await deviceGroupRepository.GetDeviceGroupsByDeviceId(User, device.Id);
+                                }
+                                List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(device.DeviceGroups, comparer).ToList();
+                                List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups, comparer).ToList();
+                                if (removedDeviceGroups.Any())
+                                {
+                                    RemoveDevicesFromDeviceGroup(device.Id, removedDeviceGroups);
+                                }
+                                if (addedDeviceGroups.Any())
+                                {
+                                    await AddDeviceToDeviceGroups(transaction, device.Id, addedDeviceGroups, cancellationToken);
+                                }
                             }
                         }
                         updates[device] = await GetUsersAsync(User, device.Id);
@@ -428,16 +478,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="parameters">Added device parameters.</param>
         public Task AddDeviceParameters(IDbTransaction transaction,
             GXDevice device,
-            IEnumerable<GXDeviceParameter> parameters,
+            IEnumerable<GXDeviceParameter>? parameters,
             CancellationToken cancellationToken)
         {
-            DateTime now = DateTime.Now;
-            foreach (GXDeviceParameter it in parameters)
+            if (parameters != null)
             {
-                it.CreationTime = now;
-                it.Device = device;
+                DateTime now = DateTime.Now;
+                foreach (GXDeviceParameter it in parameters)
+                {
+                    it.CreationTime = now;
+                    it.Device = device;
+                }
+                return _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(parameters), cancellationToken);
             }
-            return _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(parameters), cancellationToken);
+            return Task.CompletedTask;
         }
 
         /// <summary>

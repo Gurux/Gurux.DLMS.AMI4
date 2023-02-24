@@ -182,10 +182,7 @@
     /// <summary>
     /// Script log filter.
     /// </summary>
-    private GXScriptLog filter = new GXScriptLog()
-        {
-            Level = null
-        };
+    private GXScriptLog filter = new GXScriptLog();
     /// <summary>
     /// User is verified before script logs are cleared.
     /// </summary>
@@ -304,19 +301,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScriptLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListScriptLogsResponse>("api/ScriptLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the script logs.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListScriptLogsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the script logs.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXScriptLog>(ret.Logs, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXScriptLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -383,11 +375,7 @@
             Notifier?.ClearStatus();
             CloseScriptLog arg = new CloseScriptLog();
             arg.Logs = new Guid[] { (_selected as GXScriptLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScriptLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseScriptLogResponse>();
-            }
+            await Http.PostAsJson<CloseScriptLogResponse>("api/ScriptLog/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -428,11 +416,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScriptLog/Clear", new ClearScriptLogs()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearScriptLogsResponse>("api/ScriptLog/Clear", new ClearScriptLogs());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

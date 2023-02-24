@@ -40,8 +40,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Client.Shared;
-using System.Threading;
-using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -105,7 +104,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(
             ClaimsPrincipal User,
-            IEnumerable<Guid> workflows)
+            IEnumerable<Guid> workflows,
+            bool delete)
         {
             if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.WorkflowManager))
             {
@@ -119,7 +119,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 _workflowHandler.Delete(workflow);
                 workflow.Removed = now;
-                _host.Connection.Update(GXUpdateArgs.Update(workflow, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXWorkflow>(workflow.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(workflow, q => q.Removed));
+                }
                 updates[workflow] = await GetUsersAsync(User, workflow.Id);
             }
             foreach (var it in updates)
@@ -179,7 +186,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
             arg.Joins.AddInnerJoin<GXWorkflow, GXUser>(j => j.Creator, j => j.Id);
 
-            GXWorkflow[] workflows = (await _host.Connection.SelectAsync<GXWorkflow>(arg)).ToArray();            
+            GXWorkflow[] workflows = (await _host.Connection.SelectAsync<GXWorkflow>(arg)).ToArray();
             if (response != null)
             {
                 response.Workflows = workflows;
@@ -239,8 +246,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
-            IEnumerable<GXWorkflow> workflows)
+            ClaimsPrincipal User,
+            IEnumerable<GXWorkflow> workflows,
+            Expression<Func<GXWorkflow, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new();
@@ -286,7 +294,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     workflow.Updated = now;
                     workflow.ConcurrencyStamp = Guid.NewGuid().ToString();
                     List<string> users = await GetUsersAsync(User, workflow.Id);
-                    GXUpdateArgs args = GXUpdateArgs.Update(workflow);
+                    GXUpdateArgs args = GXUpdateArgs.Update(workflow, columns);
                     args.Exclude<GXWorkflow>(q => new { q.CreationTime, q.WorkflowGroups, q.ScriptMethods, q.Creator });
                     _host.Connection.Update(args);
                     //Map workflow groups to workflow.

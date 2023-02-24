@@ -200,9 +200,7 @@
         try
         {
             ListModules req = new ListModules() { Index = request.StartIndex, Count = request.Count, Filter = filter };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListModulesResponse>();
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the modules.
             return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
@@ -241,10 +239,8 @@
         try
         {
             UpdateModule req = new UpdateModule() { Module = _active };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/Install", req);
-            ClientHelpers.ValidateStatusCode(response);
-            UpdateModuleResponse? ret = await response.Content.ReadFromJsonAsync<UpdateModuleResponse>();
-            if (ret != null && RestartConfirmation != null && ret.Restart)
+            var ret = await Http.PostAsJson<UpdateModuleResponse>("api/Module/Install", req);
+            if (RestartConfirmation != null && ret.Restart)
             {
                 RestartConfirmation.Show();
             }
@@ -296,8 +292,7 @@
             if (confirm)
             {
                 StopApplicationRequest req = new StopApplicationRequest();
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Restart", req);
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson("api/Configuration/Restart", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)

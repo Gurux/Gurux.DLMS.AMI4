@@ -418,7 +418,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                     module.Active = false;
                     module.Updated = DateTime.Now;
                     host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Active, c.Updated }));
-                    var error = new GXModuleLog()
+                    var error = new GXModuleLog(TraceLevel.Error)
                     {
                         CreationTime = DateTime.Now,
                         Message = "Failed to load module. " + module.Class + Environment.NewLine +
@@ -513,7 +513,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                     GXModule module = new GXModule() { Id = it.Name };
                     module.Active = false;
                     host.Connection.Update(GXUpdateArgs.Update(module, c => c.Active));
-                    var error = new GXModuleLog()
+                    var error = new GXModuleLog(TraceLevel.Error)
                     {
                         CreationTime = DateTime.Now,
                         Message = string.Format("Failed to start module '{0}'. {1}", it.Name, ex.Message)
@@ -780,7 +780,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                 module.Active = false;
                 module.Updated = DateTime.Now;
                 _host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Active, c.Updated }));
-                var error = new GXModuleLog()
+                var error = new GXModuleLog(TraceLevel.Error)
                 {
                     CreationTime = DateTime.Now,
                     Message = "Failed to enable module. " + module.Class + Environment.NewLine +
@@ -820,7 +820,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                 module.Active = false;
                 module.Updated = DateTime.Now;
                 _host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Active, c.Updated }));
-                var error = new GXModuleLog()
+                var error = new GXModuleLog(TraceLevel.Error)
                 {
                     CreationTime = DateTime.Now,
                     Message = "Failed to disable module. " + module.Class + Environment.NewLine +
@@ -859,7 +859,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                 module.Active = false;
                 module.Updated = DateTime.Now;
                 _host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Active, c.Updated }));
-                var error = new GXModuleLog()
+                var error = new GXModuleLog(TraceLevel.Error)
                 {
                     CreationTime = DateTime.Now,
                     Message = "Failed to disable module. " + module.Class + Environment.NewLine +

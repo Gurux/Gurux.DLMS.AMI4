@@ -37,6 +37,14 @@
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                            @bind-Value="_scheduleGroup.Description" />
                 </div>
+                @if (_scheduleGroup.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_scheduleGroup.CreationTime" />
+                    </div>
+                }
                 @if (_scheduleGroup.Updated != null)
                 {
                     <div class="form-group">
@@ -45,12 +53,37 @@
                            @bind-Value="_scheduleGroup.Updated" />
                     </div>
                 }
+                @if (_scheduleGroup.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_scheduleGroup.Removed" />
+                    </div>
+                }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
 @code {
-
+    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -114,7 +147,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get schedule group data.
-                _scheduleGroup = await Http.GetFromJsonAsync<GXScheduleGroup>(string.Format("api/ScheduleGroup?id={0}", _scheduleGroup.Id));
+                _scheduleGroup = (await Http.GetFromJsonAsync<GetScheduleGroupResponse>(string.Format("api/ScheduleGroup?id={0}", _scheduleGroup.Id))).Item;
                 Notifier.UpdateData(GXPages.ScheduleGroups, _scheduleGroup);
                 _scheduleGroup.Modified = true;
                 StateHasChanged();
@@ -147,9 +180,11 @@
             Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleGroup/Delete", new RemoveScheduleGroup() { Ids = new Guid[] { _scheduleGroup.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<RemoveScheduleGroupResponse>();
+                await Http.PostAsJson<RemoveScheduleGroupResponse>("api/ScheduleGroup/Delete", new RemoveScheduleGroup()
+                    {
+                        Ids = new Guid[] { _scheduleGroup.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -162,9 +197,7 @@
                 {
                     address = "api/ScheduleGroup/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddScheduleGroup() { ScheduleGroups = new GXScheduleGroup[] { _scheduleGroup } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<AddScheduleGroupResponse>();
+                await Http.PostAsJson<AddScheduleGroupResponse>(address, new AddScheduleGroup() { ScheduleGroups = new GXScheduleGroup[] { _scheduleGroup } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

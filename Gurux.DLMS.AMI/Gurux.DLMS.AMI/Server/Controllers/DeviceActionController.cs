@@ -51,8 +51,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// Constructor.
         /// </summary>
         public DeviceActionController(
-            IDeviceActionRepository deviceActionRepository,
-            IHostApplicationLifetime applicationLifetime)
+            IDeviceActionRepository deviceActionRepository)
         {
             _deviceActionRepository = deviceActionRepository;
         }
@@ -64,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Device action.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceActionPolicies.View)]
-        public async Task<ActionResult<GXDeviceAction>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceActionResponse>> Get(Guid id)
         {
-            return await _deviceActionRepository.ReadAsync(User, id);
+            return new GetDeviceActionResponse()
+            {
+                Item = await _deviceActionRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -75,8 +77,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXDeviceActionPolicies.View)]
         public async Task<ActionResult<ListDeviceActionResponse>> Post(
-            ListDeviceAction request, 
-            CancellationToken cancellationToken)
+        ListDeviceAction request,
+        CancellationToken cancellationToken)
         {
             ListDeviceActionResponse ret = new ListDeviceActionResponse();
             await _deviceActionRepository.ListAsync(User, request, ret, cancellationToken);

@@ -77,9 +77,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !triggerGroups.Any();
             Notifier.ChangePage(GXPages.TriggerGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/TriggerGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListTriggerGroupsResponse>();
+            var ret = await Http.PostAsJson<ListTriggerGroupsResponse>("api/TriggerGroup/List", req);
             foreach (GXTriggerGroup it in ret.TriggerGroups)
             {
                 //Add default groups when new trigger is created.

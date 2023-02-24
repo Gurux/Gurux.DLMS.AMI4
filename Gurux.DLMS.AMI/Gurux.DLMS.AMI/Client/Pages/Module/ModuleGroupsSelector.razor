@@ -81,9 +81,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !moduleGroups.Any();
             Notifier.ChangePage(GXPages.ModuleGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ModuleGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListModuleGroupsResponse>();
+            var ret = await Http.PostAsJson<ListModuleGroupsResponse>("api/ModuleGroup/List", req);
             foreach (GXModuleGroup it in ret.ModuleGroups)
             {
                 //Add default groups when new module is created.

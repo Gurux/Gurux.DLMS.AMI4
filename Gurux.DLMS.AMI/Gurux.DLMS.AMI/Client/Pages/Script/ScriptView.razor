@@ -67,11 +67,29 @@
                            @bind-Value="_active.Removed" />
                     </div>
                 }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private bool DeleteTarget;
     private GXScript? _active;
     private string SubmitText = "";
 
@@ -135,7 +153,7 @@
                 //Get script view data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Script?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXScript>();
+                _active = (await response.Content.ReadFromJsonAsync<GetScriptResponse>()).Item;
                 Notifier.UpdateData(GXPages.Scripts, _active);
                 _active.Modified = true;
             }
@@ -169,9 +187,7 @@
                 throw new Exception("No script to execute.");
             }
             ValidateScript req = new ValidateScript() { Script = _active.SourceCode };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/Validate", req);
-            ClientHelpers.ValidateStatusCode(response);
-            ValidateScriptResponse ret = await response.Content.ReadFromJsonAsync<ValidateScriptResponse>();
+            var ret = await Http.PostAsJson<ValidateScriptResponse>("api/Script/Validate", req);
             GXScriptException[]? errors = null;
             if (!string.IsNullOrEmpty(ret.Errors))
             {
@@ -201,15 +217,17 @@
     /// </summary>
     public async void OnSave()
     {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/Delete", new DeleteScript() { ScriptIds = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeleteScriptResponse>();
+                await Http.PostAsJson<RemoveScriptResponse>("api/Script/Delete", new RemoveScript()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -222,12 +240,10 @@
                 {
                     address = "api/Script/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateScript()
+                await Http.PostAsJson<UpdateScriptResponse>(address, new UpdateScript()
                     {
                         Scripts = new List<GXScript>() { _active }
                     });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateScriptResponse>();
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

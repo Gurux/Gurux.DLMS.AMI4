@@ -91,7 +91,7 @@
         <Virtualize @ref="virtualize" Context="schedule" ItemsProvider="@GetItems">
             <ItemContent>
                 <tr class=@(GetSelectedClass(schedule)) @onclick="@(()=>RowSelected(schedule))">
-                    <td>@schedule.Name</td>
+                    <td><a href="@GetPath(schedule)" @onclick="() => OnSelect(schedule)">@schedule.Name</a></td>
                     <td>@schedule.Start</td>
                     <td>@schedule.CreationTime</td>
                     <td>@schedule.Updated</td>
@@ -178,6 +178,34 @@
     {
         get;
         private set;
+    }
+
+
+    //Get schedule path.
+    private string GetPath(GXSchedule target)
+    {
+        return "/scheduletab";
+    }
+
+    //Schedule is selected.
+    private void OnSelect(GXSchedule target)
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Title = "Edit Schedule";
+            Notifier.Action = CrudAction.Update;
+            Notifier.UpdateData(GXPages.Schedules, target);
+            NavigationManager.NavigateTo("/scheduletab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
 
     /// <summary>
@@ -294,9 +322,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Schedule/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListSchedulesResponse>();
+            ListSchedulesResponse ret = await Http.PostAsJson<ListSchedulesResponse>("api/Schedule/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the schedules.
             if (Count != 0)
@@ -369,7 +395,7 @@
             Notifier?.ClearStatus();
             Notifier.Title = "New Schedule";
             Notifier.Action = CrudAction.Create;
-            GXSchedule schedule = new GXSchedule();
+            GXSchedule schedule = new GXSchedule(null);
             schedule.Start = new GXDateTime(-1, -1, -1, 0, 0, 0, 0).ToFormatString();
             Notifier.UpdateData(GXPages.Schedules, schedule);
             NavigationManager.NavigateTo("/scheduletab");
@@ -397,9 +423,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Edit Schedule";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/scheduletab");
+            OnSelect(_active);
         }
         catch (AccessTokenNotAvailableException exception)
         {

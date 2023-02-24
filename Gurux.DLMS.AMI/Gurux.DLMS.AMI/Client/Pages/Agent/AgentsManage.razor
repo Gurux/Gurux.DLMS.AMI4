@@ -190,7 +190,7 @@
     }
 
     private GXAgent[]? agents = null;
-    private GXAgent filter = new GXAgent() { Template = true};
+    private GXAgent filter = new GXAgent() { Template = true };
     //Verify that agant can be removed.
     protected ConfirmBase? DeleteConfirmation;
     //Verify that agent can be updated.
@@ -318,9 +318,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListAgentsResponse>();
+            var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/List", req, request.CancellationToken);
             agents = ret.Agents;
             Total = ret.Count;
             //Get only selected amount of the devices.
@@ -382,11 +380,9 @@
         {
             if (confirm && _active != null)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Delete",
-                    new AgentDelete() { Ids = new Guid[] { _active.Id } }))
-                {
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete",
+                    new RemoveAgent() { Ids = new Guid[] { _active.Id } });
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -417,8 +413,7 @@
                 }
                 _active.UpdateVersion = _active.AvailableVersion;
                 UpdateAgent req = new UpdateAgent() { Agents = new GXAgent[] { _active } };
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/agent/Update", req);
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson<UpdateAgentResponse>("api/agent/Update", req);
             }
             catch (AccessTokenNotAvailableException exception)
             {
@@ -451,8 +446,7 @@
                     agent.UpdateVersion = agent.AvailableVersion;
                 }
                 UpdateAgent req = new UpdateAgent() { Agents = agents };
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/agent/Update", req);
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson<UpdateAgentResponse>("api/agent/Update", req);
             }
             catch (AccessTokenNotAvailableException exception)
             {

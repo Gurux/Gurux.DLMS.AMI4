@@ -82,7 +82,7 @@
             <ItemContent>
                 <tr class=@(GetSelectedClass(template)) @onclick="@(()=>RowSelected(template))">
                     <td>@template.Type</td>
-                    <td>@template.Name</td>
+                    <td><a href="@GetPath(template)" @onclick="() => OnSelect(template)">@template.Name</a></td>
                     <td>@template.CreationTime</td>
                     <td>@template.Updated</td>
                      <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
@@ -189,6 +189,34 @@
     /// </summary>
     bool ShowRemoved;
 
+    //Get device template path.
+    private string GetPath(GXDeviceTemplate target)
+    {
+        return "/deviceTemplatetab";
+    }
+
+    //Device template is selected.
+    private void OnSelect(GXDeviceTemplate target)
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Title = "Edit Device Template";
+            Notifier.Action = CrudAction.Update;
+            Notifier.UpdateData(GXPages.DeviceTemplate, target);
+            Notifier.UpdateData(GXPages.DeviceTemplates, target);
+            NavigationManager.NavigateTo("/deviceTemplatetab");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
     /// <summary>
     /// Update virtualized items.
     /// </summary>
@@ -269,9 +297,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplate/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplatesResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the device templates.
             if (Count != 0)
@@ -311,10 +337,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New Device Template";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.DeviceTemplates, new GXDeviceTemplate());
+            Notifier.UpdateData(GXPages.DeviceTemplates, new GXDeviceTemplate(""));
             NavigationManager.NavigateTo("/deviceTemplatetab");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -339,10 +365,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Edit Device Template";
-            Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData("devicetemplates", _active);
-            NavigationManager.NavigateTo("/deviceTemplatetab");
+            OnSelect(_active);
         }
         catch (AccessTokenNotAvailableException exception)
         {

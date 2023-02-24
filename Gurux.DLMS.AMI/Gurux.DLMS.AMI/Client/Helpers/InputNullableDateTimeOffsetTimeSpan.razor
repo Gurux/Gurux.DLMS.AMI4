@@ -1,0 +1,93 @@
+﻿@using System.Diagnostics.CodeAnalysis
+@using System.Globalization;
+
+@namespace Gurux.DLMS.AMI.Components
+
+@inherits InputBase<DateTimeOffset?>
+
+@inject ILogger<InputNullableDateTimeOffsetTimeSpan> Logger
+
+<input class="@CssClass" disabled="@IsDisabled()"
+       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
+<InputCheckbox @bind-Value="Static" />
+@code {
+
+    private bool _static;
+    private bool Static
+    {
+        get
+        {
+            return _static;
+        }
+        set
+        {
+            if (_static && CurrentValueAsString == "static")
+            {
+                CurrentValue = null;
+            }
+            _static = value;
+            if (_static)
+            {
+                CurrentValue = DateTimeOffset.MaxValue;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private bool IsDisabled()
+    {
+        return Static;
+    }
+
+    protected override bool TryParseValueFromString(string? value,
+        [MaybeNullWhen(false)] out DateTimeOffset? result,
+        [NotNullWhen(false)] out string validationErrorMessage)
+    {
+        validationErrorMessage = "";
+        if (Static)
+        {
+            result = DateTimeOffset.MaxValue;
+        }
+        else
+        {
+            if (value != null)
+            {
+                result = DateTimeOffset.Parse(value);
+            }
+            else
+            {
+                result = null;
+            }
+            if (result.HasValue)
+            {
+                DateTimeOffset tmp = result.Value;
+                if (tmp.Minute == 0 && tmp.Second == 0 && tmp.Hour == 0)
+                {
+                    result = null;
+                }
+            }
+        }
+        return true;
+    }
+
+    protected override string? FormatValueAsString(DateTimeOffset? value)
+    {
+        if (Static)
+        {
+            return "static";
+        }
+        if (value == null)
+        {
+            return "00:00:00";
+        }
+        return BindConverter.FormatValue(value, "HH:mm:ss");
+    }
+
+    protected override void OnInitialized()
+    {
+        if (CurrentValue.HasValue && CurrentValue.Value.Year == DateTimeOffset.MaxValue.Year)
+        {
+            _static = true;
+        }
+    }
+}

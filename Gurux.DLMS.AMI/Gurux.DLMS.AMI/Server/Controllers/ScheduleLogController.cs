@@ -34,9 +34,7 @@ using Microsoft.AspNetCore.Mvc;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Server.Models;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
-using System.Threading;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -64,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Schedule log.</returns>
         [HttpGet]
         [Authorize(Policy = GXScheduleLogPolicies.View)]
-        public async Task<ActionResult<GXScheduleLog>> Get(Guid id)
+        public async Task<ActionResult<GetScheduleLog>> Get(Guid id)
         {
-            return await _scheduleLogRepository.ReadAsync(User, id);
+            return new GetScheduleLog()
+            {
+                Item = await _scheduleLogRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>

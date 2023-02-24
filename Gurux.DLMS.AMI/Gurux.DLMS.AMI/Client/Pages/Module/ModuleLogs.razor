@@ -300,19 +300,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ModuleLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListModuleLogsResponse>("api/ModuleLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the module logs.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListModuleLogsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the module logs.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXModuleLog>(ret.Logs, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXModuleLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -379,11 +374,7 @@
             Notifier?.ClearStatus();
             CloseModuleLog arg = new CloseModuleLog();
             arg.Logs = new Guid[] { (_active as GXModuleLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ModuleLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseModuleLogResponse>();
-            }
+            await Http.PostAsJson<CloseModuleLogResponse>("api/ModuleLog/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -424,11 +415,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ModuleLog/Clear", new ClearModuleLogs()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearModuleLogsResponse>("api/ModuleLog/Clear", new ClearModuleLogs());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

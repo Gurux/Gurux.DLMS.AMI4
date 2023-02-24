@@ -76,9 +76,7 @@
         }
         bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !workflowGroups.Any();
         Notifier.ChangePage(GXPages.WorkflowGroupsSelector, null);
-        HttpResponseMessage response = await Http.PostAsJsonAsync("api/WorkflowGroup/List", req);
-        ClientHelpers.ValidateStatusCode(response);
-        var ret = await response.Content.ReadFromJsonAsync<ListWorkflowGroupsResponse>();
+        var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req);
         foreach (GXWorkflowGroup it in ret.WorkflowGroups)
         {
             //Add default groups when new workflow is created.

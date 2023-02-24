@@ -32,7 +32,6 @@
 
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Hubs;
-using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared;
@@ -154,6 +153,10 @@ namespace Gurux.DLMS.AMI.Services
         public event Action<IEnumerable<GXObjectTemplate>>? OnObjectTemplateUpdate;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXObjectTemplate>>? OnObjectTemplateDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXAttributeTemplate>>? OnAttributeTemplateUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXAttributeTemplate>>? OnAttributeTemplateDelete;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXAgent>>? OnAgentUpdate;
         /// <inheritdoc/>
@@ -728,6 +731,21 @@ namespace Gurux.DLMS.AMI.Services
             OnObjectTemplateUpdate?.Invoke(templates);
             await _hubContext.Clients.Users(users).ObjectTemplateUpdate(templates);
         }
+
+        /// <inheritdoc/>
+        public async Task AttributeTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
+        {
+            OnAttributeTemplateDelete?.Invoke(templates);
+            await _hubContext.Clients.Users(users).AttributeTemplateDelete(templates);
+        }
+
+        /// <inheritdoc/>
+        public async Task AttributeTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
+        {
+            OnAttributeTemplateUpdate?.Invoke(templates);
+            await _hubContext.Clients.Users(users).AttributeTemplateUpdate(templates);
+        }
+
 
         /// <inheritdoc/>
         public async Task ObjectUpdate(IReadOnlyList<string> users, IEnumerable<GXObject> objects)

@@ -181,7 +181,6 @@
     /// </summary>
     private GXScheduleLog filter = new GXScheduleLog()
         {
-            Level = null,
             Schedule = new GXSchedule()
         };
     /// <summary>
@@ -292,18 +291,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListScheduleLogsResponse>("api/ScheduleLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the schedule errors.
+            if (Count != 0)
             {
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListScheduleLogsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the schedule errors.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXScheduleLog>(ret.Logs, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXScheduleLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -370,11 +365,7 @@
             Notifier?.ClearStatus();
             CloseScheduleLog arg = new CloseScheduleLog();
             arg.Logs = new Guid[] { (_active as GXScheduleLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseScheduleLogResponse>();
-            }
+            await Http.PostAsJson<CloseScheduleLogResponse>("api/ScheduleLog/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -415,11 +406,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleLog/Clear", new ClearScheduleLogs()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearScheduleLogsResponse>("api/ScheduleLog/Clear", new ClearScheduleLogs());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

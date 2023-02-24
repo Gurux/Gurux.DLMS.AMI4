@@ -18,6 +18,16 @@
 @inject IGXNotifier Notifier
 @implements IDisposable
 
+<style>
+    .sort-th {
+        cursor: pointer;
+    }
+
+    .fa {
+        float: right;
+    }
+</style>
+
 @if (!string.IsNullOrEmpty(DeviceName))
 {
     <p>
@@ -28,72 +38,143 @@
     <hr />
 }
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-}
 <table class="table table-striped">
     <thead>
         @if (Filter && filter != null && filter.Template != null)
         {
             <tr>
+                <th></th>
                 <th>
                     <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       type="text"
-                       @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+                       type="search"
+                       @oninput="@SearchByName" />
                 </th>
                 <th>
-                    <input class="form-control" placeholder="Filter by logical name..."
-                       type="text"
-                       @onchange="@((ChangeEventArgs __e) => filter.Template.LogicalName = Convert.ToString(__e.Value))" />
+                    <input class="form-control" placeholder="@Properties.Resources.FilterByLogicalName"
+                       @oninput="@SearchByLogicalName" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
+                       type="search"
+                       @oninput="@SearchByObjectType" />
                 </th>
             </tr>
         }
         <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.LogicalName</th>
-            <th>@Properties.Resources.ObjectType</th>
+            <th width="1%">
+                <input type="checkbox"
+                       @onchange="@((ChangeEventArgs __e) => Toggle(@StatusTile.ToBoolean(__e.Value)))"
+                       id="selectAll" />
+            </th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.Name))">@Properties.Resources.Name<span class="@(GetSortIcon(SortColumn.Name))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.LogicalName))">@Properties.Resources.LogicalName<span class="@(GetSortIcon(SortColumn.LogicalName))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.ObjectType))">@Properties.Resources.ObjectType<span class="@(GetSortIcon(SortColumn.ObjectType))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.LastError))">@Properties.Resources.LastError<span class="@(GetSortIcon(SortColumn.LastError))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.LastErrorMessage))">@Properties.Resources.Error<span class="@(GetSortIcon(SortColumn.LastErrorMessage))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.LastRead))">@Properties.Resources.LastRead<span class="@(GetSortIcon(SortColumn.LastRead))"></span></th>
+            <th class="sort-th" @onclick="@(() => SortTable(SortColumn.LastWrite))">@Properties.Resources.LastWrite<span class="@(GetSortIcon(SortColumn.LastWrite))"></span></th>
             <th width="1%"></th>
         </tr>
     </thead>
     <tbody>
-        <Virtualize @ref="virtualize" Context="item" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(item)) @onclick="@(()=>RowSelected(item))">
-                    <td><a href="@GetPath(item)" @onclick="() => OnSelect(item)">@item.Template?.Name</a></td>
-                    <td>@item.Template?.LogicalName</td>
-                    <td>@GetObjectType(item.Template.ObjectType)</td>
-                    @if (_active == item)
-                    {
-                        <td>
-                            <ContextMenuController>
-                                <ChildContent>
-                                    <ContextMenuItem Text="@Properties.Resources.Read" Icon="oi oi-account-logout" OnClick="async () => OnRead()"></ContextMenuItem>
-                                    <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-zoom-in" OnClick="async () => OnShow()"></ContextMenuItem>
-                                </ChildContent>
-                            </ContextMenuController>
-                        </td>
-                    }
-                    else
-                    {
-                        <td>&nbsp;&nbsp;&nbsp;</td>
-                    }
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
+        @foreach (var item in GetObjects())
+        {
+            <tr class=@(GetSelectedClass(item)) @onclick="@(()=>RowSelected(item))">
+                <td>
+                    <input type="checkbox" checked="@IsChecked(item)"
+                       @onchange="@((ChangeEventArgs __e) => Select(item , @StatusTile.ToBoolean(__e.Value)))"
+                       id="@item.Id" />
+                </td>
+                <td><a href="@GetPath(item)" @onclick="() => OnSelect(item)">@item.Template?.Name</a></td>
+                <td>@item.Template?.LogicalName</td>
+                <td>@GetObjectType(item.Template.ObjectType)</td>
+                <td>@item.LastError</td>
+                <td>@item.LastErrorMessage</td>
+                <td>@item.LastRead</td>
+                <td>@item.LastWrite</td>
+                @if (_active == item)
+                {
+                    <td>
+                        <ContextMenuController>
+                            <ChildContent>
+                                <ContextMenuItem Text="@Properties.Resources.Read" Icon="oi oi-account-logout" OnClick="async () => OnRead()"></ContextMenuItem>
+                                <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-zoom-in" OnClick="async () => OnShow()"></ContextMenuItem>
+                                <ContextMenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="async () => OnClear()"></ContextMenuItem>
+                            </ChildContent>
+                        </ContextMenuController>
+                    </td>
+                }
+                else
+                {
+                    <td>&nbsp;&nbsp;&nbsp;</td>
+                }
+            </tr>
+        }
     </tbody>
 </table>
 <br />
+@if (_active != null)
+{
+    <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage=@($"Are you sure you want to clear object {_active.Template.Name} history? This action cannot be undone.")>
+    </Confirm>
+}
+
 @code {
+
+    public enum SortColumn : int
+    {
+        None,
+        Name,
+        LogicalName,
+        ObjectType,
+        LastError,
+        LastErrorMessage,
+        LastRead,
+        LastWrite
+    };
+
+    public enum Sort : int
+    {
+        None = 0,
+        Ascending = 1,
+        Descending = 2
+    };
+
+    private Sort _sort = Sort.None;
+    private SortColumn _activeSortColumn = SortColumn.None;
+
+    //Verify that history is clear.
+    protected ConfirmBase ClearConfirmation;
+
+    private void SortTable(SortColumn column)
+    {
+        if (column != _activeSortColumn)
+        {
+            _sort = Sort.Ascending;
+            _activeSortColumn = column;
+        }
+        else
+        {
+            _sort = (Sort)(((int)++_sort) % 3);
+        }
+        StateHasChanged();
+    }
+    private string GetSortIcon(SortColumn column)
+    {
+        if (_activeSortColumn == column)
+        {
+            switch (_sort)
+            {
+                case Sort.Ascending:
+                    return "fa oi oi-sort-ascending";
+                case Sort.Descending:
+                    return "fa oi oi-sort-descending";
+            }
+        }
+        return "";
+    }
+
     /// <inheritdoc />
     public string Name
     {
@@ -143,6 +224,61 @@
     private string GetPath(GXObject target)
     {
         return "/objectview";
+    }
+
+    /// <summary>
+    /// Filter using object type.
+    /// </summary>
+    private string? filterByObjectType;
+    /// <summary>
+    /// Filter using object name.
+    /// </summary>
+    private string? filterByName;
+    /// <summary>
+    /// Filter by logical name of the object.
+    /// </summary>
+    private string? filterByLogicalName;
+
+
+    private string? IsChecked(GXObject target)
+    {
+        if (SelectedItems.Contains(target))
+        {
+            return "checked";
+        }
+        return null;
+    }
+
+    private void Toggle(bool select)
+    {
+        SelectedItems.Clear();
+        if (select)
+        {
+            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
+            if (device != null)
+            {
+                SelectedItems.AddRange(device.Objects);
+            }
+        }
+    }
+
+    /// <summary>
+    /// tasks to be performed;
+    /// </summary>
+    private List<Guid> PerformedTask = new();
+
+    private List<GXObject> SelectedItems = new();
+
+    private void Select(GXObject target, bool select)
+    {
+        if (select)
+        {
+            SelectedItems.Add(target);
+        }
+        else if (SelectedItems.Contains(target))
+        {
+            SelectedItems.Remove(target);
+        }
     }
 
     //Device is selected.
@@ -197,26 +333,6 @@
     /// </summary>
     private string? DeviceName;
 
-    /// <summary>
-    /// Update virtualized items.
-    /// </summary>
-    protected async void Updated()
-    {
-        try
-        {
-            if (virtualize != null)
-            {
-                Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
     //Get object type as a string.
     public string GetObjectType(int value)
     {
@@ -255,11 +371,92 @@
             _active = (GXObject?)Notifier.GetData(GXPages.Objects);
             Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
             {
-                Updated();
+                //Update is not call when reading is on progress.
+                if (device != null)
+                {
+                    foreach (var it in objects)
+                    {
+                        if (device.Objects.Select(s => s.Id).Contains(it.Id))
+                        {
+                            var obj = device.Objects.Where(s => s.Id == it.Id).SingleOrDefault();
+                            //Update property.
+                            obj.LastRead = it.LastRead;
+                            obj.LastWrite = it.LastWrite;
+                            obj.LastError = it.LastError;
+                            obj.LastErrorMessage = it.LastErrorMessage;
+                            Console.WriteLine("Property updated " + it.Id);
+                            StateHasChanged();
+                        }
+                    }
+                }
             });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
+           {
+               //Notify user when read starts.
+               if (device != null)
+               {
+                   foreach (var it in tasks)
+                   {
+                       if (it.Object != null && device.Objects.Select(s => s.Id).Contains(it.Object.Id))
+                       {
+                           Console.WriteLine("Reading... " + it.Id);
+                           //Show progress when the first task is added.
+                           if (!PerformedTask.Any())
+                           {
+                               Notifier.ShowInformation("Reading....", true);
+                               Notifier.ProgressStart();
+                               StateHasChanged();
+                           }
+                           PerformedTask.Add(it.Id);
+                       }
+                   }
+               }
+           });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
+           {
+               //Notify user when read ends.
+               if (device != null)
+               {
+                   foreach (var it in tasks)
+                   {
+                       if (it.Ready != null && PerformedTask.Contains(it.Id))
+                       {
+                           Console.WriteLine("Reading end " + it.Id);
+                           PerformedTask.Remove(it.Id);
+                           //Hide progress when the lask task is removed.
+                           if (!PerformedTask.Any())
+                           {
+                               Notifier.ClearStatus();
+                               Notifier.ProgressEnd();
+                               StateHasChanged();
+                           }
+                       }
+                   }
+               }
+           });
             Notifier.Clear();
             Notifier.ChangePage(GXPages.Objects, _active);
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnReadSelected });
             Notifier.UpdateButtons();
+            if (device.Objects == null || !device.Objects.Any())
+            {
+                ListObjects req = new ListObjects();
+                req.Filter = new GXObject()
+                    {
+                        Device = new GXDevice() { Id = device.Id }
+                    };
+                var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req);
+                if (device.Objects == null)
+                {
+                    device.Objects = new();
+                }
+                else
+                {
+                    device.Objects.Clear();
+                }
+                device.Objects.AddRange(ret.Objects);
+            }
+            _objects.AddRange(device.Objects);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -269,61 +466,115 @@
         {
             Notifier?.ProcessError(ex);
         }
-    }
-
-    private async ValueTask<ItemsProviderResult<GXObject>> GetItems(ItemsProviderRequest request)
-    {
-        try
-        {
-            //Don't clear status or error is lost.
-            Notifier.ProgressStart();
-            //Get selected item.
-            //Get device object data.
-            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
-            if (device == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            if (device.Objects == null || !device.Objects.Any())
-            {
-                ListObjects req = new ListObjects();
-                req.Filter = new GXObject();
-                req.Filter.Device = new GXDevice() { Id = device.Id };
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Object/List", req, request.CancellationToken);
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListObjectsResponse>();
-                device.Objects.AddRange(ret.Objects);
-            }
-            List<GXObject> list = new List<GXObject>();
-            list.AddRange(device.Objects);
-            if (!string.IsNullOrEmpty(filter.Template.Name))
-            {
-                list.RemoveAll(q => q.Template.Name.ToUpper().Contains(filter.Template.Name.ToUpper()) == false);
-            }
-            return new ItemsProviderResult<GXObject>(list, list.Count);
-        }
-        catch (TaskCanceledException)
-        {
-            //Let the Virtualize component handle this
-            throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
         finally
         {
             Notifier?.ProgressEnd();
         }
-        return default;
+    }
+
+    List<GXObject> _objects = new List<GXObject>();
+
+    /// <summary>
+    /// Search by object type.
+    /// </summary>
+    private void SearchByObjectType(ChangeEventArgs args)
+    {
+        filterByObjectType = Convert.ToString(args.Value);
+        Search();
+    }
+
+    /// <summary>
+    /// Search by name.
+    /// </summary>
+    private void SearchByName(ChangeEventArgs args)
+    {
+        filterByName = Convert.ToString(args.Value);
+        Search();
+    }
+
+    /// <summary>
+    /// Search by logical name.
+    /// </summary>
+    private void SearchByLogicalName(ChangeEventArgs args)
+    {
+        filterByLogicalName = Convert.ToString(args.Value);
+        Search();
+    }
+
+    /// <summary>
+    /// Search from object templates.
+    /// </summary>
+    private void Search()
+    {
+        _objects.Clear();
+        GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
+        if (device == null)
+        {
+            throw new ArgumentException(Properties.Resources.InvalidTarget);
+        }
+        _objects.AddRange(device.Objects);
+
+        if (!string.IsNullOrEmpty(filterByObjectType))
+        {
+            _objects.RemoveAll(q => ((Enums.ObjectType)q.Template.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
+        }
+        if (!string.IsNullOrEmpty(filterByName))
+        {
+            _objects.RemoveAll(q => q.Template.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
+        }
+        if (!string.IsNullOrEmpty(filterByLogicalName))
+        {
+            _objects.RemoveAll(q => q.Template.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
+        }
+        StateHasChanged();
+    }
+
+    private IEnumerable<GXObject> GetObjects()
+    {
+        if (_activeSortColumn != SortColumn.None)
+        {
+            if (_sort == Sort.Ascending)
+            {
+                switch (_activeSortColumn)
+                {
+                    case SortColumn.Name:
+                        return _objects.OrderBy(s => s.Template.Name);
+                    case SortColumn.LogicalName:
+                        return _objects.OrderBy(s => s.Template.LogicalName);
+                    case SortColumn.ObjectType:
+                        return _objects.OrderBy(s => s.Template.ObjectType);
+                    case SortColumn.LastError:
+                        return _objects.OrderBy(s => s.LastError);
+                    case SortColumn.LastErrorMessage:
+                        return _objects.OrderBy(s => s.LastErrorMessage);
+                    case SortColumn.LastRead:
+                        return _objects.OrderBy(s => s.LastRead);
+                    case SortColumn.LastWrite:
+                        return _objects.OrderBy(s => s.LastWrite);
+                }
+            }
+            else if (_sort == Sort.Descending)
+            {
+                switch (_activeSortColumn)
+                {
+                    case SortColumn.Name:
+                        return _objects.OrderByDescending(s => s.Template.Name);
+                    case SortColumn.LogicalName:
+                        return _objects.OrderByDescending(s => s.Template.LogicalName);
+                    case SortColumn.ObjectType:
+                        return _objects.OrderByDescending(s => s.Template.ObjectType);
+                    case SortColumn.LastError:
+                        return _objects.OrderByDescending(s => s.LastError);
+                    case SortColumn.LastErrorMessage:
+                        return _objects.OrderByDescending(s => s.LastErrorMessage);
+                    case SortColumn.LastRead:
+                        return _objects.OrderByDescending(s => s.LastRead);
+                    case SortColumn.LastWrite:
+                        return _objects.OrderByDescending(s => s.LastWrite);
+                }
+            }
+        }
+        return _objects;
     }
 
     /// <summary>
@@ -339,13 +590,55 @@
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             GXTask task = new GXTask();
-            task.Object = _active;
+            task.Object = new() { Id = _active.Id };
             task.TaskType = TaskType.Read;
             AddTask req = new AddTask();
             req.Tasks = new GXTask[] { task };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Add", req);
-            ClientHelpers.ValidateStatusCode(response);
-            await response.Content.ReadFromJsonAsync<AddTaskResponse>();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+    }
+
+    /// <summary>
+    /// Read all selected objects.
+    /// </summary>
+    public async void OnReadSelected()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            if (!SelectedItems.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Guid? batch = null;
+            if (SelectedItems.Count != 1)
+            {
+                batch = Guid.NewGuid();
+            }
+            List<GXTask> tasks = new();
+            foreach (var it in SelectedItems)
+            {
+                GXTask task = new GXTask()
+                    {
+                        Object = new() { Id = it.Id },
+                        TaskType = TaskType.Read,
+                        Batch = batch,
+                    };
+                tasks.Add(task);
+                task.Order = tasks.Count;
+            }
+            AddTask req = new AddTask();
+            req.Tasks = tasks.ToArray();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -365,7 +658,7 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             if (_active == null || _active.Template == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
@@ -375,7 +668,7 @@
             {
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXObject>();
+                _active = (await response.Content.ReadFromJsonAsync<GetObjectResponse>())?.Item;
                 Notifier.UpdateData(GXPages.Objects, _active);
             }
 
@@ -389,6 +682,43 @@
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public void OnClear()
+    {
+        try
+        {
+            ClearConfirmation.Show();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                ClearValue arg = new ClearValue()
+                    {
+                        Objects = new GXObject[] { new GXObject() { Id = _active.Id } }
+                    };
+                await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", arg);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
         }
     }
 

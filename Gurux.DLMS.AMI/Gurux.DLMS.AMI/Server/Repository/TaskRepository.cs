@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Schedule Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Schedule Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Schedule Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -41,6 +41,8 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
+using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Client.Pages.Admin;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -54,35 +56,37 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IServiceProvider _serviceProvider;
         private readonly IAttributeRepository _attributeRepository;
         private readonly IObjectRepository _objectRepository;
+        private readonly IDeviceRepository _deviceRepository;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="host"></param>
-        /// <param name="scheduleRepository">Schedule repository.</param>
         /// <param name="userRepository">User repository.</param>
         /// <param name="userManager">User manager.</param>
         /// <param name="serviceProvider">Service provider.</param>
         /// <param name="eventsNotifier">Events notifier.</param>
-        /// <param name="objectRepository">Object repository.</param>
         /// <param name="attributeRepository">Attribute repository.</param>
+        /// <param name="objectRepository">Object repository.</param>
+        /// <param name="deviceRepository">Device repository.</param>
         public TaskRepository(
             IGXHost host,
-            IScheduleRepository scheduleRepository,
             IUserRepository userRepository,
             UserManager<ApplicationUser> userManager,
             IServiceProvider serviceProvider,
             IGXEventsNotifier eventsNotifier,
+            IAttributeRepository attributeRepository,
             IObjectRepository objectRepository,
-            IAttributeRepository attributeRepository)
+            IDeviceRepository deviceRepository)
         {
             _host = host;
             _userManager = userManager;
             _userRepository = userRepository;
             _eventsNotifier = eventsNotifier;
             _serviceProvider = serviceProvider;
-            _objectRepository = objectRepository;
             _attributeRepository = attributeRepository;
+            _objectRepository = objectRepository;
+            _deviceRepository = deviceRepository;
         }
 
         /// <summary>
@@ -142,7 +146,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> tasks)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.TaskManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.TaskManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -152,7 +156,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (GXTask it in list)
             {
                 updates.Add(it, await GetNofifiedUsersAsync(User, it));
-                _host.Connection.Delete(GXDeleteArgs.Delete(it));
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXTask>(it.Id));
             }
             foreach (var it in updates)
             {
@@ -166,7 +170,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ClaimsPrincipal User,
             ListTasks? request,
             ListTasksResponse? response,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             string userId = _userManager.GetUserId(User);
             //Get all tasks that user has triggered.
@@ -193,10 +197,86 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             DateTime now = DateTime.Now;
-            GXTask[] tasks = (await _host.Connection.SelectAsync<GXTask>(arg)).ToArray();
+            List<GXTask> list = new List<GXTask>();
+            GXTask[] tasks = new GXTask[0];
+            if (request != null)
+            {
+                if ((request.Select & TargetType.Device) != 0)
+                {
+                    //Select devices.
+                    arg = GXSelectArgs.SelectAll<GXTask>();
+                    arg.Distinct = true;
+                    arg.Where.FilterBy(request.Filter);
+                    arg.Columns.Add<GXDevice>();
+                    arg.Columns.Add<GXDeviceTemplate>();
+                    arg.Columns.Add<GXObject>();
+                    arg.Columns.Add<GXObjectTemplate>();
+                    arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template, s.Object });
+                    arg.Columns.Add<GXAttributeTemplate>();
+                    arg.Joins.AddInnerJoin<GXTask, GXDevice>(a => a.Device, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device);
+                    arg.Joins.AddInnerJoin<GXObject, GXAttribute>(b => b.Id, a => a.Object);
+                    arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(a => a.Template, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(a => a.Template, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(a => a.Template, b => b.Id);
+                    arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
+                    list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
+                }
+                if ((request.Select & TargetType.Attribute) != 0)
+                {
+                    //Select attributes.
+                    arg = GXSelectArgs.SelectAll<GXTask>();
+                    arg.Distinct = true;
+                    arg.Where.FilterBy(request.Filter);
+                    arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template, s.Object });
+                    arg.Columns.Add<GXObject>();
+                    arg.Columns.Add<GXObjectTemplate>();
+                    arg.Columns.Add<GXAttributeTemplate>();
+                    arg.Joins.AddInnerJoin<GXTask, GXAttribute>(a => a.Attribute, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(a => a.Template, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXAttribute, GXObject>(a => a.Object, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(a => a.Template, b => b.Id);
+                    arg.Columns.Exclude<GXTask>(e => e.Target);
+                    arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                    arg.Columns.Exclude<GXObject>(e => new { e.Tasks, e.Attributes, e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
+                    arg.Columns.Exclude<GXAttribute>(e => new {e.Tasks, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
+                    arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                    list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
+                }
+                if ((request.Select & TargetType.Object) != 0)
+                {
+                    //Select objects.
+                    arg = GXSelectArgs.SelectAll<GXTask>();
+                    arg.Distinct = true;
+                    arg.Where.FilterBy(request.Filter);
+                    arg.Columns.Add<GXObject>();
+                    arg.Joins.AddInnerJoin<GXTask, GXObject>(a => a.Object, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(a => a.Template, b => b.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXAttribute>(a => a.Id, b => b.Object);
+                    arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(a => a.Template, b => b.Id);
+                    arg.Columns.Add<GXAttribute>();
+                    arg.Columns.Add<GXObjectTemplate>();
+                    arg.Columns.Add<GXAttributeTemplate>();
+                    arg.Columns.Exclude<GXTask>(e => e.Target);
+                    arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                    arg.Columns.Exclude<GXObject>(e => new { e.Tasks,  e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
+                    arg.Columns.Exclude<GXAttribute>(e => new { e.Object, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
+                    arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name, e.Weight });
+                    list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
+                }
+                tasks = list.OrderBy(o => o.Order).ToArray();
+            }
+            if (request == null || (request.Select & (TargetType.Attribute | TargetType.Object)) == 0)
+            {
+                tasks = (await _host.Connection.SelectAsync<GXTask>(arg)).ToArray();
+            }
             if (response != null)
             {
                 response.Tasks = tasks;
+                if (response.Count == 0)
+                {
+                    response.Count = tasks.Length;
+                }
             }
             return tasks;
         }
@@ -260,8 +340,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Add<GXAttribute>();
                 arg.Columns.Add<GXObjectTemplate>();
                 arg.Columns.Add<GXAttributeTemplate>();
-                arg.Columns.Exclude<GXAttribute>(e => e.Object);
-                arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
+                arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                arg.Columns.Exclude<GXObject>(e => new { e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
+                arg.Columns.Exclude<GXAttribute>(e => new { e.Object, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
+                arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                 task.Object = await _host.Connection.SingleOrDefaultAsync<GXObject>(arg);
             }
             if (columns.Attribute != null)
@@ -274,8 +356,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Add<GXAttributeTemplate>();
                 arg.Columns.Add<GXObject>();
                 arg.Columns.Add<GXObjectTemplate>();
-                arg.Columns.Exclude<GXObject>(e => e.Attributes);
-                arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
+                arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
+                arg.Columns.Exclude<GXObject>(e => new { e.Attributes, e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
+                arg.Columns.Exclude<GXAttribute>(e => new { e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
+                arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                 task.Attribute = await _host.Connection.SingleOrDefaultAsync<GXAttribute>(arg);
             }
             if (columns.TriggerSchedule != null)
@@ -340,6 +424,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else if (it.Attribute != null)
                 {
+                    arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                    arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                    arg.Where.And<GXAttribute>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                    it.Attribute.Template = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg);
                     if (it.Attribute.Template == null)
                     {
                         throw new ArgumentException("Invalid template");
@@ -360,6 +448,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Where.And<GXAttribute>(w => w.Id == it.Attribute.Id);
                     GXAttributeTemplate att = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg);
                     it.Target = dev.Name + " " + att.ObjectTemplate.Name + " " + att.Name + ":" + att.Index;
+
+                    //Update the new attribute value.
+                    if (it.TaskType == TaskType.Write)
+                    {
+                        if (string.IsNullOrEmpty(it.Attribute.Value) && !string.IsNullOrEmpty(it.Data))
+                        {
+                            it.Attribute.Value = it.Data;
+                            it.Attribute.LastWrite = now;
+                        }
+                        await _host.Connection.UpdateAsync(GXUpdateArgs.Update(it.Attribute, u => u.Value));
+                    }
                 }
                 if (it.TargetDevice == null)
                 {
@@ -403,6 +502,79 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return list.ToArray();
         }
 
+        /// <summary>
+        /// Update task execution times to attribute, object and device.
+        /// </summary>
+        /// <param name="User"></param>
+        /// <param name="executedTask">Executed task</param>
+        /// <param name="dbTask">Task from the database.</param>
+        /// <param name="obj">Updated Object.</param>
+        private async Task UpdateObjectExecutionTimes(ClaimsPrincipal User, GXTask executedTask, GXTask dbTask, GXObject obj)
+        {
+            //Device name is mandatory.
+            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name });
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
+            args.Where.And<GXObject>(w => w.Id == obj.Id);
+            obj.Device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(args);
+            if (obj.Device == null)
+            {
+                throw new Exception("Device is unknown.");
+            }
+            //Save occurred exception or clear the old one.
+            if (!string.IsNullOrEmpty(executedTask.Result))
+            {
+                obj.LastError = executedTask.Ready;
+                obj.LastErrorMessage = executedTask.Result;
+            }
+            else
+            {
+                obj.LastError = null;
+                obj.LastErrorMessage = null;
+            }
+            {
+                Expression<Func<GXObject, object?>> columns;
+                switch (dbTask.TaskType)
+                {
+                    case TaskType.Read:
+                        obj.LastRead = executedTask.Ready;
+                        columns = q => new { q.LastRead, q.LastError, q.LastErrorMessage };
+                        break;
+                    case TaskType.Write:
+                        obj.LastWrite = executedTask.Ready;
+                        columns = q => new { q.LastWrite, q.LastError, q.LastErrorMessage };
+                        break;
+                    case TaskType.Action:
+                        obj.LastAction = executedTask.Ready;
+                        columns = q => new { q.LastAction, q.LastError, q.LastErrorMessage };
+                        break;
+                    default:
+                        throw new Exception("Unknown task type.");
+                }
+                await _objectRepository.UpdateAsync(User, new GXObject[] { obj }, columns);
+            }
+            {
+                Expression<Func<GXDevice, object?>> columns;
+                switch (dbTask.TaskType)
+                {
+                    case TaskType.Read:
+                        obj.Device.LastRead = executedTask.Ready;
+                        columns = q => new { q.LastRead, q.LastError, q.LastErrorMessage };
+                        break;
+                    case TaskType.Write:
+                        obj.Device.LastWrite = executedTask.Ready;
+                        columns = q => new { q.LastWrite, q.LastError, q.LastErrorMessage };
+                        break;
+                    case TaskType.Action:
+                        obj.Device.LastAction = executedTask.Ready;
+                        columns = q => new { q.LastAction, q.LastError, q.LastErrorMessage };
+                        break;
+                    default:
+                        throw new Exception("Unknown task type.");
+                }
+                await _deviceRepository.UpdateAsync(User, new GXDevice[] { obj.Device }, CancellationToken.None, columns);
+            }
+        }
+
         /// <inheritdoc />
         public async Task DoneAsync(ClaimsPrincipal User, IEnumerable<GXTask> tasks)
         {
@@ -417,23 +589,85 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXTask task = await ReadAsync(User, it.Id);
                 if (task.Attribute != null)
                 {
-                    task.Attribute.Exception = it.Result;
-                    task.Attribute.Read = it.Ready;
-                    await _attributeRepository.UpdateAsync(User,
-                        new GXAttribute[] { task.Attribute },
-                        u => new { u.Exception, u.Read });
-                }
-                if (task.Object != null && task.Index != 0)
-                {
-                    var att = task.Object.Attributes.Where(w => w.Template.Index == task.Index).SingleOrDefault();
-                    if (att != null)
+                    if (!string.IsNullOrEmpty(it.Result))
                     {
-                        att.Read = it.Ready;
-                        att.Exception = it.Result;
-                        await _attributeRepository.UpdateAsync(User,
-                            new GXAttribute[] { att },
-                            u => new { u.Exception, u.Read });
+                        task.Attribute.LastError = it.Ready;
                     }
+                    else
+                    {
+                        task.Attribute.LastError = null;
+                    }
+                    task.Attribute.Exception = it.Result;
+                    Expression<Func<GXAttribute, object?>> columns;
+                    switch (task.TaskType)
+                    {
+                        case TaskType.Read:
+                            task.Attribute.Read = it.Ready;
+                            columns = q => new { q.Read, q.LastError, q.Exception };
+                            break;
+                        case TaskType.Write:
+                            task.Attribute.LastWrite = it.Ready;
+                            columns = q => new { q.LastWrite, q.LastError, q.Exception };
+                            break;
+                        case TaskType.Action:
+                            task.Attribute.LastAction = it.Ready;
+                            columns = q => new { q.LastAction, q.LastError, q.Exception };
+                            break;
+                        default:
+                            throw new Exception("Unknown task type.");
+                    }
+                    await _attributeRepository.UpdateAsync(User, new GXAttribute[] { task.Attribute }, columns);
+
+                    //Update object exception and execution time.
+                    GXSelectArgs args = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
+                    args.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.LogicalName, s.Name });
+                    args.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                    args.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                    args.Where.And<GXAttribute>(w => w.Id == task.Attribute.Id);
+                    args.Distinct = true;
+                    GXObject obj = await _host.Connection.SingleOrDefaultAsync<GXObject>(args);
+                    await UpdateObjectExecutionTimes(User, it, task, obj);
+                }
+                if (task.Object != null)
+                {
+                    if (task.Index != 0)
+                    {
+                        var att = task.Object.Attributes.Where(w => w.Template.Index == task.Index).SingleOrDefault();
+                        if (att != null)
+                        {
+                            att.Object = task.Object;
+                            if (!string.IsNullOrEmpty(it.Result))
+                            {
+                                att.LastError = it.Ready;
+                            }
+                            else
+                            {
+                                att.LastError = null;
+                            }
+                            att.Exception = it.Result;
+                            Expression<Func<GXAttribute, object?>> columns;
+                            switch (task.TaskType)
+                            {
+                                case TaskType.Read:
+                                    att.Read = it.Ready;
+                                    columns = q => new { q.Read, q.LastError, q.Exception };
+                                    break;
+                                case TaskType.Write:
+                                    att.LastWrite = it.Ready;
+                                    columns = q => new { q.LastWrite, q.LastError, q.Exception };
+                                    break;
+                                case TaskType.Action:
+                                    att.LastAction = it.Ready;
+                                    columns = q => new { q.LastAction, q.LastError, q.Exception };
+                                    break;
+                                default:
+                                    throw new Exception("Unknown task type.");
+                            }
+
+                            await _attributeRepository.UpdateAsync(User, new GXAttribute[] { att }, columns);
+                        }
+                    }
+                    await UpdateObjectExecutionTimes(User, it, task, task.Object);
                 }
             }
             await NotifyUsers(User, tasks);
@@ -500,9 +734,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXTask[]> GetNextAsync(
             ClaimsPrincipal User,
             Guid agentId,
-            Guid DeviceId,
+            Guid? DeviceId,
             bool listener)
         {
+            DateTime start = DateTime.Now;
             //Check that agent is active and not removed.
             GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(c => c.Id, q => q.Id == agentId && q.Active == true && q.Removed == null);
             GXAgent agent = _host.Connection.SingleOrDefault<GXAgent>(arg);
@@ -518,50 +753,71 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 c.Batch
             }, where => where.Start == null && where.Ready == null);
             arg.OrderBy.Add<GXTask>(o => o.CreationTime);
-            arg.Joins.AddLeftJoin<GXTask, GXDevice>(a => a.TargetDevice, b => b.Id);
-            if (DeviceId != Guid.Empty)
+            arg.Joins.AddInnerJoin<GXTask, GXDevice>(a => a.TargetDevice, b => b.Id);
+            if (DeviceId != null && DeviceId != Guid.Empty)
             {
-                arg.Where.And<GXDevice>(q => q.Id == DeviceId);
+                Guid id = DeviceId.Value;
+                arg.Where.And<GXDevice>(q => q.Removed == null && q.Id == id);
             }
             if (!listener)
             {
-                arg.Where.And<GXDevice>(q => q.Dynamic == false);
+                arg.Where.And<GXDevice>(q => q.Removed == null && q.Dynamic == false);
             }
             // Don't get meters that are read by other agents.
             GXSelectArgs onProgress = GXSelectArgs.Select<GXTask>(c => c.Id, q => q.Ready == null && q.OperatingAgent != null);
             arg.Where.And<GXTask>(q => !GXSql.Exists(onProgress));
             GXTask[] tasks = new GXTask[0];
-            GXTask task = _host.Connection.SingleOrDefault<GXTask>(arg);
+            GXTask? task = _host.Connection.SingleOrDefault<GXTask>(arg);
+            List<GXTask> notified = new List<GXTask>();
+            DateTime now = DateTime.Now;
             //Get details for the task.
             if (task != null)
             {
+                task.Start = now;
+                task.OperatingAgent = agent;
                 if (task.Batch != null)
                 {
-                    //Get all tasks that are created with the same batch.
-                    arg = GXSelectArgs.SelectAll<GXTask>(q => q.Batch == task.Batch);
-                    tasks = _host.Connection.Select<GXTask>(arg).ToArray();
-                    tasks = tasks.OrderBy(o => o.Order).ToArray();
+                    //Get all tasks that are created with the same batch and are not executed.
+                    ListTasks lt = new ListTasks()
+                    {
+                        Select = TargetType.Device | TargetType.Object | TargetType.Attribute,
+                        Filter = new GXTask()
+                        {
+                            Batch = task.Batch
+                        }
+                    };
+                    tasks = await ListAsync(User, lt, null);
+                    foreach (var it in tasks)
+                    {
+                        notified.Add(new GXTask() { Id = it.Id, Start = task.Start });
+                    }
+                    GXUpdateArgs args = GXUpdateArgs.Update(task, q => new { q.Start, q.OperatingAgent });
+                    args.Where.And<GXTask>(w => w.Batch == task.Batch);
+                    _host.Connection.Update(args);
                 }
                 else
                 {
+                    //Read task details.
+                    task = await ReadAsync(User, task.Id);
+                    //Reset non-needed information.
+                    task.Target = null;
+                    task.CreationTime = null;
+                    task.TriggerUser = null;
+                    if (task.Object != null)
+                    {
+                        task.Object.CreationTime = null;
+                    }
                     tasks = new GXTask[] { task };
+                    notified.Add(new GXTask() { Id = task.Id, Start = task.Start });
+                    GXUpdateArgs args = GXUpdateArgs.Update(task, q => new { q.Start, q.OperatingAgent });
+                    _host.Connection.Update(args);
                 }
-                DateTime now = DateTime.Now;
                 using (IServiceScope scope = _serviceProvider.CreateScope())
                 {
                     IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
                     var users = (await repository.GetUsersAsync(User, task.TargetDevice.Value));
-                    for (int pos = 0; pos != tasks.Length; ++pos)
-                    {
-                        tasks[pos].Start = now;
-                        tasks[pos].OperatingAgent = agent;
-                        GXUpdateArgs args = GXUpdateArgs.Update(tasks[pos], q => new { q.Start, q.OperatingAgent });
-                        _host.Connection.Update(args);
-                        //Read task target information.
-                        tasks[pos] = await ReadAsync(User, tasks[pos].Id);
-                    }
                 }
-                await NotifyUsers(User, tasks);
+                await NotifyUsers(User, notified);
             }
             return tasks;
         }

@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.Text.RegularExpressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -109,6 +110,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.Statistics = statistics;
+                if (response.Count == 0)
+                {
+                    response.Count = statistics.Length;
+                }
             }
             return statistics;
         }

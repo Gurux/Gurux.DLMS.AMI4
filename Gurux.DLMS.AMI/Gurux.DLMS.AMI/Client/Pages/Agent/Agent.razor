@@ -69,6 +69,22 @@
                         <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
                            @bind-Value="_active.Removed" />
                     </div>
+                } @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
                 }
             </div>
         </div>
@@ -97,7 +113,7 @@
     </TabControl>
 }
 @code {
-
+    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -171,14 +187,12 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get agent data.
-                _active = await Http.GetFromJsonAsync<GXAgent>(string.Format("api/Agent?id={0}", _active.Id));
+                _active = (await Http.GetFromJsonAsync<GetAgentResponse>(string.Format("api/Agent?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.Agents, _active);
                 _active.Modified = true;
             }
             ListScripts req = new ListScripts();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req);
             scripts = ret.Scripts;
 
             if (!string.IsNullOrEmpty(_active.ReaderSettings))
@@ -232,9 +246,11 @@
             Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Delete", new AgentDelete() { Ids = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<AgentDeleteResponse>();
+                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete", new RemoveAgent()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -250,9 +266,7 @@
                 {
                     address = "api/Agent/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateAgent() { Agents = new GXAgent[] { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateAgentResponse>();
+                await Http.PostAsJson<UpdateAgentResponse>(address, new UpdateAgent() { Agents = new GXAgent[] { _active } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

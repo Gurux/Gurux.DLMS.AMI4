@@ -11,6 +11,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Diagnostics;
 
 @attribute [Authorize(Roles = "Admin, DeviceErrorManager")]
 @inject NavigationManager NavigationManager
@@ -179,10 +180,7 @@
     /// <summary>
     /// Device error filter.
     /// </summary>
-    private GXDeviceError filter = new GXDeviceError()
-        {
-            Level = null
-        };
+    private GXDeviceError filter = new GXDeviceError();
     /// <summary>
     /// User is verified before device errors are cleared.
     /// </summary>
@@ -301,19 +299,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListDeviceErrorsResponse>("api/DeviceError/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the device errors.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListDeviceErrorsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the device errors.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXDeviceError>(ret.Errors, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXDeviceError>(ret.Errors, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -380,11 +373,7 @@
             Notifier?.ClearStatus();
             CloseDeviceError arg = new CloseDeviceError();
             arg.Errors = new Guid[] { (_selected as GXDeviceError).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseDeviceErrorResponse>();
-            }
+            await Http.PostAsJson<CloseDeviceErrorResponse>("api/DeviceError/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -425,11 +414,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Clear", new ClearDeviceErrors()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearDeviceErrorsResponse>("api/DeviceError/Clear", new ClearDeviceErrors());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

@@ -139,7 +139,7 @@
             {
                 Status?.ShowInformation(info, closable);
             };
-            await Notifier.StartAsync(NavigationManager, AccessTokenProvider);
+            await Notifier.StartAsync(t.User, Http, NavigationManager, AccessTokenProvider);
         }
         catch (Exception ex)
         {

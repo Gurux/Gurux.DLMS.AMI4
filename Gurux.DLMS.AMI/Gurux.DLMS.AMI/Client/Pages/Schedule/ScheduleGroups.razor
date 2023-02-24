@@ -257,9 +257,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScheduleGroupsResponse>();
+            var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the schedule groups.
             if (Count != 0)
@@ -302,7 +300,7 @@
             Notifier?.ClearStatus();
             Notifier.Title = "New schedule group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ScheduleGroups, new GXScheduleGroup());
+            Notifier.UpdateData(GXPages.ScheduleGroups, new GXScheduleGroup(null));
             NavigationManager.NavigateTo("/schedulegrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

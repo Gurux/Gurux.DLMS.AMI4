@@ -58,9 +58,7 @@
                 {
                     Filter = new GXAgent()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListAgentsResponse>();
+            var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/List", req);
             foreach (GXAgent it in ret.Agents)
             {
                 if (!agents.Exists(q => q.Id == it.Id))

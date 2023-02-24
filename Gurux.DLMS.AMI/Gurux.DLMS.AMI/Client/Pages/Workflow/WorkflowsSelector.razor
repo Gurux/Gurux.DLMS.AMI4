@@ -77,9 +77,7 @@
                 {
                     Filter = new GXWorkflow()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Workflow/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListWorkflowsResponse>();
+            var ret = await Http.PostAsJson<ListWorkflowsResponse>("api/Workflow/List", req);
             foreach (GXWorkflow it in ret.Workflows)
             {
                 if (!workflows.Exists(q => q.Id == it.Id))

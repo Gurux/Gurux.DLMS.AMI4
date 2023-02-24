@@ -17,7 +17,7 @@
 @implements IDisposable
 
 @if (_active != null)
-    {
+{
     <EditForm Model="@_active">
         <DataAnnotationsValidator />
         <ValidationSummary />
@@ -38,20 +38,53 @@
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                            @bind-Value="_active.Description" />
                 </div>
-            @if (_active.Updated != null)
-            {
-                <div class="form-group">
-                    <label>@Properties.Resources.Updated</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                @if (_active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
                            @bind-Value="_active.Updated" />
-                </div>
-            }
+                    </div>
+                }
+                @if (_active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_active.Removed" />
+                    </div>
+                }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
         </div>
-    </div>
-</EditForm>
+    </EditForm>
 }
 @code {
-
+    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -113,7 +146,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get user group data.
-                _active = await Http.GetFromJsonAsync<GXUserGroup>(string.Format("api/UserGroup?id={0}", _active.Id));
+                _active = (await Http.GetFromJsonAsync<GetUserGroupResponse>(string.Format("api/UserGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.UserGroups, _active);
                 _active.Modified = true;
             }
@@ -144,9 +177,11 @@
             Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserGroup/Delete", new RemoveUserGroup() { Ids = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<RemoveUserGroupResponse>();
+                await Http.PostAsJson<RemoveUserGroupResponse>("api/UserGroup/Delete", new RemoveUserGroup()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -159,9 +194,10 @@
                 {
                     address = "api/UserGroup/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddUserGroup() { UserGroups = new GXUserGroup[] { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<AddUserGroupResponse>();
+                await Http.PostAsJson<AddUserGroupResponse>(address, new AddUserGroup()
+                    {
+                        UserGroups = new GXUserGroup[] { _active }
+                    });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

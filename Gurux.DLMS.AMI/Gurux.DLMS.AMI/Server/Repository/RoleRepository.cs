@@ -37,6 +37,8 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -62,7 +64,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(ClaimsPrincipal user, IEnumerable<string> rolers)
         {
-            if (!user.IsInRole(GXRoles.Admin))
+            if (user == null || !user.IsInRole(GXRoles.Admin))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -148,7 +150,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<string[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXRole> roles)
+        public async Task<string[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXRole> roles)
         {
             DateTime now = DateTime.Now;
             List<string> list = new();

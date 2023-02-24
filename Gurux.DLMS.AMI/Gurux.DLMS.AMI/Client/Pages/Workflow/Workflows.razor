@@ -272,9 +272,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Workflow/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListWorkflowsResponse>();
+            var ret = await Http.PostAsJson<ListWorkflowsResponse>("api/Workflow/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the workflows.
             if (Count != 0)
@@ -347,10 +345,10 @@
         {
             //Set workflow tab to zero so main page the default page.
             Notifier.UpdateData(GXPages.WorkflowTab, 0);
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New Workflow";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Workflows, new GXWorkflow() { Active = true });
+            Notifier.UpdateData(GXPages.Workflows, new GXWorkflow(null));
             NavigationManager.NavigateTo("/workflowtab");
         }
         catch (AccessTokenNotAvailableException exception)

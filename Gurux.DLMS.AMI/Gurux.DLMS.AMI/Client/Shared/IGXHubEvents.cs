@@ -318,6 +318,18 @@ namespace Gurux.DLMS.AMI.Client.Shared
         Task ObjectTemplateDelete(IEnumerable<GXObjectTemplate> templates);
 
         /// <summary>
+        /// New attribute template is added or modified.
+        /// </summary>
+        /// <param name="objects">Updated attribute templates.</param>
+        Task AttributeTemplateUpdate(IEnumerable<GXAttributeTemplate> templates);
+
+        /// <summary>
+        /// Attribute template is deleted.
+        /// </summary>
+        /// <param name="objects">Deleted attribute templates.</param>
+        Task AttributeTemplateDelete(IEnumerable<GXAttributeTemplate> templates);
+
+        /// <summary>
         /// New agent is added or modified.
         /// </summary>
         /// <param name="agents">Updated agents.</param>

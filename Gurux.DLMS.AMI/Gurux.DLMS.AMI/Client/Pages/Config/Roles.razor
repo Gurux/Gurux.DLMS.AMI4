@@ -19,6 +19,7 @@
 
 @if (_roles != null)
 {
+    <h1>Available roles</h1>
     <MenuControl>
         <ChildContent>
             <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
@@ -26,7 +27,6 @@
     </MenuControl>
     <p>
     </p>
-    <h1>Available roles</h1>
     <table class="table table-striped" width="100%">
         <thead>
             <tr>
@@ -93,9 +93,7 @@
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
             ListRoles req = new ListRoles() { Filter = filter };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            _roles = (await response.Content.ReadFromJsonAsync<ListRolesResponse>()).Roles;
+            _roles = (await Http.PostAsJson<ListRolesResponse>("api/Role/List", req)).Roles;
             StateHasChanged();
             filter.Name = string.Empty;
         }
@@ -136,9 +134,7 @@
                     return;
             }
             ListRoles req = new ListRoles() { Filter = filter };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            _roles = (await response.Content.ReadFromJsonAsync<ListRolesResponse>()).Roles;
+            _roles = (await Http.PostAsJson<ListRolesResponse>("api/Role/List", req)).Roles;
             //Configurations needs to be update as well.
             Notifier.ChangePage(GXPages.Configurations, _roles);
             Notifier.ChangePage(GXPages.Roles, _roles);
@@ -163,8 +159,7 @@
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
             UpdateRole req = new UpdateRole() { Roles = _roles };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/Update", req);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson<UpdateRoleResponse>("api/Role/Update", req);
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }

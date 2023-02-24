@@ -63,9 +63,7 @@
                     Filter = new GXScript()
                 };
 
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req);
             foreach (GXScript it in ret.Scripts)
             {
                 if (!scripts.Exists(q => q.Id == it.Id))

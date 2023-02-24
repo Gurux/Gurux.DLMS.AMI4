@@ -141,8 +141,7 @@
             conf.Settings = JsonSerializer.Serialize(_authentications);
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { conf };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson("api/Configuration/Update", arg);
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }

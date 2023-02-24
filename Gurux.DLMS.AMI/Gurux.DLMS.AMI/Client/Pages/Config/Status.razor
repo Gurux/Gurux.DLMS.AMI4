@@ -130,20 +130,15 @@
     /// </summary>
     protected async Task Updated()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
             _assemblies = null;
             LoadedAssemblies req = new LoadedAssemblies() { Filter = filter };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Assemblies", req))
-            {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<LoadedAssembliesResponse>();
-                _assemblies = ret.Assemblies;
-                StateHasChanged();
-            }
+            var ret = await Http.PostAsJson<LoadedAssembliesResponse>("api/Configuration/Assemblies", req);
+            _assemblies = ret.Assemblies;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -192,7 +187,7 @@
                 }
             });
             Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
             switch (Notifier.Action)
             {
@@ -206,7 +201,7 @@
             (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get configuration data.
-                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                _active = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.Configuration, _active);
                 _active.Modified = true;
             }

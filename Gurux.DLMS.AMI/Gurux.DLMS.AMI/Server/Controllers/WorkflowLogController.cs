@@ -63,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Workflow log.</returns>
         [HttpGet]
         [Authorize(Policy = GXWorkflowLogPolicies.View)]
-        public async Task<ActionResult<GXWorkflowLog>> Get(Guid id)
+        public async Task<ActionResult<GetWorkflowLogResponse>> Get(Guid id)
         {
-            return await _workflowLogRepository.ReadAsync(User, id);
+            return new GetWorkflowLogResponse()
+            {
+                Item = await _workflowLogRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -90,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXWorkflowLogPolicies.View)]
         public async Task<ActionResult<ListWorkflowLogsResponse>> Post(
-            ListWorkflowLogs request, 
+            ListWorkflowLogs request,
             CancellationToken cancellationToken)
         {
             ListWorkflowLogsResponse response = new ListWorkflowLogsResponse();

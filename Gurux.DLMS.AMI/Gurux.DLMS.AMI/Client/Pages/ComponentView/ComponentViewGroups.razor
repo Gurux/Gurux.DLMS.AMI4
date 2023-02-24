@@ -238,9 +238,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentViewGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListComponentViewGroupsResponse>();
+            var ret = await Http.PostAsJson<ListComponentViewGroupsResponse>("api/ComponentViewGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the block groups.
             if (Count != 0)
@@ -280,10 +278,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New component view group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ComponentViewGroups, new GXComponentViewGroup());
+            Notifier.UpdateData(GXPages.ComponentViewGroups, new GXComponentViewGroup(null));
             NavigationManager.NavigateTo("/componentviewgrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

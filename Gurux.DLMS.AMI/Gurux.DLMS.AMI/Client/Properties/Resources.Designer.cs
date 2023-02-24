@@ -187,6 +187,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You have successfully added a new agent access token. Copy the token now!.
+        /// </summary>
+        internal static string AgentTokenCreateSucceeded {
+            get {
+                return ResourceManager.GetString("AgentTokenCreateSucceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Alive time.
         /// </summary>
         internal static string AliveTime {
@@ -745,11 +754,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by logical name....
+        /// </summary>
+        internal static string FilterByLogicalName {
+            get {
+                return ResourceManager.GetString("FilterByLogicalName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by name....
         /// </summary>
         internal static string FilterByName {
             get {
                 return ResourceManager.GetString("FilterByName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by object type....
+        /// </summary>
+        internal static string FilterByObjectType {
+            get {
+                return ResourceManager.GetString("FilterByObjectType", resourceCulture);
             }
         }
         
@@ -889,6 +916,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Last action.
+        /// </summary>
+        internal static string LastAction {
+            get {
+                return ResourceManager.GetString("LastAction", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last error.
+        /// </summary>
+        internal static string LastError {
+            get {
+                return ResourceManager.GetString("LastError", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Last execution time.
         /// </summary>
         internal static string LastExecutionTime {
@@ -903,6 +948,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string LastLogin {
             get {
                 return ResourceManager.GetString("LastLogin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last read.
+        /// </summary>
+        internal static string LastRead {
+            get {
+                return ResourceManager.GetString("LastRead", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Last write.
+        /// </summary>
+        internal static string LastWrite {
+            get {
+                return ResourceManager.GetString("LastWrite", resourceCulture);
             }
         }
         
@@ -1668,6 +1731,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Target {
             get {
                 return ResourceManager.GetString("Target", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete the target and its content. This action cannot be undone..
+        /// </summary>
+        internal static string TargetDeleteQuestion {
+            get {
+                return ResourceManager.GetString("TargetDeleteQuestion", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Disable the target and unpublish its content..
+        /// </summary>
+        internal static string TargetDisableQuestion {
+            get {
+                return ResourceManager.GetString("TargetDisableQuestion", resourceCulture);
             }
         }
         

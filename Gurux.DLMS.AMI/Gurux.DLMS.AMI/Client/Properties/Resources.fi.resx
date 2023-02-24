@@ -762,4 +762,31 @@
   <data name="UpgradeableModules" xml:space="preserve">
     <value>Päivitettävät moduulit</value>
   </data>
+  <data name="LastRead" xml:space="preserve">
+    <value>Viimeksi luettu</value>
+  </data>
+  <data name="LastWrite" xml:space="preserve">
+    <value>Viimeksi kirjoitettu</value>
+  </data>
+  <data name="LastAction" xml:space="preserve">
+    <value>Viimeinen suoritus</value>
+  </data>
+  <data name="LastError" xml:space="preserve">
+    <value>Viimeinen virhe</value>
+  </data>
+  <data name="FilterByObjectType" xml:space="preserve">
+    <value>Suodata objektin tyypin mukaan...</value>
+  </data>
+  <data name="FilterByLogicalName" xml:space="preserve">
+    <value>Suodata lookisen nimen mukaan...</value>
+  </data>
+  <data name="AgentTokenCreateSucceeded" xml:space="preserve">
+    <value>Olet onnistuneesti lisännyt uuden edustajan käyttöoikeustunnuksen. Kopioi poletti nyt!!</value>
+  </data>
+  <data name="TargetDisableQuestion" xml:space="preserve">
+    <value>Poista kohde käytöstä ja peruuta sen sisältö.</value>
+  </data>
+  <data name="TargetDeleteQuestion" xml:space="preserve">
+    <value>Poista kohde ja sen sisältö. Tätä toimintoa ei voi peruuttaa.</value>
+  </data>
 </root>

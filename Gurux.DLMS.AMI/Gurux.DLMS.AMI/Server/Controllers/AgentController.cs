@@ -31,13 +31,10 @@
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Pages.Agent;
-using System;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {
@@ -65,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns>Agent information.</returns>
         [HttpGet]
         [Authorize(Policy = GXAgentPolicies.View)]
-        public async Task<ActionResult<GXAgent>> Get(Guid id)
+        public async Task<ActionResult<GetAgentResponse>> Get(Guid id)
         {
-            return await _agentRepository.ReadAsync(User, id);
+            return new GetAgentResponse()
+            {
+                Item = await _agentRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -115,14 +115,14 @@ namespace Gurux.DLMS.AMI.Server.Controllers
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXAgentPolicies.Delete)]
-        public async Task<ActionResult<AgentDeleteResponse>> Post(AgentDelete request)
+        public async Task<ActionResult<RemoveAgentResponse>> Post(RemoveAgent request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _agentRepository.DeleteAsync(User, request.Ids);
-            return new AgentDeleteResponse();
+            await _agentRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveAgentResponse();
         }
 
         /// <summary>

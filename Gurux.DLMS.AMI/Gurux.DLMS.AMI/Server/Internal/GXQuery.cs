@@ -415,6 +415,66 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="userId">User Id.</param>
         /// <param name="objectId">Object ID.</param>
+        public static GXSelectArgs GetUsersByObjectTemplate(string userId, Guid? objectId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateId);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(j => j.DeviceTemplateId, j => j.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (objectId != null && objectId != Guid.Empty)
+            {
+                args.Where.And<GXObjectTemplate>(q => q.Removed == null && q.Id == objectId);
+            }
+            else
+            {
+                args.Where.And<GXObjectTemplate>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users who can access the object templates.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="objectIds">Object IDs.</param>
+        public static GXSelectArgs GetUsersByObjectTemplates(string userId, IEnumerable<Guid>? objectIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateId);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null);
+            args.Where.And<GXDeviceTemplate>(q => q.Removed == null);
+            if (objectIds != null && objectIds.Any())
+            {
+                args.Where.And<GXObjectTemplate>(q => q.Removed == null && objectIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXObjectTemplate>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users who can access the object.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="objectId">Object ID.</param>
         public static GXSelectArgs GetUsersByObject(string userId, Guid? objectId)
         {
             GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
@@ -423,7 +483,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.UserGroupId);
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXDeviceGroup, GXObject>(a => a.Id, b => b.Device);
+            args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceId);
+            args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+            args.Joins.AddInnerJoin<GXDevice, GXObject>(a => a.Id, b => b.Device);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(q => q.Removed == null);
             if (objectId != null && objectId != Guid.Empty)
@@ -467,6 +529,71 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
             return args;
         }
+
+        /// <summary>
+        /// Returns a collection of users who can access the attribute templates.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="attributeIds">Attribute IDs.</param>
+        public static GXSelectArgs GetUsersByAttributeTemplates(string userId, IEnumerable<Guid>? attributeIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateGroupId);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null);
+            args.Where.And<GXDeviceTemplate>(where => where.Removed == null);
+            if (attributeIds != null && attributeIds.Any())
+            {
+                args.Where.And<GXAttributeTemplate>(q => q.Removed == null && attributeIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users who can access the attribute templates.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="id">Attribute ID.</param>
+        public static GXSelectArgs GetUsersByAttributeTemplate(string userId, Guid? id)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateGroupId);
+            args.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(a => a.Id, b => b.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(a => a.Id, b => b.ObjectTemplate);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null);
+            args.Where.And<GXDeviceTemplate>(where => where.Removed == null);
+            if (id != null && id != Guid.Empty)
+            {
+                args.Where.And<GXAttributeTemplate>(q => q.Removed == null && q.Id == id);
+            }
+            else
+            {
+                args.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+            }
+            return args;
+        }
+
 
         /// <summary>
         /// Returns a collection of users who can access the attributes.
@@ -643,6 +770,29 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Where.And<GXObjectTemplate>(q => q.Removed == null);
             return args;
         }
+
+        /// <summary>
+        /// Get object templates that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="objectId">Object template Id</param>
+        /// <returns>List of object templates that user can access.</returns>
+        public static GXSelectArgs GetAttributeTemplatesByUser(string userId, Guid? objectId = null)
+        {
+            GXSelectArgs args = GetDeviceTemplatesByUser(userId);
+            args.Columns.Clear();
+            args.Columns.Add<GXAttributeTemplate>();
+            args.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+            args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+            if (objectId != null)
+            {
+                args.Where.And<GXAttributeTemplate>(q => q.Id == objectId);
+            }
+            args.Where.And<GXObjectTemplate>(q => q.Removed == null);
+            args.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+            return args;
+        }
+
 
         /// <summary>
         /// Get attributes that user can access.

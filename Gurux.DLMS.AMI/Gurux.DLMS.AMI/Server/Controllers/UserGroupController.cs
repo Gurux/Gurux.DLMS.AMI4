@@ -63,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>User group information.</returns>
         [HttpGet]
         [Authorize(Policy = GXUserGroupPolicies.View)]
-        public async Task<ActionResult<GXUserGroup>> Get(Guid id)
+        public async Task<ActionResult<GetUserGroupResponse>> Get(Guid id)
         {
-            return await _userGroupRepository.ReadAsync(User, id);
+            return new GetUserGroupResponse()
+            {
+                Item = await _userGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -76,8 +79,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXUserGroupPolicies.Add)]
         public async Task<ActionResult<AddUserGroupResponse>> Post(AddUserGroup request)
         {
-            await _userGroupRepository.UpdateAsync(User, request.UserGroups);
-            return new AddUserGroupResponse() { UserGroups = request.UserGroups };
+            return new AddUserGroupResponse()
+            {
+                Ids = await _userGroupRepository.UpdateAsync(User, request.UserGroups)
+            };
         }
 
         /// <summary>
@@ -86,7 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXUserGroupPolicies.View)]
         public async Task<ActionResult<ListUserGroupsResponse>> Post(
-            ListUserGroups request, 
+            ListUserGroups request,
             CancellationToken cancellationToken)
         {
             ListUserGroupsResponse ret = new ListUserGroupsResponse();
@@ -105,7 +110,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _userGroupRepository.DeleteAsync(User, request.Ids);
+            await _userGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveUserGroupResponse();
         }
     }

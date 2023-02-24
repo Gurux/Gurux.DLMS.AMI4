@@ -105,9 +105,7 @@
             Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentView/Delete", new DeleteComponentView() { ComponentViewIds = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeleteComponentViewResponse>();
+                await Http.PostAsJson<RemoveComponentViewResponse>("api/ComponentView/Delete", new RemoveComponentView() { Ids = new Guid[] { _active.Id } });
             }
             else
             {
@@ -120,9 +118,7 @@
                 {
                     address = "api/ComponentView/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateComponentView() { ComponentViews = new List<GXComponentView>() { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateComponentViewResponse>();
+                await Http.PostAsJson<UpdateComponentViewResponse>(address, new UpdateComponentView() { ComponentViews = new List<GXComponentView>() { _active } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

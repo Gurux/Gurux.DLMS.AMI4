@@ -39,6 +39,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -85,7 +86,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             DateTime now = DateTime.Now;
             Dictionary<GXScriptLog, List<string>> updates = new Dictionary<GXScriptLog, List<string>>();
-            GXScriptLog error = new GXScriptLog()
+            GXScriptLog error = new GXScriptLog(TraceLevel.Error)
             {
                 CreationTime = now,
                 Message = ex.Message,

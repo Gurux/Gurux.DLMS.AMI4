@@ -512,6 +512,21 @@ namespace Gurux.DLMS.AMI.Client.Shared
         Task AttributeDelete(IReadOnlyList<string> users, IEnumerable<GXAttribute> attributes);
 
         /// <summary>
+        /// New attribute template is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="attributes">Updated attribute template.</param>
+        Task AttributeTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> attributes);
+
+        /// <summary>
+        /// Attribute template is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="attributes">Deleted attribute templates.</param>
+        Task AttributeTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> attributes);
+
+
+        /// <summary>
         /// Attribute value is updated.
         /// </summary>
         /// <param name="users">Notified users.</param>

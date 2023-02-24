@@ -41,6 +41,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -169,13 +170,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs)
+        public async Task DeleteAsync(
+            ClaimsPrincipal User,
+            IEnumerable<Guid> userGroups,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.DeviceGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXDeviceGroup>(a => new { a.Id, a.Name }, q => userGrouprs.Contains(q.Id));
+            GXSelectArgs arg = GXSelectArgs.Select<GXDeviceGroup>(a => new { a.Id, a.Name }, q => userGroups.Contains(q.Id));
             List<GXDeviceGroup> list = _host.Connection.Select<GXDeviceGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
@@ -183,7 +187,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceGroup>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -273,7 +284,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get devices that belongs for this device group.
-            arg = GXSelectArgs.SelectAll<GXDevice>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
             arg.Where.And<GXDeviceGroupDevice>(q => q.Removed == null && q.DeviceGroupId == id);
@@ -281,24 +292,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this device group.
-            arg = GXSelectArgs.SelectAll<GXUserGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
             ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
             ////////////////////////////////////////////////////
             //Get agent groups that belong for this device group.
-            arg = GXSelectArgs.SelectAll<GXAgentGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXAgentGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
             arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
             arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
             ret.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
+            //TODO: Read parameters.
             return ret;
         }
 
-        /// <inheritdoc cref="IDeviceGroupRepository.UpdateAsync"/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXDeviceGroup> deviceGroups)
+        /// <inheritdoc />
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user,
+            IEnumerable<GXDeviceGroup> deviceGroups,
+            Expression<Func<GXDeviceGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             string userId = null;
@@ -362,7 +377,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     users = await GetUsersAsync(user, it.Id);
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXDeviceGroup>(q => new { q.UserGroups, q.CreationTime, q.Devices, q.AgentGroups });
                     _host.Connection.Update(args);
                     //Map user group to device group.

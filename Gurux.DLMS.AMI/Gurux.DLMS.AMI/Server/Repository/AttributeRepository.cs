@@ -97,10 +97,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> attributers)
+        public async Task DeleteAsync(ClaimsPrincipal User, 
+            IEnumerable<Guid> attributers,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceTemplateManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) &&
+                !User.IsInRole(GXRoles.DeviceTemplateManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -116,7 +118,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //User doesn't have access rights for this attribute.
                     throw new UnauthorizedAccessException();
                 }
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXAttribute>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
             }
             List<string> users = await GetUsersAsync(User, attributers);
             List<GXAttribute> list2 = new List<GXAttribute>();
@@ -197,41 +206,41 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
             IEnumerable<GXAttribute> attributes,
-            Expression<Func<GXAttribute, object>>? columns)
+            Expression<Func<GXAttribute, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            foreach (var obj in attributes)
+            foreach (var att in attributes)
             {
-                if (obj.Id == Guid.Empty)
+                if (att.Id == Guid.Empty)
                 {
-                    obj.CreationTime = now;
-                    await _host.Connection.InsertAsync(GXInsertArgs.Insert(obj));
+                    att.CreationTime = now;
+                    await _host.Connection.InsertAsync(GXInsertArgs.Insert(att));
                 }
-                else if (columns != null)
+                await _host.Connection.UpdateAsync(GXUpdateArgs.Update(att, columns));
+                if (att.Parameters != null)
                 {
-                    await _host.Connection.UpdateAsync(GXUpdateArgs.Update(obj, columns));
-                }
-                //Update attribute parameters.
-                GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeParameter>(w => w.Attribute == obj && w.Removed == null);
-                var attributeParameters = await _host.Connection.SelectAsync<GXAttributeParameter>(arg);
-                var comparer = new UniqueComparer<GXAttributeParameter, Guid>();
-                List<GXAttributeParameter> removedAttributeParameters = attributeParameters.Except(obj.Parameters, comparer).ToList();
-                List<GXAttributeParameter> addedAttributeGroupParameters = obj.Parameters.Except(attributeParameters, comparer).ToList();
-                List<GXAttributeParameter> updatedAttributeGroupParameters = obj.Parameters.Union(attributeParameters, comparer).ToList();
-                if (removedAttributeParameters.Any())
-                {
-                    RemoveAttributeParameters(obj, removedAttributeParameters);
-                }
-                if (addedAttributeGroupParameters.Any())
-                {
-                    AddAttributeParameters(obj, addedAttributeGroupParameters);
-                }
-                if (updatedAttributeGroupParameters.Any())
-                {
-                    foreach (var it2 in updatedAttributeGroupParameters)
+                    //Update attribute parameters.
+                    GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeParameter>(w => w.Attribute == att && w.Removed == null);
+                    var attributeParameters = await _host.Connection.SelectAsync<GXAttributeParameter>(arg);
+                    var comparer = new UniqueComparer<GXAttributeParameter, Guid>();
+                    List<GXAttributeParameter> removedAttributeParameters = attributeParameters.Except(att.Parameters, comparer).ToList();
+                    List<GXAttributeParameter> addedAttributeGroupParameters = att.Parameters.Except(attributeParameters, comparer).ToList();
+                    List<GXAttributeParameter> updatedAttributeGroupParameters = att.Parameters.Union(attributeParameters, comparer).ToList();
+                    if (removedAttributeParameters.Any())
                     {
-                        GXUpdateArgs u = GXUpdateArgs.Update(it2, c => new { c.Settings, c.Updated });
-                        await _host.Connection.UpdateAsync(u);
+                        RemoveAttributeParameters(att, removedAttributeParameters);
+                    }
+                    if (addedAttributeGroupParameters.Any())
+                    {
+                        AddAttributeParameters(att, addedAttributeGroupParameters);
+                    }
+                    if (updatedAttributeGroupParameters.Any())
+                    {
+                        foreach (var it in updatedAttributeGroupParameters)
+                        {
+                            GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
+                            await _host.Connection.UpdateAsync(u);
+                        }
                     }
                 }
             }
@@ -295,7 +304,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ClaimsPrincipal User,
             IEnumerable<GXAttribute> attributes)
         {
-            //TODO:
             var ret = attributes.Select(s => s.Id).ToArray();
             List<string> users = await GetUsersAsync(User, ret);
 

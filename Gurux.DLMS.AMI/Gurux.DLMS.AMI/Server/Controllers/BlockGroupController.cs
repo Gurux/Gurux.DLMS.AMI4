@@ -32,8 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -47,7 +45,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class BlockGroupController : ControllerBase
     {
         private readonly IBlockGroupRepository _BlockGroupRepository;
-
+      
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public BlockGroupController(
             IBlockGroupRepository BlockGroupRepository)
         {
@@ -61,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Block group.</returns>
         [HttpGet]
         [Authorize(Policy = GXBlockGroupPolicies.View)]
-        public async Task<ActionResult<GXBlockGroup>> Get(Guid id)
+        public async Task<ActionResult<GetBlockGroupResponse>> Get(Guid id)
         {
-            return await _BlockGroupRepository.ReadAsync(User, id);
+            return new GetBlockGroupResponse()
+            {
+                Item = await _BlockGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -75,7 +79,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddBlockGroupResponse>> Post(AddBlockGroup request)
         {
             await _BlockGroupRepository.UpdateAsync(User, request.BlockGroups);
-            return new AddBlockGroupResponse() { BlockGroups = request.BlockGroups };
+            return new AddBlockGroupResponse() { Ids = request.BlockGroups.Select(s => s.Id).ToArray() };
         }
 
         /// <summary>
@@ -99,7 +103,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _BlockGroupRepository.DeleteAsync(User, request.Ids);
+            await _BlockGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveBlockGroupResponse();
         }
     }

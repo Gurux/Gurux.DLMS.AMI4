@@ -1,0 +1,113 @@
+﻿@page
+
+@using Gurux.DLMS.AMI.Shared.Enums;
+@using Microsoft.AspNetCore.Builder
+@using Microsoft.AspNetCore.Http.Features
+@using Microsoft.AspNetCore.Localization
+@using Microsoft.AspNetCore.Mvc.Localization
+@using Microsoft.Extensions.Options
+@using System.Net.Http
+
+@model Notifications
+@{
+    ViewData["Title"] = ViewData["Notifications"];
+    ViewData["ActivePage"] = ManageNavPages.Notifications;
+}
+
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+<form id="profile-form" asp-page-handler="Create" method="post">
+    <h3>User notifications</h3>
+    <input type="search" oninput="pageController.search(this.value)" placeholder="Search by type" />
+
+    <table id="notifications" class="table table-striped" width="100%">
+        <thead>
+            <tr>
+                <th>
+                    <input id="select" type="checkbox" onclick="pageController.toggle(this.checked)" />
+                </th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var it in Model.Items)
+            {
+                <tr id="@it" onclick="pageController.selectRow(this)">
+                    <td>
+                        <input id="@it.Value" type="checkbox" value="@it.Value" checked="@it.Selected" />
+                    </td>
+                    <td>
+                        @it.Text
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <br />
+    <button type="submit" class="btn btn btn-primary" onclick="pageController.getSelectedNotifications()">@ViewData["Save"]</button>
+    <input type="hidden" id="customScopes" name="selectedNotifications" value="" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        'use strict';
+        var selectedRow;
+
+        let pageController = (function () {
+            // Get selected notifications.
+            function getSelectedNotifications() {
+                var checkedCbs = document.querySelectorAll("input[type='checkbox']:checked");
+                var ids = [];
+                for (var i = 0; i < checkedCbs.length; i++) ids.push(checkedCbs[i].id);
+                document.getElementById("customScopes").value = ids;
+            }
+
+            // Select the new row and un-select the old one.
+            function selectRow(row) {
+                if (selectedRow) {
+                    $(selectedRow).toggleClass("table-info");
+                }
+                $(row).toggleClass("table-info");
+                selectedRow = row;
+                document.getElementById("selected").value = row.id;
+                alert(row);
+            }
+
+            // Select or deselect rows.
+            function toggle(enable) {
+                var checkedCbs = document.querySelectorAll("input[type='checkbox']");
+                for (var i = 0; i < checkedCbs.length; i++) {
+                    if (checkedCbs[i].parentElement.parentElement.style.display == "") {
+                        checkedCbs[i].checked = enable;
+                    }
+                }
+            }
+
+            //Filter items.
+            function search(filter) {
+                var trs, i, td, txtValue;
+                filter = filter.toUpperCase()
+                trs = document.getElementsByTagName("tr");
+                for (i = 0; i < trs.length; i++) {
+                    td = trs[i].getElementsByTagName("td")[1];
+                    if (td) {
+                        txtValue = td.textContent || td.innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) != -1) {
+                            trs[i].style.display = "";
+                        } else {
+                            trs[i].style.display = "none";
+                        }
+                    }
+                }
+            }
+
+            // Public Functions
+            return {
+                "getSelectedNotifications": getSelectedNotifications,
+                "selectRow": selectRow,
+                "search": search,
+                "toggle": toggle
+            }
+        })();
+    </script>
+}

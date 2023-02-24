@@ -174,10 +174,7 @@
     /// <summary>
     /// Workflow log filter.
     /// </summary>
-    private GXWorkflowLog filter = new GXWorkflowLog()
-        {
-            Level = null
-        };
+    private GXWorkflowLog filter = new GXWorkflowLog();
     /// <summary>
     /// User is verified before workflow log are cleared.
     /// </summary>
@@ -296,19 +293,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/WorkflowLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListWorkflowLogsResponse>("api/WorkflowLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the workflow log.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListWorkflowLogsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the workflow log.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXWorkflowLog>(ret.Logs, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXWorkflowLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -375,11 +367,7 @@
             Notifier?.ClearStatus();
             CloseWorkflowLog arg = new CloseWorkflowLog();
             arg.Logs = new Guid[] { (_active as GXWorkflowLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/WorkflowLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseWorkflowLogResponse>();
-            }
+            await Http.PostAsJson<CloseWorkflowLogResponse>("api/WorkflowLog/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -420,11 +408,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/WorkflowLog/Clear", new ClearWorkflowLogs()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearWorkflowLogsResponse>("api/WorkflowLog/Clear", new ClearWorkflowLogs());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

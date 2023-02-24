@@ -59,9 +59,7 @@
                 {
                     Filter = new GXTrigger()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Trigger/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListTriggersResponse>();
+            var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req);
             foreach (GXTrigger it in ret.Triggers)
             {
                 if (!schedules.Exists(q => q.Id == it.Id))

@@ -34,11 +34,9 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
-using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Helpers;
 
@@ -77,9 +75,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Module information.</returns>
         [HttpGet]
         [Authorize(Policy = GXModulePolicies.View)]
-        public async Task<ActionResult<GXModule>> Get(string id)
+        public async Task<ActionResult<GetModuleResponse>> Get(string id)
         {
-            return await _moduleRepository.ReadAsync(User, id);
+            return new GetModuleResponse()
+            { 
+                Item = await _moduleRepository.ReadAsync(User, id) 
+            };
         }
 
         /// <summary>
@@ -121,9 +122,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXModulePolicies.Delete)]
-        public async Task<ActionResult<DeleteModuleResponse>> Post(DeleteModule request)
+        public async Task<ActionResult<RemoveModuleResponse>> Post(RemoveModule request)
         {
-            DeleteModuleResponse ret = new DeleteModuleResponse();
+            RemoveModuleResponse ret = new RemoveModuleResponse();
             foreach (var it in request.Modules)
             {
                 ret.Restart |= _moduleService.DeleteModule(User, new GXModule() { Id = it });

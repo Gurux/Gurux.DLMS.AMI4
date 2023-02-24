@@ -117,6 +117,7 @@
     /// </summary>
     private void OnCancel()
     {
+        Notifier.RemoveLastPage();
         NavigationManager.NavigateTo(Notifier.GetLastPage());
     }
 }

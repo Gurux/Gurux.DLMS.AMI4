@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Schedule Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Schedule Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Schedule Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -48,6 +48,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IDeviceRepository _deviceRepository;
         private readonly IUserRepository _userRepository;
+        private GXPerformanceSettings _performanceSettings;
 
         /// <summary>
         /// Constructor.
@@ -56,12 +57,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IGXHost host,
             IGXEventsNotifier eventsNotifier,
             IDeviceRepository deviceRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _deviceRepository = deviceRepository;
             _userRepository = userRepository;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc/>
@@ -148,7 +151,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //TODO: ToArray()
             List<string> users = await _deviceRepository.GetUsersAsync(user,
                 deviceTraces.Select(s => s.Device.Id).ToArray());
-            await _eventsNotifier.DeviceTraceAdd(users, deviceTraces);
+            if (_performanceSettings.Notify(TargetType.DeviceTrace))
+            {
+                await _eventsNotifier.DeviceTraceAdd(users, deviceTraces);
+            }
         }
 
         /// <inheritdoc />
@@ -192,7 +198,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXDeleteArgs args = GXDeleteArgs.Delete<GXDeviceTrace>(w => errors.Contains(w.Device));
                 await _host.Connection.DeleteAsync(args);
             }
-            await _eventsNotifier.DeviceTraceClear(list, errors);
+            if (_performanceSettings.Notify(TargetType.DeviceTrace))
+            {
+                await _eventsNotifier.DeviceTraceClear(list, errors);
+            }
         }
     }
 }

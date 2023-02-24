@@ -49,6 +49,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using Gurux.DLMS.AMI.Client.Pages.Block;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -108,11 +109,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> scripts)
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> scripts,
+            bool delete)
         {
             if (scripts != null && scripts.Any())
             {
-                if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScriptManager))
+                if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScriptManager)))
                 {
                     throw new UnauthorizedAccessException();
                 }
@@ -124,7 +127,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     script.Removed = now;
                     List<string> users = await GetUsersAsync(User, script.Id);
-                    _host.Connection.Update(GXUpdateArgs.Update(script, q => q.Removed));
+                    if (delete)
+                    {
+                        await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXScript>(script.Id));
+                    }
+                    else
+                    {
+                        _host.Connection.Update(GXUpdateArgs.Update(script, q => q.Removed));
+                    }
                     updates[script] = users;
                     //Check if there is a uninstall method and call it.
                     arg = GXSelectArgs.Select<GXScriptMethod>(a => a.Id, q => q.Script == script && q.Name == "Uninstall");
@@ -303,7 +313,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
-            IEnumerable<GXScript> scripts)
+            IEnumerable<GXScript> scripts,
+            Expression<Func<GXScript, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new();
@@ -367,7 +378,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                     script.Updated = now;
                     script.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(script);
+                    GXUpdateArgs args = GXUpdateArgs.Update(script, columns);
                     args.Exclude<GXScript>(q => new { q.CreationTime, q.ScriptGroups, q.Methods, q.Creator });
                     _host.Connection.Update(args);
                     //Map script groups to script.

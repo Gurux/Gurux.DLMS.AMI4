@@ -97,9 +97,7 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get available active languages.
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages() { Filter = new GXLanguage() { Active = true } });
-            ClientHelpers.ValidateStatusCode(response);
-            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            _languages = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages() { Filter = new GXLanguage() { Active = true } })).Languages;
             if (_languages != null && _languages.Any())
             {
                 foreach (var it in _languages)

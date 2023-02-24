@@ -47,6 +47,22 @@
                            @bind-Value="_active.CreationTime" />
                     </div>
                 }
+                @if (_active.Updated != null)
+                {
+                        <div class="form-group">
+                            <label>@Properties.Resources.Updated</label>
+                                <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Updated" />
+                            </div>
+                }
+                @if (_active.Removed != null)
+                {
+                            <div class="form-group">
+                                <label>@Properties.Resources.Removed</label>
+                                <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_active.Removed" />
+                            </div>
+                }               
             </div>
         </div>
     </EditForm>
@@ -82,7 +98,7 @@
                 //Get trigger data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Trigger?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXTrigger>();
+                _active = (await response.Content.ReadFromJsonAsync<GetTriggerResponse>()).Item;
                 Notifier.UpdateData(GXPages.Triggers, _active);
                 _active.Modified = true;
             }

@@ -63,11 +63,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Device group.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceGroupPolicies.View)]
-        public async Task<ActionResult<GXDeviceGroup>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceGroupResponse>> Get(Guid id)
         {
-            return await _deviceGroupRepository.ReadAsync(User, id);
+            return new GetDeviceGroupResponse()
+            {
+                Item = await _deviceGroupRepository.ReadAsync(User, id)
+            };
         }
-
 
         /// <summary>
         /// Update device group.
@@ -82,7 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
             await _deviceGroupRepository.UpdateAsync(User, request.DeviceGroups);
-            return new AddDeviceGroupResponse() { DeviceGroups = request.DeviceGroups };
+            return new AddDeviceGroupResponse() { Ids = request.DeviceGroups.Select(s => s.Id).ToArray() };
         }
 
         /// <summary>
@@ -107,7 +109,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _deviceGroupRepository.DeleteAsync(User, request.Ids);
+            await _deviceGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveDeviceGroupResponse();
         }
     }

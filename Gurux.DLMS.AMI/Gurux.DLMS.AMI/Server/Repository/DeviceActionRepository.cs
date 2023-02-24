@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Schedule Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Schedule Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Schedule Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -48,6 +48,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
         private readonly IDeviceRepository _deviceRepository;
+        private GXPerformanceSettings _performanceSettings;
 
 
         /// <summary>
@@ -57,12 +58,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IGXHost host,
             IUserRepository userRepository,
             IGXEventsNotifier eventsNotifier,
-            IDeviceRepository deviceRepository)
+            IDeviceRepository deviceRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
             _deviceRepository = deviceRepository;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />

@@ -252,9 +252,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/BlockGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListBlockGroupsResponse>();
+            var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the block groups.
             if (Count != 0)
@@ -295,10 +293,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New block group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.BlockGroups, new GXBlockGroup());
+            Notifier.UpdateData(GXPages.BlockGroups, new GXBlockGroup(null));
             NavigationManager.NavigateTo("/blockgrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

@@ -86,9 +86,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         [HttpGet]
         [Authorize(Policy = GXConfigurationPolicies.View)]
 
-        public async Task<ActionResult<GXConfiguration>> Get(Guid id)
+        public async Task<ActionResult<GetConfigurationResponse>> Get(Guid id)
         {
-            return await _configurationRepository.ReadAsync(User, id, null);
+            return new GetConfigurationResponse()
+            {
+                Item = await _configurationRepository.ReadAsync(User, id, null)
+            };
         }
 
         /// <summary>
@@ -99,7 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         [HttpPost("List")]
         [Authorize(Policy = GXConfigurationPolicies.View)]
         public async Task<ActionResult<ListConfiqurationResponse>> Post(
-            ListConfiquration request, 
+            ListConfiquration request,
             CancellationToken cancellationToken)
         {
             ListConfiqurationResponse ret = new ListConfiqurationResponse();
@@ -248,6 +251,6 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         {
             _applicationLifetime.StopApplication();
             return Ok();
-        }       
+        }
     }
 }

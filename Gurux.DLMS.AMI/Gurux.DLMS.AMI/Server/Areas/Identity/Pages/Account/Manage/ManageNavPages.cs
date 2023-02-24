@@ -27,6 +27,7 @@ namespace  Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
 
         public static string Roles => "Roles";
         public static string Pat => "Pat";
+        public static string Notifications => "Notifications";
         public static string ProfilePicture => "ProfilePicture";
 
         /// <summary>
@@ -83,6 +84,8 @@ namespace  Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
 
         public static string PatNavClass(ViewContext viewContext) => PageNavClass(viewContext, Pat);
 
+        public static string NotificationsNavClass(ViewContext viewContext) => PageNavClass(viewContext, Notifications);
+
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -129,6 +132,7 @@ namespace  Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             viewContext.ViewData["ProfilePicture"] = Properties.Resources.ProfilePicture;
             viewContext.ViewData["Roles"] = Properties.Resources.Roles;
             viewContext.ViewData["Pat"] = Properties.Resources.PersonalAccessTokens;
+            viewContext.ViewData["Notifications"] = Properties.Resources.Notifications;
             viewContext.ViewData["Email"] = Properties.Resources.Email;
             viewContext.ViewData["Password"] = Properties.Resources.Password;
             viewContext.ViewData["ExternalLogins"] = Properties.Resources.ExternalLogins;

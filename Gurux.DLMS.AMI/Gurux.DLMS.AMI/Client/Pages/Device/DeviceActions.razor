@@ -55,13 +55,13 @@
                        @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
                 </th>
                 <th>
-                <!--Type-->
+                    <!--Type-->
                 </th>
                 <th>
-                <!--Data-->
+                    <!--Data-->
                 </th>
                 <th>
-                <!--Reply-->
+                    <!--Reply-->
                 </th>
                 <th width="1%"></th>
             </tr>
@@ -277,9 +277,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceAction/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceActionResponse>();
+            var ret = await Http.PostAsJson<ListDeviceActionResponse>("api/DeviceAction/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the device actions.
             if (Count != 0)
@@ -364,10 +362,7 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceAction/Clear", new ClearDeviceAction()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                }
+                await Http.PostAsJson<ClearDeviceActionResponse>("api/DeviceAction/Clear", new ClearDeviceAction());
             }
         }
         catch (AccessTokenNotAvailableException exception)

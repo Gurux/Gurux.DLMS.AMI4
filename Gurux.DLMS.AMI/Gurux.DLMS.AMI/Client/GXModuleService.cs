@@ -150,9 +150,7 @@ namespace Gurux.DLMS.AMI.Client
         public async Task GetModule(HttpClient Http, GXModule module)
         {
             List<Assembly> assemblies = new List<Assembly>();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/ModuleUI", new ModuleConfigurationUI() { Name = module.Id });
-            ClientHelpers.ValidateStatusCode(response);
-            ModuleConfigurationUIResponse ret2 = await response.Content.ReadFromJsonAsync<ModuleConfigurationUIResponse>();
+            ModuleConfigurationUIResponse ret2 = await Http.PostAsJson<ModuleConfigurationUIResponse>("api/Module/ModuleUI", new ModuleConfigurationUI() { Name = module.Id });
             foreach (string it in ret2.Modules)
             {
                 lock (this)
@@ -175,16 +173,14 @@ namespace Gurux.DLMS.AMI.Client
         public async Task LoadModules(HttpClient Http)
         {
             ListModules req = new ListModules();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListModulesResponse>();
+            ListModulesResponse ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req);
             foreach (GXModule module in ret.Modules)
             {
                 if (!IsLoaded(module.Id))
                 {
                     try
                     {
-                        var mod = await Http.GetFromJsonAsync<GXModule>(string.Format("api/Module?id={0}", module.Id));
+                        var mod = (await Http.GetFromJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", module.Id))).Item;
                         List<Assembly> assemblies = new List<Assembly>();
                         foreach (var it in mod.Assemblies)
                         {

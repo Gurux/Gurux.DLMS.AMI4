@@ -39,6 +39,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -94,9 +95,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> componentViews)
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> componentViews,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ComponentViewManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ComponentViewManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -108,7 +111,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXComponentView>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -170,7 +180,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXComponentView> componentViews)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User,
+            IEnumerable<GXComponentView> componentViews,
+            Expression<Func<GXComponentView, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
@@ -212,7 +225,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         throw new ArgumentException(Properties.Resources.ContentEdited);
                     }
                     List<string> users = await GetUsersAsync(User, componentView.Id);
-                    GXUpdateArgs args = GXUpdateArgs.Update(componentView);
+                    GXUpdateArgs args = GXUpdateArgs.Update(componentView, columns);
                     args.Exclude<GXComponentView>(q => new { q.CreationTime, q.ComponentViewGroups });
                     _host.Connection.Update(args);
                     //Map component view groups to component view.

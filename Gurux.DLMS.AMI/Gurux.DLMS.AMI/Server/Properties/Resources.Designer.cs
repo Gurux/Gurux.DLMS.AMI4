@@ -1284,5 +1284,16 @@ namespace Gurux.DLMS.AMI.Server.Properties {
                 return ResourceManager.GetString("CronCompleted", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string Notifications
+        {
+            get
+            {
+                return ResourceManager.GetString("Notifications", resourceCulture);
+            }
+        }
     }
 }

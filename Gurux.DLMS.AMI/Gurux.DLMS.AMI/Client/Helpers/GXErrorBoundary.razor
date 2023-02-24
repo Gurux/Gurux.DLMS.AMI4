@@ -10,15 +10,12 @@
     {
         try
         {
-            GXUserError ue = new GXUserError();
+            GXUserError ue = new GXUserError(System.Diagnostics.TraceLevel.Error);
             ue.Message = exception.Message;
             ue.StackTrace = exception.StackTrace;
             AddUserError req = new AddUserError();
             req.Errors = new GXUserError[] { ue };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserError/Add", req))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-            }
+            await Http.PostAsJson<AddUserErrorResponse>("api/UserError/Add", req);
         }
         catch (Exception ex)
         {

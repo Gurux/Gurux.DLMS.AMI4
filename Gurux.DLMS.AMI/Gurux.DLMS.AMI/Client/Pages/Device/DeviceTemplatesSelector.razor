@@ -58,9 +58,7 @@
                 {
                     Filter = new GXDeviceTemplate()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplate/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplatesResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
             foreach (GXDeviceTemplate it in ret.Templates)
             {
                 if (!schedules.Exists(q => q.Id == it.Id))

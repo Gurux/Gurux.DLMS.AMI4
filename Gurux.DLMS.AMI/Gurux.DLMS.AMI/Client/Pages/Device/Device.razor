@@ -121,6 +121,47 @@
                     }
                     <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_device"></ParametersView>
                 </div>
+                @if (_device.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                       @bind-Value="_device.CreationTime" />
+                    </div>
+                }
+                @if (_device.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                       @bind-Value="_device.Updated" />
+                    </div>
+                }
+                @if (_device.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                       @bind-Value="_device.Removed" />
+                    </div>
+                }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </EditForm>
     }
@@ -130,6 +171,7 @@
     }
 }
 @code {
+    private bool DeleteTarget;
     private ParametersView? ParametersView;
     private List<IGXParameter> Parameters = new List<IGXParameter>();
     NetworkSettings? networkSettings;
@@ -363,7 +405,7 @@
                 //Get device data.
                 response = await Http.GetAsync(string.Format("api/Device?id={0}", _device.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _device = await response.Content.ReadFromJsonAsync<GXDevice>();
+                _device = (await response.Content.ReadFromJsonAsync<GetDeviceResponse>()).Item;
                 Notifier.UpdateData(GXPages.Devices, _device);
                 _device.Modified = true;
             }
@@ -372,9 +414,7 @@
                 {
                     Filter = new GXDeviceTemplate()
                 };
-            response = await Http.PostAsJsonAsync("api/DeviceTemplate/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTemplatesResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
             templates = new List<GXDeviceTemplate>();
             templates.AddRange(ret.Templates);
             if (_device.Template == null)
@@ -447,21 +487,25 @@
             _device.Settings = JsonSerializer.Serialize(_settings);
             if (Notifier.Action == CrudAction.Delete)
             {
-                response = await Http.PostAsJsonAsync("api/Device/Delete", new DeviceDelete() { Ids = new Guid[] { _device.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeviceDeleteResponse>();
+                await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", new RemoveDevice()
+                    {
+                        Ids = new Guid[] { _device.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else if (Notifier.Action == CrudAction.Create)
             {
-                response = await Http.PostAsJsonAsync("api/Device/Add", new UpdateDevice() { Devices = new GXDevice[] { _device } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+                await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Add", new UpdateDevice()
+                    {
+                        Devices = new GXDevice[] { _device }
+                    });
             }
             else
             {
-                response = await Http.PostAsJsonAsync("api/Device/Update", new UpdateDevice() { Devices = new GXDevice[] { _device } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+                await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Update", new UpdateDevice()
+                    {
+                        Devices = new GXDevice[] { _device }
+                    });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
@@ -497,11 +541,7 @@
                     settings.Name = "Ami.Device";
                 }
                 settings.Value = JsonSerializer.Serialize(_device.Id);
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserSetting/Add",
-                new GXUserSetting[] { settings }))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                }
+                await Http.PostAsJson("api/UserSetting/Add", new GXUserSetting[] { settings });
             }
         }
         catch (Exception ex)

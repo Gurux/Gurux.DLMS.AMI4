@@ -293,9 +293,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserAction/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListUserActionResponse>();
+            var ret = await Http.PostAsJson<ListUserActionResponse>("api/UserAction/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the user actions.
             if (Count != 0)
@@ -377,10 +375,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserAction/Clear", new ClearUserAction()))
-                {
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearUserActionResponse>("api/UserAction/Clear", new ClearUserAction());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

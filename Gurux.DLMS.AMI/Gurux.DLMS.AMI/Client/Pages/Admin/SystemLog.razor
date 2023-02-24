@@ -32,10 +32,10 @@
     </ChildContent>
 </MenuControl>
 <p>
-<input type="checkbox"
-       @onchange="@((ChangeEventArgs __e) => ShowClosedErrors = @StatusTile.ToBoolean(__e.Value))"
-       id="showClosedErrors" />
-<label class="form-check-label" for="showClosedErrors">@Properties.Resources.ShowClosedErrors</label>
+    <input type="checkbox"
+           @onchange="@((ChangeEventArgs __e) => ShowClosedErrors = @StatusTile.ToBoolean(__e.Value))"
+           id="showClosedErrors" />
+    <label class="form-check-label" for="showClosedErrors">@Properties.Resources.ShowClosedErrors</label>
 </p>
 
 <table class="table table-striped">
@@ -253,20 +253,15 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListSystemLogsResponse>("api/SystemLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            Total = ret.Count;
+            //Get only selected amount of the system errors.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListSystemLogsResponse>();
-                Total = ret.Count;
-                Total = ret.Count;
-                //Get only selected amount of the system errors.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXSystemLog>(ret.Errors, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXSystemLog>(ret.Errors, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -319,11 +314,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Clear", new ClearSystemLog()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearSystemLogResponse>("api/SystemLog/Clear", new ClearSystemLog());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

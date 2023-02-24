@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -97,7 +98,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<string> modules)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ModuleManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ModuleManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -244,18 +245,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new ArgumentNullException(Properties.Resources.UnknownTarget);
             }
             //Get script and methods.
-            arg = GXSelectArgs.SelectAll<GXScript>(w => w.Module == module);
+            arg = GXSelectArgs.Select<GXScript>(s => new {s.Id, s.Name }, w => w.Module == module);
             arg.Columns.Add<GXScriptMethod>();
             arg.Columns.Exclude<GXScriptMethod>(e => e.Script);
             arg.Joins.AddLeftJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
             module.Scripts = await _host.Connection.SelectAsync<GXScript>(arg);
             //Get module groups.
-            arg = GXSelectArgs.SelectAll<GXModuleGroup>(where => where.Removed == null);
+            arg = GXSelectArgs.Select<GXModuleGroup>(s => new { s.Id, s.Name }, where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXModuleGroup, GXModuleGroupModule>(j => j.Id, j => j.ModuleGroupId);
             arg.Where.And<GXModuleGroupModule>(w => w.ModuleId == id);
             module.ModuleGroups = await _host.Connection.SelectAsync<GXModuleGroup>(arg);
             //Get assemblies.
-            arg = GXSelectArgs.SelectAll<GXModuleAssembly>(where => where.Module == module);
+            arg = GXSelectArgs.Select<GXModuleAssembly>(s => new { s.Id, s.FileName }, where => where.Module == module);
             arg.Distinct = true;
             arg.Columns.Exclude<GXModuleAssembly>(e => e.Module);
             module.Assemblies = await _host.Connection.SelectAsync<GXModuleAssembly>(arg);
@@ -263,9 +264,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task UpdateAsync(ClaimsPrincipal user, GXModule module)
+        public async Task UpdateAsync(ClaimsPrincipal user, GXModule module,
+            Expression<Func<GXModule, object?>>? columns)
         {
-            GXUpdateArgs args = GXUpdateArgs.Update(module);
+            GXUpdateArgs args = GXUpdateArgs.Update(module, columns);
             module.Updated = DateTime.Now;
             args.Exclude<GXModule>(e => new { e.Versions, e.ModuleGroups });
             await _host.Connection.UpdateAsync(args);

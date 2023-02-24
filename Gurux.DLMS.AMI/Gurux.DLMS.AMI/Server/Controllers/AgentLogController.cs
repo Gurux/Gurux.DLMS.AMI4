@@ -48,6 +48,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
     {
         private readonly IAgentLogRepository _agentErrorRepository;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public AgentLogController(IAgentLogRepository agentErrorRepository)
         {
             _agentErrorRepository = agentErrorRepository;
@@ -60,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Agent error.</returns>
         [HttpGet]
         [Authorize(Policy = GXAgentLogPolicies.View)]
-        public async Task<ActionResult<GXAgentLog>> Get(Guid id)
+        public async Task<ActionResult<GetAgentLogResponse>> Get(Guid id)
         {
-            return await _agentErrorRepository.ReadAsync(User, id);
+            return new GetAgentLogResponse()
+            {
+                Item = await _agentErrorRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -83,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXAgentLogPolicies.View)]
         public async Task<ActionResult<ListAgentLogsResponse>> Post(
-            ListAgentLogs request, 
+            ListAgentLogs request,
             CancellationToken cancellationToken)
         {
             ListAgentLogsResponse response = new ListAgentLogsResponse();

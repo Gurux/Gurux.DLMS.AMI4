@@ -4,6 +4,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.Objects;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -31,7 +32,7 @@
 @if (_object != null && _object.Template != null)
 {
     <CascadingValue Value="this">
-        <h3>@Convert.ToString((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType) Object</h3>
+        <h3>@_object.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType) Object</h3>
         <div class="row">
             <div style="width:100%">
                 @switch ((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType)
@@ -53,10 +54,20 @@
                         }
                         break;
                 }
+                @if (_object.LastError != null)
+                {
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(_object.LastError) + " " + _object.LastErrorMessage)"></AttributeTile>
+                }
+                <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(_object.LastRead)"></AttributeTile>
+                <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(_object.LastWrite)"></AttributeTile>
+                @if (_object.LastAction != null)
+                {
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(_object.LastAction)"></AttributeTile>
+                }
             </div>
         </div>
         @ChildContent
-        <MenuControl MenuItems="MenuItems">
+        <MenuControl MenuItems="MenuItems" CssStyle="background-color: dodgerblue;">
             <ChildContent>
             </ChildContent>
         </MenuControl>
@@ -64,6 +75,11 @@
     <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_object"></ParametersView>
 }
 @code {
+    /// <summary>
+    /// tasks to be performed;
+    /// </summary>
+    private List<Guid> PerformedTask = new();
+
     private ParametersView? ParametersView;
     private List<IGXParameter> Parameters = new List<IGXParameter>();
 
@@ -79,6 +95,38 @@
     public RenderFragment ChildContent { get; set; }
 
     public List<MenuItem> MenuItems = new List<MenuItem>();
+
+    public static void SetValue(GXObject Target, GXDLMSObject target, int index)
+    {
+        GXAttribute att = AttributeTile.GetAttribute(Target.Attributes, index);
+        ValueEventArgs e = new ValueEventArgs(target, index, 0, null);
+        object value = (target as IGXDLMSBase).GetValue(null, e);
+        DataType dt = target.GetDataType(index);
+        if (e.ByteArray && (value is byte[] barray))
+        {
+            string xml;
+            GXDLMSTranslator t = new() { Hex = false };
+            t.DataToXml(barray, out xml);
+            att.Value = xml;
+        }
+        else
+        {
+            att.Value = GXDLMSTranslator.ValueToXml(target.GetValues()[index - 1]);
+        }
+    }
+
+    public static void GetValue(GXObject Target, GXDLMSObject target, int index)
+    {
+        string? str = AttributeTile.GetAttribute(Target.Attributes, index).Value;
+        if (!string.IsNullOrEmpty(str))
+        {
+            ValueEventArgs e = new ValueEventArgs(target, index, 0, null)
+                {
+                    Value = GXDLMSTranslator.XmlToValue(str)
+                };
+            (target as IGXDLMSBase).SetValue(null, e);
+        }
+    }
 
     protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
@@ -112,6 +160,7 @@
                                {
                                    attribute.Read = it.Read;
                                    attribute.Value = it.Value;
+                                   attribute.Modified = false;
                                    StateHasChanged();
                                    break;
                                }
@@ -129,6 +178,26 @@
                     {
                         if (it.Id == _object.Id)
                         {
+                            if (it.LastRead != null)
+                            {
+                                _object.LastRead = it.LastRead;
+                            }
+                            if (it.LastWrite != null)
+                            {
+                                _object.LastWrite = it.LastWrite;
+                            }
+                            if (it.LastAction != null)
+                            {
+                                _object.LastAction = it.LastAction;
+                            }
+                            if (it.LastError != null)
+                            {
+                                _object.LastError = it.LastError;
+                            }
+                            if (it.LastErrorMessage != null)
+                            {
+                                _object.LastErrorMessage = it.LastErrorMessage;
+                            }
                             StateHasChanged();
                             break;
                         }
@@ -152,6 +221,7 @@
                                     if (!string.IsNullOrEmpty(it.Value))
                                     {
                                         attribute.Value = it.Value;
+                                        attribute.Modified = false;
                                     }
                                     StateHasChanged();
                                     break;
@@ -162,6 +232,59 @@
                     }
                 }
             });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
+           {
+               //Notify user when read starts.
+               if (_object != null)
+               {
+                   foreach (var it in tasks)
+                   {
+                       if (it.Object != null && it.Object.Id == _object.Id)
+                       {
+                           //Show progress when the first task is added.
+                           if (!PerformedTask.Any())
+                           {
+                               Notifier.ShowInformation("Task on progress...", true);
+                               Notifier.ProgressStart();
+                               StateHasChanged();
+                           }
+                           PerformedTask.Add(it.Id);
+                       }
+                       else if (it.Attribute != null && _object.Attributes.Select(s => s.Id).Contains(it.Attribute.Id))
+                       {
+                           //Show progress when the first task is added.
+                           if (!PerformedTask.Any())
+                           {
+                               Notifier.ShowInformation("Task on progress...", true);
+                               Notifier.ProgressStart();
+                               StateHasChanged();
+                           }
+                           PerformedTask.Add(it.Id);
+                       }
+                   }
+               }
+           });
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
+           {
+               //Notify user when read ends.
+               if (_object != null)
+               {
+                   foreach (var it in tasks)
+                   {
+                       if (it.Ready != null && PerformedTask.Contains(it.Id))
+                       {
+                           PerformedTask.Remove(it.Id);
+                           //Hide progress when the lask task is removed.
+                           if (!PerformedTask.Any())
+                           {
+                               Notifier.ClearStatus();
+                               Notifier.ProgressEnd();
+                               StateHasChanged();
+                           }
+                       }
+                   }
+               }
+           });
 
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnRead });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Write, Icon = "oi oi-account-login", OnClick = OnWrite });
@@ -174,15 +297,18 @@
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             //If object attributes are not read yet.
-            if (obj.Attributes.Count == 0)
+            if (obj.Attributes == null || !obj.Attributes.Any())
             {
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", obj.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                obj = await response.Content.ReadFromJsonAsync<GXObject>();
+                obj = (await response.Content.ReadFromJsonAsync<GetObjectResponse>())?.Item;
                 Notifier.UpdateData(GXPages.Objects, obj);
             }
             _object = obj;
-            Parameters.AddRange(_object.Parameters);
+            if (_object != null && _object.Parameters != null)
+            {
+                Parameters.AddRange(_object.Parameters);
+            }
             Notifier.ChangePage(GXPages.Object, _object);
         }
         catch (AccessTokenNotAvailableException exception)
@@ -206,12 +332,20 @@
     /// <returns></returns>
     public bool CanInvokeAction(int index)
     {
-        --index;
         if (_object != null && _object.Template != null &&
             _object.Template.ActionAccessLevels != null &&
-            _object.Template.ActionAccessLevels.Length > index)
+            _object.Template.ActionAccessLevels.Length >= index)
         {
-            return (Convert.ToUInt16(_object.Template.ActionAccessLevels[index]) & ~0x8000) != 0;
+            if (_object.Template.ActionAccessLevels.StartsWith("0x"))
+            {
+                ++index;
+                return Convert.ToUInt16(_object.Template.ActionAccessLevels.Substring(index, 2)) != 0;
+            }
+            else
+            {
+                --index;
+                return Convert.ToUInt16(_object.Template.ActionAccessLevels.Substring(index, 1)) != 0;
+            }
         }
         return false;
     }
@@ -221,12 +355,20 @@
     /// </summary>
     public async void OnAction(int index, object data)
     {
-        GXTask task = new GXTask();
-        task.Object = _object;
-        task.TaskType = TaskType.Action;
-        task.Data = GXDLMSTranslator.ValueToXml(data);
-        task.Index = index;
-        await GenerateTask(new GXTask[] { task });
+        try
+        {
+            GXTask task = new GXTask();
+            task.Object = new() { Id = _object.Id };
+            task.TaskType = TaskType.Action;
+            task.Data = GXDLMSTranslator.ValueToXml(data);
+            task.Index = index;
+            await GenerateTask(new GXTask[] { task });
+            Notifier.ShowInformation("Action tasks added.", true);
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
     }
 
     /// <summary>
@@ -246,12 +388,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            HttpResponseMessage response;
             //Update object parameters.
             ParametersView?.UpdateSettings<GXObjectParameter>(_object.Parameters);
-            response = await Http.PostAsJsonAsync("api/Object/Update", new UpdateObject() { Objects = new GXObject[] { _object } });
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceResponse>();
+            await Http.PostAsJson<UpdateDeviceResponse>("api/Object/Update", new UpdateObject() { Objects = new GXObject[] { _object } });
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }
@@ -274,60 +413,85 @@
     /// </summary>
     public async void OnWrite()
     {
-        List<GXTask> tasks = new();
-        foreach (var it in _object.Attributes)
+        try
         {
-            if (it.Template == null)
+            List<GXTask> tasks = new();
+            foreach (var it in _object.Attributes)
             {
-                throw new ArgumentNullException("Invalid attribute template");
-            }
-            if ((it.Template.AccessLevel & (int)AccessMode.Write) != 0 && it.Modified)
-            {
-                string str;
-                DataType d = (DataType)it.Template.DataType;
-                if (d == DataType.OctetString)
+                if (it.Template == null)
                 {
-                    if ((DataType)it.Template.UIDataType == DataType.OctetString)
+                    throw new ArgumentNullException("Invalid attribute template");
+                }
+                if ((it.Template.AccessLevel & (int)AccessMode.Write) != 0 && it.Modified)
+                {
+                    string str;
+                    DataType d = (DataType)it.Template.DataType;
+                    if (d == DataType.OctetString)
                     {
-                        str = GXDLMSTranslator.ValueToXml(GXDLMSTranslator.HexToBytes(it.Value));
+                        if ((DataType)it.Template.UIDataType == DataType.OctetString)
+                        {
+                            str = GXDLMSTranslator.ValueToXml(GXDLMSTranslator.HexToBytes(it.Value));
+                        }
+                        else
+                        {
+                            str = GXDLMSTranslator.ValueToXml(System.Text.ASCIIEncoding.ASCII.GetBytes(it.Value));
+                        }
+                    }
+                    else if (d == DataType.Structure || d == DataType.Array)
+                    {
+                        //Value is alread in XML.
+                        str = it.Value;
                     }
                     else
                     {
-                        str = GXDLMSTranslator.ValueToXml(System.Text.ASCIIEncoding.ASCII.GetBytes(it.Value));
+                        if (d == DataType.Enum && !string.IsNullOrEmpty(it.Value))
+                        {
+                            str = GXDLMSTranslator.ValueToXml(new GXEnum(byte.Parse(it.Value)));
+                        }
+                        else
+                        {
+                            Type dt = GXDLMSConverter.GetDataType(d);
+                            object? tmp = Convert.ChangeType(it.Value, dt);
+                            str = GXDLMSTranslator.ValueToXml(tmp);
+                        }
                     }
+                    GXTask task = new GXTask();
+                    task.Attribute = new() { Id = it.Id };
+                    task.TaskType = TaskType.Write;
+                    task.Data = str;
+                    task.Index = it.Template.Index;
+                    tasks.Add(task);
+                    task.Order = tasks.Count;
                 }
-                else
-                {
-                    if (d == DataType.Enum && !string.IsNullOrEmpty(it.Value))
-                    {
-                        str = GXDLMSTranslator.ValueToXml(new GXEnum(byte.Parse(it.Value)));
-                    }
-                    else
-                    {
-                        Type dt = GXDLMSConverter.GetDataType(d);
-                        object? tmp = Convert.ChangeType(it.Value, dt);
-                        str = GXDLMSTranslator.ValueToXml(tmp);
-                    }
-                }
-                GXTask task = new GXTask();
-                task.Attribute = it;
-                task.TaskType = TaskType.Write;
-                task.Data = str;
-                task.Index = it.Template.Index;
-                tasks.Add(task);
-                task.Order = tasks.Count;
             }
-        }
-        Guid? batch = null;
-        if (tasks.Count > 1)
-        {
-            batch = Guid.NewGuid();
-            foreach (GXTask task in tasks)
+            Guid? batch = null;
+            if (tasks.Any())
             {
-                task.Batch = batch;
+                if (tasks.Count > 1)
+                {
+                    batch = Guid.NewGuid();
+                    foreach (GXTask task in tasks)
+                    {
+                        task.Batch = batch;
+                    }
+                }
+                await GenerateTask(tasks.ToArray());
+                Notifier.ShowInformation("Write tasks added.", true);
             }
+            else if (tasks.Count == 0)
+            {
+                throw new Exception("Nothing to write.");
+            }
+            foreach (var it in _object.Attributes)
+            {
+                it.Modified = false;
+            }
+            StateHasChanged();
         }
-        await GenerateTask(tasks.ToArray());
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
     }
 
     /// <summary>
@@ -341,33 +505,71 @@
     /// </summary>
     public async void OnRead()
     {
-        Guid? batch = null;
-        if (_object.Attributes.Count != 0)
+        try
         {
-            batch = Guid.NewGuid();
-        }
-        List<GXTask> tasks = new();
-        foreach (var it in _object.Attributes)
-        {
-            if (it.Template == null)
+            List<GXTask> tasks = new();
+            if (_object == null || _object.Template == null)
             {
-                throw new ArgumentNullException("Invalid attribute template");
+                throw new Exception("No item has been selected.");
             }
-            if ((it.Template.AccessLevel & (int)AccessMode.Read) != 0)
+            if (_object.Template.ObjectType == (int)ObjectType.ProfileGeneric)
             {
+                //Profile generic is a special case and it's read with object.
                 GXTask task = new GXTask()
                     {
+                        Object = new GXObject() { Id = _object.Id },
                         TaskType = TaskType.Read,
-                        Batch = batch,
-                        Attribute = it,
                     };
                 tasks.Add(task);
-                task.Order = tasks.Count;
             }
+            else
+            {
+                Guid? batch = null;
+                if (_object.Attributes.Count != 0)
+                {
+                    batch = Guid.NewGuid();
+                }
+                foreach (var it in _object.Attributes)
+                {
+                    if (it.Template == null)
+                    {
+                        throw new ArgumentNullException("Invalid attribute template");
+                    }
+                    //Check expiration time.
+                    if (it.Read != null && it.Template.ExpirationTime != null)
+                    {
+                        TimeSpan exp = new TimeSpan(it.Template.ExpirationTime.Value.Ticks);
+                        if ((DateTime.Now - it.Read.Value) < exp)
+                        {
+                            continue;
+                        }
+                    }
+                    if ((it.Template.AccessLevel & (int)AccessMode.Read) != 0)
+                    {
+                        GXTask task = new GXTask()
+                            {
+                                TaskType = TaskType.Read,
+                                Batch = batch,
+                                Attribute = new GXAttribute() { Id = it.Id },
+                            };
+                        tasks.Add(task);
+                        task.Order = tasks.Count;
+                    }
+                }
+            }
+            await GenerateTask(tasks.ToArray());
+            Notifier.ShowInformation("Read tasks added.", true);
         }
-        await GenerateTask(tasks.ToArray());
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
     }
 
+    /// <summary>
+    /// Tasks are sent to the server.
+    /// </summary>
+    /// <param name="tasks">Added tasks.</param>
     private async System.Threading.Tasks.Task GenerateTask(GXTask[] tasks)
     {
         Notifier?.ProgressStart();
@@ -376,9 +578,7 @@
         {
             AddTask req = new AddTask();
             req.Tasks = tasks;
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Task/Add", req);
-            ClientHelpers.ValidateStatusCode(response);
-            await response.Content.ReadFromJsonAsync<AddTaskResponse>();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
         }
         catch (AccessTokenNotAvailableException exception)
         {

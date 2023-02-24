@@ -1,0 +1,291 @@
+﻿@page "/history/{Id}"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+@if (Filter)
+{
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
+        </ChildContent>
+    </MenuControl>
+}
+<table class="table table-striped">
+    <thead>
+        @if (Filter && filter != null)
+        {
+            <tr>
+                <th>
+                    <input class="form-control" placeholder="Filter by read time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Read = @StatusTile.ToDateTimeOffset(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" placeholder="Filter by value..."
+                       type="text"
+                       @onchange="@((ChangeEventArgs __e) => filter.Value = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+        }
+        <tr>
+            <th>@Properties.Resources.Read</th>
+            <th>@Properties.Resources.Values</th>
+            <th width="1%"></th>
+        </tr>
+    </thead>
+    <tbody>
+        <Virtualize @ref="virtualize" Context="value" ItemsProvider="@GetItems">
+            <ItemContent>
+                <tr class=@(GetSelectedClass(value)) @onclick="@(()=>RowSelected(value))">
+                    <td>@value.Read.Value.DateTime</td>
+                    <td>@value.Value</td>
+                </tr>
+            </ItemContent>
+            <Placeholder>
+                <p>
+                    @Properties.Resources.Loading&hellip;
+                </p>
+            </Placeholder>
+        </Virtualize>
+    </tbody>
+</table>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage=@($"Are you sure you want to clear history? This action cannot be undone.")>
+</Confirm>
+@code {
+
+    [Parameter]
+    public string Id
+    {
+        get;
+        set;
+    }
+
+    private int TotalCount { get; set; }
+
+
+    /// <summary>
+    /// Are removed items shown for the admin.
+    /// </summary>
+    bool ShowRemoved;
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Agents;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc cref="IGXComponentView.Icon">
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-wifi";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+
+    private string? GetVersion(string? version)
+    {
+        if (version == null)
+        {
+            return Properties.Resources.CustomBuild;
+        }
+        return version;
+    }
+
+    private GXValue filter = new GXValue();
+    //Verify that history is clear.
+    protected ConfirmBase ClearConfirmation;
+
+    protected Virtualize<GXValue>? virtualize;
+    private GXValue? _active;
+
+    protected string GetSelectedClass(GXValue agent)
+    {
+        return _active != null && agent.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    protected async void Updated()
+    {
+        if (virtualize != null)
+        {
+            Notifier?.ClearStatus();
+            await virtualize.RefreshDataAsync();
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Clear, Icon = "oi oi-trash", OnClick = OnClear });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXValue>> GetItems(ItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            List<object[]> rows = new();
+            Guid target = Guid.Parse(Id);
+            filter.Attribute = new GXAttribute() { Id = target };
+            ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter, Descending = true };
+            var ret = await Http.PostAsJson<ListValuesResponse>("api/Value/List", req, request.CancellationToken);
+            TotalCount = ret.Count;
+            return new ItemsProviderResult<GXValue>(ret.Values, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the Virtualize component handle this
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public void OnClear()
+    {
+        try
+        {
+            ClearConfirmation.Show();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                Guid target = Guid.Parse(Id);
+                ClearValue arg = new ClearValue()
+                    {
+                        Attributes = new GXAttribute[] { new GXAttribute() { Id = target } }
+                    };
+                await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", arg);
+                Updated();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    public void RowSelected(GXValue selected)
+    {
+        _active = selected;
+    }
+
+    /// <summary>
+    /// Cancel.
+    /// </summary>
+    private void OnCancel()
+    {
+        NavigationManager.NavigateTo(Notifier.GetLastPage());
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

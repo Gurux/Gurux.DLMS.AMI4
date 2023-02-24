@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Agent Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Agent Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Agent Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -113,9 +114,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs)
+        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs, bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.AgentGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.AgentGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -127,7 +128,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXAgentGroup>(it.Id));
+                }
+                else
+                {
+                    await _host.Connection.UpdateAsync(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -178,6 +186,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.AgentGroups = groups;
+                if (response.Count == 0)
+                {
+                    response.Count = groups.Length;
+                }
             }
             return groups;
         }
@@ -217,7 +229,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get agents that belongs for this agent group.
-            arg = GXSelectArgs.SelectAll<GXAgent>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
             arg.Where.And<GXAgentGroupAgent>(q => q.Removed == null && q.AgentGroupId == id);
@@ -225,14 +237,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this agent group.
-            arg = GXSelectArgs.SelectAll<GXUserGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupAgentGroup>(q => q.Removed == null && q.AgentGroupId == id);
             ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
             ////////////////////////////////////////////////////
             //Get device groups.
-            arg = GXSelectArgs.SelectAll<GXDeviceGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
             arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.AgentGroupId == id);
@@ -241,7 +253,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXAgentGroup> AgentGroups)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXAgentGroup> AgentGroups,
+            Expression<Func<GXAgentGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
@@ -294,7 +309,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXAgentGroup>(q => new { q.CreationTime, q.UserGroups, q.Agents, q.DeviceGroups });
                     _host.Connection.Update(args);
                     //Map user group to Agent group.

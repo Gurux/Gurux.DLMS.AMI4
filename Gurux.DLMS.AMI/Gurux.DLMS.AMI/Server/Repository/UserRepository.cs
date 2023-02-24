@@ -41,6 +41,7 @@ using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -153,9 +154,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<string> users)
+        public async Task DeleteAsync(ClaimsPrincipal User, 
+            IEnumerable<string> users,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -173,11 +176,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 updates[it] = list;
             }
-            //Set removed time for all the removed users.
-            GXUser u = new GXUser() { Removed = DateTime.Now };
-            GXUpdateArgs update = GXUpdateArgs.Update(u, q => q.Removed);
-            update.Where.And<GXUser>(q => users.Contains(q.Id));
-            _host.Connection.Update(update);
+            if (delete)
+            {
+                GXDeleteArgs del = GXDeleteArgs.Delete<GXUser>(w => users.Contains(w.Id));
+                await _host.Connection.DeleteAsync(del);
+            }
+            else
+            {
+                //Set removed time for all the removed users.
+                GXUser u = new GXUser() { Removed = DateTime.Now };
+                GXUpdateArgs update = GXUpdateArgs.Update(u, q => q.Removed);
+                update.Where.And<GXUser>(q => users.Contains(q.Id));
+                _host.Connection.Update(update);
+            }
             foreach (var it in updates)
             {
                 await _eventsNotifier.UserDelete(it.Value, new GXUser[] { new GXUser() { Id = it.Key } });
@@ -194,6 +205,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             string userId = ServerHelpers.GetUserId(User);
             bool isAdmin = User.IsInRole(GXRoles.Admin);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>();
+            arg.Columns.Exclude<GXUser>(e => new {e.NormalizedEmail, e.NormalizedUserName, e.PhoneNumber, e.PhoneNumberConfirmed, e.TwoFactorEnabled, e.UserName, 
+                e.LockoutEnabled, e.ConcurrencyStamp, e.AccessFailedCount });
+
             arg.Distinct = true;
             //Get user groups where user belongs.
             arg.Joins.AddLeftJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
@@ -204,7 +218,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Get only users that are in the same user groups than the user.
                 arg.Where.And<GXUserGroupUser>(q => q.UserId == userId);
             }
-            arg.OrderBy.Add<GXUser>(q => q.UserName);
+            arg.OrderBy.Add<GXUser>(q => q.CreationTime);
             arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });
             if (request != null)
             {
@@ -240,6 +254,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.Users = users;
+                if (response.Count == 0)
+                {
+                    response.Count = users.Length;
+                }
             }
             return users;
         }
@@ -253,7 +271,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Returns information for the current user.
                 id = ServerHelpers.GetUserId(User);
             }
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>(q => q.Id == id && q.Removed == null);
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>(q => q.Id == id);
             //Get user groups where user belongs.
             arg.Columns.Add<GXUserGroup>();
             arg.Distinct = true;
@@ -269,9 +287,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Get only users that are in the same user groups than the user.
                 arg.Where.And<GXUserGroupUser>(q => q.UserId == id);
             }
-            arg.OrderBy.Add<GXUser>(q => q.UserName);
+            arg.OrderBy.Add<GXUser>(q => q.CreationTime);
             arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });
-            arg.Where.And<GXUser>(q => q.Removed == null);
+            if (!isAdmin)
+            {
+                //Only admin can see removed users.
+                arg.Where.And<GXUser>(q => q.Removed == null);
+            }
 
             GXUser ret = (await _host.Connection.SingleOrDefaultAsync<GXUser>(arg));
             if (ret == null)
@@ -283,6 +305,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXRole, GXUserRole>(a => a.Id, b => b.RoleId);
             arg.Where.And<GXUserRole>(where => where.UserId == id);
             ret.Roles = _host.Connection.Select<GXRole>(arg).Select(s => s.Name).ToList();
+            //Read user settings.
+            arg = GXSelectArgs.SelectAll<GXUserSetting>(q => q.User == ret);
+            arg.Distinct = true;
+            ret.Settings = await _host.Connection.SelectAsync<GXUserSetting>(arg);
             return ret;
         }
 
@@ -297,8 +323,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="roles">User roles.</param>
         private async Task<string> AddUser(
             ClaimsPrincipal? creator,
-            string givenName,
-            string surname,
+            string? givenName,
+            string? surname,
             string email,
             string password,
             List<string> roles)
@@ -347,25 +373,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<string[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXUser> users)
+        public async Task<string[]> UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXUser> users,
+            Expression<Func<GXUser, object?>>? columns)
         {
             bool isAdmin = User.IsInRole(GXRoles.Admin);
             DateTime now = DateTime.Now;
             Dictionary<GXUser, List<string>> updates = new Dictionary<GXUser, List<string>>();
             List<string> list = new List<string>();
+            List<GXUserGroup>? defaultGroups = null;
             foreach (GXUser user in users)
             {
                 if (string.IsNullOrEmpty(user.Email))
                 {
                     throw new ArgumentException(Properties.Resources.InvalidEmailAddress);
                 }
-                if (user.Roles == null || user.Roles.Count == 0)
+                if (user.Roles == null || !user.Roles.Any())
                 {
                     throw new ArgumentException(Properties.Resources.InvalidUserRoleAtLeastOneRoleMustBeSelected);
-                }
-                if (user.UserGroups == null || user.UserGroups.Count == 0)
-                {
-                    throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
                 }
                 //Remove all other roles when user is admin.
                 if (user.Roles.Contains(GXRoles.Admin))
@@ -377,6 +403,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 user.NormalizedEmail = user.Email.ToUpper();
                 if (string.IsNullOrEmpty(user.Id))
                 {
+                    if (user.UserGroups == null || !user.UserGroups.Any())
+                    {
+                        if (defaultGroups == null)
+                        {
+                            //Get default user groups.
+                            ListUserGroups request = new ListUserGroups()
+                            {
+                                Filter = new GXUserGroup() { Default = true }
+                            };
+                            defaultGroups = new List<GXUserGroup>();
+                            defaultGroups.AddRange(await _userGroupRepository.ListAsync(User, request, null, CancellationToken.None));
+                        }
+                        user.UserGroups = new List<GXUserGroup>();
+                        user.UserGroups.AddRange(defaultGroups);
+                        if (!user.UserGroups.Any())
+                        {
+                            throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
+                        }
+                    }
                     //Check that user email is not added yet.
                     GXSelectArgs total = GXSelectArgs.Select<GXUser>(q => GXSql.Count(q));
                     total.Where.And<GXUser>(q => q.NormalizedEmail.Contains(user.Email));
@@ -389,6 +434,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
+                    if (user.UserGroups == null || !user.UserGroups.Any())
+                    {
+                        throw new ArgumentException(Properties.Resources.UsersMustBelongToAtLeastOneUserGroup);
+                    }
                     GXSelectArgs m = GXSelectArgs.Select<GXUser>(q => q.ConcurrencyStamp, where => where.Id == user.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
                     if (!string.IsNullOrEmpty(updated) && updated != user.ConcurrencyStamp)
@@ -457,7 +506,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     user.Updated = now;
                     user.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs arg2 = GXUpdateArgs.Update(user);
+                    GXUpdateArgs arg2 = GXUpdateArgs.Update(user, columns);
                     arg2.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp, q.CreationTime, q.UserGroups, q.Roles });
                     await _host.Connection.UpdateAsync(arg2);
                 }

@@ -32,7 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
@@ -58,21 +57,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-
-
-        /// <summary>
         /// Get trigger group information.
         /// </summary>
         /// <param name="id">Trigger group id.</param>
         /// <returns>Trigger group.</returns>
         [HttpGet]
         [Authorize(Policy = GXTriggerGroupPolicies.View)]
-        public async Task<ActionResult<GXTriggerGroup>> Get(Guid id)
+        public async Task<ActionResult<GetTriggerGroupResponse>> Get(Guid id)
         {
-            return await _TriggerGroupRepository.ReadAsync(User, id);
+            return new GetTriggerGroupResponse()
+            {
+                Item = await _TriggerGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -84,7 +80,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddTriggerGroupResponse>> Post(AddTriggerGroup request)
         {
             await _TriggerGroupRepository.UpdateAsync(User, request.TriggerGroups);
-            return new AddTriggerGroupResponse() { TriggerGroups = request.TriggerGroups };
+            return new AddTriggerGroupResponse()
+            {
+                Ids = request.TriggerGroups.Select(s => s.Id).ToArray()
+            };
         }
 
         /// <summary>
@@ -93,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXTriggerGroupPolicies.View)]
         public async Task<ActionResult<ListTriggerGroupsResponse>> Post(
-            ListTriggerGroups request, 
+            ListTriggerGroups request,
             CancellationToken cancellationToken)
         {
             ListTriggerGroupsResponse ret = new ListTriggerGroupsResponse();
@@ -109,7 +108,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _TriggerGroupRepository.DeleteAsync(User, request.Ids);
+            await _TriggerGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveTriggerGroupResponse();
         }
     }

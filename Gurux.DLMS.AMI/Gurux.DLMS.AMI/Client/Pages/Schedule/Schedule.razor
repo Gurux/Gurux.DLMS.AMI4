@@ -37,6 +37,14 @@
                            @bind-Value="schedule.CreationTime" />
                     </div>
                 }
+                @if (schedule.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="schedule.Updated" />
+                    </div>
+                }
                 @if (schedule.Removed != null)
                 {
                     <div class="form-group">
@@ -45,11 +53,29 @@
                            @bind-Value="schedule.Removed" />
                     </div>
                 }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private bool DeleteTarget;
     private GXSchedule? schedule;
     private string SubmitText;
 
@@ -156,7 +182,7 @@
                 //Get schedule data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Schedule?id={0}", schedule.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                schedule = await response.Content.ReadFromJsonAsync<GXSchedule>();
+                schedule = (await response.Content.ReadFromJsonAsync<GetScheduleResponse>()).Item;
                 Notifier.UpdateData(GXPages.Schedules, schedule);
                 schedule.Modified = true;
             }
@@ -187,9 +213,13 @@
             Notifier.ProgressStart();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Schedule/Delete", new DeleteSchedule() { ScheduleIds = new Guid[] { schedule.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeleteScheduleResponse>();
+                await Http.PostAsJson<RemoveScheduleResponse>("api/Schedule/Delete",
+                    new RemoveSchedule()
+                        {
+                            Ids = new Guid[] { schedule.Id },
+                            Delete = DeleteTarget
+                        }
+                    );
             }
             else
             {
@@ -202,9 +232,7 @@
                 {
                     address = "api/Schedule/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateSchedule() { Schedules = new List<GXSchedule>() { schedule } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateScheduleResponse>();
+                await Http.PostAsJson<UpdateScheduleResponse>(address, new UpdateSchedule() { Schedules = new List<GXSchedule>() { schedule } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

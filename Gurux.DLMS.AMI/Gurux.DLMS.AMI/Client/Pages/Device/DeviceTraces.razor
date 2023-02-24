@@ -133,7 +133,7 @@
 
     private string GetDirection(GXDeviceTrace trace)
     {
-        return trace.Send ? "Tx" : "Rx";
+        return trace.Send.GetValueOrDefault(true) ? "Tx" : "Rx";
     }
 
     /// <summary>
@@ -262,9 +262,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTrace/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceTraceResponse>();
+            var ret = await Http.PostAsJson<ListDeviceTraceResponse>("api/DeviceTrace/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the device traces.
             if (Count != 0)
@@ -349,8 +347,7 @@
         {
             if (confirm)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTrace/Clear", new ClearDeviceTrace());
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson<ClearDeviceTraceResponse>("api/DeviceTrace/Clear", new ClearDeviceTrace());
             }
         }
         catch (AccessTokenNotAvailableException exception)

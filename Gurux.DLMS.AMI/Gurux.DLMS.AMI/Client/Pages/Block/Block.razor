@@ -181,11 +181,29 @@
                            @bind-Value="_active.Removed" />
                     </div>
                 }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private bool DeleteTarget;
     /// <summary>
     /// Block list.
     /// </summary>
@@ -427,14 +445,10 @@
             Notifier.UpdateButtons();
 
             //Get available component views.
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentView/List", new ListComponentViews());
-            ClientHelpers.ValidateStatusCode(response);
-            ListComponentViewsResponse ret = await response.Content.ReadFromJsonAsync<ListComponentViewsResponse>();
+            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", new ListComponentViews());
             componentList = ret.ComponentViews;
             //Get available scripts.
-            response = await Http.PostAsJsonAsync("api/Script/List", new ListScripts());
-            ClientHelpers.ValidateStatusCode(response);
-            ListScriptsResponse ret2 = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret2 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", new ListScripts());
             foreach (var it in ret2.Scripts)
             {
                 if (it.Methods != null && it.Methods.Count != 0)
@@ -447,9 +461,9 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get block data.
-                response = await Http.GetAsync(string.Format("api/Block?id={0}", _active.Id));
+                var response = await Http.GetAsync(string.Format("api/Block?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXBlock>();
+                _active = (await response.Content.ReadFromJsonAsync<GetBlockResponse>()).Item;
                 Notifier.UpdateData(GXPages.Blocks, _active);
                 _active.Modified = true;
             }
@@ -511,9 +525,11 @@
             StateHasChanged();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/Delete", new DeleteBlock() { BlockIds = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeleteBlockResponse>();
+                await Http.PostAsJson<RemoveBlockResponse>("api/Block/Delete", new RemoveBlock()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -537,13 +553,11 @@
                     script = _active.ScriptMethod.Script;
                     _active.ScriptMethod.Script = null;
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateBlock() { Blocks = new List<GXBlock>() { _active } });
-                ClientHelpers.ValidateStatusCode(response);
+                var ret = await Http.PostAsJson<UpdateBlockResponse>(address, new UpdateBlock() { Blocks = new List<GXBlock>() { _active } });
                 if (_active.ScriptMethod != null)
                 {
                     _active.ScriptMethod.Script = script;
                 }
-                var ret = await response.Content.ReadFromJsonAsync<UpdateBlockResponse>();
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

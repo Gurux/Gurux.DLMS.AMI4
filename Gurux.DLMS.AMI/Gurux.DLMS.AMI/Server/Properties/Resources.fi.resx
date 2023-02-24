@@ -507,4 +507,7 @@
   <data name="ExternalAuthenticationDescription" xml:space="preserve">
     <value>Ulkoiset todennukset mahdollistavat kirjautumisen ulkoisten palvelujen kautta.</value>
   </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
 </root>

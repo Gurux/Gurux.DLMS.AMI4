@@ -1,3 +1,35 @@
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Server.Data;
 using Gurux.DLMS.AMI.Server.Models;
@@ -36,8 +68,12 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
+// builder.Logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Trace);
+// builder.Logging.AddFilter("Microsoft.AspNetCore.Http.Connections", LogLevel.Trace);
+
 builder.Host.UseServiceProviderFactory(context => new GXServiceProviderFactory());
 GXActionDescriptorChangeProvider adcp = new GXActionDescriptorChangeProvider();
 builder.Services.AddSingleton<IActionDescriptorChangeProvider>(adcp);
@@ -50,7 +86,13 @@ builder.Services.AddDataProtection().UseCryptographicAlgorithms(
         ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
     });
 
-IGXHost host = ServerSettings.ConnectToDb(builder);
+using var loggerFactory = LoggerFactory.Create(s =>
+{
+    s = builder.Logging;
+});
+ILogger<GXConfiguration> logger = loggerFactory.CreateLogger<GXConfiguration>();
+
+IGXHost host = ServerSettings.ConnectToDb(builder, logger);
 ServerSettings.ServerAddress = builder.Configuration.GetSection("Server").Get<ServerOptions>().Address;
 SchedulerOptions s = builder.Configuration.GetSection("Scheduler").Get<SchedulerOptions>();
 builder.Services.Configure<SchedulerOptions>(conf => conf = s);
@@ -60,11 +102,14 @@ if (!s.Disabled)
 }
 else
 {
-    Console.WriteLine("Scheduler service is disabled.");
+    logger.LogInformation("Scheduler service is disabled.");
 }
 
 //Add events listener.
 builder.Services.AddEventService();
+
+//Add performance settings.
+builder.Services.AddSingleton<GXPerformanceSettings>();
 
 //Add cron.
 builder.Services.AddHostedService<IGXCronService, GXCronService>();
@@ -179,7 +224,11 @@ builder.Services.AddAuthorization(options =>
 
 // register the scope authorization handler
 builder.Services.AddSingleton<IAuthorizationHandler, ScopedAccessHandler>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault;
+});
+
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
 
@@ -219,6 +268,7 @@ builder.Services.AddSwaggerGen(c =>
         }
 
     });
+    c.SchemaFilter<SwaggerSchemaFilter>();
     //Add XML documantation.
     var filePath = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
     filePath = Path.Combine(AppContext.BaseDirectory, filePath);

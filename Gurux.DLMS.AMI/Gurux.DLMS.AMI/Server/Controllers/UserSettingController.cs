@@ -61,9 +61,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns>User settings.</returns>
         [HttpGet]
         [Authorize(Policy = GXUserSettingPolicies.View)]
-        public async Task<ActionResult<GXUserSetting>> Get(string name)
+        public async Task<ActionResult<GetUserSettings>> Get(string name)
         {
-            return await _userSettingRepository.ReadAsync(User, name);
+            return new GetUserSettings()
+            {
+                Item = await _userSettingRepository.ReadAsync(User, name)
+            };
         }
 
         /// <summary>

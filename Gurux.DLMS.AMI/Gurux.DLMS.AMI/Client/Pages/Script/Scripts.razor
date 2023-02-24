@@ -276,9 +276,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the scripts.
             if (Count != 0)
@@ -321,7 +319,7 @@
             Notifier?.ClearStatus();
             Notifier.Title = "New Script";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Scripts, new GXScript() { Active = true });
+            Notifier.UpdateData(GXPages.Scripts, new GXScript(null));
             NavigationManager.NavigateTo("/scripttab");
         }
         catch (AccessTokenNotAvailableException exception)

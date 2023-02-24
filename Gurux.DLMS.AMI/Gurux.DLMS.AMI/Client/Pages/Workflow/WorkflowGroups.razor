@@ -259,9 +259,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/WorkflowGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListWorkflowGroupsResponse>();
+            var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the workflow groups.
             if (Count != 0)
@@ -301,10 +299,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New workflow group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.WorkflowGroups, new GXWorkflowGroup());
+            Notifier.UpdateData(GXPages.WorkflowGroups, new GXWorkflowGroup(null));
             NavigationManager.NavigateTo("/workflowgrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

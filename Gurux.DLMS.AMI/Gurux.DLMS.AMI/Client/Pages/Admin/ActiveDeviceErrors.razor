@@ -53,7 +53,7 @@
     [Parameter]
     public int Count { get; set; } = 5;
 
-    GXDeviceError[] _errors = null;
+    GXDeviceError[]? _errors = null;
 
     /// <inheritdoc />
     public string Name
@@ -145,15 +145,10 @@
         {
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
-            GXDeviceError filter = new GXDeviceError()
-                {
-                    Level = null
-                };
+            GXDeviceError filter = new GXDeviceError();
             ListDeviceErrors req = new ListDeviceErrors() { Filter = filter };
             req.Count = Count;
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceErrorsResponse>();
+            ListDeviceErrorsResponse ret = await Http.PostAsJson<ListDeviceErrorsResponse>("api/DeviceError/List", req);
             _errors = ret.Errors;
         }
         catch (AccessTokenNotAvailableException exception)
@@ -188,15 +183,12 @@
             Notifier?.ClearStatus();
             CloseDeviceError arg = new CloseDeviceError();
             arg.Errors = new Guid[] { (sender as GXDeviceError).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                List<GXDeviceError> list = new List<GXDeviceError>();
-                list.AddRange(_errors);
-                list.Remove(sender as GXDeviceError);
-                _errors = list.ToArray();
-                await InvokeAsync(StateHasChanged);
-            }
+            await Http.PostAsJson<CloseDeviceErrorResponse>("api/DeviceError/Close", arg);
+            List<GXDeviceError> list = new List<GXDeviceError>();
+            list.AddRange(_errors);
+            list.Remove(sender as GXDeviceError);
+            _errors = list.ToArray();
+            await InvokeAsync(StateHasChanged);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -224,11 +216,8 @@
             if (confirm)
             {
                 Notifier?.ProgressStart();
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceError/Clear", new ClearDeviceErrors()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearDeviceErrorsResponse>("api/DeviceError/Clear", new ClearDeviceErrors());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

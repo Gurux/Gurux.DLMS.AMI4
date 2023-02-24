@@ -58,9 +58,7 @@
                 {
                     Filter = new GXComponentView()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ComponentView/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListComponentViewsResponse>();
+            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", req);
             foreach (GXComponentView it in ret.ComponentViews)
             {
                 if (!componentViews.Exists(q => q.Id == it.Id))

@@ -32,7 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -46,7 +45,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class WorkflowController : ControllerBase
     {
         private readonly IWorkflowRepository _workflowrRepository;
-      
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -62,9 +61,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Workflow information.</returns>
         [HttpGet]
         [Authorize(Policy = GXWorkflowPolicies.View)]
-        public async Task<ActionResult<GXWorkflow>> Get(Guid id)
+        public async Task<ActionResult<GetWorkflowResponse>> Get(Guid id)
         {
-            return await _workflowrRepository.ReadAsync(User, id, false);
+            return new GetWorkflowResponse()
+            {
+                Item = await _workflowrRepository.ReadAsync(User, id, false) 
+            };
         }
 
         /// <summary>
@@ -102,14 +104,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXWorkflowPolicies.Delete)]
-        public async Task<ActionResult<DeleteWorkflowResponse>> Post(DeleteWorkflow request)
+        public async Task<ActionResult<RemoveWorkflowResponse>> Post(RemoveWorkflow request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _workflowrRepository.DeleteAsync(User, request.Ids);
-            return new DeleteWorkflowResponse();
+            await _workflowrRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveWorkflowResponse();
         }
 
         /// <summary>

@@ -36,6 +36,14 @@
                 <InputText id="name" disabled="@IsDeleting" class="form-control"
                            @bind-Value="_active.Description" />
             </div>
+            @if (_active.CreationTime != DateTime.MinValue)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.CreationTime</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                </div>
+            }
             @if (_active.Updated != null)
             {
                 <div class="form-group">
@@ -44,11 +52,36 @@
                            @bind-Value="_active.Updated" />
                 </div>
             }
+            @if (_active.Removed != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Removed</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_active.Removed" />
+                </div>
+            }
+            @if (Notifier.Action == CrudAction.Delete)
+            {
+                <hr />
+                <p>
+                </p>
+                <div class="form-group">
+                    <InputRadioGroup @bind-Value="DeleteTarget">
+                        <InputRadio Value="false">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                        <InputRadio Value="true">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDeleteQuestion</label>
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            }
         </div>
     </div>
 </EditForm>
 @code {
-
+    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -109,7 +142,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get device template data.
-                _active = await Http.GetFromJsonAsync<GXDeviceTemplateGroup>(string.Format("api/DeviceTemplateGroup?id={0}", _active.Id));
+                _active = (await Http.GetFromJsonAsync<GetDeviceTemplateGroupResponse>(string.Format("api/DeviceTemplateGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.DeviceTemplateGroups, _active);
                 _active.Modified = true;
             }
@@ -142,9 +175,11 @@
             Notifier?.ClearStatus();
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceTemplateGroup/Delete", new RemoveDeviceTemplateGroup() { Ids = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<RemoveDeviceTemplateGroupResponse>();
+                await Http.PostAsJson<RemoveDeviceTemplateGroupResponse>("api/DeviceTemplateGroup/Delete", new RemoveDeviceTemplateGroup()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -157,9 +192,10 @@
                 {
                     address = "api/DeviceTemplateGroup/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddDeviceTemplateGroup() { DeviceTemplateGroups = new GXDeviceTemplateGroup[] { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<AddDeviceTemplateGroupResponse>();
+                await Http.PostAsJson<AddDeviceTemplateGroupResponse>(address, new AddDeviceTemplateGroup()
+                    {
+                        DeviceTemplateGroups = new GXDeviceTemplateGroup[] { _active }
+                    });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

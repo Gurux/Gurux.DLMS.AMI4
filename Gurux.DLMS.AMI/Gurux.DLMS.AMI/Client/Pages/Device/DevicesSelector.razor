@@ -62,13 +62,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            ListDevices req = new ListDevices()
-                {
-                    Filter = new GXDevice()
-                };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Device/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDevicesResponse>();
+            ListDevices req = new ListDevices();
+            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req);
             foreach (GXDevice it in ret.Devices)
             {
                 if (!devices.Exists(q => q.Id == it.Id))

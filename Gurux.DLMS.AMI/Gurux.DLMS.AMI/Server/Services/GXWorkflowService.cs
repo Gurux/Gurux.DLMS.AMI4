@@ -40,6 +40,7 @@ using Duende.IdentityServer.Models;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
@@ -248,7 +249,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                             catch (TargetInvocationException ex)
                             {
                                 UnloadScript(method.Script.Id);
-                                GXWorkflowLog error = new GXWorkflowLog();
+                                GXWorkflowLog error = new GXWorkflowLog(TraceLevel.Error);
                                 error.Workflow = item;
                                 if (ex.InnerException != null)
                                 {
@@ -267,7 +268,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                             catch (Exception ex)
                             {
                                 UnloadScript(method.Script.Id);
-                                GXWorkflowLog error = new GXWorkflowLog();
+                                GXWorkflowLog error = new GXWorkflowLog(TraceLevel.Error);
                                 error.Workflow = item;
                                 error.Message = ex.Message;
                                 if (user == null)

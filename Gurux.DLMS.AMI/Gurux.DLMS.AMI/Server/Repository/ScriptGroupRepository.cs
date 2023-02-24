@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux Script Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux Script Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux Script Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -121,9 +122,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs)
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> userGrouprs,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScriptGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScriptGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -135,7 +138,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXScriptGroup>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -186,6 +196,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.ScriptGroups = groups;
+                if (response.Count == 0)
+                {
+                    response.Count = groups.Length;
+                }
             }
             return groups;
         }
@@ -241,8 +255,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
-        /// <inheritdoc cref="IScriptGroupRepository.UpdateAsync"/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXScriptGroup> ScriptGroups)
+        /// <inheritdoc />
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user,
+            IEnumerable<GXScriptGroup> ScriptGroups,
+            Expression<Func<GXScriptGroup, object?>>? columns)
         {
             string userId = ServerHelpers.GetUserId(user);
             DateTime now = DateTime.Now;
@@ -276,7 +293,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
                 if (it.Id == Guid.Empty)
-                {                    
+                {
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.

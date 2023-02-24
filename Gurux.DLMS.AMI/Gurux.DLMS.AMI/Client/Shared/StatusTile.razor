@@ -268,9 +268,7 @@
                                     Name = GXConfigurations.Maintenance
                                 }
                             };
-                        HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/List", req);
-                        ClientHelpers.ValidateStatusCode(response);
-                        var ret = await response.Content.ReadFromJsonAsync<ListConfiqurationResponse>();
+                        var ret = await Http.PostAsJson<ListConfiqurationResponse>("api/Configuration/List", req);
                         if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
                         {
                             MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(ret.Configurations[0].Settings);

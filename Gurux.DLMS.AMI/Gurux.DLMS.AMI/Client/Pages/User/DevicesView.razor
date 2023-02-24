@@ -254,9 +254,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Device/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDevicesResponse>();
+            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the devices.
             if (Count != 0)

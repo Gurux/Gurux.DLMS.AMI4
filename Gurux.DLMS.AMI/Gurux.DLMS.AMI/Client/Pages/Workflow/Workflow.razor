@@ -84,11 +84,37 @@
                            @bind-Value="_active.Updated" />
                     </div>
                 }
+                @if (_active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="_active.Removed" />
+                    </div>
+                }
+                @if (Notifier.Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
             </div>
         </div>
     </EditForm>
 }
 @code {
+    private bool DeleteTarget;
     public string? IsDeleting
     {
         get
@@ -256,9 +282,7 @@
 
             //Get available script methods.
             ListScripts req1 = new ListScripts();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req1);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret1 = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret1 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req1);
             _scriptMethods = null;
             if (ret1.Scripts.Any())
             {
@@ -280,17 +304,14 @@
             }
             //Get triggers.
             ListTriggers req = new ListTriggers();
-            response = await Http.PostAsJsonAsync("api/Trigger/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListTriggersResponse>();
+            var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req);
             triggers = ret.Triggers;
-
             if ((Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 if (!_active.Modified)
                 {
                     //Get workflow data.
-                    _active = await Http.GetFromJsonAsync<GXWorkflow>(string.Format("api/Workflow?id={0}", _active.Id));
+                    _active = (await Http.GetFromJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", _active.Id))).Item;
                     Notifier.UpdateData(GXPages.Workflows, _active);
                     _active.Modified = true;
                 }
@@ -350,9 +371,11 @@
             }
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Workflow/Delete", new DeleteWorkflow() { Ids = new Guid[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeleteWorkflowResponse>();
+                await Http.PostAsJson<RemoveWorkflowResponse>("api/Workflow/Delete", new RemoveWorkflow()
+                    {
+                        Ids = new Guid[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -365,9 +388,7 @@
                 {
                     address = "api/Workflow/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new UpdateWorkflow() { Workflows = new GXWorkflow[] { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateWorkflowResponse>();
+                await Http.PostAsJson<UpdateWorkflowResponse>(address, new UpdateWorkflow() { Workflows = new GXWorkflow[] { _active } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

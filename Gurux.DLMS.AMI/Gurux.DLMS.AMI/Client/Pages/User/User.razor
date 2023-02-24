@@ -42,7 +42,7 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Roles</label>
                     <table>
-                        @for (int pos = 0; pos < AvailableRoles.Count - 1; pos += 2)
+                        @for (int pos = 0; pos <= AvailableRoles.Count - 1; pos += 2)
                         {
                             string role1 = AvailableRoles[pos];
                             string role2 = AvailableRoles[pos + 1];
@@ -76,11 +76,54 @@
                     </table>
                 </div>
             </div>
+            @if (_active.CreationTime != DateTime.MinValue)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.CreationTime</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                       @bind-Value="_active.CreationTime" />
+                </div>
+            }
+            @if (_active.Updated != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Updated</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                       @bind-Value="_active.Updated" />
+                </div>
+            }
+            @if (_active.Removed != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Removed</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                       @bind-Value="_active.Removed" />
+                </div>
+            }
+            @if (Notifier.Action == CrudAction.Delete)
+            {
+                <hr />
+                <p>
+                </p>
+                <div class="form-group">
+                    <InputRadioGroup @bind-Value="DeleteTarget">
+                        <InputRadio Value="false">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                        <InputRadio Value="true">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDeleteQuestion</label>
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            }
         </div>
     </EditForm>
 }
 
 @code {
+    private bool DeleteTarget;
+
     int _count = 0;
     private List<string> AvailableRoles = new List<string>();
     private string? _currentUser = null;
@@ -89,7 +132,7 @@
 
     public bool IsChecked(string value)
     {
-        return _active.Roles.Contains(value);
+        return _active != null && _active.Roles != null && _active.Roles.Contains(value);
     }
 
     public string IsDisabled
@@ -119,13 +162,13 @@
     /// <summary>
     /// If user modifying own settings.
     /// </summary>
-    public string OwnSettings(string value)
+    public string? OwnSettings(string value)
     {
         if (_active != null && _active.Id == _currentUser)
         {
             return "disabled";
         }
-        if (_active != null && _active.Roles.Contains(GXRoles.Admin) && value != GXRoles.Admin)
+        if (_active != null && _active.Roles != null && _active.Roles.Contains(GXRoles.Admin) && value != GXRoles.Admin)
         {
             return "disabled";
         }
@@ -134,13 +177,16 @@
 
     public void Check(string role, bool check)
     {
-        if (check)
+        if (_active != null && _active.Roles != null)
         {
-            _active.Roles.Add(role);
-        }
-        else
-        {
-            _active.Roles.Remove(role);
+            if (check)
+            {
+                _active.Roles.Add(role);
+            }
+            else
+            {
+                _active.Roles.Remove(role);
+            }
         }
     }
 
@@ -179,9 +225,7 @@
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             _currentUser = authState.User.FindFirst(c => c.Type == "sub")?.Value;
             ListRoles req = new ListRoles();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Role/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListRolesResponse>();
+            var ret = await Http.PostAsJson<ListRolesResponse>("api/Role/List", req);
             if (ret != null && ret.Roles != null)
             {
                 foreach (GXRole role in ret.Roles)
@@ -227,9 +271,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get device template data.
-                response = await Http.GetAsync(string.Format("api/User/{0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXUser>();
+                _active = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User/{0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.Users, _active);
                 _active.Modified = true;
             }
@@ -265,9 +307,11 @@
             }
             if (Notifier.Action == CrudAction.Delete)
             {
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/User/Delete", new RemoveUser() { Ids = new string[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<RemoveUserResponse>();
+                await Http.PostAsJson<RemoveUserResponse>("api/User/Delete", new RemoveUser()
+                    {
+                        Ids = new string[] { _active.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else
             {
@@ -280,9 +324,7 @@
                 {
                     address = "api/User/Update";
                 }
-                HttpResponseMessage response = await Http.PostAsJsonAsync(address, new AddUser() { Users = new GXUser[] { _active } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<AddUserResponse>();
+                await Http.PostAsJson<AddUserResponse>(address, new AddUser() { Users = new GXUser[] { _active } });
             }
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());

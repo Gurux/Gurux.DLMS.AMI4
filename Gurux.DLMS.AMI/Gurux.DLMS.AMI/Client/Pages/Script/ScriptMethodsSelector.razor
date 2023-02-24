@@ -65,9 +65,7 @@
             }
             Notifier.ChangePage(GXPages.ScriptsSelector, null);
             ListScripts req = new ListScripts();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Script/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScriptsResponse>();
+            var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req);
             foreach (GXScript script in ret.Scripts)
             {
                 foreach (GXScriptMethod method in script.Methods)

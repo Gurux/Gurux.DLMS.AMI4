@@ -81,9 +81,12 @@ namespace Gurux.DLMS.AMI.Server
         /// <returns>Attribute information.</returns>
         [HttpGet]
         [Authorize(Policy = GXAttributePolicies.View)]
-        public async Task<ActionResult<GXAttribute>> Get(Guid id)
+        public async Task<ActionResult<GetAttributeResponse>> Get(Guid id)
         {
-            return await _attributeRepository.ReadAsync(User, id);
+            return new GetAttributeResponse()
+            {
+                Item = await _attributeRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -105,20 +108,20 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXAttributePolicies.Delete)]
-        public async Task<ActionResult<AttributeDeleteResponse>> Post(AttributeDelete request)
+        public async Task<ActionResult<RemoveAttributeResponse>> Post(RemoveAttribute request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _attributeRepository.DeleteAsync(User, request.Ids);
-            return new AttributeDeleteResponse();
+            await _attributeRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveAttributeResponse();
         }
 
         /// <summary>
         /// Update data type of the attribute.
         /// </summary>
-        [HttpPost("UpdateDatatype")]
+        [HttpPost("UpdateDataType")]
         [Authorize(Policy = GXAttributePolicies.Edit)]
         public async Task<ActionResult<UpdateDatatypeResponse>> Post(UpdateDatatype request)
         {

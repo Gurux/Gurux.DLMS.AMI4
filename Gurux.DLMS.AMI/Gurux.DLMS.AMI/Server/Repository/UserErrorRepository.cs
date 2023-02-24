@@ -171,7 +171,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(list, q => q.Closed));
                 foreach (var it in updates)
                 {
-                    GXUserError tmp = new GXUserError() { Id = it.Key.Id };
+                    GXUserError tmp = new GXUserError(System.Diagnostics.TraceLevel.Error) { Id = it.Key.Id };
                     await _eventsNotifier.CloseUserErrors(new string[] { it.Value }, new GXUserError[] { tmp });
                 }
             }
@@ -199,6 +199,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Filter != null && request.Filter.User != null)
+                {
+                    arg.Where.And<GXUser>(w => w.UserName.Contains(request.Filter.User.UserName));
+                }
             }
             arg.Distinct = true;
             arg.Descending = true;

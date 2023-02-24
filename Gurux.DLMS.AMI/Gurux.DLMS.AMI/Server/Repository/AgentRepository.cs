@@ -57,6 +57,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly ITaskRepository _taskRepository;
         private readonly IServiceProvider _serviceProvider;
 
+        private GXPerformanceSettings _performanceSettings;
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -65,7 +67,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IGXEventsNotifier eventsNotifier,
             IAgentGroupRepository agentGroupRepository,
             IServiceProvider serviceProvider,
-            ITaskRepository taskRepository)
+            ITaskRepository taskRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
@@ -73,6 +76,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _agentGroupRepository = agentGroupRepository;
             _taskRepository = taskRepository;
             _serviceProvider = serviceProvider;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
@@ -125,13 +129,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task DeleteAsync(
             ClaimsPrincipal User,
-            IEnumerable<Guid> agentrs)
+            IEnumerable<Guid> agents,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.AgentManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.AgentManager)))
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(a => a.Id, q => agentrs.Contains(q.Id));
+            GXSelectArgs arg = GXSelectArgs.Select<GXAgent>(a => a.Id, q => agents.Contains(q.Id));
             List<GXAgent> list = _host.Connection.Select<GXAgent>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXAgent, List<string>> updates = new Dictionary<GXAgent, List<string>>();
@@ -139,13 +144,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXAgent>(it.Id));
+                }
+                else
+                {
+                    await _host.Connection.UpdateAsync(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
-            foreach (var it in updates)
+            if (_performanceSettings.Notify(TargetType.Agent))
             {
-                GXAgent tmp = new GXAgent() { Id = it.Key.Id };
-                await _eventsNotifier.AgentDelete(it.Value, new GXAgent[] { tmp });
+                foreach (var it in updates)
+                {
+                    GXAgent tmp = new GXAgent() { Id = it.Key.Id };
+                    await _eventsNotifier.AgentDelete(it.Value, new GXAgent[] { tmp });
+                }
             }
         }
 
@@ -167,6 +182,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetAgentsByUser(userId, null);
             }
+            arg.Columns.Exclude<GXAgent>(e => new {e.ListenerSettings, e.NotifySettings, e.ReaderSettings, e.Template });
             arg.Where.And<GXAgent>(w => w.Template == false);
             if (request != null && request.Filter != null)
             {
@@ -315,12 +331,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXAgent> agents)
-        {
-            return await UpdateAsync(user, agents, null);
-        }
-
-        /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal user,
             IEnumerable<GXAgent> agents,
@@ -410,9 +420,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 updates[agent] = await GetUsersAsync(user, agent.Id);
             }
-            foreach (var it in updates)
+            if (_performanceSettings.Notify(TargetType.Agent))
             {
-                await _eventsNotifier.AgentUpdate(it.Value, new GXAgent[] { it.Key });
+                foreach (var it in updates)
+                {
+                    await _eventsNotifier.AgentUpdate(it.Value, new GXAgent[] { it.Key });
+                }
             }
             return list.ToArray();
         }
@@ -496,7 +509,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 Detected = agent.Detected,
                 Status = agent.Status
             };
-            await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
+            if (_performanceSettings.Notify(TargetType.Agent))
+            {
+                await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
+            }
             if (status == AgentStatus.Connected || status == AgentStatus.Offline)
             {
                 //Update agent state for the agent log.
@@ -546,7 +562,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     UpdateVersion = agent.UpdateVersion,
                     Status = agent.Status
                 };
-                await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
+                if (_performanceSettings.Notify(TargetType.Agent))
+                {
+                    await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
+                }
             }
         }
     }

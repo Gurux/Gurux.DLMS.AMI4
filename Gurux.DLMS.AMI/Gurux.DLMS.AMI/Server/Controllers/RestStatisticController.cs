@@ -31,8 +31,6 @@
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DIs;
 
 namespace Gurux.DLMS.AMI.Server.Controllers

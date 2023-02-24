@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux ComponentView Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux ComponentView Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux ComponentView Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -39,7 +39,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
-using System.Text.RegularExpressions;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -127,9 +127,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs)
+        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs, bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ComponentViewGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ComponentViewGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -141,7 +141,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXComponentViewGroup>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -192,6 +199,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.ComponentViewGroups = groups;
+                if (response.Count == 0)
+                {
+                    response.Count = groups.Length;
+                }
             }
             return groups;
         }
@@ -231,7 +242,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get component views that belongs for this component view group.
-            arg = GXSelectArgs.SelectAll<GXComponentView>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXComponentView>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXComponentViewGroupComponentView, GXComponentView>(j => j.ComponentViewId, j => j.Id);
             arg.Where.And<GXComponentViewGroupComponentView>(q => q.Removed == null && q.ComponentViewGroupId == id);
@@ -239,7 +250,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this component view group.
-            arg = GXSelectArgs.SelectAll<GXUserGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUserGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupComponentViewGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupComponentViewGroup>(q => q.Removed == null && q.ComponentViewGroupId == id);
@@ -248,7 +259,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXComponentViewGroup> ComponentViewGroups)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user,
+            IEnumerable<GXComponentViewGroup> ComponentViewGroups,
+            Expression<Func<GXComponentViewGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
@@ -293,7 +307,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     List<string> users = await GetUsersAsync(user, it.Id);
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXComponentViewGroup>(q => new { q.UserGroups, q.CreationTime, q.ComponentViews });
                     _host.Connection.Update(args);
                     //Map user group to ComponentView group.

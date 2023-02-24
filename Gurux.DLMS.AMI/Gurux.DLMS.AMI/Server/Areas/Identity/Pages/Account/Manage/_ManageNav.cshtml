@@ -7,6 +7,7 @@
     <li class="nav-item"><a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">@ViewData["Email"]</a></li>
     <li class="nav-item"><a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">@ViewData["Password"]</a></li>
     <li class="nav-item"><a class="nav-link @ManageNavPages.PatNavClass(ViewContext)" id="pat" asp-page="./Pat">@ViewData["Pat"]</a></li>
+    <li class="nav-item"><a class="nav-link @ManageNavPages.NotificationsNavClass(ViewContext)" id="notifications" asp-page="./Notifications">@ViewData["Notifications"]</a></li>
     @if (hasExternalLogins)
     {
 <li id="external-logins" class="nav-item"><a id="external-login" class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">@ViewData["ExternalLogins"]</a></li>

@@ -144,15 +144,10 @@
         {
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
-            GXSystemLog filter = new GXSystemLog()
-            {
-                    Level = null
-            };
+            GXSystemLog filter = new GXSystemLog();
             ListSystemLogs req = new ListSystemLogs() { Filter = filter };
             req.Count = Count;
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListSystemLogsResponse>();
+            ListSystemLogsResponse ret = await Http.PostAsJson<ListSystemLogsResponse>("api/SystemLog/List", req);
             ActiveErrors = ret.Errors;
         }
         catch (AccessTokenNotAvailableException exception)
@@ -187,15 +182,12 @@
             Notifier?.ClearStatus();
             CloseSystemLog arg = new CloseSystemLog();
             arg.Errors = new Guid[] { (sender as GXSystemLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                List<GXSystemLog> list = new List<GXSystemLog>();
-                list.AddRange(ActiveErrors);
-                list.Remove(sender as GXSystemLog);
-                ActiveErrors = list.ToArray();
-                await Updated();
-            }
+            await Http.PostAsJson<GXSystemLog>("api/SystemLog/Close", arg);
+            List<GXSystemLog> list = new List<GXSystemLog>();
+            list.AddRange(ActiveErrors);
+            list.Remove(sender as GXSystemLog);
+            ActiveErrors = list.ToArray();
+            await Updated();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -223,11 +215,8 @@
             if (confirm)
             {
                 Notifier?.ProgressStart();
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/SystemLog/Clear", new ClearSystemLog()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearSystemLogResponse>("api/SystemLog/Clear", new ClearSystemLog());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

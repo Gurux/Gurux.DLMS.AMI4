@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -95,9 +94,12 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns>Device information.</returns>
         [HttpGet]
         [Authorize(Policy = GXDevicePolicies.View)]
-        public async Task<ActionResult<GXDevice>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceResponse>> Get(Guid id)
         {
-            return await _deviceRepository.ReadAsync(User, id);
+            return new GetDeviceResponse()
+            {
+                Item = await _deviceRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -105,14 +107,14 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXDevicePolicies.Delete)]
-        public async Task<ActionResult<DeviceDeleteResponse>> Post(DeviceDelete request)
+        public async Task<ActionResult<RemoveDeviceResponse>> Post(RemoveDevice request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _deviceRepository.DeleteAsync(User, request.Ids);
-            return new DeviceDeleteResponse();
+            await _deviceRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveDeviceResponse();
         }
     }
 }

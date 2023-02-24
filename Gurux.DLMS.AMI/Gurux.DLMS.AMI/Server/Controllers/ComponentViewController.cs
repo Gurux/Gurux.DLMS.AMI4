@@ -45,6 +45,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ComponentViewController : ControllerBase
     {
         private readonly IComponentViewRepository _componentviewRepository;
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public ComponentViewController(IComponentViewRepository componentViewrRepository)
         {
             _componentviewRepository = componentViewrRepository;
@@ -91,14 +94,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns></returns>
         [HttpPost("Delete")]
         [Authorize(Policy = GXComponentViewPolicies.Delete)]
-        public async Task<ActionResult<DeleteComponentViewResponse>> Post(DeleteComponentView request)
+        public async Task<ActionResult<RemoveComponentViewResponse>> Post(RemoveComponentView request)
         {
-            if (request.ComponentViewIds == null || request.ComponentViewIds.Length == 0)
+            if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _componentviewRepository.DeleteAsync(User, request.ComponentViewIds);
-            return new DeleteComponentViewResponse();
+            await _componentviewRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveComponentViewResponse();
         }
 
         /// <summary>

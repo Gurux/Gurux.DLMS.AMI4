@@ -85,7 +85,7 @@
                 //Get agent error data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/AgentLog?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXAgentLog>();
+                _active = (await response.Content.ReadFromJsonAsync<GetAgentLogResponse>()).Item;
             }
             Notifier.ChangePage(GXPages.AgentLogs, _active);
         }

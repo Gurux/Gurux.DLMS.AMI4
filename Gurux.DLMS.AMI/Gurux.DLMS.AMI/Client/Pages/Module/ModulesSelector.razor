@@ -58,9 +58,7 @@
                 {
                     Filter = new GXModule()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Module/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListModulesResponse>();
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req);
             foreach (GXModule it in ret.Modules)
             {
                 if (!modules.Exists(q => q.Id == it.Id))

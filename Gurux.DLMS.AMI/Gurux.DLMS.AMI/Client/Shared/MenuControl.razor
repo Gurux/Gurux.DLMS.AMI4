@@ -18,16 +18,30 @@
     [Parameter]
     public RenderFragment ChildContent { get; set; }
 
-    //Is button shown on the right corner.
+    /// <summary>
+    /// Is button shown on the right corner.
+    /// </summary>
     [Parameter]
     public bool RightCorner { get; set; }
 
-    //Is button shown on the bottom.
+    /// <summary>
+    /// Is button shown on the bottom.
+    /// </summary>
     [Parameter]
     public bool Bottom { get; set; }
 
+    /// <summary>
+    /// CSS style.
+    /// </summary>
+    [Parameter]
+    public string? CssStyle { get; set; }
+
     private string @GetButtonStyle()
     {
+        if (!string.IsNullOrEmpty(CssStyle))
+        {
+            return CssStyle;
+        }
         if (RightCorner)
         {
             return "background-color: dodgerblue;";

@@ -19,7 +19,7 @@
 @implements IDisposable
 
 <h1>Configure your account</h1>
-Configure your account by following the steps outlined <a target="_blank" href="www.gurux.fi/agent-configure">here</a>.
+Configure your account by following the steps outlined <a target="_blank" href="https://www.gurux.fi/agent-configure">here</a>.
 
 <EditForm Model="@this">
     <DataAnnotationsValidator />
@@ -46,7 +46,6 @@ Configure your account by following the steps outlined <a target="_blank" href="
     </button>
     @if (Token != null)
     {
-        @Properties.Resources.TokenCreateSucceeded
         <div class="form-group">
             <label>@Properties.Resources.TokensTitle</label>
             <InputText id="token" class="form-control" readonly="readonly"
@@ -55,7 +54,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
         <p>
             <div style="background: #f4e8d6; padding: 1.25rem 1.25rem 1.25rem 1.25rem; ">
                 <p>
-                    @Properties.Resources.TokenCreateSucceeded
+                    @Properties.Resources.AgentTokenCreateSucceeded
                 </p>
             </div>
         </p>
@@ -89,9 +88,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
         try
         {
             DownloadAgent req = new DownloadAgent();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Download", req);
-            ClientHelpers.ValidateStatusCode(response);
-            DownloadAgentResponse ret = await response.Content.ReadFromJsonAsync<DownloadAgentResponse>();
+            var ret = await Http.PostAsJson<DownloadAgentResponse>("api/Agent/Download", req);
             string? url = ret.Urls.FirstOrDefault();
             IJSObjectReference module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./download.js");
             await module.InvokeVoidAsync("saveFile", url);
@@ -125,9 +122,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
             "device-action.add", "value.add", "attribute.edit"};
 
             UpdateToken req = new UpdateToken() { Tokens = new GXPersonalToken[] { token } };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Token/Add", req);
-            ClientHelpers.ValidateStatusCode(response);
-            UpdateTokenResponse ret = await response.Content.ReadFromJsonAsync<UpdateTokenResponse>();
+            var ret = await Http.PostAsJson<UpdateTokenResponse>("api/Token/Add", req);
             Token = ret.Token;
             StateHasChanged();
         }
@@ -151,7 +146,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
             }
             Notifier.ClearStatus();
             Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
             Notifier.ChangePage(GXPages.Agent, null);
         }

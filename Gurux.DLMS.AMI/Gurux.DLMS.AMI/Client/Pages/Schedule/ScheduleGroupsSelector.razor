@@ -81,9 +81,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scheduleGroups.Any();
             Notifier.ChangePage(GXPages.ScheduleGroupsSelector, null);
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScheduleGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScheduleGroupsResponse>();
+            var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req);
             foreach (GXScheduleGroup it in ret.ScheduleGroups)
             {
                 //Add default groups when new schedule is created.

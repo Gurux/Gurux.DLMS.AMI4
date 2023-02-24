@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Server.Repository;
 using System.Threading;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server;
+using Org.BouncyCastle.Asn1.X509;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {
@@ -126,7 +127,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             _timer = new Timer(DoWork, null, start, TimeSpan.FromMinutes(1));
         }
 
-        /// <inheritdoc cref="IGXScheduleService.RunAsync"/>
+        /// <inheritdoc />
         public async Task RunAsync(ClaimsPrincipal user, GXSchedule schedule)
         {
             User = ServerSettings.GetDefaultAdminUser(_host);
@@ -246,7 +247,9 @@ namespace Gurux.DLMS.AMI.Scheduler
                     Filter = new GXSchedule()
                     {
                         Removed = null
-                    }
+                    },
+                    //Select user and roles information.
+                    Select = TargetType.User | TargetType.Role
                 };
                 List<GXTask> tasks = new List<GXTask>();
                 GXSchedule[] schedules = await _scheduleRepository.ListAsync(User, req, null, CancellationToken.None);

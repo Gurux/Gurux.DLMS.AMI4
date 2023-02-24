@@ -32,7 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
@@ -58,21 +57,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-
-
-        /// <summary>
         /// Get script group information.
         /// </summary>
         /// <param name="id">Script group id.</param>
         /// <returns>Script group.</returns>
         [HttpGet]
         [Authorize(Policy = GXScriptGroupPolicies.View)]
-        public async Task<ActionResult<GXScriptGroup>> Get(Guid id)
+        public async Task<ActionResult<GetScriptGroupResponse>> Get(Guid id)
         {
-            return await _ScriptGroupRepository.ReadAsync(User, id);
+            return new GetScriptGroupResponse()
+            {
+                Item = await _ScriptGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -84,7 +80,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddScriptGroupResponse>> Post(AddScriptGroup request)
         {
             await _ScriptGroupRepository.UpdateAsync(User, request.ScriptGroups);
-            return new AddScriptGroupResponse() { ScriptGroups = request.ScriptGroups };
+            return new AddScriptGroupResponse()
+            {
+                Ids = request.ScriptGroups.Select(s => s.Id).ToArray()
+            };
         }
 
         /// <summary>
@@ -93,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXScriptGroupPolicies.View)]
         public async Task<ActionResult<ListScriptGroupsResponse>> Post(
-            ListScriptGroups request, 
+            ListScriptGroups request,
             CancellationToken cancellationToken)
         {
             ListScriptGroupsResponse ret = new ListScriptGroupsResponse();
@@ -109,7 +108,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _ScriptGroupRepository.DeleteAsync(User, request.Ids);
+            await _ScriptGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveScriptGroupResponse();
         }
     }

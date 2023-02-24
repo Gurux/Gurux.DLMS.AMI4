@@ -298,10 +298,8 @@
             }
             else if (Notifier.Action == CrudAction.Delete)
             {
-                response = await Http.PostAsJsonAsync("api/Module/Delete", new DeleteModule() { Modules = new string[] { _active.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                DeleteModuleResponse? ret = await response.Content.ReadFromJsonAsync<DeleteModuleResponse>();
-                if (ret != null && ret.Restart)
+                var ret = await Http.PostAsJson<RemoveModuleResponse>("api/Module/Delete", new RemoveModule() { Modules = new string[] { _active.Id } });
+                if (ret.Restart)
                 {
                     RestartConfirmation.Show();
                 }
@@ -321,8 +319,7 @@
                     }
                 }
                 UpdateModule req = new UpdateModule() { Module = _active };
-                response = await Http.PostAsJsonAsync("api/Module/Update", req);
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson<UpdateModuleResponse>("api/Module/Update", req);
                 if (Notifier.Action == CrudAction.Create)
                 {
                     _active.Modified = true;
@@ -419,8 +416,7 @@
             if (confirm)
             {
                 StopApplicationRequest req = new StopApplicationRequest();
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Restart", req);
-                ClientHelpers.ValidateStatusCode(response);
+                await Http.PostAsJson("api/Configuration/Restart", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)

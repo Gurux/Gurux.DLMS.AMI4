@@ -50,13 +50,8 @@
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             blocks = userGroup.Blocks;
-            ListBlocks req = new ListBlocks()
-                {
-                    Filter = new GXBlock()
-                };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListBlocksResponse>();
+            ListBlocks req = new ListBlocks();
+            var ret = await Http.PostAsJson<ListBlocksResponse>("api/Block/List", req);
             foreach (GXBlock it in ret.Blocks)
             {
                 if (!blocks.Exists(q => q.Id == it.Id))

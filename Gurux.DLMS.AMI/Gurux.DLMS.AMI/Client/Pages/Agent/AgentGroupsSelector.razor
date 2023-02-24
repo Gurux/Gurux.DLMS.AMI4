@@ -82,9 +82,7 @@
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !agentGroups.Any();
             Notifier.ChangePage(GXPages.AgentGroupsSelector, null);
             Notifier.UpdateButtons();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListAgentGroupsResponse>();
+            var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req);
             foreach (GXAgentGroup it in ret.AgentGroups)
             {
                 //Add default groups when new workflow is created.

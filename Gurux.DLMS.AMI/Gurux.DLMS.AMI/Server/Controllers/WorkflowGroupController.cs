@@ -32,8 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -64,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Workflow group.</returns>
         [HttpGet]
         [Authorize(Policy = GXWorkflowGroupPolicies.View)]
-        public async Task<ActionResult<GXWorkflowGroup>> Get(Guid id)
+        public async Task<ActionResult<GetWorkflowGroupResponse>> Get(Guid id)
         {
-            return await _WorkflowGroupRepository.ReadAsync(User, id);
+            return new GetWorkflowGroupResponse()
+            {
+                Item = await _WorkflowGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -81,8 +82,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _WorkflowGroupRepository.UpdateAsync(User, request.WorkflowGroups);
-            return new AddWorkflowGroupResponse() { WorkflowGroups = request.WorkflowGroups };
+            return new AddWorkflowGroupResponse()
+            {
+                Ids = await _WorkflowGroupRepository.UpdateAsync(User, request.WorkflowGroups)
+            };
         }
 
         /// <summary>
@@ -107,7 +110,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _WorkflowGroupRepository.DeleteAsync(User, request.Ids);
+            await _WorkflowGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveWorkflowGroupResponse();
         }
     }

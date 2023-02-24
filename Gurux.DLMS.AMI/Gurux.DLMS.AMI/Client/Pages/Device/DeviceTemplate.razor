@@ -89,6 +89,14 @@
                              @bind-Value="template.ResendCount" />
                 </th>
             </tr>
+            @if (template.Updated != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Updated</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                       @bind-Value="template.Updated" />
+                </div>
+            }
             @if (template.Removed != null)
             {
                 <div class="form-group">
@@ -97,10 +105,28 @@
                        @bind-Value="template.Removed" />
                 </div>
             }
+            @if (Notifier.Action == CrudAction.Delete)
+            {
+                <hr />
+                <p>
+                </p>
+                <div class="form-group">
+                    <InputRadioGroup @bind-Value="DeleteTarget">
+                        <InputRadio Value="false">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                        <InputRadio Value="true">
+                        </InputRadio>
+                        <label>@Properties.Resources.TargetDeleteQuestion</label>
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            }
         </table>
     </EditForm>
 }
 @code {
+    private bool DeleteTarget;
     private bool isLoading;
     private GXDeviceTemplate template = new GXDeviceTemplate();
     List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
@@ -287,6 +313,7 @@
                         GXAttributeTemplate a = new GXAttributeTemplate();
                         a.Name = names[pos - 1];
                         a.Index = pos;
+                        a.Weight = pos - 1;
                         if (AssociationViewVersion < 3)
                         {
                             a.AccessLevel = (int)value.GetAccess(pos);
@@ -300,6 +327,40 @@
                         if (value.GetStatic(pos))
                         {
                             a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        if (value is GXDLMSProfileGeneric)
+                        {
+                            //Capture objects.
+                            if (pos == 3 ||
+                                //Capture Period
+                                pos == 4 ||
+                                //Sort Method
+                                pos == 5 ||
+                                //Sort Object
+                                pos == 6 ||
+                                //Profile Entries
+                                pos == 8)
+                            {
+                                a.ExpirationTime = DateTime.MaxValue;
+                            }
+                        }
+                        if (value is GXDLMSAssociationLogicalName)
+                        {
+                            //Object List.
+                            if (pos == 2 ||
+                                //Associated partners Id
+                                pos == 3 ||
+                                //Application Context Name.
+                                pos == 4 ||
+                                // xDLMS Context Info.
+                                pos == 5 ||
+                                //Authentication Mechanism Name.
+                                pos == 6 ||
+                                //Secret.
+                                pos == 7)
+                            {
+                                a.ExpirationTime = DateTime.MaxValue;
+                            }
                         }
                         if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
                         {
@@ -328,6 +389,11 @@
                         }
                         //Profile generic capture objects are not read as default.
                         if (value is GXDLMSProfileGeneric && pos == 3)
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        //Scaler and unit are read only once.
+                        if (value is GXDLMSRegister && pos == 3)
                         {
                             a.ExpirationTime = DateTime.MaxValue;
                         }
@@ -427,7 +493,7 @@
                 //Get device template data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTemplate?id={0}", template.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                template = await response.Content.ReadFromJsonAsync<GXDeviceTemplate>();
+                template = (await response.Content.ReadFromJsonAsync<GetDeviceTemplateResponse>()).Item;
                 templates.Add(template);
                 Notifier.UpdateData(GXPages.DeviceTemplates, template);
                 template.Modified = true;
@@ -475,24 +541,27 @@
         try
         {
             Notifier?.ClearStatus();
-            HttpResponseMessage response;
             if (Notifier.Action == CrudAction.Delete)
             {
-                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Delete", new DeviceTemplateDelete() { Ids = new Guid[] { template.Id } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<DeviceTemplateDeleteResponse>();
+                await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", new RemoveDeviceTemplate()
+                    {
+                        Ids = new Guid[] { template.Id },
+                        Delete = DeleteTarget
+                    });
             }
             else if (Notifier.Action == CrudAction.Create)
             {
-                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Add", new UpdateDeviceTemplate() { Templates = new GXDeviceTemplate[] { template } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceTemplateResponse>();
+                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Add", new UpdateDeviceTemplate()
+                    {
+                        Templates = new GXDeviceTemplate[] { template }
+                    });
             }
             else
             {
-                response = await Http.PostAsJsonAsync("api/DeviceTemplate/Update", new UpdateDeviceTemplate() { Templates = new GXDeviceTemplate[] { template } });
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<UpdateDeviceTemplateResponse>();
+                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Update", new UpdateDeviceTemplate()
+                    {
+                        Templates = new GXDeviceTemplate[] { template }
+                    });
             }
             Notifier.UpdateData(GXPages.AvailableDeviceTemplates, null);
             Notifier.RemoveLastPage();

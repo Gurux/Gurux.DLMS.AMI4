@@ -105,7 +105,7 @@
     [Parameter]
     public BlockLocation Location { get; set; }
 
-    static ConcurrentDictionary<string, object> values = new ConcurrentDictionary<string, object>();
+    static ConcurrentDictionary<string, object?> values = new ConcurrentDictionary<string, object?>();
     static List<GXBlock> _blocks = new List<GXBlock>();
 
     /// <summary>
@@ -118,16 +118,13 @@
         try
         {
             CloseBlock arg = new CloseBlock();
-            arg.Blocks = new Guid[] { (sender as GXBlock).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/Close", arg))
+            arg.Ids = new Guid[] { (sender as GXBlock).Id };
+            await Http.PostAsJson<CloseBlockResponse>("api/Block/Close", arg);
+            lock (_blocks)
             {
-                ClientHelpers.ValidateStatusCode(response);
-                lock (_blocks)
-                {
-                    _blocks.Remove(sender as GXBlock);
-                }
-                await InvokeAsync(StateHasChanged);
+                _blocks.Remove(sender as GXBlock);
             }
+            await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
@@ -159,9 +156,7 @@
                 string? id = authState.User.FindFirst(c => c.Type == "sub")?.Value;
                 filter.User = new AMI.Shared.DTOs.Authentication.GXUser() { Id = id };
                 ListBlocks req = new ListBlocks() { Filter = filter };
-                HttpResponseMessage response = await Http.PostAsJsonAsync("api/Block/List", req);
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListBlocksResponse>();
+                var ret = await Http.PostAsJson<ListBlocksResponse>("api/Block/List", req);
                 if (ret != null)
                 {
                     foreach (var block in ret.Blocks)
@@ -194,10 +189,8 @@
                             block.ScriptMethod != null)
                         {
                             RunScript req2 = new RunScript() { MethodId = block.ScriptMethod.Id };
-                            response = await Http.PostAsJsonAsync("api/Script/Run", req2);
-                            ClientHelpers.ValidateStatusCode(response);
-                            RunScriptResponse? ret2 = await response.Content.ReadFromJsonAsync<RunScriptResponse>();
-                            if (ret2 != null && ret2.Result != null)
+                            var ret2 = await Http.PostAsJson<RunScriptResponse>("api/Script/Run", req2);
+                            if (ret2.Result != null)
                             {
                                 values[block.Name] = Convert.ToString(ret2.Result);
                             }
@@ -216,10 +209,8 @@
                             }
                             GXLanguage language = new GXLanguage() { Resources = resources.ToArray() };
                             ListLanguages req2 = new ListLanguages() { Filter = language };
-                            response = await Http.PostAsJsonAsync("api/Localization/List", req2);
-                            ClientHelpers.ValidateStatusCode(response);
-                            ListLanguagesResponse? ret2 = await response.Content.ReadFromJsonAsync<ListLanguagesResponse>();
-                            if (ret2 != null && ret2.Languages != null && ret2.Languages.Length == 1)
+                            var ret2 = await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", req2);
+                            if (ret2.Languages != null && ret2.Languages.Length == 1)
                             {
                                 if (ret2.Languages[0].Resources != null && ret2.Languages[0].Resources.Any())
                                 {

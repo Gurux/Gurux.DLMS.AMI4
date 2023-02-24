@@ -185,7 +185,6 @@
     /// </summary>
     private GXAgentLog filter = new GXAgentLog()
         {
-            Level = null,
             Agent = new GXAgent()
         };
     /// <summary>
@@ -296,23 +295,23 @@
                 //Show active errors.
                 filter.Closed = null;
             }
+            if (filter.Message == string.Empty)
+            {
+                filter.Message = null;
+            }
             ListAgentLogs req = new ListAgentLogs() { Index = request.StartIndex, Count = request.Count, Filter = filter };
             if (Count != 0)
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentLog/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListAgentLogsResponse>("api/AgentLog/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the agent logs.
+            if (Total != 0)
             {
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListAgentLogsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the agent logs.
-                if (Total != 0)
-                {
-                    ret.Count = Total;
-                }
-                return new ItemsProviderResult<GXAgentLog>(ret.Logs, ret.Count);
+                ret.Count = Total;
             }
+            return new ItemsProviderResult<GXAgentLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -379,11 +378,7 @@
             Notifier?.ClearStatus();
             CloseAgentLog arg = new CloseAgentLog();
             arg.Logs = new Guid[] { (_selected as GXAgentLog).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentLog/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseAgentLogResponse>();
-            }
+            await Http.PostAsJson<CloseAgentLogResponse>("api/AgentLog/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -424,11 +419,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentLog/Clear", new ClearAgentLogs()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearAgentLogsResponse>("api/AgentLog/Clear", new ClearAgentLogs());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

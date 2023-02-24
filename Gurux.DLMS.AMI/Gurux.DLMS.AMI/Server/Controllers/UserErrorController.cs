@@ -63,10 +63,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>User error.</returns>
         [HttpGet]
         [Authorize(Policy = GXUserErrorPolicies.View)]
-        public async Task<ActionResult<GXUserError>> Get(Guid id)
+        public async Task<ActionResult<GetUserError>> Get(Guid id)
         {
-            return await _userErrorRepository.ReadAsync(User, id);
-        }
+            return new GetUserError()
+            {
+                Item = await _userErrorRepository.ReadAsync(User, id)
+            };
+        }    
 
         /// <summary>
         /// Add user Error.

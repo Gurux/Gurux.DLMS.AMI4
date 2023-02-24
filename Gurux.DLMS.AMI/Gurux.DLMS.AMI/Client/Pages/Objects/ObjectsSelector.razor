@@ -70,9 +70,7 @@
             {
                 throw new ArgumentOutOfRangeException();
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Object/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListObjectsResponse>();
+            var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req);
             foreach (GXObject it in ret.Objects)
             {
                 if (!objects.Exists(q => q.Id == it.Id))

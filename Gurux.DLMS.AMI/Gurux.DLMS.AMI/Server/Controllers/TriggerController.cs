@@ -45,14 +45,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
     [ApiController]
     public class TriggerController : ControllerBase
     {
-        private readonly ITriggerRepository _triggerrRepository;
+        private readonly ITriggerRepository _triggerRepository;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public TriggerController(ITriggerRepository triggerrRepository)
         {
-            _triggerrRepository = triggerrRepository;
+            _triggerRepository = triggerrRepository;
         }
 
         /// <summary>
@@ -62,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Trigger information.</returns>
         [HttpGet]
         [Authorize(Policy = GXTriggerPolicies.View)]
-        public async Task<ActionResult<GXTrigger>> Get(Guid id)
+        public async Task<ActionResult<GetTriggerResponse>> Get(Guid id)
         {
-            return await _triggerrRepository.ReadAsync(User, id);
+            return new GetTriggerResponse()
+            {
+                Item = await _triggerRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -77,7 +80,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListTriggersResponse ret = new ListTriggersResponse();
-            await _triggerrRepository.ListAsync(User, request, ret, cancellationToken);
+            await _triggerRepository.ListAsync(User, request, ret, cancellationToken);
             return ret;
         }
 
@@ -96,20 +99,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
             UpdateTriggerResponse ret = new UpdateTriggerResponse();
-            ret.TriggerIds = await _triggerrRepository.UpdateAsync(User, request.Triggers);
+            ret.TriggerIds = await _triggerRepository.UpdateAsync(User, request.Triggers);
             return ret;
         }
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXTriggerPolicies.Delete)]
-        public async Task<ActionResult<DeleteTriggerResponse>> Post(DeleteTrigger request)
+        public async Task<ActionResult<RemoveTriggerResponse>> Post(RemoveTrigger request)
         {
-            if (request.TriggerIds == null || request.TriggerIds.Length == 0)
+            if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _triggerrRepository.DeleteAsync(User, request.TriggerIds);
-            return new DeleteTriggerResponse();
+            await _triggerRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveTriggerResponse();
         }
 
         /// <summary>
@@ -119,7 +122,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXTriggerPolicies.Edit)]
         public async Task<ActionResult<RefreshComponentViewResponse>> Post(RefreshComponentView request)
         {
-            await _triggerrRepository.RefrestAsync(User);
+            await _triggerRepository.RefrestAsync(User);
             return new RefreshComponentViewResponse();
         }
     }

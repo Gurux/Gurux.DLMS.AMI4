@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -46,7 +47,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ScheduleController : ControllerBase
     {
         private readonly IScheduleRepository _schedulerRepository;
-       
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -62,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Schedule information.</returns>
         [HttpGet]
         [Authorize(Policy = GXSchedulePolicies.View)]
-        public async Task<ActionResult<GXSchedule>> Get(Guid id)
+        public async Task<ActionResult<GetScheduleResponse>> Get(Guid id)
         {
-            return await _schedulerRepository.ReadAsync(User, id);
+            return new GetScheduleResponse()
+            {
+                Item = await _schedulerRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -73,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXSchedulePolicies.View)]
         public async Task<ActionResult<ListSchedulesResponse>> Post(
-            ListSchedules request, 
+            ListSchedules request,
             CancellationToken cancellationToken)
         {
             ListSchedulesResponse ret = new ListSchedulesResponse();
@@ -102,14 +106,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXSchedulePolicies.Delete)]
-        public async Task<ActionResult<DeleteScheduleResponse>> Post(DeleteSchedule request)
+        public async Task<ActionResult<RemoveScheduleResponse>> Post(RemoveSchedule request)
         {
-            if (request.ScheduleIds == null || request.ScheduleIds.Length == 0)
+            if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _schedulerRepository.DeleteAsync(User, request.ScheduleIds);
-            return new DeleteScheduleResponse();
+            await _schedulerRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveScheduleResponse();
         }
 
         /// <summary>

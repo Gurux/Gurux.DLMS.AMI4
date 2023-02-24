@@ -32,8 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -48,6 +46,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
     {
         private readonly IComponentViewGroupRepository _componentViewGroupRepository;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public ComponentViewGroupController(
             IComponentViewGroupRepository ComponentViewGroupRepository)
         {
@@ -61,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>ComponentView group.</returns>
         [HttpGet]
         [Authorize(Policy = GXComponentViewGroupPolicies.View)]
-        public async Task<ActionResult<GXComponentViewGroup>> Get(Guid id)
+        public async Task<ActionResult<GetComponentViewGroupResponse>> Get(Guid id)
         {
-            return await _componentViewGroupRepository.ReadAsync(User, id);
+            return new GetComponentViewGroupResponse()
+            {
+                Item = await _componentViewGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -75,7 +79,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddComponentViewGroupResponse>> Post(AddComponentViewGroup request)
         {
             await _componentViewGroupRepository.UpdateAsync(User, request.ComponentViewGroups);
-            return new AddComponentViewGroupResponse() { ComponentViewGroups = request.ComponentViewGroups };
+            return new AddComponentViewGroupResponse()
+            {
+                Ids = request.ComponentViewGroups.Select(s => s.Id).ToArray()
+            };
         }
 
         /// <summary>
@@ -84,7 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXComponentViewGroupPolicies.View)]
         public async Task<ActionResult<ListComponentViewGroupsResponse>> Post(
-            ListComponentViewGroups request, 
+            ListComponentViewGroups request,
             CancellationToken cancellationToken)
         {
             ListComponentViewGroupsResponse ret = new ListComponentViewGroupsResponse();
@@ -100,7 +107,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _componentViewGroupRepository.DeleteAsync(User, request.Ids);
+            await _componentViewGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveComponentViewGroupResponse();
         }
     }

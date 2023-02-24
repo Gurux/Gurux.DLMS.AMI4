@@ -42,10 +42,11 @@ using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Triggers;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
-    /// <inheritdoc cref="ITriggerRepository"/>
+    /// <inheritdoc />
     public class TriggerRepository : ITriggerRepository
     {
         private readonly IGXHost _host;
@@ -53,7 +54,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly ITriggerGroupRepository _triggerGroupRepository;
-        
+
 
         /// <summary>
         /// Constructor.
@@ -98,13 +99,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> triggerrs)
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> triggers,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.TriggerManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.TriggerManager)))
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXTrigger>(a => a.Id, q => triggerrs.Contains(q.Id));
+            GXSelectArgs arg = GXSelectArgs.Select<GXTrigger>(a => a.Id, q => triggers.Contains(q.Id));
             List<GXTrigger> list = _host.Connection.Select<GXTrigger>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXTrigger, List<string>> updates = new Dictionary<GXTrigger, List<string>>();
@@ -112,7 +115,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXTrigger>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -164,7 +174,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var trigger in triggers)
             {
                 //There can be multiple activities per trigger for this reason own query is used.
-                arg = GXSelectArgs.SelectAll<GXTriggerActivity>(w => w.Trigger == trigger);
+                arg = GXSelectArgs.Select<GXTriggerActivity>(s => new { s.Id, s.Name }, w => w.Trigger == trigger);
                 arg.Columns.Exclude<GXTriggerActivity>(e => e.Trigger);
                 trigger.Activities = await _host.Connection.SelectAsync<GXTriggerActivity>(arg);
             }
@@ -179,7 +189,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return triggers;
         }
 
-        /// <inheritdoc cref="ITriggerRepository.ReadAsync"/>
+        /// <inheritdoc />
         public async Task<GXTrigger> ReadAsync(
             ClaimsPrincipal User,
             Guid id)
@@ -212,13 +222,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return trigger;
         }
 
-        /// <inheritdoc cref="ITriggerRepository.UpdateAsync"/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXTrigger> triggerrs)
+        /// <inheritdoc />
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal User,
+            IEnumerable<GXTrigger> triggers,
+            Expression<Func<GXTrigger, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXTrigger, List<string>> updates = new Dictionary<GXTrigger, List<string>>();
-            foreach (GXTrigger trigger in triggerrs)
+            foreach (GXTrigger trigger in triggers)
             {
                 if (string.IsNullOrEmpty(trigger.Name))
                 {
@@ -256,7 +269,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     trigger.Updated = now;
                     trigger.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(trigger);
+                    GXUpdateArgs args = GXUpdateArgs.Update(trigger, columns);
                     args.Exclude<GXTrigger>(q => new { q.CreationTime, q.TriggerGroups });
                     _host.Connection.Update(args);
                     //Map trigger groups to trigger.

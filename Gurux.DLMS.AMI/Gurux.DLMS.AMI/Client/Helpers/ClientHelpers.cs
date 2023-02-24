@@ -31,14 +31,99 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.Enums;
 using System.Diagnostics;
 using System.Net;
+using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Net.Http.Json;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
+    public static class HttpHelpers
+    {
+        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<RET>();
+            if (ret == null)
+            {
+                throw new Exception("Invalid reply.");
+            }
+            return ret;
+        }
+
+        public static async Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+        }
+
+        public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
+            ClientHelpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<RET>();
+            if (ret == null)
+            {
+                throw new Exception("Invalid reply.");
+            }
+            return ret;
+        }
+
+    }
+
     public static class ClientHelpers
     {
+        /// <summary>
+        /// Get user ID from claims.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns>User ID.</returns>
+        public static string GetUserId(ClaimsPrincipal user)
+        {
+            string? id = GetUserId(user, true);
+            if (id == null)
+            {
+                throw new UnauthorizedAccessException();
+            }
+            return id;
+        }
+
+        /// <summary>
+        /// Get user ID from claims.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="throwException">Exception is thrown if user is unknown.</param>
+        /// <returns>User ID.</returns>
+        public static string? GetUserId(ClaimsPrincipal user, bool throwException)
+        {
+            if (user == null)
+            {
+                return null;
+            }
+            var id = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            if (id == null)
+            {
+                if (throwException)
+                {
+                    throw new UnauthorizedAccessException();
+                }
+                return null;
+            }
+            return id.Value;
+        }
+
         public static int GetHashCode(this string str)
         {
             unchecked
@@ -158,5 +243,62 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
             return Convert.ToString(value);
         }
+
+        static IEnumerable<T> SortEnumByName<T>()
+        {
+            return from e in Enum.GetValues(typeof(T)).Cast<T>()
+                   let nm = e.ToString()
+                   orderby nm
+                   select e;
+        }
+
+        /// <summary>
+        /// Returns collection of notifications that can be ignored.
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerable<TargetType> GetNotifications()
+        {
+            List<TargetType> items = new List<TargetType>();
+            foreach (var it in SortEnumByName<TargetType>())
+            {
+                if (it != TargetType.None &&
+                    it != TargetType.Cron &&
+                    it != TargetType.Role)
+                {
+                    items.Add(it);
+                }
+            }
+            return items;
+        }
+        /// <summary>
+        /// Clone the object.
+        /// </summary>
+        /// <typeparam name="T">Object type.</typeparam>
+        /// <param name="value">Object to clone.</param>
+        /// <returns>Cloned value.</returns>
+        public static T Clone<T>(object value)
+        {
+            var serialized = JsonSerializer.Serialize(value);
+            var ret = JsonSerializer.Deserialize<T>(serialized);
+            if (ret == null)
+            {
+                throw new Exception("Clone failed.");
+            }
+            return ret;
+        }
+
+        public static void Copy(object source, object target)
+        {
+            if (source.GetType() != target.GetType())
+            {
+                throw new Exception("Copy failed.");
+            }
+            foreach (var it in source.GetType().GetProperties())
+            {
+                object? value = it.GetValue(source);
+                it.SetValue(target, value);
+            }
+        }
+
     }
 }

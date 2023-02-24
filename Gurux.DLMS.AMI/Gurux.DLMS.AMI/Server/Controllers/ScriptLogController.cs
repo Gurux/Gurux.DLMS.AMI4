@@ -63,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Script log.</returns>
         [HttpGet]
         [Authorize(Policy = GXScriptLogPolicies.View)]
-        public async Task<ActionResult<GXScriptLog>> Get(Guid id)
+        public async Task<ActionResult<GetScriptLog>> Get(Guid id)
         {
-            return await _scriptLogRepository.ReadAsync(User, id);
+            return new GetScriptLog()
+            {
+                Item = await _scriptLogRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>

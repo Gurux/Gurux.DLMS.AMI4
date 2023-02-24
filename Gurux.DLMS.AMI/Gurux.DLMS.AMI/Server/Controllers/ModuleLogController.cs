@@ -63,9 +63,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Module log.</returns>
         [HttpGet]
         [Authorize(Policy = GXModuleLogPolicies.View)]
-        public async Task<ActionResult<GXModuleLog>> Get(Guid id)
+        public async Task<ActionResult<GetModuleLog>> Get(Guid id)
         {
-            return await _moduleLogRepository.ReadAsync(User, id);
+            return new GetModuleLog()
+            {
+                Item = await _moduleLogRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -86,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXModuleLogPolicies.View)]
         public async Task<ActionResult<ListModuleLogsResponse>> Post(
-            ListModuleLogs request, 
+            ListModuleLogs request,
             CancellationToken cancellationToken)
         {
             ListModuleLogsResponse response = new ListModuleLogsResponse();

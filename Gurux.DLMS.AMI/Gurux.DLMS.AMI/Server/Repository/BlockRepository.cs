@@ -38,6 +38,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -93,14 +94,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
-        /// <inheritdoc cref="IBlockRepository.DeleteAsync"/>
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> blockrs)
+        /// <inheritdoc />
+        public async Task DeleteAsync(ClaimsPrincipal User, 
+            IEnumerable<Guid> blocks,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.BlockManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.BlockManager)))
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXBlock>(a => a.Id, q => blockrs.Contains(q.Id));
+            GXSelectArgs arg = GXSelectArgs.Select<GXBlock>(a => a.Id, q => blocks.Contains(q.Id));
             List<GXBlock> list = _host.Connection.Select<GXBlock>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXBlock, List<string>> updates = new();
@@ -108,7 +111,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXBlock>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -263,8 +273,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return block;
         }
 
-        /// <inheritdoc cref="IBlockRepository.UpdateAsync"/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXBlock> blocks)
+        /// <inheritdoc />
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXBlock> blocks,
+            Expression<Func<GXBlock, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new();
@@ -346,7 +359,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     block.Updated = now;
                     block.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(block);
+                    GXUpdateArgs args = GXUpdateArgs.Update(block, columns);
                     args.Exclude<GXBlock>(q => new { q.CreationTime, q.BlockGroups, q.Resources });
                     _host.Connection.Update(args);
                     //Map block groups to block.

@@ -131,7 +131,7 @@
                 try
                 {
                     //Get configuration data.
-                    GXConfiguration? tmp = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                    GXConfiguration? tmp = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
                     if (tmp != null)
                     {
                         _active = tmp;
@@ -161,7 +161,7 @@
             (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get configuration data.
-                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
+                _active = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.Configuration, _active);
                 _active.Modified = true;
             }
@@ -196,8 +196,7 @@
             _active.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { _active };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson("api/Configuration/Update", arg);
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }
@@ -221,8 +220,7 @@
         try
         {
             ConfigurationRunCron req = new ConfigurationRunCron();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Cron", req);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson<ConfigurationRunCronResponse>("api/Configuration/Cron", req);
         }
         catch (Exception ex)
         {

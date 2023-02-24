@@ -52,7 +52,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// Constructor.
         /// </summary>
         public UserActionController(
-            IUserActionRepository userActionRepository, 
+            IUserActionRepository userActionRepository,
             IHostApplicationLifetime applicationLifetime)
         {
             _userActionRepository = userActionRepository;
@@ -66,9 +66,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>User action.</returns>
         [HttpGet]
         [Authorize(Policy = GXUserActionPolicies.View)]
-        public async Task<ActionResult<GXUserAction>> Get(Guid id)
+        public async Task<ActionResult<GetUserAction>> Get(Guid id)
         {
-            return await _userActionRepository.ReadAsync(User, id);
+            return new GetUserAction()
+            {
+                Item = await _userActionRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -110,6 +113,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ClearUserActionResponse ret = new ClearUserActionResponse();
             await _userActionRepository.ClearAsync(User, request.Ids);
             return ret;
-        }        
+        }
     }
 }

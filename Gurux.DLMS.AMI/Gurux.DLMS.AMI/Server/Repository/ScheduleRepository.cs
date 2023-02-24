@@ -42,8 +42,8 @@ using Gurux.DLMS.AMI.Server.Models;
 using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Scheduler;
-using Gurux.DLMS.AMI.Client.Pages.User;
-using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -154,9 +154,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> schedulers)
+        public async Task DeleteAsync(ClaimsPrincipal User, 
+            IEnumerable<Guid> schedulers,
+            bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScheduleManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.ScheduleManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -168,7 +170,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Updated = it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Updated, q.Removed }));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXSchedule>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Updated, q.Removed }));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -215,10 +224,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            //Get creator information.
-            arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
-            arg.Joins.AddInnerJoin<GXSchedule, GXUser>(j => j.Creator, j => j.Id);
             arg.OrderBy.Add<GXSchedule>(q => q.CreationTime);
+            if (request != null && (request.Select & TargetType.User) != 0)
+            {
+                //User info is also read.
+                arg.Columns.Add<GXUser>(s => new {s.Id, s.UserName });
+                arg.Joins.AddInnerJoin<GXSchedule, GXUser>(j => j.Creator, j => j.Id);
+            }
             GXSchedule[] schedules = (await _host.Connection.SelectAsync<GXSchedule>(arg)).ToArray();
             if (response != null)
             {
@@ -322,7 +334,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal user, IEnumerable<GXSchedule> schedulers)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal user, 
+            IEnumerable<GXSchedule> schedulers,
+            Expression<Func<GXSchedule, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
@@ -383,7 +398,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     schedule.Updated = now;
                     schedule.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(schedule);
+                    GXUpdateArgs args = GXUpdateArgs.Update(schedule, columns);
                     args.Exclude<GXSchedule>(q => new
                     {
                         q.CreationTime,

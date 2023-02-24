@@ -263,9 +263,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/ScriptGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListScriptGroupsResponse>();
+            var ret = await Http.PostAsJson<ListScriptGroupsResponse>("api/ScriptGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the script groups.
             if (Count != 0)
@@ -306,10 +304,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New script group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ScriptGroups, new GXScriptGroup());
+            Notifier.UpdateData(GXPages.ScriptGroups, new GXScriptGroup(null));
             NavigationManager.NavigateTo("/scriptgrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

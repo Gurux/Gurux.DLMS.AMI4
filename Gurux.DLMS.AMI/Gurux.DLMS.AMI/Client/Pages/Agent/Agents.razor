@@ -54,12 +54,12 @@
                 <th>
                     <input class="form-control" placeholder="Filter by generation..."
                        type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = Convert.ToDateTime(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
                 </th>
                 <th>
                     <input class="form-control" placeholder="Filter by detected..."
                        type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Detected = Convert.ToDateTime(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => filter.Detected = @StatusTile.ToDateTimeOffset(__e.Value))" />
                 </th>
                 <th>
                     <!--Status-->
@@ -193,7 +193,7 @@
     }
 
     private GXAgent[]? _agents = null;
-    private GXAgent filter = new GXAgent() { Template = false};
+    private GXAgent filter = new GXAgent() { Template = false };
     //Verify that agant can be removed.
     protected ConfirmBase DeleteConfirmation;
 
@@ -278,6 +278,17 @@
             });
             Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentStatusChange), (agents) =>
             {
+                if (_agents != null)
+                {
+                    foreach (GXAgent it in agents)
+                    {
+                        GXAgent? agent = _agents.Where(w => w.Id == it.Id).SingleOrDefault();
+                        if (agent != null)
+                        {
+                            agent.Status = it.Status;
+                        }
+                    }
+                }
                 StateChanged(agents);
             });
             Notifier.Clear();
@@ -315,9 +326,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListAgentsResponse>();
+            var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/List", req, request.CancellationToken);
             _agents = ret.Agents;
             Total = ret.Count;
             //Get only selected amount of the devices.
@@ -360,7 +369,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.UpdateData(GXPages.Agents, new GXAgent());
+            Notifier.UpdateData(GXPages.Agents, new GXAgent(null));
             Notifier.Title = "Add Agent";
             Notifier.Action = CrudAction.Create;
             NavigationManager.NavigateTo("/agentadd");
@@ -429,11 +438,9 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/Agent/Delete",
-                    new AgentDelete() { Ids = new Guid[] { _active.Id } }))
-                {
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete",
+                    new RemoveAgent() { Ids = new Guid[] { _active.Id } });
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

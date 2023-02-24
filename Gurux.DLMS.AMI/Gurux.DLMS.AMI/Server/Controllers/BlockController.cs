@@ -32,7 +32,6 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 
@@ -62,9 +61,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Block information.</returns>
         [HttpGet]
         [Authorize(Policy = GXBlockPolicies.View)]
-        public async Task<ActionResult<GXBlock>> Get(Guid id)
+        public async Task<ActionResult<GetBlockResponse>> Get(Guid id)
         {
-            return await _blockRepository.ReadAsync(User, id);
+            return new GetBlockResponse()
+            {
+                Item = await _blockRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -74,7 +76,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [AllowAnonymous]
         [Authorize(Policy = GXBlockPolicies.View)]
         public async Task<ActionResult<ListBlocksResponse>> Post(
-            ListBlocks request, 
+            ListBlocks request,
             CancellationToken cancellationToken)
         {
             ListBlocksResponse ret = new ListBlocksResponse();
@@ -97,20 +99,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
             UpdateBlockResponse ret = new UpdateBlockResponse();
-            ret.BlockIds = await _blockRepository.UpdateAsync(User, request.Blocks);
+            ret.Ids = await _blockRepository.UpdateAsync(User, request.Blocks);
             return ret;
         }
 
         [HttpPost("Delete")]
         [Authorize(Policy = GXBlockPolicies.Delete)]
-        public async Task<ActionResult<DeleteBlockResponse>> Post(DeleteBlock request)
+        public async Task<ActionResult<RemoveBlockResponse>> Post(RemoveBlock request)
         {
-            if (request.BlockIds == null || request.BlockIds.Length == 0)
+            if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _blockRepository.DeleteAsync(User, request.BlockIds);
-            return new DeleteBlockResponse();
+            await _blockRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveBlockResponse();
         }
 
         /// <summary>
@@ -122,7 +124,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXBlockPolicies.Close)]
         public async Task<ActionResult<CloseBlockResponse>> Post(CloseBlock request)
         {
-            await _blockRepository.CloseAsync(User, request.Blocks);
+            await _blockRepository.CloseAsync(User, request.Ids);
             return new CloseBlockResponse();
         }
     }

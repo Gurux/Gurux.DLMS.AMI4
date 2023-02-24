@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Server.Models;
 using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
+using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Client.Pages.Workflow;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -82,14 +84,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
-        /// <inheritdoc cref="IUserGroupRepository.DeleteAsync"/>
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userGrouprs)
+        /// <inheritdoc />
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> userGroups,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserGroupManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserGroupManager)))
             {
                 throw new UnauthorizedAccessException();
             }
-            GXSelectArgs arg = GXSelectArgs.Select<GXUserGroup>(a => new { a.Id, a.Name }, q => userGrouprs.Contains(q.Id));
+            GXSelectArgs arg = GXSelectArgs.Select<GXUserGroup>(a => new { a.Id, a.Name }, q => userGroups.Contains(q.Id));
             List<GXUserGroup> list = _host.Connection.Select<GXUserGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
@@ -97,7 +101,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(User, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserGroup>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -174,6 +185,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (response != null)
             {
                 response.UserGroups = groups;
+                if (response.Count == 0)
+                {
+                    response.Count = groups.Length;
+                }
             }
             return groups;
         }
@@ -213,7 +228,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get users that belongs for this user group.
-            arg = GXSelectArgs.SelectAll<GXUser>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.GivenName, s.Surname }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId);
             arg.Where.And<GXUserGroupUser>(q => q.Removed == null && q.UserGroupId == id);
@@ -221,14 +236,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             ////////////////////////////////////////////////////
             //Get schedule groups in this user group.
-            arg = GXSelectArgs.SelectAll<GXScheduleGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXScheduleGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScheduleGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.ScheduleGroupId);
             arg.Where.And<GXUserGroupScheduleGroup>(q => q.Removed == null && q.UserGroupId == id);
             ret.ScheduleGroups = await _host.Connection.SelectAsync<GXScheduleGroup>(arg);
             ////////////////////////////////////////////////////
             //Get device groups.
-            arg = GXSelectArgs.SelectAll<GXDeviceGroup>(w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
             arg.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null && q.UserGroupId == id);
@@ -239,7 +254,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal user,
-            IEnumerable<GXUserGroup> userGrouprs)
+            IEnumerable<GXUserGroup> userGroups,
+            Expression<Func<GXUserGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             string userId = null;
@@ -250,7 +266,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<Guid> list = new List<Guid>();
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
-            foreach (GXUserGroup userGroup in userGrouprs)
+            foreach (GXUserGroup userGroup in userGroups)
             {
                 if (string.IsNullOrEmpty(userGroup.Name))
                 {
@@ -293,7 +309,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     m.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
                     m.Where.And<GXUser>(w => w.Removed == null);
                     List<string> userTableIds = _host.Connection.Select<string>(m);
-                    GXUpdateArgs args = GXUpdateArgs.Update(userGroup);
+                    GXUpdateArgs args = GXUpdateArgs.Update(userGroup, columns);
                     args.Exclude<GXUserGroup>(q => new { q.CreationTime, q.Users, q.ScheduleGroups });
                     _host.Connection.Update(args);
                     //Map users to user group.
@@ -313,7 +329,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         foreach (var ug in removed)
                         {
-                            _host.Connection.Delete(GXDeleteArgs.DeleteById<GXUserGroupScheduleGroup>(ug));
+                            _host.Connection.Delete(GXDeleteArgs.Delete(ug));
                         }
                     }
                     //Map schedule groups to user group.

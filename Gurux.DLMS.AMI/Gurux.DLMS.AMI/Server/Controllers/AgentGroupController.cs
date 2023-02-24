@@ -33,8 +33,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Server.Models;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -48,6 +46,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
     {
         private readonly IAgentGroupRepository _AgentGroupRepository;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
         public AgentGroupController(
             IAgentGroupRepository AgentGroupRepository)
         {
@@ -61,9 +62,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Agent group.</returns>
         [HttpGet]
         [Authorize(Policy = GXAgentGroupPolicies.View)]
-        public async Task<ActionResult<GXAgentGroup>> Get(Guid id)
+        public async Task<ActionResult<GetAgentGroupResponse>> Get(Guid id)
         {
-            return await _AgentGroupRepository.ReadAsync(User, id);
+            return new GetAgentGroupResponse()
+            {
+                Item = (await _AgentGroupRepository.ReadAsync(User, id))
+            };
         }
 
         /// <summary>
@@ -75,7 +79,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<AddAgentGroupResponse>> Post(AddAgentGroup request)
         {
             await _AgentGroupRepository.UpdateAsync(User, request.AgentGroups);
-            return new AddAgentGroupResponse() { AgentGroups = request.AgentGroups };
+            return new AddAgentGroupResponse() { Ids = request.AgentGroups.Select(s => s.Id).ToArray() };
         }
 
         /// <summary>
@@ -84,7 +88,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpPost("List")]
         [Authorize(Policy = GXAgentGroupPolicies.View)]
         public async Task<ActionResult<ListAgentGroupsResponse>> Post(
-            ListAgentGroups request, 
+            ListAgentGroups request,
             CancellationToken cancellationToken)
         {
             ListAgentGroupsResponse ret = new ListAgentGroupsResponse();
@@ -100,7 +104,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _AgentGroupRepository.DeleteAsync(User, request.Ids);
+            await _AgentGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveAgentGroupResponse();
         }
     }

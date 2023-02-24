@@ -95,7 +95,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="request"></param>
         /// <returns></returns>
         [HttpPost("Clear")]
-        [Authorize(Policy = GXValuePolicies.Add)]
+        [Authorize(Policy = GXValuePolicies.Clear)]
         public async Task<ActionResult<ClearValueResponse>> Post(ClearValue request)
         {
             if (request.Devices != null && request.Devices.Any())

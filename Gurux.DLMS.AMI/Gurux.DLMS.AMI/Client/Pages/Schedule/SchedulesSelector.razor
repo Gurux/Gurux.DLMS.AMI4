@@ -56,9 +56,7 @@
                 {
                     Filter = new GXSchedule()
                 };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Schedule/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListSchedulesResponse>();
+            var ret = await Http.PostAsJson<ListSchedulesResponse>("api/Schedule/List", req);
             foreach (GXSchedule it in ret.Schedules)
             {
                 if (!schedules.Exists(q => q.Id == it.Id))

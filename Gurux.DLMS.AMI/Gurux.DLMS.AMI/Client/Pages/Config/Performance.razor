@@ -24,69 +24,129 @@
 
 @if (_settings != null)
 {
-    <h2>Ignored notifications</h2>
+    <h2>Client notifications</h2>
+    <input type="search" value="@SearchText"
+       @oninput="@Search" placeholder="Search by type" />
     <EditForm Model="@_settings">
-        <div class="row">
-            <div style="width:100%">
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Task)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Task, __e.Value))" />
-                    <label>@Properties.Resources.Tasks</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Device)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Device, __e.Value))" />
-                    <label>@Properties.Resources.Devices</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.DeviceError)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.DeviceError, __e.Value))" />
-                    <label>@Properties.Resources.DeviceErrors</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Object)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Object, __e.Value))" />
-                    <label>@Properties.Resources.Objects</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Attribute)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Attribute, __e.Value))" />
-                    <label>@Properties.Resources.Attributes</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.Value)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.Value, __e.Value))" />
-                    <label>@Properties.Resources.Values</label>
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" checked="@GetIgnoredState(TargetType.DeviceTrace)"
-                       @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(TargetType.DeviceTrace, __e.Value))" />
-                    <label>@Properties.Resources.DeviceTraces</label>
-                </div>                
-            </div>
-        </div>
+        <table class="table table-striped" width="100%">
+            <thead>
+                <tr>
+                    <th>
+                        <Tooltip Title="@ToolTip">
+                            <input type="checkbox" @onchange="@((ChangeEventArgs __e) => ToggleAll(Convert.ToBoolean(__e.Value)))" />
+                            </Tooltip>
+                    </th>
+                    <th>@Properties.Resources.Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var it in Notifications)
+                {
+                    <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
+                        <td>
+                            <input type="checkbox" checked="@GetIgnoredState(@it)" @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(@it, __e.Value))" />
+                        </td>
+                        <td>
+                            @it
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </EditForm>
 }
 
 @code {
-    private GXConfiguration? _active;
+
+    protected string ToolTip
+    {
+        get
+        {
+            return _allSelected ? "Disable all notifications" : "Enable all notifications.";
+        }
+    }
+
+
+    protected string GetSelectedClass(TargetType selected)
+    {
+        return selected == _active ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(TargetType selected)
+    {
+        _active = selected;
+    }
+    private TargetType _active = TargetType.None;
+    private GXConfiguration? _configuration;
     private string SubmitText = "";
+    private string SearchText = "";
     PerformanceSettings? _settings;
+    private bool _allSelected = false;
+
+    IEnumerable<TargetType> Notifications = ClientHelpers.GetNotifications();
+
+    private void ToggleAll(bool select)
+    {
+        _allSelected = select;
+        if (_settings != null)
+        {
+            if (select)
+            {
+                foreach (var it in Notifications)
+                {
+                    _settings.IgnoreNotification &= ~it;
+                }
+            }
+            else
+            {
+                foreach (var it in Notifications)
+                {
+                    _settings.IgnoreNotification |= it;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Search from notifications.
+    /// </summary>
+    private void Search(ChangeEventArgs args)
+    {
+        String? value = Convert.ToString(args.Value);
+        Notifications = ClientHelpers.GetNotifications();
+        if (!string.IsNullOrEmpty(value))
+        {
+            value = value.ToLower();
+            List<TargetType> tmp = new List<TargetType>();
+            foreach (var it in Notifications)
+            {
+                if (it.ToString().ToLower().Contains(value))
+                {
+                    tmp.Add(it);
+                }
+            }
+            Notifications = tmp;
+        }
+        StateHasChanged();
+    }
 
     private bool GetIgnoredState(TargetType value)
     {
-        return (_settings.IgnoreNotification & value) != 0;
+        return _settings != null && (_settings.IgnoreNotification & value) == 0;
     }
 
-    private void UpdateIgnoredState(TargetType value, object ignored)
+    private void UpdateIgnoredState(TargetType value, object? ignored)
     {
-        if (Convert.ToBoolean(ignored))
+        if (_settings != null)
         {
-            _settings.IgnoreNotification |= value;
-        }
-        else
-        {
-            _settings.IgnoreNotification &= ~value;
+            if (Convert.ToBoolean(ignored))
+            {
+                _settings.IgnoreNotification &= ~value;
+            }
+            else
+            {
+                _settings.IgnoreNotification |= value;
+            }
         }
     }
 
@@ -101,8 +161,8 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_active == null)
+            _configuration = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (_configuration == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
@@ -133,19 +193,19 @@
                     NavigationManager.NavigateTo("/configurations");
                     return;
             }
-            if (!_active.Modified &&
+            if (!_configuration.Modified &&
             (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get configuration data.
-                _active = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _active.Id));
-                Notifier.UpdateData(GXPages.Configuration, _active);
-                _active.Modified = true;
+                _configuration = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
+                Notifier.UpdateData(GXPages.Configuration, _configuration);
+                _configuration.Modified = true;
             }
-            _settings = JsonSerializer.Deserialize<PerformanceSettings>(_active.Settings);
+            _settings = JsonSerializer.Deserialize<PerformanceSettings>(_configuration.Settings);
             StateHasChanged();
             //Configurations needs to be update as well.
-            Notifier.ChangePage(GXPages.Configurations, _active);
-            Notifier.ChangePage(GXPages.Performance, _active);
+            Notifier.ChangePage(GXPages.Configurations, _configuration);
+            Notifier.ChangePage(GXPages.Performance, _configuration);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -170,11 +230,10 @@
         Notifier?.ClearStatus();
         try
         {
-            _active.Settings = JsonSerializer.Serialize(_settings);
+            _configuration.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
-            arg.Configurations = new GXConfiguration[] { _active };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
-            ClientHelpers.ValidateStatusCode(response);
+            arg.Configurations = new GXConfiguration[] { _configuration };
+            await Http.PostAsJson("api/Configuration/Update", arg);
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }

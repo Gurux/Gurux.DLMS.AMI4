@@ -260,9 +260,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/AgentGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListAgentGroupsResponse>();
+            var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the agent errors.
             if (Total != 0)
@@ -302,10 +300,10 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New agent group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.AgentGroups, new GXAgentGroup());
+            Notifier.UpdateData(GXPages.AgentGroups, new GXAgentGroup(null));
             NavigationManager.NavigateTo("/agentgrouptab");
         }
         catch (AccessTokenNotAvailableException exception)

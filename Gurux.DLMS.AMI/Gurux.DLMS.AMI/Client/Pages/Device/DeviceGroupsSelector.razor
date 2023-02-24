@@ -90,9 +90,7 @@
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !deviceGroups.Any();
             Notifier.UpdateButtons();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/DeviceGroup/List", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListDeviceGroupsResponse>();
+            var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req);
             foreach (GXDeviceGroup it in ret.DeviceGroups)
             {
                 //Add default groups when target is created.

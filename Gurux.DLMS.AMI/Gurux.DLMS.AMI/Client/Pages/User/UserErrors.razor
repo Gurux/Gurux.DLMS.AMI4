@@ -190,7 +190,6 @@
     /// </summary>
     private GXUserError filter = new GXUserError()
         {
-            Level = null,
             User = new GXUser()
         };
     /// <summary>
@@ -311,19 +310,14 @@
             {
                 req.Count = Count;
             }
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserError/List", req, request.CancellationToken))
+            var ret = await Http.PostAsJson<ListUserErrorsResponse>("api/UserError/List", req, request.CancellationToken);
+            Total = ret.Count;
+            //Get only selected amount of the user errors.
+            if (Count != 0)
             {
-
-                ClientHelpers.ValidateStatusCode(response);
-                var ret = await response.Content.ReadFromJsonAsync<ListUserErrorsResponse>();
-                Total = ret.Count;
-                //Get only selected amount of the user errors.
-                if (Count != 0)
-                {
-                    ret.Count = Count;
-                }
-                return new ItemsProviderResult<GXUserError>(ret.Errors, ret.Count);
+                ret.Count = Count;
             }
+            return new ItemsProviderResult<GXUserError>(ret.Errors, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -390,11 +384,7 @@
             Notifier?.ClearStatus();
             CloseUserError arg = new CloseUserError();
             arg.Errors = new Guid[] { (_selected as GXUserError).Id };
-            using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserError/Close", arg))
-            {
-                ClientHelpers.ValidateStatusCode(response);
-                _ = await response.Content.ReadFromJsonAsync<CloseUserErrorResponse>();
-            }
+            await Http.PostAsJson<CloseUserErrorResponse>("api/UserError/Close", arg);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -434,11 +424,8 @@
         {
             if (confirm)
             {
-                using (HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserError/Clear", new ClearUserErrors()))
-                {
-                    ClientHelpers.ValidateStatusCode(response);
-                    await InvokeAsync(StateHasChanged);
-                }
+                await Http.PostAsJson<ClearUserErrorsResponse>("api/UserError/Clear", new ClearUserErrors());
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

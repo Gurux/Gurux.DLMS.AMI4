@@ -1,4 +1,36 @@
-﻿namespace Gurux.DLMS.AMI.Server.Models
+﻿//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+
+namespace Gurux.DLMS.AMI.Server.Models
 {
     /// <summary>
     /// System error policies.
@@ -944,6 +976,60 @@
         /// User can clear objects.
         /// </summary>
         public const string Clear = "object.clear";
+    }
+
+    /// <summary>
+    /// Object template policies.
+    /// </summary>
+    public static class GXObjectTemplatePolicies
+    {
+        /// <summary>
+        /// User can view the object template.
+        /// </summary>
+        public const string View = "object-template.view";
+        /// <summary>
+        /// User  can add new object template.
+        /// </summary>
+        public const string Add = "object-template.add";
+        /// <summary>
+        /// User can edit object template.
+        /// </summary>
+        public const string Edit = "object-template.edit";
+        /// <summary>
+        /// User can delete objects template.
+        /// </summary>
+        public const string Delete = "object-template.delete";
+        /// <summary>
+        /// User can clear objects template.
+        /// </summary>
+        public const string Clear = "object-template.clear";
+    }
+
+    /// <summary>
+    /// Attribute template policies.
+    /// </summary>
+    public static class GXAttributeTemplatePolicies
+    {
+        /// <summary>
+        /// User can view the attribute template.
+        /// </summary>
+        public const string View = "attribute-template.view";
+        /// <summary>
+        /// User  can add new attribute template.
+        /// </summary>
+        public const string Add = "attribute-template.add";
+        /// <summary>
+        /// User can edit attribute template.
+        /// </summary>
+        public const string Edit = "attribute-template.edit";
+        /// <summary>
+        /// User can delete attributes template.
+        /// </summary>
+        public const string Delete = "attribute-template.delete";
+        /// <summary>
+        /// User can clear attributes template.
+        /// </summary>
+        public const string Clear = "attribute-template.clear";
     }
 
     /// <summary>

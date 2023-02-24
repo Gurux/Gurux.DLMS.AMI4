@@ -282,9 +282,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Trigger/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListTriggersResponse>();
+            var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the triggers.
             if (Count != 0)
@@ -327,9 +325,7 @@
         try
         {
             RefreshTrigger req = new RefreshTrigger();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Trigger/Refresh", req);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<RefreshTriggerResponse>();
+            var ret = await Http.PostAsJson<RefreshTriggerResponse>("api/Trigger/Refresh", req);
             if (ret.NewItems)
             {
                 Updated();

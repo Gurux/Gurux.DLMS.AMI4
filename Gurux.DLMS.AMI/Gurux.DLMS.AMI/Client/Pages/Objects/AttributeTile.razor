@@ -9,10 +9,21 @@
         @if (Text != null)
         {
             <div class="form-group">
-                <label>@Index @Name</label>
+                @if (@Index == 0)
+                {
+                    <label>@Name</label>
+                }
+                else
+                {
+                    <label>@Index @Name</label>
+                }
+                @if (Attribute != null && Attribute.Modified)
+                {
+                    <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
+                }
                 @if (Values != null && Values.Any())
                 {
-                    <select class="form-control" @bind="Text" disabled="@IsDisabled()">
+                    <select class="form-control" @bind="InternalText" disabled="@IsDisabled()">
                         @foreach (string it in Values)
                         {
                             <option value="@it">@it</option>
@@ -21,7 +32,7 @@
                 }
                 else
                 {
-                    <input type="text" class="form-control" disabled="@IsDisabled()" value="@Text" />
+                    <input type="text" class="form-control" disabled="@IsDisabled()" @bind="InternalText" />
                 }
             </div>
         }
@@ -34,24 +45,65 @@
                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, Convert.ToBoolean(__e.Value)))"
                    id="boolCb" />
                     <label class="form-check-label" for="boolCb">@Attribute.Template.Index @Attribute.Template.Name</label>
+                    @if (Attribute != null && Attribute.Modified)
+                    {
+                        <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" blue-color />
+                    }
+                    &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                 </div>
             }
             else @if (@Attribute.Template.ListItems != null && @Attribute.Template.ListItems.Any())
             {
-                <Tooltip Title="@LastRead"><label>@Attribute.Template.Index @Attribute.Template.Name</label></Tooltip>
-                <select class="form-control" value="@GetValue2(@Attribute)"
-                @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
-                disabled="@IsDisabled()">
-                    @foreach (var li in Attribute.Template.ListItems)
+                <div class="form-group">
+                    <Tooltip Title="@LastRead"><label>@GetName()</label>
+                        &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    </Tooltip>
+                    <select class="form-control" value="@GetValue2(@Attribute)"
+                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
+                    disabled="@IsDisabled()">
+                        @foreach (var li in Attribute.Template.ListItems)
+                        {
+                            <option value="@li.Value">@li.UIValue</option>
+                        }
+                    </select>
+                    @if (Attribute != null && Attribute.Modified)
                     {
-                        <option value="@li.Value">@li.UIValue</option>
+                        <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
                     }
-                </select>
+                </div>
+            }
+            else @if (Values != null && Values.Any())
+            {
+                <div class="form-group">
+                    <Tooltip Title="@LastRead"><label>@GetName()</label></Tooltip>
+                            &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    <select class="form-control" value="@GetValue2(@Attribute)"
+                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
+                    disabled="@IsDisabled()">
+                        @foreach (var li in Values)
+                        {
+                            <option value="@li">@li</option>
+                        }
+                    </select>
+                    @if (Attribute != null && Attribute.Modified)
+                    {
+                        <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
+                    }
+                </div>
             }
             else
             {
                 <div class="form-group">
-                    <Tooltip Title="@LastRead"><label>@Attribute.Template.Index @Attribute.Template.Name</label></Tooltip>
+                    <div style="display: inline;">
+                        <Tooltip Title="@LastRead">
+                            <label>@GetName()</label>
+                            @if (Attribute != null && Attribute.Modified)
+                            {
+                                <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
+                            }
+                            &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                        </Tooltip>
+                    </div>
                     <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetValue2(@Attribute)"
                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
                 </div>
@@ -63,6 +115,11 @@
 
 @code {
 
+    private string GetPath()
+    {
+        return "/history/" + Attribute.Id;
+    }
+
     GXAttribute? _attribute;
 
     private string LastRead
@@ -71,6 +128,15 @@
         {
             return "Last read: " + Attribute.Read;
         }
+    }
+
+    private string GetName()
+    {
+        if (!string.IsNullOrEmpty(Name) || Attribute == null || Attribute.Template == null)
+        {
+            return Name;
+        }
+        return Attribute.Template.Index + " " + Attribute.Template.Name;
     }
 
     /// Get attribute value.
@@ -86,15 +152,23 @@
     /// Set attribute value.
     private void UpdateValue(GXAttribute attribute, object? value)
     {
-        if (value is bool b)
+        if (Index != 0)
         {
-            attribute.Value = b ? "1" : "0";
+
         }
         else
         {
-            attribute.Value = Convert.ToString(value);
+            if (value is bool b)
+            {
+                attribute.Value = b ? "1" : "0";
+            }
+            else
+            {
+                attribute.Value = Convert.ToString(value);
+            }
         }
         attribute.Modified = true;
+        Updated.InvokeAsync(value);
     }
 
     //Is component disabled.
@@ -143,7 +217,7 @@
     /// Target attribute.
     /// </summary>
     [Parameter]
-    public Func<string?>? GetValue{get; set; }
+    public Func<string?>? GetValue { get; set; }
 
     public static GXAttribute GetAttribute(List<GXAttribute> attributes, int index)
     {
@@ -176,11 +250,31 @@
     [Parameter]
     public string Text { get; set; }
 
+    private string InternalText
+    {
+        get
+        {
+            return Text;
+        }
+        set
+        {
+            Text = value;
+            if (Attribute != null)
+            {
+                Attribute.Modified = true;
+            }
+            Updated.InvokeAsync(value);
+        }
+    }
+
     /// <summary>
     /// Attribute index.
     /// </summary>
     [Parameter]
     public int Index { get; set; }
+
+    [Parameter]
+    public EventCallback<object?> Updated { get; set; }
 
     /// <summary>
     /// Attribute enumerated values.

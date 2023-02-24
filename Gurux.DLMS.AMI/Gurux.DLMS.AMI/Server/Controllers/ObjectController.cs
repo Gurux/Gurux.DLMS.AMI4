@@ -82,9 +82,12 @@ namespace Gurux.DLMS.AMI.Server
         /// <returns>Object information.</returns>
         [HttpGet]
         [Authorize(Policy = GXObjectPolicies.View)]
-        public async Task<ActionResult<GXObject>> Get(Guid id)
+        public async Task<ActionResult<GetObjectResponse>> Get(Guid id)
         {
-            return await _objectRepository.ReadAsync(User, id);
+            return new GetObjectResponse()
+            {
+                Item = await _objectRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
@@ -106,14 +109,14 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXObjectPolicies.Delete)]
-        public async Task<ActionResult<ObjectDeleteResponse>> Post(ObjectDelete request)
+        public async Task<ActionResult<RemoveObjectResponse>> Post(RemoveObject request)
         {
             if (request.Ids == null || request.Ids.Length == 0)
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _objectRepository.DeleteAsync(User, request.Ids);
-            return new ObjectDeleteResponse();
+            await _objectRepository.DeleteAsync(User, request.Ids, request.Delete);
+            return new RemoveObjectResponse();
         }
     }
 }

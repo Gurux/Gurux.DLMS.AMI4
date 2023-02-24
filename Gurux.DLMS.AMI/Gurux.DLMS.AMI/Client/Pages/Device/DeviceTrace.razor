@@ -52,7 +52,7 @@
 
     private string GetDirection()
     {
-        return _active != null && _active.Send ? "Tx" : "Rx";
+        return _active != null && _active.Send.GetValueOrDefault(true) ? "Tx" : "Rx";
     }
 
     protected override async Task OnInitializedAsync()

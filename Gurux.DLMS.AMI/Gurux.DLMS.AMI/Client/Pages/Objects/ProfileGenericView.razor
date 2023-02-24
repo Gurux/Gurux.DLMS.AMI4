@@ -14,12 +14,15 @@
 @if (Target != null)
 {
     <CascadingValue Value="this">
+        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
         <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="6" Attributes="@Target.Attributes" GetValue="@GetShortObject"></AttributeTile>
         <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
+        <hr />
+        <AttributeTile Index="2" Attributes="@Target.Attributes" Name="Buffer" Text="Buffer"></AttributeTile>
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -34,6 +37,11 @@
                                 <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
                             </ChildContent>
                         </MenuControl>
+                    </td>
+                    <td>
+                        <label>
+                            @Properties.Resources.Total @TotalCount
+                        </label>
                     </td>
                 </tr>
                 <tr>
@@ -54,7 +62,7 @@
                             {
                                 @if (it is byte[] bt)
                                 {
-                                    @if (captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                                    @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
                                     {
                                         <!--Show date time.-->
                                         <td>
@@ -107,6 +115,8 @@
 
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    private int TotalCount { get; set; }
 
     /// <summary>
     /// Target COSEM object.
@@ -181,15 +191,21 @@
             //Don't clear status or error is lost.
             Notifier?.ProgressStart();
             List<object[]> rows = new();
-            ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Value/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListValuesResponse>();
+            ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter, Descending = true };
+            var ret = await Http.PostAsJson<ListValuesResponse>("api/Value/List", req, request.CancellationToken);
             foreach (var it in ret.Values)
             {
-                GXStructure s = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
-                rows.Add(s.ToArray());
+                if (!string.IsNullOrEmpty(it.Value))
+                {
+                    GXStructure s = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
+                    rows.Add(s.ToArray());
+                }
+                else
+                {
+                    --ret.Count;
+                }
             }
+            TotalCount = ret.Count;
             return new ItemsProviderResult<object[]>(rows, ret.Count);
         }
         catch (TaskCanceledException)
@@ -258,11 +274,11 @@
             Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
             "oi oi-minus",
             Reset,
-            Parent.CanInvokeAction(1)));
+            !Parent.CanInvokeAction(1)));
             Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Capture,
             "oi oi-plus",
             Capture,
-            Parent.CanInvokeAction(1)));
+            !Parent.CanInvokeAction(1)));
 
             //Search buffer attribute.
             foreach (var it in Target.Attributes)
@@ -290,6 +306,7 @@
                             int aIndex = Convert.ToInt32(it2[2]);
                             int dIndex = Convert.ToInt32(it2[3]);
                             GXDLMSCaptureObject co = new GXDLMSCaptureObject() { AttributeIndex = aIndex, DataIndex = dIndex };
+                            //Find capture objects from the association view and update capture object names.
                             if (deviceObjects != null)
                             {
                                 foreach (var obj in deviceObjects)
@@ -297,8 +314,18 @@
                                     if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
                                         obj.Template.LogicalName == str)
                                     {
-                                        o = GXDLMSClient.CreateObject(ot);
-                                        str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
+                                        try
+                                        {
+                                            o = GXDLMSClient.CreateObject(ot);
+                                            if (aIndex != -1)
+                                            {
+                                                str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];                                                
+                                            }
+                                        }
+                                        catch(Exception ex)
+                                        {
+                                            str += " " + ex.Message;
+                                        }
                                         kp = new KeyValuePair<string, string>(str, obj.Template.Name);
                                         break;
                                     }
@@ -306,7 +333,10 @@
                             }
                             if (o == null)
                             {
-                                throw new ArgumentException("Unknown capture object.");
+                                //If object is not in the association view.
+                                o = GXDLMSClient.CreateObject(ot);
+                                GXDLMSConverter c = new GXDLMSConverter();
+                                kp = new KeyValuePair<string, string>(str, c.GetDescription(str, ot)[0]);
                             }
                             captureObjects.Add(new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, co));
                             captureObjectNames.Add(kp);

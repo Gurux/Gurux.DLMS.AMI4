@@ -38,6 +38,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -48,6 +49,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IDeviceRepository _deviceRepository;
         private readonly IUserRepository _userRepository;
+        private GXPerformanceSettings _performanceSettings;
 
         /// <summary>
         /// Constructor.
@@ -55,12 +57,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public DeviceErrorRepository(IGXHost host,
             IGXEventsNotifier eventsNotifier,
             IDeviceRepository deviceRepository,
-            IUserRepository userRepository)
+            IUserRepository userRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _deviceRepository = deviceRepository;
             _userRepository = userRepository;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
@@ -73,9 +77,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 updates[it] = await _deviceRepository.GetUsersAsync(User, it.Device.Id);
             }
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
-            foreach (var it in updates)
+            if (_performanceSettings.Notify(TargetType.DeviceError))
             {
-                await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] { it.Key });
+                foreach (var it in updates)
+                {
+                    await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] { it.Key });
+                }
             }
         }
 
@@ -83,17 +90,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXDeviceError> AddAsync(ClaimsPrincipal User, GXDevice device, Exception ex)
         {
             Dictionary<GXDeviceError, List<string>> updates = new Dictionary<GXDeviceError, List<string>>();
-            GXDeviceError error = new GXDeviceError()
+            GXDeviceError error = new GXDeviceError(TraceLevel.Error)
             {
                 CreationTime = DateTime.Now,
                 Message = ex.Message,
                 Device = device
             };
             await _host.Connection.InsertAsync(GXInsertArgs.Insert(error));
-            updates[error] = await _deviceRepository.GetUsersAsync(User, device.Id);
-            foreach (var it in updates)
+            if (_performanceSettings.Notify(TargetType.DeviceError))
             {
-                await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] { it.Key });
+                updates[error] = await _deviceRepository.GetUsersAsync(User, device.Id);
+                foreach (var it in updates)
+                {
+                    await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] { it.Key });
+                }
             }
             return error;
         }
@@ -139,7 +149,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXDeleteArgs args = GXDeleteArgs.Delete<GXDeviceError>(w => notifiedDevices.Contains(w.Device));
                 await _host.Connection.DeleteAsync(args);
             }
-            await _eventsNotifier.ClearDeviceErrors(list, notifiedDevices);
+            if (_performanceSettings.Notify(TargetType.DeviceError))
+            {
+                await _eventsNotifier.ClearDeviceErrors(list, notifiedDevices);
+            }
         }
 
         /// <inheritdoc />
@@ -166,10 +179,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (list.Count != 0)
             {
                 await _host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(list, q => q.Closed));
-                foreach (var it in updates)
+                if (_performanceSettings.Notify(TargetType.DeviceError))
                 {
-                    GXDeviceError tmp = new GXDeviceError() { Id = it.Key.Id };
-                    await _eventsNotifier.CloseDeviceErrors(it.Value, new GXDeviceError[] { tmp });
+                    foreach (var it in updates)
+                    {
+                        GXDeviceError tmp = new GXDeviceError(TraceLevel.Error) { Id = it.Key.Id };
+                        await _eventsNotifier.CloseDeviceErrors(it.Value, new GXDeviceError[] { tmp });
+                    }
                 }
             }
         }

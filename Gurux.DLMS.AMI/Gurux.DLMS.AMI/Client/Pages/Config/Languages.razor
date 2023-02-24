@@ -46,7 +46,7 @@
     </table>
 }
 @code {
-    GXLanguage[] _languages = null;
+    GXLanguage[]? _languages = null;
     private GXLanguage? _active = null;
     //If language is not active it can't be the default language.
     protected string? IsActive(GXLanguage selected)
@@ -76,9 +76,7 @@
             _languages = null;
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages());
-            ClientHelpers.ValidateStatusCode(response);
-            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            _languages = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages())).Languages;
             StateHasChanged();
         }
         catch (Exception ex)
@@ -118,9 +116,7 @@
                     NavigationManager.NavigateTo("/configurations");
                     return;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/List", new ListLanguages());
-            ClientHelpers.ValidateStatusCode(response);
-            _languages = (await response.Content.ReadFromJsonAsync<ListLanguagesResponse>()).Languages;
+            _languages = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages())).Languages;
             //Configurations needs to be update as well.
             Notifier.ChangePage(GXPages.Configurations, _active);
             Notifier.ChangePage(GXPages.Languages, _active);
@@ -160,8 +156,7 @@
             {
                 throw new ArgumentException("Default language is not selected.");
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/Update", _languages);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson("api/Localization/Update", _languages);
         }
         catch (Exception ex)
         {
@@ -192,8 +187,7 @@
                 }
             }
             RefreshLocalization req = new RefreshLocalization();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Localization/Refresh", req);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson("api/Localization/Refresh", req);
             Notifier?.ShowInformation(Properties.Resources.Refreshed);
         }
         catch (Exception ex)

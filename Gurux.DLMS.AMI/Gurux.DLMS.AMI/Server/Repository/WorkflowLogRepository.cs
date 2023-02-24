@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Pages.Module;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -86,7 +87,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             DateTime now = DateTime.Now;
             Dictionary<GXWorkflowLog, List<string>> updates = new Dictionary<GXWorkflowLog, List<string>>();
-            GXWorkflowLog error = new GXWorkflowLog()
+            GXWorkflowLog error = new GXWorkflowLog(TraceLevel.Error)
             {
                 CreationTime = now,
                 Message = ex.Message,
@@ -171,7 +172,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(list, q => q.Closed));
                 foreach (var it in updates)
                 {
-                    GXWorkflowLog tmp = new GXWorkflowLog() { Id = it.Key.Id };
+                    GXWorkflowLog tmp = new GXWorkflowLog(TraceLevel.Error) { Id = it.Key.Id };
                     await _eventsNotifier.CloseWorkflowLogs(it.Value, new GXWorkflowLog[] { tmp });
                 }
             }
@@ -236,11 +237,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXWorkflowLog>(where => where.Id == id);
             //Get user.
-            arg.Columns.Add<GXWorkflow>();
+            arg.Columns.Add<GXWorkflow>(c => new {c.Id, c.Name});
             arg.Joins.AddInnerJoin<GXWorkflowLog, GXWorkflow>(x => x.Workflow, y => y.Id);
-            //Logs are ignored from the user 
-            //so there is no reference relation that is causing problems with JSON parser.
-            arg.Columns.Exclude<GXWorkflow>(e => e.Logs);
             GXWorkflowLog error = (await _host.Connection.SingleOrDefaultAsync<GXWorkflowLog>(arg));
             if (error == null)
             {

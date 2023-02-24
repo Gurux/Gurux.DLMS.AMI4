@@ -39,6 +39,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -93,7 +94,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             DateTime now = DateTime.Now;
             Dictionary<GXScheduleLog, List<string>> updates = new Dictionary<GXScheduleLog, List<string>>();
-            GXScheduleLog error = new GXScheduleLog()
+            GXScheduleLog error = new GXScheduleLog(TraceLevel.Error)
             {
                 CreationTime = now,
                 Message = ex.Message,
@@ -178,7 +179,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _host.Connection.UpdateAsync(GXUpdateArgs.UpdateRange(list, q => q.Closed));
                 foreach (var it in updates)
                 {
-                    GXScheduleLog tmp = new GXScheduleLog() { Id = it.Key.Id };
+                    GXScheduleLog tmp = new GXScheduleLog(TraceLevel.Error) { Id = it.Key.Id };
                     await _eventsNotifier.CloseScheduleLog(it.Value, new GXScheduleLog[] { tmp });
                 }
             }

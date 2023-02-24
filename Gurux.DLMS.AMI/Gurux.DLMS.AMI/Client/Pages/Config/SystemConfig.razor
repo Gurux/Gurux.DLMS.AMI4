@@ -104,7 +104,7 @@
             (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get configuration data.
-                _configuration = await Http.GetFromJsonAsync<GXConfiguration>(string.Format("api/Configuration?id={0}", _configuration.Id));
+                _configuration = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
                 Notifier.UpdateData(GXPages.Configuration, _configuration);
                 _configuration.Modified = true;
             }
@@ -132,15 +132,14 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
             _configuration.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { _configuration };
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Update", arg);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson<ConfigurationUpdateResponse>("api/Configuration/Update", arg);
             Notifier.RemoveLastPage();
             NavigationManager.NavigateTo(Notifier.GetLastPage());
         }
@@ -164,8 +163,7 @@
         try
         {
             StopApplicationRequest req = new StopApplicationRequest();
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/Configuration/Restart", req);
-            ClientHelpers.ValidateStatusCode(response);
+            await Http.PostAsJson("api/Configuration/Restart", req);
             Notifier?.ShowInformation("System restarted.");
         }
         catch (Exception ex)

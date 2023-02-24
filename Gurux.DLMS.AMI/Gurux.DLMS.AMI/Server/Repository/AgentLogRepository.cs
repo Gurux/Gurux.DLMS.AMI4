@@ -38,8 +38,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Client.Pages.Device;
-using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -86,7 +85,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             DateTime now = DateTime.Now;
             Dictionary<GXAgentLog, List<string>> updates = new Dictionary<GXAgentLog, List<string>>();
-            GXAgentLog error = new GXAgentLog()
+            GXAgentLog error = new GXAgentLog(TraceLevel.Error)
             {
                 CreationTime = now,
                 Message = ex.Message,

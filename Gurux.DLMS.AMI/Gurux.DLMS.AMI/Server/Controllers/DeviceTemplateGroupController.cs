@@ -33,8 +33,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Server.Models;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -64,9 +62,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <returns>Device template group information.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceTemplateGroupPolicies.View)]
-        public async Task<ActionResult<GXDeviceTemplateGroup>> Get(Guid id)
+        public async Task<ActionResult<GetDeviceTemplateGroupResponse>> Get(Guid id)
         {
-            return await _deviceTemplateGroupRepository.ReadAsync(User, id);
+            return new GetDeviceTemplateGroupResponse() { Item = await _deviceTemplateGroupRepository.ReadAsync(User, id) };
         }
 
         /// <summary>
@@ -105,7 +103,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
-            await _deviceTemplateGroupRepository.DeleteAsync(User, request.Ids);
+            await _deviceTemplateGroupRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveDeviceTemplateGroupResponse();
         }
     }

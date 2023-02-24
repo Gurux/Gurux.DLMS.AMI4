@@ -16,12 +16,12 @@
 //
 //  DESCRIPTION
 //
-// This file is a part of Gurux DeviceTemplate Framework.
+// This file is a part of Gurux Device Framework.
 //
-// Gurux DeviceTemplate Framework is Open Source software; you can redistribute it
+// Gurux Device Framework is Open Source software; you can redistribute it
 // and/or modify it under the terms of the GNU General Public License
 // as published by the Free Software Foundation; version 2 of the License.
-// Gurux DeviceTemplate Framework is distributed in the hope that it will be useful,
+// Gurux Device Framework is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 // See the GNU General Public License for more details.
@@ -36,12 +36,10 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
-using Gurux.DLMS.AMI.Server.Models;
 using Gurux.Service.Orm;
-using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Client.Pages.Device;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -49,7 +47,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class DeviceTemplateRepository : IDeviceTemplateRepository
     {
         private readonly IGXHost _host;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
@@ -61,14 +58,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public DeviceTemplateRepository(
             IGXHost host,
             IServiceProvider serviceProvider,
-            UserManager<ApplicationUser> userManager,
             IUserRepository userRepository,
             IDeviceTemplateGroupRepository deviceTemplateGroupRepository,
             IGXEventsNotifier eventsNotifier)
         {
             _host = host;
             _serviceProvider = serviceProvider;
-            _userManager = userManager;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
             _deviceTemplateGroupRepository = deviceTemplateGroupRepository;
@@ -101,9 +96,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> deviceTemplates)
+        public async Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> deviceTemplates,
+            bool delete)
         {
-            if (!user.IsInRole(GXRoles.Admin) && !user.IsInRole(GXRoles.DeviceTemplateManager))
+            if (user == null || (!user.IsInRole(GXRoles.Admin) && !user.IsInRole(GXRoles.DeviceTemplateManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -116,7 +112,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 it.Removed = now;
                 List<string> users = await GetUsersAsync(user, it.Id);
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceTemplate>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
                 updates[it] = users;
             }
             foreach (var it in updates)
@@ -143,7 +146,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetDeviceTemplatesByUser(userId, null);
             }
-            arg.OrderBy.Add<GXDeviceTemplate>(q => q.Name);
+            arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Settings, e.MediaType, e.MediaSettings, e.ResendCount, e.WaitTime });
+            arg.OrderBy.Add<GXDeviceTemplate>(q => q.CreationTime);
+            arg.Descending = true;
             if (request != null && request.Filter != null)
             {
                 arg.Where.FilterBy(request.Filter);
@@ -187,6 +192,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             //Objects and attributes are faster to retrieve with own query.
             arg = GXSelectArgs.SelectAll<GXObjectTemplate>(where => where.DeviceTemplate == ret && where.Removed == null);
+            arg.Columns.Add<GXAttributeTemplate>();
             arg.Distinct = true;
             arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate);
             arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
@@ -205,7 +211,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal user,
-            IEnumerable<GXDeviceTemplate> DeviceTemplates)
+            IEnumerable<GXDeviceTemplate> DeviceTemplates,
+            Expression<Func<GXDeviceTemplate, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             bool isAdmin = true;
@@ -255,7 +262,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    GXUpdateArgs args = GXUpdateArgs.Update(it);
+                    GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
                     args.Exclude<GXDeviceTemplate>(q => new { q.CreationTime, q.DeviceTemplateGroups });
                     _host.Connection.Update(args);
 

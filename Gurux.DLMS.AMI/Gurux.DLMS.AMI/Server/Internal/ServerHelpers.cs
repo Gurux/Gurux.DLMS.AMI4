@@ -39,12 +39,16 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Collections;
 using System.Globalization;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
+    /// <summary>
+    /// Server helper methods.
+    /// </summary>
     static class ServerHelpers
     {
         /// <summary>
@@ -115,12 +119,17 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 throw new UnauthorizedAccessException();
             }
-            List<Claim> claims = new List<Claim>();
-            claims.Add(new Claim("sub", user.Id));
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, user.Id));
-            foreach (var role in user.Roles)
+            List<Claim> claims = new List<Claim>
             {
-                claims.Add(new Claim(ClaimTypes.Role, role));
+                new Claim("sub", user.Id),
+                new Claim(ClaimTypes.NameIdentifier, user.Id)
+            };
+            if (user.Roles != null)
+            {
+                foreach (var role in user.Roles)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, role));
+                }
             }
             return new ClaimsPrincipal(new ClaimsIdentity(claims, "Basic"));
         }
@@ -879,6 +888,18 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
 
             /// <inheritdoc/>
+            public Task AttributeTemplateDelete(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
+            {
+                return _hostedService.AttributeTemplateDelete(users, templates);
+            }
+
+            /// <inheritdoc/>
+            public Task AttributeTemplateUpdate(IReadOnlyList<string> users, IEnumerable<GXAttributeTemplate> templates)
+            {
+                return _hostedService.AttributeTemplateUpdate(users, templates);
+            }
+
+            /// <inheritdoc/>
             public Task ObjectUpdate(IReadOnlyList<string> users, IEnumerable<GXObject> objects)
             {
                 return _hostedService.ObjectUpdate(users, objects);
@@ -1105,6 +1126,35 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return _hostedService.UserSettingDelete(users, settings);
             }
+        }
+
+        /// <summary>
+        /// Check if expression contains given parameter.
+        /// </summary>
+        /// <param name="expression"></param>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public static bool Contains(Expression? expression, string name)
+        {
+            // if (expression is MemberExpression)
+            if (expression is LambdaExpression lambdaEx)
+            {
+                if (lambdaEx.Body is MemberExpression me)
+                {
+                    return me.Member.Name == name;
+                }
+                if (lambdaEx.Body is NewExpression ne)
+                {
+                    foreach (var it in ne.Arguments)
+                    {
+                        if ((it is MemberExpression me2) && me2.Member.Name == name)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
         }
     }
 }

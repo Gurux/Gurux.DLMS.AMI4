@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -48,17 +49,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXHost _host;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
+        private GXPerformanceSettings _performanceSettings;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public ObjectRepository(IGXHost host,
             IUserRepository userRepository,
-            IGXEventsNotifier eventsNotifier)
+            IGXEventsNotifier eventsNotifier,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _userRepository = userRepository;
             _eventsNotifier = eventsNotifier;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
@@ -89,10 +93,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> objects)
+        public async Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> objects,
+            bool delete)
         {
-            if (!User.IsInRole(GXRoles.Admin) &&
-                !User.IsInRole(GXRoles.DeviceTemplateManager))
+            if (User == null || (!User.IsInRole(GXRoles.Admin) &&
+                !User.IsInRole(GXRoles.DeviceTemplateManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -108,7 +114,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //User doesn't have access rights for this object.
                     throw new UnauthorizedAccessException();
                 }
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                if (delete)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXObject>(it.Id));
+                }
+                else
+                {
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                }
             }
             List<string> users = await GetUsersAsync(User, objects);
             List<GXObject> list2 = new List<GXObject>();
@@ -116,7 +129,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 list2.Add(new GXObject() { Id = it.Id });
             }
-            await _eventsNotifier.ObjectDelete(users, list2);
+            if (_performanceSettings.Notify(TargetType.Object))
+            {
+                await _eventsNotifier.ObjectDelete(users, list2);
+            }
         }
 
         /// <inheritdoc />
@@ -201,7 +217,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
-            IEnumerable<GXObject> objects)
+            IEnumerable<GXObject> objects,
+            Expression<Func<GXObject, object?>>? columns)
         {
             DateTime now = DateTime.Now;
             foreach (var obj in objects)
@@ -211,8 +228,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     obj.CreationTime = now;
                     await _host.Connection.InsertAsync(GXInsertArgs.Insert(obj));
                 }
+                else if (columns != null)
                 {
-                    //Update object parameters.
+                    await _host.Connection.UpdateAsync(GXUpdateArgs.Update(obj, columns));
+                }
+                //Update object parameters.
+                if (obj.Parameters == null)
+                {
+                    if (ServerHelpers.Contains(columns, nameof(GXObject.Parameters)))
+                    {
+                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    }
+                }
+                else
+                {
                     GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectParameter>(w => w.Object == obj && w.Removed == null);
                     var objectParameters = await _host.Connection.SelectAsync<GXObjectParameter>(arg);
                     var comparer = new UniqueComparer<GXObjectParameter, Guid>();
@@ -237,14 +266,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
             }
-            var ret = objects.Select(s => s.Id);
-            List<string> users = await GetUsersAsync(User, ret);
-            List<GXObject> list = new List<GXObject>();
-            foreach (var it in objects)
+            var ret = objects.Select(s => s.Id).ToArray();
+            if (_performanceSettings.Notify(TargetType.Object))
             {
-                list.Add(new GXObject() { Id = it.Id });
+                List<string> users = await GetUsersAsync(User, ret);
+                List<GXObject> list = new List<GXObject>();
+                foreach (var it in objects)
+                {
+                    list.Add(new GXObject()
+                    {
+                        Id = it.Id,
+                        LastRead = it.LastRead,
+                        LastWrite = it.LastWrite,
+                        LastAction = it.LastAction,
+                        LastError = it.LastError,
+                        LastErrorMessage = it.LastErrorMessage
+                    });
+                }
+                await _eventsNotifier.ObjectUpdate(users, list);
             }
-            await _eventsNotifier.ObjectUpdate(users, list);
             return ret.ToArray();
         }
 

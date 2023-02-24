@@ -94,6 +94,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddValueRequirements(options, issuer);
             AddObjectRequirements(options, issuer);
             AddAttributeRequirements(options, issuer);
+            AddObjectTemplateRequirements(options, issuer);
+            AddAttributeTemplateRequirements(options, issuer);
             AddTriggerRequirements(options, issuer);
             AddTriggerGroupRequirements(options, issuer);
             AddRoleRequirements(options, issuer);
@@ -1377,6 +1379,81 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 { Roles = new string[] { GXRoles.Admin, GXRoles.User } });
             });
         }
+
+        /// <summary>
+        /// Add object template requirements that are used for policy.
+        /// </summary>
+        private static void AddObjectTemplateRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXObjectTemplatePolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXObjectTemplatePolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXObjectTemplatePolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXObjectTemplatePolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXObjectTemplatePolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXObjectTemplatePolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXObjectTemplatePolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXObjectTemplatePolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXObjectTemplatePolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXObjectTemplatePolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add attribute template requirements that are used for policy.
+        /// </summary>
+        private static void AddAttributeTemplateRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXAttributeTemplatePolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXAttributeTemplatePolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXAttributeTemplatePolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXAttributeTemplatePolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXAttributeTemplatePolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXAttributeTemplatePolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXAttributeTemplatePolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXAttributeTemplatePolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceTemplateManager } });
+            });
+            options.AddPolicy(GXAttributeTemplatePolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXAttributeTemplatePolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.User } });
+            });
+        }
+
 
         /// <summary>
         /// Add trigger requirements that are used for policy.

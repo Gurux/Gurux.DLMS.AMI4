@@ -168,7 +168,7 @@
     /// <summary>
     /// User group filter.
     /// </summary>
-    private GXUserGroup filter = new GXUserGroup();
+    private GXUserGroup filter = new GXUserGroup(null);
     /// <summary>
     /// User is verified before schedule is removed.
     /// </summary>
@@ -315,9 +315,7 @@
             {
                 req.Count = Count;
             }
-            HttpResponseMessage response = await Http.PostAsJsonAsync("api/UserGroup/List", req, request.CancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<ListUserGroupsResponse>();
+            var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req, request.CancellationToken);
             Total = ret.Count;
             //Get only selected amount of the user groups.
             if (Count != 0)
@@ -360,7 +358,7 @@
             Notifier?.ClearStatus();
             Notifier.Title = "New User group";
             Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData("usergroups", new GXUserGroup());
+            Notifier.UpdateData("usergroups", new GXUserGroup(null));
             NavigationManager.NavigateTo("/usergrouptab");
         }
         catch (AccessTokenNotAvailableException exception)
