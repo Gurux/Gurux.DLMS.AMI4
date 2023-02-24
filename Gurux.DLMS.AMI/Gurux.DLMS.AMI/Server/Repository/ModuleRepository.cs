@@ -282,27 +282,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _host.Connection.InsertAsync(i);
             }
             //Update groups.
-            arg = GXSelectArgs.SelectAll<GXModuleGroup>(where => where.Removed == null);
-            arg.Joins.AddInnerJoin<GXModuleGroup, GXModuleGroupModule>(j => j.Id, j => j.ModuleGroupId);
-            arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(j => j.ModuleId, j => j.Id);
+            if (module.ModuleGroups != null)
+            {
+                arg = GXSelectArgs.SelectAll<GXModuleGroup>(where => where.Removed == null);
+                arg.Joins.AddInnerJoin<GXModuleGroup, GXModuleGroupModule>(j => j.Id, j => j.ModuleGroupId);
+                arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(j => j.ModuleId, j => j.Id);
 
-            List<GXModuleGroup> groups = _host.Connection.Select<GXModuleGroup>(arg);
-            var comparer2 = new UniqueComparer<GXModuleGroup, Guid>();
-            List<GXModuleGroup> removedModuleGroups = groups.Except(module.ModuleGroups, comparer2).ToList();
-            List<GXModuleGroup> addedModuleGroups = module.ModuleGroups.Except(groups, comparer2).ToList();
-            if (removedModuleGroups.Any())
-            {
-                RemoveModulesFromModuleGroup(module.Id, removedModuleGroups);
-            }
-            if (addedModuleGroups.Any())
-            {
-                AddModuleToModuleGroups(module.Id, addedModuleGroups);
-            }
-            Dictionary<GXModule, List<string>> updates = new();
-            updates[module] = await GetUsersAsync(user, module.Id);
-            foreach (var it in updates)
-            {
-                await _eventsNotifier.ModuleUpdate(it.Value, new GXModule[] { it.Key });
+                List<GXModuleGroup> groups = _host.Connection.Select<GXModuleGroup>(arg);
+                var comparer2 = new UniqueComparer<GXModuleGroup, Guid>();
+                List<GXModuleGroup> removedModuleGroups = groups.Except(module.ModuleGroups, comparer2).ToList();
+                List<GXModuleGroup> addedModuleGroups = module.ModuleGroups.Except(groups, comparer2).ToList();
+                if (removedModuleGroups.Any())
+                {
+                    RemoveModulesFromModuleGroup(module.Id, removedModuleGroups);
+                }
+                if (addedModuleGroups.Any())
+                {
+                    AddModuleToModuleGroups(module.Id, addedModuleGroups);
+                }
+                Dictionary<GXModule, List<string>> updates = new();
+                updates[module] = await GetUsersAsync(user, module.Id);
+                foreach (var it in updates)
+                {
+                    await _eventsNotifier.ModuleUpdate(it.Value, new GXModule[] { it.Key });
+                }
             }
         }
 

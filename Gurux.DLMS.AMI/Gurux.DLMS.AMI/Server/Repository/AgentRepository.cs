@@ -380,10 +380,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    if (!agent.AgentGroups.Any())
-                    {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                    }
                     GXSelectArgs m = GXSelectArgs.Select<GXAgent>(q => q.ConcurrencyStamp, where => where.Id == agent.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
                     if (!string.IsNullOrEmpty(updated) && updated != agent.ConcurrencyStamp)
@@ -396,19 +392,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     args.Exclude<GXAgent>(q => new { q.CreationTime, q.AgentGroups, q.Versions, q.Creator });
                     _host.Connection.Update(args);
                     //Map agent groups to agent.
-                    List<GXAgentGroup> agentGroups = await GetAgentGroupsByAgentId(user, agent.Id);
-                    var comparer = new UniqueComparer<GXAgentGroup, Guid>();
-                    List<GXAgentGroup> removedAgentGroups = agentGroups.Except(agent.AgentGroups, comparer).ToList();
-                    List<GXAgentGroup> addedAgentGroups = agent.AgentGroups.Except(agentGroups, comparer).ToList();
-                    if (removedAgentGroups.Any())
+                    if (agent.AgentGroups != null && agent.AgentGroups.Any())
                     {
-                        RemoveAgentsFromAgentGroup(agent.Id, removedAgentGroups);
+                        List<GXAgentGroup> agentGroups = await GetAgentGroupsByAgentId(user, agent.Id);
+                        var comparer = new UniqueComparer<GXAgentGroup, Guid>();
+                        List<GXAgentGroup> removedAgentGroups = agentGroups.Except(agent.AgentGroups, comparer).ToList();
+                        List<GXAgentGroup> addedAgentGroups = agent.AgentGroups.Except(agentGroups, comparer).ToList();
+                        if (removedAgentGroups.Any())
+                        {
+                            RemoveAgentsFromAgentGroup(agent.Id, removedAgentGroups);
+                        }
+                        if (addedAgentGroups.Any())
+                        {
+                            AddAgentToAgentGroups(agent.Id, addedAgentGroups);
+                        }
                     }
-                    if (addedAgentGroups.Any())
-                    {
-                        AddAgentToAgentGroups(agent.Id, addedAgentGroups);
-                    }
-
                     //Update agent versions.
                     List<GXAgentVersion> agentVersions = await GetAgentVersionsByAgentIdAsync(user, agent);
                     var comparer1 = new UniqueComparer<GXAgentVersion, Guid>();
