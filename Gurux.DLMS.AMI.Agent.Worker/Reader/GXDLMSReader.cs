@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         IGXMedia Media;
         TraceLevel _consoleTrace;
         TraceLevel _deviceTrace;
-        GXDLMSSecureClient Client;
+        internal GXDLMSSecureClient Client;
         private readonly ILogger? _logger;
         private GXDevice _device;
 
@@ -204,7 +204,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     Console.WriteLine("Parsing UA reply succeeded.");
                 }
             }
-            //MIKKO   if (Client.ServerSystemTitle == null)
+            //TODO: if (Client.ServerSystemTitle == null)
             {
                 //Generate AARQ request.
                 //Split requests to multiple packets if needed.
@@ -414,63 +414,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
-        public void ShowValue(object val, int pos)
-        {
-            //If trace is info.
-            if (_consoleTrace > TraceLevel.Warning)
-            {
-                //If data is array.
-                if (val is byte[])
-                {
-                    val = GXCommon.ToHex((byte[])val, true);
-                }
-                else if (val is Array)
-                {
-                    string str = "";
-                    for (int pos2 = 0; pos2 != (val as Array).Length; ++pos2)
-                    {
-                        if (str != "")
-                        {
-                            str += ", ";
-                        }
-                        if ((val as Array).GetValue(pos2) is byte[])
-                        {
-                            str += GXCommon.ToHex((byte[])(val as Array).GetValue(pos2), true);
-                        }
-                        else
-                        {
-                            str += (val as Array).GetValue(pos2).ToString();
-                        }
-                    }
-                    val = str;
-                }
-                else if (val is System.Collections.IList)
-                {
-                    string str = "[";
-                    bool empty = true;
-                    foreach (object it2 in val as System.Collections.IList)
-                    {
-                        if (!empty)
-                        {
-                            str += ", ";
-                        }
-                        empty = false;
-                        if (it2 is byte[])
-                        {
-                            str += GXCommon.ToHex((byte[])it2, true);
-                        }
-                        else
-                        {
-                            str += it2.ToString();
-                        }
-                    }
-                    str += "]";
-                    val = str;
-                }
-                Console.WriteLine("Index: " + pos + " Value: " + val);
-            }
-        }
-
         /// <summary>
         /// Read DLMS Data from the device.
         /// </summary>
@@ -615,8 +558,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// Read data block from the device.
         /// </summary>
         /// <param name="data">data to send</param>
-        /// <param name="text">Progress text.</param>
-        /// <param name="multiplier"></param>
+        /// <param name="reply">Received data.</param>
         /// <returns>Received data.</returns>
         public void ReadDataBlock(byte[] data, GXReplyData reply)
         {
@@ -631,7 +573,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     }
                     else
                     {
-                        data = Client.ReceiverReady(reply.MoreData);
+                        data = Client.ReceiverReady(reply);
                     }
                     ReadDLMSPacket(data, reply);
                     if (_consoleTrace > TraceLevel.Info)
@@ -929,7 +871,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 try
                 {
                     GXDeviceTrace trace = new GXDeviceTrace();
-                    trace.Device = new GXDevice() { Id = _device.Id, Name = _device.Name };
+                    trace.Device = new GXDevice() { Id = _device.Id };
                     trace.Send = tx;
                     trace.Frame = frame;
                     AddDeviceTrace it = new AddDeviceTrace();

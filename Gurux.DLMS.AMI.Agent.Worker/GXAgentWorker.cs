@@ -66,7 +66,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Application is closing.
         /// </summary>
-        private readonly AutoResetEvent _closing;
+        private readonly ManualResetEvent _closing;
         /// <summary>
         /// New task is received.
         /// </summary>
@@ -107,7 +107,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// </summary>
         public GXAgentWorker()
         {
-            _closing = new AutoResetEvent(false);
+            _closing = new ManualResetEvent(false);
             _newTask = new AutoResetEvent(true);
             if (Options != null && Options.ReaderSettings != null)
             {
@@ -134,6 +134,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             AgentOptions options,
             AutoResetEvent newVersion)
         {
+            _closing.Reset();
             Options = options;
             services.AddSingleton<GXNotifyService>();
             services.AddTransient<IDeviceErrorRepository, GXDeviceErrorRepository>();
@@ -187,7 +188,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         {
             try
             {
-                GXAgent? agent = await Helpers.GetAsync<GXAgent>(string.Format("/api/Agent/?Id={0}", Options.Id));
+                GXAgent? agent;
+                GetAgentResponse res = await Helpers.GetAsync<GetAgentResponse>(string.Format("/api/Agent/?Id={0}", Options.Id));
+                if (res == null)
+                {
+                    //Read with old way.
+                    agent = await Helpers.GetAsync<GXAgent>(string.Format("/api/Agent/?Id={0}", Options.Id));
+                }
+                else
+                {
+                    agent = res.Item;
+                }
                 if (agent != null)
                 {
                     if (!string.IsNullOrEmpty(agent.ReaderSettings))
@@ -299,7 +310,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     else
                     {
                         //Wait 10 seconds before next attempt.
-                        _closing.WaitOne(10000);
+                        if (!_closing.WaitOne(0))
+                        {
+                            _closing.WaitOne(10000);
+                        }
                     }
                 }
                 catch (HttpRequestException ex)
@@ -365,17 +379,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 if ((obj.LogicalName == "0.0.1.1.0.255" || obj.LogicalName == "0.0.1.0.0.255") && task.Index == 2)
                 {
-                    cl.UpdateValue(obj, task.Index, GXDateTime.ToUnixTime(DateTime.UtcNow));
+                    cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), GXDateTime.ToUnixTime(DateTime.UtcNow));
                 }
                 else
                 {
-                    cl.UpdateValue(obj, task.Index, GXDLMSTranslator.XmlToValue(task.Data));
+                    cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), GXDLMSTranslator.XmlToValue(task.Data));
                 }
-                reader.Write(obj, task.Index);
+                reader.Write(obj, task.Index.GetValueOrDefault(0));
             }
             else if (task.TaskType == TaskType.Action)
             {
-                reader.Method(obj, task.Index, GXDLMSTranslator.XmlToValue(task.Data), DataType.None);
+                reader.Method(obj, task.Index.GetValueOrDefault(0), GXDLMSTranslator.XmlToValue(task.Data), DataType.None);
             }
             else if (task.TaskType == TaskType.Read)
             {
@@ -396,15 +410,23 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             obj.SetUIDataType(task.Attribute.Template.Index, (DataType)task.Attribute.Template.UIDataType);
                         }
                         task.Object = task.Attribute.Object;
+                        if (task.Object == null)
+                        {
+                            throw new ArgumentException("Task object is missing.");
+                        }
+                        if (task.Object.Attributes == null)
+                        {
+                            task.Object.Attributes = new List<GXAttribute>();
+                        }
                         task.Object.Attributes.Add(task.Attribute);
                         task.Index = task.Attribute.Template.Index;
                         await Reader.Read(_logger, reader, task, obj);
                         if (task.Attribute.Template.DataType == 0)
                         {
-                            task.Attribute.Template.DataType = (int)obj.GetDataType(task.Index);
+                            task.Attribute.Template.DataType = (int)obj.GetDataType(task.Index.GetValueOrDefault(0));
                             if (task.Attribute.Template.UIDataType == 0)
                             {
-                                task.Attribute.Template.UIDataType = (int)obj.GetUIDataType(task.Index);
+                                task.Attribute.Template.UIDataType = (int)obj.GetUIDataType(task.Index.GetValueOrDefault(0));
                             }
                             UpdateDatatype u = new UpdateDatatype()
                             {
@@ -434,6 +456,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             {
                                 throw new ArgumentException("Attribute template is missing.");
                             }
+                            if ((attribute.Template.AccessLevel & (int)Enums.AccessMode.Read) == 0)
+                            {
+                                _logger?.LogInformation($"Ignoring attribute {attribute.Template.Index}");
+                                continue;
+                            }
                             if (attribute.Template.DataType != 0)
                             {
                                 obj.SetDataType(attribute.Template.Index, (DataType)attribute.Template.DataType);
@@ -447,10 +474,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             await Reader.Read(_logger, reader, task, obj);
                             if (attribute.Template.DataType == 0)
                             {
-                                attribute.Template.DataType = (int)obj.GetDataType(task.Index);
+                                attribute.Template.DataType = (int)obj.GetDataType(task.Index.GetValueOrDefault(0));
                                 if (attribute.Template.UIDataType == 0)
                                 {
-                                    attribute.Template.UIDataType = (int)obj.GetUIDataType(task.Index);
+                                    attribute.Template.UIDataType = (int)obj.GetUIDataType(task.Index.GetValueOrDefault(0));
                                 }
                                 UpdateDatatype u = new UpdateDatatype()
                                 {
@@ -486,7 +513,33 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             GXDLMSReader reader;
             IEnumerable<GXTask> tasks = action.Tasks;
             GXTask firstTask = tasks.First();
-            GXDevice dev = await Helpers.GetAsync<GXDevice>(string.Format("/api/Device/?Id={0}", firstTask.TargetDevice));
+            GXDevice dev;
+            GetDeviceResponse ret;
+            try
+            {
+                ret = await Helpers.GetAsync<GetDeviceResponse>(string.Format("/api/Device/?Id={0}", firstTask.TargetDevice));
+                if (ret == null)
+                {
+                    //Read using old way.
+                    dev = await Helpers.GetAsync<GXDevice>(string.Format("/api/Device/?Id={0}", firstTask.TargetDevice));
+                }
+                else
+                {
+                    dev = ret.Item;
+                }
+            }
+            catch (Exception ex)
+            {
+                //Remove all tasks if meter reading fails.
+                foreach (GXTask task in tasks)
+                {
+                    task.Result = ex.Message;
+                }
+                await ReportDone(tasks);
+                _logger?.LogError(ex.Message);
+                action.NewTask.Set();
+                return;
+            }
             try
             {
                 try
@@ -556,7 +609,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                     }
                     TraceLevel consoleTrace = Options.TraceLevel;
-                    TraceLevel deviceTrace = dev.TraceLevel;
+                    TraceLevel deviceTrace = dev.TraceLevel.GetValueOrDefault(TraceLevel.Off);
                     //Read frame counter from the meter.
                     if (templateSettings.Security != 0)
                     {
@@ -575,6 +628,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
                     cl = new GXDLMSSecureClient(templateSettings.UseLogicalNameReferencing, templateSettings.ClientAddress, deviceAddress,
                         (Authentication)templateSettings.Authentication, null, (InterfaceType)settings.InterfaceType);
+                    if (cl.InterfaceType == InterfaceType.HDLC || cl.InterfaceType == InterfaceType.HdlcWithModeE)
+                    {
+                        cl.HdlcSettings.MaxInfoTX = templateSettings.MaxInfoTX;
+                        cl.HdlcSettings.MaxInfoRX = templateSettings.MaxInfoRX;
+                        cl.HdlcSettings.WindowSizeRX = templateSettings.WindowSizeRX;
+                        cl.HdlcSettings.WindowSizeTX = templateSettings.WindowSizeTX;
+                    }
                     cl.Password = settings.HexPassword;
                     cl.UseUtc2NormalTime = templateSettings.UtcTimeZone;
                     cl.Standard = (Standard)templateSettings.Standard;
@@ -609,7 +669,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     foreach (GXTask task in tasks)
                     {
-                        task.Result = ex.Message;
+                        task.Result = "Failed to establish the connection." + ex.Message;
                     }
                     await ReportDone(tasks);
                     await ReportDeviceException(dev, ex, "Failed to establish the connection.");
@@ -630,6 +690,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         await ReportDeviceException(dev, ex, "Failed to execute task " + task);
                     }
                     task.Ready = DateTime.Now;
+                    //Report each task invidially.
+                    try
+                    {
+                        await ReportDone(new GXTask[] { task });
+                    }
+                    catch (Exception ex)
+                    {
+                        await ReportDeviceException(dev, ex, "Meter read failed.");
+                    }
                     //Close connection after last task is executed.
                     //This must done because there might be new task to execute.
                     if (count == pos)
@@ -644,7 +713,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                     }
                 }
-                await ReportDone(tasks);
             }
             catch (Exception)
             {
@@ -680,7 +748,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Report that task is done.
         /// </summary>
-        /// <param name="task">Executed task.</param>
+        /// <param name="tasks">Executed tasks.</param>
         private static async System.Threading.Tasks.Task ReportDone(IEnumerable<GXTask> tasks)
         {
             List<GXTask> list = new List<GXTask>();
@@ -692,7 +760,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     Result = task.Result
                 });
             }
-            await client.PostAsJson("/api/task/Done", new TaskDone() { Tasks = list.ToArray() });
+            await client.PostAsJson<TaskDoneResponse>("/api/task/Done", new TaskDone() { Tasks = list.ToArray() });
         }
 
         /// <inheritdoc />
@@ -777,27 +845,28 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _hubConnection.Reconnected += _hubConnection_Reconnected;
             _hubConnection.Closed += _hubConnection_Closed;
             await _hubConnection.StartAsync();
-            _logger?.LogDebug("Waiting tasks from the Gurux.DLMS.AMI.");
+            _logger?.LogInformation("Waiting tasks from the Gurux.DLMS.AMI.");
             await UpdateAgentStatusAsync(AgentStatus.Connected);
             //Check new versions to install.
             await InstallNewVersion();
             GXNotifyService? ns = _services?.GetRequiredService<GXNotifyService>();
             ns?.StartAsync(cancellationToken).Wait();
-            System.Threading.Tasks.Task.Run(() => TaskPoller()).Wait();
+            await System.Threading.Tasks.Task.Factory.StartNew(TaskPoller);
+            _logger?.LogInformation("Agent started");
         }
 
         private async System.Threading.Tasks.Task _hubConnection_Closed(Exception? arg)
         {
-            if (_hubConnection != null && !cancellationToken.IsCancellationRequested)
+            if (_hubConnection != null && !cancellationToken.IsCancellationRequested && !_closing.WaitOne(0))
             {
                 _logger?.LogInformation("Reconnecting for the Gurux.DLMS.AMI.");
                 while (true)
                 {
                     try
                     {
-                        if (_hubConnection != null && !cancellationToken.IsCancellationRequested)
+                        if (_hubConnection != null && !cancellationToken.IsCancellationRequested &&
+                            !_closing.WaitOne(0))
                         {
-                            await _hubConnection.StartAsync();
                         }
                         break;
                     }

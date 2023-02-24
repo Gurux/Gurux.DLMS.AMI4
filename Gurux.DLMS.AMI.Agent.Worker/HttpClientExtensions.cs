@@ -32,21 +32,20 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Threading;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
     internal static class HttpClientExtensions
     {
-        public static async Task<RET?> PostAsJson<RET>(this HttpClient httpClient, string url, object data)
-        {
-            return await PostAsJson<RET>(httpClient, url, data, CancellationToken.None);
-        }
-
         public static async Task<RET?> PostAsJson<RET>(this HttpClient httpClient, string url, object data,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
-            string str = JsonSerializer.Serialize(data);
+            JsonSerializerOptions options = new()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            string str = JsonSerializer.Serialize(data, options);
             StringContent content = new StringContent(str);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             using (HttpResponseMessage response = await httpClient.PostAsync(url, content, cancellationToken))
@@ -58,7 +57,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
         public static async Task PostAsJson(this HttpClient httpClient, string url, object data)
         {
-            string str = JsonSerializer.Serialize(data);
+            JsonSerializerOptions options = new()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            string str = JsonSerializer.Serialize(data, options);
             StringContent content = new StringContent(str);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             using (HttpResponseMessage response = await httpClient.PostAsync(url, content))

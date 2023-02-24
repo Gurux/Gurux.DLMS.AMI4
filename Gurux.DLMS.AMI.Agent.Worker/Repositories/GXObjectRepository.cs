@@ -33,6 +33,7 @@
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
@@ -42,12 +43,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     /// </summary>
     class GXObjectRepository : IObjectRepository
     {
-
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices)
+        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
         {
-            ObjectDelete req = new ObjectDelete() { Ids = devices.ToArray() };
-            _ = await GXAgentWorker.client.PostAsJson<ObjectDeleteResponse>("/api/Object/Delete", req);
+            RemoveObject req = new RemoveObject() { Ids = devices.ToArray(), Delete = delete };
+            _ = await GXAgentWorker.client.PostAsJson<RemoveObjectResponse>("/api/Object/Delete", req);
         }
 
         /// <inheritdoc/>
@@ -64,12 +64,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 
         /// <inheritdoc/>
         public async Task<GXObject[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListObjects? request, 
+            ClaimsPrincipal User,
+            ListObjects? request,
             ListObjectsResponse? response,
             CancellationToken cancellationToken)
         {
-            ListObjectsResponse? ret = await GXAgentWorker.client.PostAsJson<ListObjectsResponse>("/api/Object/List", 
+            ListObjectsResponse? ret = await GXAgentWorker.client.PostAsJson<ListObjectsResponse>("/api/Object/List",
                 request, cancellationToken);
             if (response != null && ret != null)
             {
@@ -86,7 +86,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal? user, IEnumerable<GXObject> devices)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal? user,
+            IEnumerable<GXObject> devices,
+             Expression<Func<GXObject, object?>>? columns = null)
         {
             UpdateObject req = new UpdateObject() { Objects = devices.ToArray() };
             return (await GXAgentWorker.client.PostAsJson<UpdateObjectResponse>("/api/Object/Update", req)).Ids;

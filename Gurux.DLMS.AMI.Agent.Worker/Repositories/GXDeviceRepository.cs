@@ -34,6 +34,7 @@
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
@@ -44,10 +45,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXDeviceRepository : IDeviceRepository
     {
         /// <inheritdoc/>
-        public Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices)
+        public Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
         {
-            DeviceDelete req = new DeviceDelete() { Ids = devices.ToArray() };
-            return GXAgentWorker.client.PostAsJson<DeviceDeleteResponse>("/api/Device/Delete", req);
+            RemoveDevice req = new RemoveDevice() { Ids = devices.ToArray(), Delete = delete };
+            return GXAgentWorker.client.PostAsJson<RemoveDeviceResponse>("/api/Device/Delete", req);
         }
 
         /// <inheritdoc/>
@@ -93,7 +94,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal? user, IEnumerable<GXDevice> devices, CancellationToken cancellationToken)
+        public async Task<Guid[]> UpdateAsync(
+            ClaimsPrincipal? user, 
+            IEnumerable<GXDevice> devices, 
+            CancellationToken cancellationToken,
+            Expression<Func<GXDevice, object?>>? columns = null)
         {
             UpdateDevice req = new UpdateDevice() { Devices = devices.ToArray() };
             UpdateDeviceResponse? ret = await GXAgentWorker.client.PostAsJson<UpdateDeviceResponse>("/api/Device/Update", req, cancellationToken);

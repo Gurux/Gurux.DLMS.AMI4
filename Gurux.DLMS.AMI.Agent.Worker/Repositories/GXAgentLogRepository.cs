@@ -90,9 +90,21 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task<GXAgentLog> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public Task<GXAgentLog?> ReadAsync(ClaimsPrincipal? User, Guid id)
         {
             return Helpers.GetAsync<GXAgentLog>(string.Format("/api/AgentLog/?Id={0}", id));
+            /*TODO:
+            GetAgentLogResponse ret = Helpers.GetAsync<GetAgentLogResponse>(string.Format("/api/AgentLog/?Id={0}", id));
+            if (ret == null)
+            {
+                //Read using old way.
+                return Helpers.GetAsync<GXAgentLog>(string.Format("/api/AgentLog/?Id={0}", id));
+            }
+            else
+            {
+                return ret.Item;
+            }
+            */
         }
     }
 }

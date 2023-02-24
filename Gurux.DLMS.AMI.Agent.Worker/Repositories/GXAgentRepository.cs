@@ -45,10 +45,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXAgentRepository : IAgentRepository
     {
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices)
+        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
         {
-            AgentDelete req = new AgentDelete() { Ids = devices.ToArray() };
-            _ = await GXAgentWorker.client.PostAsJson<AgentDeleteResponse>("/api/Agent/Delete", req);
+            RemoveAgent req = new RemoveAgent() { Ids = devices.ToArray(), Delete = delete };
+            _ = await GXAgentWorker.client.PostAsJson<RemoveAgentResponse>("/api/Agent/Delete", req);
         }
 
         /// <inheritdoc/>
