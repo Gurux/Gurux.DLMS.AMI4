@@ -106,7 +106,7 @@ namespace Gurux.DLMS.AMI.Scheduler
         {
             var inatalledModules = await _moduleRepository.ListWithVersionsAsync(user);
             var installerAgents = await _agentRepository.ListInstallersAsync(user, null, null);
-
+            DateTime now = DateTime.Now;
             //Check modules.
             string address = "/ami4/modules/modules.json";
             new HttpClient();
@@ -138,10 +138,10 @@ namespace Gurux.DLMS.AMI.Scheduler
                     else
                     {
                         //If new module.
-                        mod = new Shared.DTOs.GXModule();
+                        mod = new Shared.DTOs.GXModule(module.Name);
+                        mod.CreationTime = now;
                         mod.Active = false;
                         mod.Status = ModuleStatus.Installable;
-                        mod.Id = module.Name;
                         foreach (var version in module.Versions)
                         {
                             AddModuleVersion(user, mod, version);
@@ -186,9 +186,8 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
             else
             {
-                Shared.DTOs.GXAgent a = new Shared.DTOs.GXAgent();
+                Shared.DTOs.GXAgent a = new Shared.DTOs.GXAgent(loadAgent.Name);
                 a.Template = true;
-                a.Name = loadAgent.Name;
                 if (a.Name == null)
                 {
                     a.Name = "DLMS agent";

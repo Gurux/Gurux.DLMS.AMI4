@@ -75,6 +75,11 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
 
         public override async Task<IdentityResult> CreateAsync(ApplicationUser user)
         {
+            bool adminAdds = user.CreationTime != null;
+            if (!adminAdds)
+            {
+                user.CreationTime = DateTime.Now;
+            }
             var ret = await base.CreateAsync(user);
             bool firstUser = !ServerSettings.AdminAdded;
             if (ret.Succeeded)
@@ -82,13 +87,14 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 _workflowHandler.Execute(typeof(UserTrigger), UserTrigger.Create, user);
                 string?[] roles;
                 //If admin has added the user.
-                if (user.CreationTime != null)
+                if (adminAdds)
                 {
                     return ret;
                 }
                 DateTime now = DateTime.Now;
                 //Set creation time.
                 GXUser u = new GXUser() { CreationTime = now, Id = user.Id };
+                u.Roles = new List<string>();
                 _host.Connection.Update(GXUpdateArgs.Update(u, q => q.CreationTime));
                 if (!ServerSettings.AdminAdded)
                 {

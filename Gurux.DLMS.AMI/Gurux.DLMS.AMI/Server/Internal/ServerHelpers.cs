@@ -166,7 +166,15 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     }
                     if (item == null)
                     {
-                        GXTrigger trigger = new GXTrigger() { ClassName = it.FullName, Name = tmp.Name, ConfigurationUI = configurationUI, Icon = tmp.Icon };
+                        GXTrigger trigger = new GXTrigger()
+                        {
+                            ClassName = it.FullName,
+                            Name = tmp.Name,
+                            ConfigurationUI = configurationUI,
+                            Icon = tmp.Icon,
+                            Activities = new List<GXTriggerActivity>(),
+                            CreationTime = DateTime.Now
+                        };
                         newTriggers.Add(trigger);
                         //Get static activity names.
                         FieldInfo[] fields = it.GetFields(BindingFlags.Static | BindingFlags.Public);

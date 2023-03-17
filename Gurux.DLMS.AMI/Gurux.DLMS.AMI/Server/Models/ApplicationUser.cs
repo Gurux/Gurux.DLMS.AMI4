@@ -47,7 +47,7 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// </summary>
         [PersonalData]
         [DataType(DataType.DateTime)]
-        public DateTimeOffset? CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
