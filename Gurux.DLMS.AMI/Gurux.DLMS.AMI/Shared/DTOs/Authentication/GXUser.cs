@@ -269,7 +269,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;

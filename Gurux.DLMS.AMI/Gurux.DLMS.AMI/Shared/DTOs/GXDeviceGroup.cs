@@ -59,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <param name="name">Device group name.</param>
         public GXDeviceGroup(string? name)
         {
+            Name = name;
             Devices = new List<GXDevice>();
             UserGroups = new List<GXUserGroup>();
             AgentGroups = new List<GXAgentGroup>();

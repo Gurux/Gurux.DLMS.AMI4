@@ -66,8 +66,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             UserGroups = new List<GXUserGroup>();
             Blocks = new List<GXBlock>();
             Roles = new List<GXRole>();
-            Name = string.Empty;
-            Description = string.Empty;
         }
 
         /// <summary>

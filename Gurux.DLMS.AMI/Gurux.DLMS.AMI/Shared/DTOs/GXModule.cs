@@ -44,6 +44,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXModule : GXTableBase, IUnique<string>
     {
+        /// <summary>
+        /// Module identifier.
+        /// </summary>
         [DataMember(Name = "ID")]
         [Description("Module identifier.")]
         [StringLength(64)]
@@ -395,6 +398,34 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXModule()
+        {
+
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="name">Module name</param>
+        public GXModule(string name)
+        {
+            Id = name;
+            UserGroups = new List<GXUserGroup>();
+            ModuleGroups = new List<GXModuleGroup>();
+            Logs = new List<GXModuleLog>();
+            Versions = new List<GXModuleVersion>();
+            Scripts = new List<GXScript>();
+            Assemblies = new List<GXModuleAssembly>();
+            DeviceParameters = new List<GXDeviceParameter>();
+            ObjectParameters = new List<GXObjectParameter>();
+            AttributeParameters = new List<GXAttributeParameter>();
+            Schedules = new List<GXSchedule>();
+            Workflows = new List<GXWorkflow>();
         }
 
         /// <summary>
