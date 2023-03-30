@@ -44,6 +44,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXAttribute : GXTableBase, IUnique<Guid>
     {
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="template">Attribute template.</param>
+        public GXAttribute(GXAttributeTemplate? template)
+        {
+            Template = template;
+            Parameters = new();
+            Values = new();
+            Tasks = new();
+            Errors = new List<GXAttributeError>();
+        }
+        /// <summary>
         /// Attribute Id.
         /// </summary>
         [DataMember]

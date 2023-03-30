@@ -44,6 +44,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXObjectTemplate : GXTableBase, IUnique<Guid>
     {
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXObjectTemplate() 
+        { 
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXObjectTemplate(string name)
+        {
+            Name = name;
+            Attributes = new List<GXAttributeTemplate>();
+        }
+
+        /// <summary>
         /// Object template identifier.
         /// </summary>
         [Description("Object template identifier.")]

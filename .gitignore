@@ -190,3 +190,4 @@ Gurux.DLMS.AMI.Components/.vs/
 Gurux.DLMS.AMI.Updater
 Gurux.DLMS.AMI.Modules/Gurux.SMTP/.vs/
 Gurux.DLMS.AMI/Gurux.DLMS.AMI/Server/Modules/
+Gurux.DLMS.AMI/Gurux.DLMS.AMI/Server/appsettings.Development.json

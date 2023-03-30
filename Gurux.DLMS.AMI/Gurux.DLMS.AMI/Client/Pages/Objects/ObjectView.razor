@@ -12,6 +12,7 @@
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Gurux.DLMS.AMI.Shared.Enums
+@using System.Globalization;
 
 @attribute [Authorize(Roles = "Admin, User")]
 @inject NavigationManager NavigationManager
@@ -424,13 +425,19 @@
                 }
                 if ((it.Template.AccessLevel & (int)AccessMode.Write) != 0 && it.Modified)
                 {
-                    string str;
+                    string? str;
                     DataType d = (DataType)it.Template.DataType;
                     if (d == DataType.OctetString)
                     {
-                        if ((DataType)it.Template.UIDataType == DataType.OctetString)
+                        DataType dt = (DataType)it.Template.UIDataType;
+                        if (dt == DataType.OctetString && !string.IsNullOrEmpty(it.Value))
                         {
                             str = GXDLMSTranslator.ValueToXml(GXDLMSTranslator.HexToBytes(it.Value));
+                        }
+                        else if (dt == DataType.DateTime || dt == DataType.Date || dt == DataType.Time)
+                        {
+                            //Date time is already converted to the InvariantCulture.
+                            str = it.Value;
                         }
                         else
                         {

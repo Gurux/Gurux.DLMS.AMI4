@@ -397,6 +397,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSelectArgs arg;
             foreach (GXTask it in tasks)
             {
+                if (it.Index == null)
+                {
+                    it.Index = 0;
+                }
                 if (it.Device == null && it.Object == null && it.Attribute == null)
                 {
                     throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);

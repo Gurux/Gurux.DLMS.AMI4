@@ -304,9 +304,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXObjectTemplate> l = await _host.Connection.SelectAsync<GXObjectTemplate>(arg, cancellationToken);
                         foreach (GXObjectTemplate it in l)
                         {
-                            GXObject obj = new GXObject()
+                            GXObject obj = new GXObject(it)
                             {
-                                Template = it,
                                 CreationTime = now,
                                 Device = device,
                             };

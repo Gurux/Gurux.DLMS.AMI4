@@ -68,7 +68,7 @@
                 <th>
                     <InputText id="name" disabled="@IsDeleting"
                            @bind-Value="TemplateName"
-                           placeholder="Device template name" />
+                               placeholder="Device template name" />
                 </th>
             </tr>
             <tr>
@@ -301,12 +301,15 @@
                 foreach (GXDLMSObject value in it.Objects)
                 {
                     string[] names = ((IGXDLMSBase)value).GetNames();
-                    GXObjectTemplate obj = new GXObjectTemplate();
-                    obj.LogicalName = value.LogicalName;
-                    obj.ObjectType = (int)value.ObjectType;
-                    obj.Name = value.Description;
-                    obj.Version = value.Version;
-                    obj.ShortName = value.ShortName;
+                    GXObjectTemplate obj = new GXObjectTemplate()
+                        {
+                            LogicalName = value.LogicalName,
+                            ObjectType = (int)value.ObjectType,
+                            Name = value.Description,
+                            Version = value.Version,
+                            ShortName = value.ShortName,
+                            Attributes = new List<GXAttributeTemplate>()
+                        };
                     list.Add(obj);
                     for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
                     {

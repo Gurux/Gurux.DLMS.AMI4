@@ -2,11 +2,13 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.Enums;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Globalization;
 
 <CascadingValue Value="this">
     <div style="width:100%">
-        @if (Text != null)
+        @if (!string.IsNullOrEmpty(Text))
         {
             <div class="form-group">
                 @if (@Index == 0)
@@ -43,7 +45,7 @@
                 <div class="form-group">
                     <input type="checkbox" class="form-check-input" checked="@IsChecked()" disabled="@IsDisabled()"
                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, Convert.ToBoolean(__e.Value)))"
-                   id="boolCb" />
+                           id="boolCb" />
                     <label class="form-check-label" for="boolCb">@Attribute.Template.Index @Attribute.Template.Name</label>
                     @if (Attribute != null && Attribute.Modified)
                     {
@@ -55,12 +57,13 @@
             else @if (@Attribute.Template.ListItems != null && @Attribute.Template.ListItems.Any())
             {
                 <div class="form-group">
-                    <Tooltip Title="@LastRead"><label>@GetName()</label>
+                    <Tooltip Title="@LastRead">
+                        <label>@GetName()</label>
                         &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                     </Tooltip>
                     <select class="form-control" value="@GetValue2(@Attribute)"
                     @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
-                    disabled="@IsDisabled()">
+                            disabled="@IsDisabled()">
                         @foreach (var li in Attribute.Template.ListItems)
                         {
                             <option value="@li.Value">@li.UIValue</option>
@@ -76,10 +79,10 @@
             {
                 <div class="form-group">
                     <Tooltip Title="@LastRead"><label>@GetName()</label></Tooltip>
-                            &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                     <select class="form-control" value="@GetValue2(@Attribute)"
                     @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
-                    disabled="@IsDisabled()">
+                            disabled="@IsDisabled()">
                         @foreach (var li in Values)
                         {
                             <option value="@li">@li</option>
@@ -139,39 +142,108 @@
         return Attribute.Template.Index + " " + Attribute.Template.Name;
     }
 
+    /// <summary>
     /// Get attribute value.
+    /// </summary>
+    /// <param name="attribute">Attribute.</param>
+    /// <returns>Value of the attribute.</returns>
     private string? GetValue2(GXAttribute attribute)
     {
-        if (GetValue != null)
+        try
         {
-            return GetValue.Invoke();
+            if (GetValue != null)
+            {
+                return GetValue.Invoke();
+            }
+            if (attribute.Template != null)
+            {
+                DataType dt = (DataType)attribute.Template.UIDataType;
+                if (dt == DataType.DateTime)
+                {
+                    return new GXDateTime(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                }
+                if (dt == DataType.Date)
+                {
+                    return new GXDate(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                }
+                if (dt == DataType.Time)
+                {
+                    return new GXTime(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                }
+            }
+            return attribute.Value;
         }
-        return attribute.Value;
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
     }
 
+    /// <summary>
     /// Set attribute value.
+    /// </summary>
+    /// <param name="attribute">Attribute.</param>
+    /// <param name="value">The new value of the attribute.</param>
     private void UpdateValue(GXAttribute attribute, object? value)
     {
-        if (Index != 0)
+        try
         {
-
-        }
-        else
-        {
-            if (value is bool b)
+            if (Index != 0)
             {
-                attribute.Value = b ? "1" : "0";
+
             }
             else
             {
-                attribute.Value = Convert.ToString(value);
+                string? tmp;
+                if (value is bool b)
+                {
+                    tmp = b ? "1" : "0";
+                }
+                else
+                {
+                    tmp = Convert.ToString(value);
+                }
+                if (attribute.Template != null)
+                {
+                    DataType dt = (DataType)attribute.Template.UIDataType;
+                    if (dt == DataType.DateTime)
+                    {
+                        tmp = new GXDateTime(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                    }
+                    else if (dt == DataType.Date)
+                    {
+                        tmp = new GXDate(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                    }
+                    else if (dt == DataType.Time)
+                    {
+                        tmp = new GXTime(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                    }
+                    else
+                    {
+                        //Check that value type is correct.
+                        dt = (DataType)attribute.Template.DataType;
+                        if (dt != DataType.None)
+                        {
+                            tmp = Convert.ToString(Convert.ChangeType(tmp, GXDLMSConverter.GetDataType(dt)));
+                        }
+                    }
+                }
+                attribute.Value = tmp;
             }
+            attribute.Modified = true;
+            Updated.InvokeAsync(value);
         }
-        attribute.Modified = true;
-        Updated.InvokeAsync(value);
+        catch(Exception ex)
+        {
+            //TODO: Notify from the error.
+            Console.WriteLine(ex.Message);   
+        }
     }
 
-    //Is component disabled.
+    /// <summary>
+    /// Is component disabled.
+    /// </summary>
+    /// <returns>Trie, if component is disabled.</returns>
     bool IsDisabled()
     {
         return Attribute == null ||
@@ -183,6 +255,10 @@
     {
         try
         {
+            if (Attribute == null)
+            {
+                return false;
+            }
             return Convert.ToBoolean(Attribute.Value);
         }
         catch (Exception)
@@ -197,7 +273,7 @@
     /// Target attribute.
     /// </summary>
     [Parameter]
-    public GXAttribute Attribute
+    public GXAttribute? Attribute
     {
         get
         {
@@ -214,7 +290,7 @@
     }
 
     /// <summary>
-    /// Target attribute.
+    /// Get Value.
     /// </summary>
     [Parameter]
     public Func<string?>? GetValue { get; set; }
@@ -223,7 +299,7 @@
     {
         foreach (var it in attributes)
         {
-            if (it.Template.Index == index)
+            if (it.Template != null && it.Template.Index == index)
             {
                 return it;
             }
@@ -235,20 +311,20 @@
     /// Target attributes.
     /// </summary>
     [Parameter]
-    public List<GXAttribute> Attributes { get; set; }
+    public List<GXAttribute>? Attributes { get; set; }
 
 
     /// <summary>
     /// Attribute name.
     /// </summary>
     [Parameter]
-    public string Name { get; set; }
+    public string Name { get; set; } = "";
 
     /// <summary>
     /// Attribute text.
     /// </summary>
     [Parameter]
-    public string Text { get; set; }
+    public string Text { get; set; } = "";
 
     private string InternalText
     {

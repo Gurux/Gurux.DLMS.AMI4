@@ -348,10 +348,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (agent.Id == Guid.Empty)
                 {
-                    if (!agent.AgentGroups.Any())
+                    if (agent.AgentGroups == null || !agent.AgentGroups.Any())
                     {
+                        agent.AgentGroups = new List<GXAgentGroup>();
                         ListAgentGroups request = new ListAgentGroups() { Filter = new GXAgentGroup() { Default = true } };
-                        GXAgentGroup[] groups = await _agentGroupRepository.ListAsync(user, request, null, CancellationToken.None);
+                        GXAgentGroup[] groups = await _agentGroupRepository.ListAsync(user, request, null, CancellationToken.None);                        
                         agent.AgentGroups.AddRange(groups);
                     }
                     if (!agent.AgentGroups.Any())

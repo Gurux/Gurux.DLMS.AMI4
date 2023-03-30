@@ -146,7 +146,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetDeviceTemplatesByUser(userId, null);
             }
-            arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Settings, e.MediaType, e.MediaSettings, e.ResendCount, e.WaitTime });
+            //arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Settings, e.MediaType, e.MediaSettings, e.ResendCount, e.WaitTime });
             arg.OrderBy.Add<GXDeviceTemplate>(q => q.CreationTime);
             arg.Descending = true;
             if (request != null && request.Filter != null)
