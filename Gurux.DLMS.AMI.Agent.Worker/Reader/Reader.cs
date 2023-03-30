@@ -38,6 +38,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System;
+using System.Globalization;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
@@ -340,9 +341,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         val = GXCommon.ToHex((byte[])val);
                     }
                 }
+                else if (val is GXDate d)
+                {
+                    //Date is always saved using invariant culture.
+                    val = d.ToFormatString(CultureInfo.InvariantCulture);
+                }
+                else if (val is GXTime t)
+                {
+                    //Time is always saved using invariant culture.
+                    val = t.ToFormatString(CultureInfo.InvariantCulture);
+                }
                 else if (val is GXDateTime dt)
                 {
-                    val = dt.ToFormatString();
+                    //Date time is always saved using invariant culture.
+                    val = dt.ToFormatString(CultureInfo.InvariantCulture);
                 }
                 else if (val is string str)
                 {

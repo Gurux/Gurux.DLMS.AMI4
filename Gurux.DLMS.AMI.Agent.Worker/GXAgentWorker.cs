@@ -50,6 +50,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
@@ -377,9 +378,43 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             if (task.TaskType == TaskType.Write)
             {
-                if ((obj.LogicalName == "0.0.1.1.0.255" || obj.LogicalName == "0.0.1.0.0.255") && task.Index == 2)
+                DataType dt = obj.GetDataType(2);
+                DataType uiDt = obj.GetUIDataType(2);
+                //If date-time value is updated.
+                if (uiDt == DataType.DateTime ||
+                    uiDt == DataType.Date ||
+                    uiDt == DataType.Time)
                 {
-                    cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), GXDateTime.ToUnixTime(DateTime.UtcNow));
+                    if (dt == DataType.OctetString)
+                    {
+                        //If value is null currect date time is used.
+                        if (string.IsNullOrEmpty(task.Data))
+                        {
+                            if (dt == DataType.OctetString || dt == DataType.DateTime || dt == DataType.Date || dt == DataType.Time)
+                            {
+                                cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), DateTime.Now);
+                            }
+                            else
+                            {
+                                cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), GXDateTime.ToUnixTime(DateTime.UtcNow));
+                            }
+                        }
+                        else
+                        {
+                            if (uiDt == DataType.DateTime)
+                            {
+                                cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), new GXDateTime(task.Data, CultureInfo.InvariantCulture));
+                            }
+                            else if (uiDt == DataType.Date)
+                            {
+                                cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), new GXDate(task.Data, CultureInfo.InvariantCulture));
+                            }
+                            else if (uiDt == DataType.Time)
+                            {
+                                cl.UpdateValue(obj, task.Index.GetValueOrDefault(0), new GXTime(task.Data, CultureInfo.InvariantCulture));
+                            }
+                        }
+                    }
                 }
                 else
                 {
