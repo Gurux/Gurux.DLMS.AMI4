@@ -183,7 +183,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// The Schedule creator.
+        /// The creator of the schedule.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]

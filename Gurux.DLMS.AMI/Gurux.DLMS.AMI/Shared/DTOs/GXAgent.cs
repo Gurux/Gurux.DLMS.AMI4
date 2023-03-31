@@ -104,7 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public bool? Active { get; set; }
 
         /// <summary>
-        /// The Module creator.
+        /// The creator of the agent.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]

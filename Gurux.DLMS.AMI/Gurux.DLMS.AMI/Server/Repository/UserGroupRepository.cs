@@ -228,7 +228,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get users that belongs for this user group.
-            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.GivenName, s.Surname }, w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXUser>(s => new { s.Id, s.UserName, s.GivenName, s.Surname }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId);
             arg.Where.And<GXUserGroupUser>(q => q.Removed == null && q.UserGroupId == id);

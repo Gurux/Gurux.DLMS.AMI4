@@ -12,6 +12,9 @@
     {
 <li id="external-logins" class="nav-item"><a id="external-login" class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">@ViewData["ExternalLogins"]</a></li>
 }
-    <li class="nav-item"><a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">@ViewData["TwoFactorAuthentication"]</a></li>
+<!--
+    Two factor authentication is disabled for now.
+        <li class="nav-item"><a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">@ViewData["TwoFactorAuthentication"]</a></li>
+-->
     <li class="nav-item"><a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">@ViewData["PersonalData"]</a></li>
 </ul>

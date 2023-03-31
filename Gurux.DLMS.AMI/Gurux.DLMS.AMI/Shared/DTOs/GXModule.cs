@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         } = "";
 
         /// <summary>
-        /// The module creator.
+        /// The creator of the module.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]

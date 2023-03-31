@@ -154,7 +154,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, 
+        public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<string> users,
             bool delete)
         {
@@ -205,8 +205,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             string userId = ServerHelpers.GetUserId(User);
             bool isAdmin = User.IsInRole(GXRoles.Admin);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUser>();
-            arg.Columns.Exclude<GXUser>(e => new {e.NormalizedEmail, e.NormalizedUserName, e.PhoneNumber, e.PhoneNumberConfirmed, e.TwoFactorEnabled, e.UserName, 
-                e.LockoutEnabled, e.ConcurrencyStamp, e.AccessFailedCount });
+            arg.Columns.Exclude<GXUser>(e => new
+            {
+                e.NormalizedEmail,
+                e.NormalizedUserName,
+                e.PhoneNumber,
+                e.PhoneNumberConfirmed,
+                e.TwoFactorEnabled,
+                e.LockoutEnabled,
+                e.ConcurrencyStamp,
+                e.AccessFailedCount
+            });
 
             arg.Distinct = true;
             //Get user groups where user belongs.
@@ -374,7 +383,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task<string[]> UpdateAsync(
-            ClaimsPrincipal User, 
+            ClaimsPrincipal User,
             IEnumerable<GXUser> users,
             Expression<Func<GXUser, object?>>? columns)
         {

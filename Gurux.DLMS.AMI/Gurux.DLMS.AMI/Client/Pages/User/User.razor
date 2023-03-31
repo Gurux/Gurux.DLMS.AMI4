@@ -42,7 +42,7 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Roles</label>
                     <table>
-                        @for (int pos = 0; pos <= AvailableRoles.Count - 1; pos += 2)
+                        @for (int pos = 0; pos < AvailableRoles.Count - 1; pos += 2)
                         {
                             string role1 = AvailableRoles[pos];
                             string role2 = AvailableRoles[pos + 1];

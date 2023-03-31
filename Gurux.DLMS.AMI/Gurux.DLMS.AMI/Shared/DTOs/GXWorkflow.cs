@@ -108,7 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public bool? Active { get; set; }
 
         /// <summary>
-        /// The workflow creator.
+        /// The creator of the workflow.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
@@ -325,6 +325,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Updated = DateTime.Now;
         }
 
+        /// <inheritdoc />
         public override string ToString()
         {
             if (!string.IsNullOrEmpty(Name))
