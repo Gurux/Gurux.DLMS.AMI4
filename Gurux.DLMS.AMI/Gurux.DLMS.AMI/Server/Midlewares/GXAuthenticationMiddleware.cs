@@ -32,7 +32,9 @@
 
 using System.Security.Claims;
 using Duende.IdentityServer.Validation;
+using IdentityModel;
 using Microsoft.AspNetCore.Authentication;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
@@ -99,7 +101,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             _schemes = schemes;
         }
 
-        public async Task Invoke(HttpContext context, 
+        public async Task Invoke(HttpContext context,
             ITokenValidator tokenValidator,
             IAuthenticationHandlerProvider authenticationHandlerProvider)
         {
@@ -132,21 +134,15 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                         if (!ret.IsError)
                         {
                             // Get user's identity.
-                            var sub = ret.Claims.FirstOrDefault(c => c.Type == "sub").Value;
-                            // Get user's role.
-                            Claim? tmp = ret.Claims.FirstOrDefault(c => c.Type == "role");
-                            string? roles = null;
-                            if (tmp != null)
+                            string? sub = ret.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+                            if (string.IsNullOrEmpty(sub))
                             {
-                                roles = tmp.Value;
+                                throw new ArgumentNullException("sub");
                             }
+                            // Get user's roles.
+                            string[] roles = ret.Claims.Where(c => c.Type == "role").Select(s => s.Value).ToArray();
                             // Get scopes.
-                            tmp = ret.Claims.FirstOrDefault(c => c.Type == "scopes");
-                            string scopes = null;
-                            if (tmp != null)
-                            {
-                                scopes = tmp.Value;
-                            }
+                            string[] scopes = ret.Claims.Where(c => c.Type == "scope").Select(s => s.Value).ToArray();
                             ClaimsIdentity claimsIdentity = new(ret.Claims);
                             ClaimsPrincipal claimsPrincipal = new(claimsIdentity);
                             var identity = new ClaimsIdentity(ret.Claims, "token");
@@ -155,13 +151,13 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                             if (ci != null)
                             {
                                 ci.AddClaim(new Claim(ClaimTypes.NameIdentifier, sub));
-                                if (roles != null)
+                                foreach (var role in roles)
                                 {
-                                    ci.AddClaim(new Claim(identity.RoleClaimType, roles));
+                                    ci.AddClaim(new Claim(identity.RoleClaimType, role));
                                 }
-                                if (scopes != null)
+                                foreach (var scope in scopes)
                                 {
-                                    ci.AddClaim(new Claim("scopes", scopes));
+                                    ci.AddClaim(new Claim(JwtClaimTypes.Scope, scope));
                                 }
                             }
                         }

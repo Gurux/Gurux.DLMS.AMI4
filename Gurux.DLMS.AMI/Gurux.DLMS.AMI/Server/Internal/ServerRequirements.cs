@@ -673,7 +673,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXAgentPolicies.View, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.AgentManager } });
+                { Roles = new string[] { GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager } });
             });
             options.AddPolicy(GXAgentPolicies.Add, policy =>
             {

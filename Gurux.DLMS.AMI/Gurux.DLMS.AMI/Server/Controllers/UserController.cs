@@ -138,10 +138,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXUserPolicies.Delete)]
         public async Task<ActionResult<RemoveUserResponse>> Post(RemoveUser request)
         {
-            if (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.UserManager))
-            {
-                return BadRequest("Access not allowed.");
-            }
             await _userRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveUserResponse();
         }

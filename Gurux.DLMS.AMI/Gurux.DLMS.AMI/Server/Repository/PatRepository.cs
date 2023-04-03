@@ -51,7 +51,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXHost _host;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ITokenService _tokenService;
-
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -74,7 +73,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             ApplicationUser user = await _userManager.GetUserAsync(User);
             List<string> roles = new List<string>();
-            if (token.Scopes != null && token.Scopes.Length != 0)
+            if (token.Scopes != null && token.Scopes.Any())
             {
                 roles.Clear();              
             }
@@ -99,10 +98,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Claim> claims = new List<Claim>();
             claims.Add(new Claim(JwtClaimTypes.Subject, user.Id));
             claims.Add(new Claim(JwtClaimTypes.Scope, "Gurux.DLMS.AMI.ServerAPI"));
-            string scope = "Gurux.DLMS.AMI.ServerAPI";
-            if (scopes == null || scopes.Length == 0)
+            if (scopes == null || !scopes.Any())
             {
-                claims.Add(new Claim(JwtClaimTypes.Role, string.Join(',', roleList)));
+                foreach (string role in roleList)
+                {
+                    claims.Add(new Claim(JwtClaimTypes.Role, role));
+                }
             }
             else
             {
