@@ -191,8 +191,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXWorkflowGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXWorkflowGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXWorkflowGroup>(q => q.CreationTime);
+            }
             GXWorkflowGroup[] groups = (await _host.Connection.SelectAsync<GXWorkflowGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -228,15 +236,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXWorkflowGroup>(e => e.Workflows);
             arg.Distinct = true;
-            GXWorkflow Workflow = await _host.Connection.SingleOrDefaultAsync<GXWorkflow>(arg);
-            if (Workflow == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXWorkflowGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXWorkflowGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get workflows that belongs for this workflow group.
@@ -244,7 +247,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXWorkflowGroupWorkflow, GXWorkflow>(j => j.WorkflowId, j => j.Id);
             arg.Where.And<GXWorkflowGroupWorkflow>(q => q.Removed == null && q.WorkflowGroupId == id);
-            ret.Workflows = await _host.Connection.SelectAsync<GXWorkflow>(arg);
+            group.Workflows = await _host.Connection.SelectAsync<GXWorkflow>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this workflow group.
@@ -252,8 +255,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupWorkflowGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupWorkflowGroup>(q => q.Removed == null && q.WorkflowGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

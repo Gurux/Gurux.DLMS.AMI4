@@ -1,5 +1,6 @@
 ﻿@page "/agents"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -24,113 +25,67 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-        <input type="checkbox"
-           @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-        @Properties.Resources.ShowRemoved
-    </AuthorizeView>
-}
-<table class="table table-striped">
-    <thead>
-        @if (Filter && filter != null)
-        {
-            <tr>
-                <th>
-                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by generation..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by detected..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Detected = @StatusTile.ToDateTimeOffset(__e.Value))" />
-                </th>
-                <th>
-                    <!--Status-->
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by version..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Detected</th>
-            <th>@Properties.Resources.Status</th>
-            <th>@Properties.Resources.Version</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="agent" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(agent)) @onclick="@(()=>RowSelected(agent))">
-                    <td><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</td>
-                    <td>@agent.CreationTime</td>
-                    <td>@agent.Detected</td>
-                    <td>@agent.Status</td>
-                    <td>@GetVersion(agent.Version)</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
-                        @if (_active == agent)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="agent" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by generation..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by detected..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Detected = @StatusTile.ToDateTimeOffset(__e.Value))" />
+        </th>
+        <th>
+            <!--Status-->
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by version..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Detected">@Properties.Resources.Detected</Th>
+        <Th Id="Status">@Properties.Resources.Status</Th>
+        <Th Id="Version">@Properties.Resources.Version</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</td>
+        <td>@agent.CreationTime</td>
+        <td>@agent.Detected</td>
+        <td>@agent.Status</td>
+        <td>@GetVersion(agent.Version)</td>
+    </ItemContent>
+</GXTable>
 <br />
-@if (_active != null)
-{
-    <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-         ConfirmationMessage=@($"Are you sure you want to delete \"{_active.Name}\"?")>
-    </Confirm>
-}
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 
 @code {
-
-    /// <summary>
-    /// Are removed items shown for the admin.
-    /// </summary>
-    bool ShowRemoved;
-
     /// <inheritdoc />
     public string Name
     {
@@ -176,12 +131,6 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    internal int Total
-    {
-        get;
-        private set;
-    }
-
 
     private string? GetVersion(string? version)
     {
@@ -192,26 +141,41 @@
         return version;
     }
 
-    private GXAgent[]? _agents = null;
-    private GXAgent filter = new GXAgent() { Template = false };
-    //Verify that agant can be removed.
-    protected ConfirmBase DeleteConfirmation;
-
-    protected Virtualize<GXAgent>? virtualize;
-    private GXAgent? _active;
-
-    protected string GetSelectedClass(GXAgent agent)
-    {
-        return _active != null && agent.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-    protected async void Updated()
-    {
-        if (virtualize != null)
+    /// <summary>
+    /// Agent filter.
+    /// </summary>
+    private GXAgent filter = new GXAgent(null)
         {
-            Notifier?.ClearStatus();
-            await virtualize.RefreshDataAsync();
-            StateHasChanged();
+            Template = false
+        };
+
+    /// <summary>
+    /// Verify that agant can be removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    private GXTable<GXAgent>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    /// <returns></returns>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
         }
     }
 
@@ -219,15 +183,15 @@
     /// Agent status has changed.
     /// </summary>
     /// <param name="agent">Changed agent.</param>
-    protected async void StateChanged(IEnumerable<GXAgent> list)
+    protected void StateChanged(IEnumerable<GXAgent> list)
     {
         try
         {
-            if (_agents != null)
+            if (table != null && table.Items != null)
             {
                 foreach (var agent in list)
                 {
-                    foreach (var it in _agents)
+                    foreach (var it in table.Items)
                     {
                         if (it.Id == agent.Id)
                         {
@@ -249,13 +213,6 @@
         }
         catch (Exception)
         {
-            _agents = null;
-            if (virtualize != null)
-            {
-                Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
-            }
         }
     }
 
@@ -268,27 +225,16 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), (agents) =>
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), async (agents) =>
             {
-                Updated();
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), (agents) =>
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), async (agents) =>
             {
-                Updated();
+                await Updated();
             });
             Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentStatusChange), (agents) =>
             {
-                if (_agents != null)
-                {
-                    foreach (GXAgent it in agents)
-                    {
-                        GXAgent? agent = _agents.Where(w => w.Id == it.Id).SingleOrDefault();
-                        if (agent != null)
-                        {
-                            agent.Status = it.Status;
-                        }
-                    }
-                }
                 StateChanged(agents);
             });
             Notifier.Clear();
@@ -304,15 +250,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(GXItemsProviderRequest request)
     {
-        _agents = null;
         try
         {
             //Don't clear status or error is lost.
             Notifier?.ProgressStart();
-
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -321,34 +265,27 @@
                 filter.Removed = null;
             }
 
-            ListAgents req = new ListAgents() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListAgents req = new ListAgents()
+                {
+                    AllUsers = true,
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/List", req, request.CancellationToken);
-            _agents = ret.Agents;
-            Total = ret.Count;
-            //Get only selected amount of the devices.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             ItemsProviderResult<GXAgent> value = new ItemsProviderResult<GXAgent>(ret.Agents, ret.Count);
             return value;
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -393,10 +330,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (_active == null)
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.Agents, table.Active);
             Notifier.Title = "Edit Agent";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/agenttab");
@@ -413,46 +351,54 @@
 
 
     /// <summary>
-    /// Delete selected agent.
+    /// Delete selected agents.
     /// </summary>
-
     public void OnRemove()
     {
         try
         {
-            DeleteConfirmation.Show();
+            if (table != null && !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
         }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
 
     /// <summary>
-    /// Remove the agent.
+    /// Remove the agent(s).
     /// </summary>
-
-    public async Task OnDeleteConfirmation(bool confirm)
+    /// <param name="args">Confirm arguments.</param>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (table != null && args.Confirm)
             {
                 await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete",
-                    new RemoveAgent() { Ids = new Guid[] { _active.Id } });
-                await InvokeAsync(StateHasChanged);
+                    new RemoveAgent()
+                        {
+                            Delete = args.Delete,
+                            Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                        });
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
         }
-    }
-
-    public void RowSelected(GXAgent selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Agents, _active);
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
 
     public void Dispose()

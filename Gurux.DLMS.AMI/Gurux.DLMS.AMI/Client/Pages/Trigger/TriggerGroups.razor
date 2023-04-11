@@ -1,5 +1,6 @@
 ﻿@page "/triggergroups"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -21,86 +22,55 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-<MenuControl>
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-    </ChildContent>
-</MenuControl>
- <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-        <p>
-            <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-            @Properties.Resources.ShowRemoved
-        </p>
-    </AuthorizeView>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>
-                <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by update time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-        </tr>
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="group" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(group)) @onclick="@(()=>RowSelected(group))">
-                    <td>@group.Name</td>
-                    <td>@group.CreationTime</td>
-                    <td>@group.Updated</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
-                        @if (_active == group)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="group" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@group.Name</td>
+        <td>@group.CreationTime</td>
+        <td>@group.Updated</td>
+    </ItemContent>
+</GXTable>
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 <br />
 @code {
-     /// <inheritdoc />
+    /// <inheritdoc />
     public string Name
     {
         get
@@ -138,21 +108,12 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
-    
+
     /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
     public bool Title { get; set; } = true;
-
-    /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
 
     /// <summary>
     /// Trigger group filter.
@@ -161,33 +122,23 @@
     /// <summary>
     /// User is verified before trigger is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
+    protected ConfirmBase? DeleteConfirmation;
     /// <summary>
-    /// Virtualize.
+    /// Table reference.
     /// </summary>
-    protected Virtualize<GXTriggerGroup>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXTriggerGroup? _active;
+    protected GXTable<GXTriggerGroup>? table;
 
     /// <summary>
-    /// Are removed items shown for the admin.
+    /// Update table.
     /// </summary>
-    bool ShowRemoved;
-
-    /// <summary>
-    /// Update virtualized items.
-    /// </summary>
-    protected async void Updated()
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -196,20 +147,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXTriggerGroup group)
-    {
-        return _active != null && group.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXTriggerGroup selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.TriggerGroups, _active);
-    }
-
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -218,19 +159,22 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get last selected item.
-            _active = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroups);
-            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupUpdate), (TriggerGroup) =>
+            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupUpdate), async (groups) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupDelete), (TriggerGroup) =>
+            Notifier.On<IEnumerable<GXTriggerGroup>>(this, nameof(IGXHubEvents.TriggerGroupDelete), async (groups) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.TriggerGroups, _active);
+            if (table != null)
+            {
+                //Get last selected item.
+                table.Active = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroups);
+                Notifier.ChangePage(GXPages.TriggerGroups, table.Active);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -246,13 +190,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXTriggerGroup>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXTriggerGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -260,13 +204,19 @@
             {
                 filter.Removed = null;
             }
-            ListTriggerGroups req = new ListTriggerGroups() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListTriggerGroups req = new ListTriggerGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListTriggerGroupsResponse>("api/TriggerGroup/List", req, request.CancellationToken);
-            Total = ret.Count;
             //Get only selected amount of the trigger groups.
             if (Count != 0)
             {
@@ -276,16 +226,8 @@
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -328,11 +270,12 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.TriggerGroups, table.Active);
             Notifier.Title = "Edit trigger group";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/triggergrouptab");
@@ -355,14 +298,38 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove trigger group";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/triggergrouptab");
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected trigger groups.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveTriggerGroup req = new RemoveTriggerGroup()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveTriggerGroup>("api/TriggerGroup/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -377,7 +344,7 @@
     public void Dispose()
     {
         Notifier.RemoveLastPage(GXPages.TriggerGroups);
-         Notifier.RemoveListener(this);
+        Notifier.RemoveListener(this);
     }
 }
 

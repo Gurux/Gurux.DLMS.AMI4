@@ -146,9 +146,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetDeviceTemplatesByUser(userId, null);
             }
-            //arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Settings, e.MediaType, e.MediaSettings, e.ResendCount, e.WaitTime });
-            arg.OrderBy.Add<GXDeviceTemplate>(q => q.CreationTime);
-            arg.Descending = true;
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDeviceTemplate>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXDeviceTemplate>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             if (request != null && request.Filter != null)
             {
                 arg.Where.FilterBy(request.Filter);
@@ -188,7 +195,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDeviceTemplate ret = await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplate>(arg);
             if (ret == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Objects and attributes are faster to retrieve with own query.
             arg = GXSelectArgs.SelectAll<GXObjectTemplate>(where => where.DeviceTemplate == ret && where.Removed == null);
@@ -241,6 +248,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }
+                    if (it.Objects == null || !it.Objects.Any())
+                    {
+                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    }
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     args.Exclude<GXDeviceTemplate>(e => new { e.Updated, e.DeviceTemplateGroups });
@@ -250,7 +261,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    if (!it.DeviceTemplateGroups.Any())
+                    if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }

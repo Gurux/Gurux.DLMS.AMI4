@@ -187,7 +187,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get agent data.
-                _active = (await Http.GetFromJsonAsync<GetAgentResponse>(string.Format("api/Agent?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetAgentResponse>(string.Format("api/Agent?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.Agents, _active);
                 _active.Modified = true;
             }

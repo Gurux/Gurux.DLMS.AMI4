@@ -14,53 +14,52 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@if (_active != null && _active.User != null)
+@if (_active != null)
 {
-<EditForm Model="@_active">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="row">
-        <div style="width:100%">
-            <div class="form-group">
-                <label>@Properties.Resources.Name:</label>
-                <input type="text" readonly="readonly" value="@_active.User.UserName" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Generation:</label>
-                <input type="text" readonly="readonly" value="@_active.CreationTime" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Target:</label>
-                <input type="text" readonly="readonly" value="@_active.Target" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Action:</label>
-                <input type="text" readonly="readonly" value="@_active.Action" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Status:</label>
-                <input type="text" readonly="readonly" value="@_active.Status" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Data:</label>
-                <textarea id="Reply" @bind="_active.Data" rows="10" readonly="readonly"  class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>@Properties.Resources.Reply:</label>
-                <textarea id="Reply" @bind="_active.Reply" rows="10" readonly="readonly"  class="form-control" />
+    <EditForm Model="@_active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name:</label>
+                    <input type="text" readonly="readonly" value="@_active.User?.UserName" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Generation:</label>
+                    <input type="text" readonly="readonly" value="@_active.CreationTime" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Target:</label>
+                    <input type="text" readonly="readonly" value="@_active.Target" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Action:</label>
+                    <input type="text" readonly="readonly" value="@_active.Action" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Status:</label>
+                    <input type="text" readonly="readonly" value="@_active.Status" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Data:</label>
+                    <textarea id="Reply" @bind="_active.Data" rows="10" readonly="readonly" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Reply:</label>
+                    <textarea id="Reply" @bind="_active.Reply" rows="10" readonly="readonly" class="form-control" />
+                </div>
             </div>
         </div>
-    </div>
-</EditForm>
+    </EditForm>
 }
 @code {
     private GXUserAction? _active;
-  
+
     protected override async Task OnInitializedAsync()
     {
         try
-        {  
+        {
             if (Notifier == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
@@ -80,7 +79,7 @@
                 //Get user action data.
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/UserAction?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXUserAction>();
+                _active = (await response.Content.ReadFromJsonAsync<GetUserAction>())?.Item;
             }
             Notifier.ChangePage(GXPages.UserActions, _active);
             Notifier.Clear();

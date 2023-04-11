@@ -166,7 +166,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -180,7 +179,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXDevice>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDevice>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXDevice>(q => q.CreationTime);
+            }
             GXDevice[] devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
             //Empty non needed values.
             foreach (var it in devices)

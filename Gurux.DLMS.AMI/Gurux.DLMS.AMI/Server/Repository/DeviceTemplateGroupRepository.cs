@@ -254,8 +254,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXDeviceTemplateGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDeviceTemplateGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXDeviceTemplateGroup>(q => q.CreationTime);
+            }
             GXDeviceTemplateGroup[] groups = (await _host.Connection.SelectAsync<GXDeviceTemplateGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -287,15 +295,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXDeviceTemplateGroup>(e => e.DeviceTemplates);
             arg.Distinct = true;
-            GXDeviceTemplate DeviceTemplate = await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplate>(arg);
-            if (DeviceTemplate == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplateGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplateGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get device templates that belongs for this device template group.
@@ -303,7 +306,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(j => j.DeviceTemplateId, j => j.Id);
             arg.Where.And<GXDeviceTemplateGroupDeviceTemplate>(q => q.Removed == null && q.DeviceTemplateGroupId == id);
-            ret.DeviceTemplates = await _host.Connection.SelectAsync<GXDeviceTemplate>(arg);
+            group.DeviceTemplates = await _host.Connection.SelectAsync<GXDeviceTemplate>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this device template group.
@@ -311,8 +314,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupDeviceTemplateGroup>(q => q.Removed == null && q.DeviceTemplateGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

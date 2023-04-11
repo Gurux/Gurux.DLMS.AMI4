@@ -101,9 +101,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(request.Filter);
             }
-            arg.OrderBy.Add<GXRole>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXRole>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXRole>(q => q.Id);
+                arg.Descending = true;
+            }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -144,7 +152,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXRole role = await _host.Connection.SingleOrDefaultAsync<GXRole>(arg);
             if (role == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return role;
         }

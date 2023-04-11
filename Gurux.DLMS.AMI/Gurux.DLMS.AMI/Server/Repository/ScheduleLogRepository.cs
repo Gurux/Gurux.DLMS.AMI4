@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -209,7 +210,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -223,7 +223,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXScheduleLog>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXScheduleLog>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXScheduleLog>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             arg.Columns.Add<GXSchedule>(c => new { c.Id, c.Name });
             arg.Columns.Exclude<GXSchedule>(e => e.Logs);
 
@@ -252,7 +261,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXScheduleLog error = (await _host.Connection.SingleOrDefaultAsync<GXScheduleLog>(arg));
             if (error == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return error;
         }

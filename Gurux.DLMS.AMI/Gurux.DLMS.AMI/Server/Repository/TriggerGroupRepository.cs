@@ -190,8 +190,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXTriggerGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXTriggerGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXTriggerGroup>(q => q.CreationTime);
+            }
             GXTriggerGroup[] groups = (await _host.Connection.SelectAsync<GXTriggerGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -227,15 +235,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXTriggerGroup>(e => e.Triggers);
             arg.Distinct = true;
-            GXTrigger Trigger = await _host.Connection.SingleOrDefaultAsync<GXTrigger>(arg);
-            if (Trigger == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXTriggerGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXTriggerGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get triggers that belongs for this trigger group.
@@ -243,7 +246,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXTriggerGroupTrigger, GXTrigger>(j => j.TriggerId, j => j.Id);
             arg.Where.And<GXTriggerGroupTrigger>(q => q.Removed == null && q.TriggerGroupId == id);
-            ret.Triggers = await _host.Connection.SelectAsync<GXTrigger>(arg);
+            group.Triggers = await _host.Connection.SelectAsync<GXTrigger>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this trigger group.
@@ -251,8 +254,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupTriggerGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupTriggerGroup>(q => q.Removed == null && q.TriggerGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

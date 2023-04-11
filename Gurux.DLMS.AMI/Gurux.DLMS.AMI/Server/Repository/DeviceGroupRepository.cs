@@ -239,8 +239,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXDeviceGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDeviceGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXDeviceGroup>(q => q.CreationTime);
+            }
             GXDeviceGroup[] groups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -272,15 +280,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
             arg.Distinct = true;
-            GXDevice Device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg);
-            if (Device == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXDeviceGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXDeviceGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get devices that belongs for this device group.
@@ -288,7 +291,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
             arg.Where.And<GXDeviceGroupDevice>(q => q.Removed == null && q.DeviceGroupId == id);
-            ret.Devices = await _host.Connection.SelectAsync<GXDevice>(arg);
+            group.Devices = await _host.Connection.SelectAsync<GXDevice>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this device group.
@@ -296,7 +299,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
             ////////////////////////////////////////////////////
             //Get agent groups that belong for this device group.
             arg = GXSelectArgs.Select<GXAgentGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
@@ -304,9 +307,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
             arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
             arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
-            ret.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
+            group.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
             //TODO: Read parameters.
-            return ret;
+            return group;
         }
 
         /// <inheritdoc />

@@ -22,65 +22,36 @@
 <h1>@Properties.Resources.SettingsTitle</h1>
 <hr />
 
-<MenuControl>
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-    </ChildContent>
-</MenuControl>
-<input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th width="1%"></th>
-            <th width="1%" style="white-space: nowrap;">@Properties.Resources.Name</th>
-            <th style="display:table-cell; width:100%">@Properties.Resources.Description</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="conf" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(conf)) @onclick="@(()=>RowSelected(conf))">
-                    <td><span class="@conf.Icon" aria-hidden="true"></span></td>
-                    <td><a href="@GetPath(conf)" @onclick="() => OnSelect(conf)">@conf.Name</a></td>
-                    <td>
-                        @conf.Description
-                    </td>
-                    <td>
-                        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                            @if (_active == conf)
-                            {
-                                <td>
-                                    <ContextMenuController>
-                                        <ChildContent>
-                                            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        </ChildContent>
-                                    </ContextMenuController>
-                                </td>
-                            }
-                            else
-                            {
-                                <td>&nbsp;</td>
-                            }
-                        </AuthorizeView>
-                    </td>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="conf" ItemsProvider="@GetItems" OnSearch="@Updated" ShowRemoved="false" ShowAll="true">
+    <FilterContent>
+        <th>
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <th width="1%"></th>
+        <th width="1%" style="white-space: nowrap;">@Properties.Resources.Name</th>
+        <th style="display:table-cell; width:100%">@Properties.Resources.Description</th>
+    </HeaderContent>
+    <ItemContent>
+        <td><span class="@conf.Icon" aria-hidden="true"></span></td>
+        <td><a href="@GetPath(conf)" @onclick="() => OnSelect(conf)">@conf.Name</a></td>
+        <td>
+            @conf.Description
+        </td>
+    </ItemContent>
+</GXTable>
 
 
 @code {
-    GXConfiguration? _active;
-
     private string GetPath(GXConfiguration target)
     {
         //If custom UI is used.
@@ -106,19 +77,6 @@
         }
     }
 
-    protected string GetSelectedClass(GXConfiguration target)
-    {
-        return _active != null && target.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXConfiguration selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Configurations, _active);
-    }
-
-    GXConfiguration[]? _configurations = null;
     /// <summary>
     /// Configuration filter.
     /// </summary>
@@ -126,61 +84,52 @@
     /// Don't localize the name.
     /// </remarks>
     private GXConfiguration filter = new GXConfiguration();
-    /// <summary>
-    /// User is verified before schedule is removed.
-    /// </summary>
-    protected ConfirmBase DeleteConfirmation;
-    /// <summary>
-    /// Virtualize.
-    /// </summary>
-    protected Virtualize<GXConfiguration>? virtualize;
-
 
     /// <summary>
-    /// Update virtualized items.
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXConfiguration>? table;
+
+    /// <summary>
+    /// Update table.
     /// </summary>
     protected async Task Updated()
     {
-        //Configurations are read from DB.
-        _configurations = null;
-        if (virtualize != null)
+        try
         {
-            Notifier?.ClearStatus();
-            await virtualize.RefreshDataAsync();
-            StateHasChanged();
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(GXItemsProviderRequest request)
     {
-        //Don't clear status or error is lost.
-
-        if (_configurations != null)
-        {
-            return new ItemsProviderResult<GXConfiguration>(_configurations, _configurations.Length);
-        }
-        _active = null;
         Notifier?.ProgressStart();
         Notifier?.ClearStatus();
         try
         {
-            ListConfiquration req = new ListConfiquration() { Index = request.StartIndex, Count = request.Count, Filter = filter };
-            var ret = await Http.PostAsJson<ListConfiqurationResponse>("api/Configuration/List", req, request.CancellationToken);
-            _configurations = ret.Configurations;
-            return new ItemsProviderResult<GXConfiguration>(_configurations, ret.Count);
+            ListConfiguration req = new ListConfiguration()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
+            var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXConfiguration>(ret.Configurations, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -195,6 +144,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -205,18 +156,20 @@
             Notifier.ClearStatus();
             //Return last selected item.
             object? data = Notifier.GetData(GXPages.Configurations);
-            if (data is GXConfiguration c1)
-            {
-                _active = c1;
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
             {
                 await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Configurations, _active, true);
-            await Updated();
+            if (table != null)
+            {
+                if (data is GXConfiguration c1)
+                {
+                    table.Active = c1;
+                }
+            }
+            Notifier.ChangePage(GXPages.Configurations, table?.Active, true);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -239,19 +192,19 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.Title = "Edit configuration";
             Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.Configurations, _active);
+            Notifier.UpdateData(GXPages.Configurations, table.Active);
             //If custom UI is used.
-            if (!string.IsNullOrEmpty(_active.Path))
+            if (!string.IsNullOrEmpty(table.Active.Path))
             {
-                NavigationManager.NavigateTo(_active.Path);
+                NavigationManager.NavigateTo(table.Active.Path);
             }
             else
             {

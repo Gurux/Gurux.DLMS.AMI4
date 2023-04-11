@@ -101,11 +101,11 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         /// <returns>Configuration settings.</returns>
         [HttpPost("List")]
         [Authorize(Policy = GXConfigurationPolicies.View)]
-        public async Task<ActionResult<ListConfiqurationResponse>> Post(
-            ListConfiquration request,
+        public async Task<ActionResult<ListConfigurationResponse>> Post(
+            ListConfiguration request,
             CancellationToken cancellationToken)
         {
-            ListConfiqurationResponse ret = new ListConfiqurationResponse();
+            ListConfigurationResponse ret = new ListConfigurationResponse();
             await _configurationRepository.ListAsync(User, request, ret, cancellationToken);
             return ret;
         }

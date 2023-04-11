@@ -111,6 +111,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Order by name.
+        /// </summary>
+        /// <remarks>
+        /// Default order by is used if this is not set.
+        /// </remarks>
+        /// <seealso cref="Descending"/>
+        public string? OrderBy
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Are values shown as descending order.
+        /// </summary>
+        /// <seealso cref="OrderBy"/>
+        public bool Descending
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

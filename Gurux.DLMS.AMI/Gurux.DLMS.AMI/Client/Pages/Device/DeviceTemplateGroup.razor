@@ -142,7 +142,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get device template data.
-                _active = (await Http.GetFromJsonAsync<GetDeviceTemplateGroupResponse>(string.Format("api/DeviceTemplateGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetDeviceTemplateGroupResponse>(string.Format("api/DeviceTemplateGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.DeviceTemplateGroups, _active);
                 _active.Modified = true;
             }

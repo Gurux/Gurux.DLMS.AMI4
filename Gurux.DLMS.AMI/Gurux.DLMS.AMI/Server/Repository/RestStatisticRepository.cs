@@ -85,8 +85,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXRestStatistic>();
             arg.Distinct = true;
-            arg.Descending = true;
-            arg.OrderBy.Add<GXRestStatistic>(q => q.Start);
             GXUser u = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             arg.Where.And<GXRestStatistic>(q => q.User == u);
             if (request != null)
@@ -105,6 +103,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
+            }
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXRestStatistic>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXRestStatistic>(q => q.Start);
             }
             GXRestStatistic[] statistics = (await _host.Connection.SelectAsync<GXRestStatistic>(arg)).ToArray();
             if (response != null)

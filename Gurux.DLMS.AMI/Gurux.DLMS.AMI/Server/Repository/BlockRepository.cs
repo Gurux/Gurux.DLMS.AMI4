@@ -160,9 +160,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     request.Filter.User = orig;
                 }
             }
-            arg.OrderBy.Add<GXBlock>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXBlock>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXBlock>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -242,7 +250,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXBlock block = await _host.Connection.SingleOrDefaultAsync<GXBlock>(arg);
             if (block == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             if (block.BlockType == Shared.DTOs.Enums.BlockType.Script)
             {

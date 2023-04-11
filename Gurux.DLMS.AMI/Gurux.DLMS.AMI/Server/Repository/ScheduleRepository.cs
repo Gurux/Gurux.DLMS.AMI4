@@ -210,7 +210,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -224,7 +223,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXSchedule>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXSchedule>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXSchedule>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             if (request != null && (request.Select & TargetType.User) != 0)
             {
                 //User info is also read.
@@ -282,7 +290,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSchedule schedule = await _host.Connection.SingleOrDefaultAsync<GXSchedule>(arg);
             if (schedule == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Convert start time from invariant culture to UI culture.
             if (!string.IsNullOrEmpty(schedule.Start))
@@ -745,7 +753,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSchedule schedule = await ReadAsync(User, id);
             if (schedule == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Schedule creator is the user who runs the schedule.
             schedule.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };

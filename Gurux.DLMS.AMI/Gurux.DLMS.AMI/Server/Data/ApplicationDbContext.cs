@@ -56,7 +56,7 @@ namespace Gurux.DLMS.AMI.Server.Data
         {
             base.OnModelCreating(builder);
             builder.Entity<DeviceFlowCodes>().ToTable(nameof(GXDeviceCodes));
-            builder.Entity<Duende.IdentityServer.EntityFramework.Entities.PersistedGrant>().ToTable(nameof(GXPersistedGrants));
+            builder.Entity<PersistedGrant>().ToTable(nameof(GXPersistedGrants));
             builder.Entity<ApplicationUser>().ToTable(nameof(GXUser));
             builder.Entity<IdentityRole>().ToTable(nameof(GXRole));
             builder.Entity<IdentityRoleClaim<string>>().ToTable(nameof(GXRoleClaim));

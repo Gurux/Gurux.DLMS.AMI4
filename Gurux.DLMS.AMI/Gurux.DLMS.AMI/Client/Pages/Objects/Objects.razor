@@ -1,5 +1,6 @@
 ﻿@page "/objects"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -46,7 +47,7 @@
                 <th></th>
                 <th>
                     <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       type="search"
+                           type="search"
                        @oninput="@SearchByName" />
                 </th>
                 <th>
@@ -55,7 +56,7 @@
                 </th>
                 <th>
                     <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
-                       type="search"
+                           type="search"
                        @oninput="@SearchByObjectType" />
                 </th>
             </tr>
@@ -83,7 +84,7 @@
                 <td>
                     <input type="checkbox" checked="@IsChecked(item)"
                        @onchange="@((ChangeEventArgs __e) => Select(item , @StatusTile.ToBoolean(__e.Value)))"
-                       id="@item.Id" />
+                           id="@item.Id" />
                 </td>
                 <td><a href="@GetPath(item)" @onclick="() => OnSelect(item)">@item.Template?.Name</a></td>
                 <td>@item.Template?.LogicalName</td>
@@ -113,12 +114,9 @@
     </tbody>
 </table>
 <br />
-@if (_active != null)
-{
-    <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage=@($"Are you sure you want to clear object {_active.Template.Name} history? This action cannot be undone.")>
-    </Confirm>
-}
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="">
+</Confirm>
 
 @code {
 
@@ -134,14 +132,7 @@
         LastWrite
     };
 
-    public enum Sort : int
-    {
-        None = 0,
-        Ascending = 1,
-        Descending = 2
-    };
-
-    private Sort _sort = Sort.None;
+    private SortMode _sort = SortMode.None;
     private SortColumn _activeSortColumn = SortColumn.None;
 
     //Verify that history is clear.
@@ -151,12 +142,12 @@
     {
         if (column != _activeSortColumn)
         {
-            _sort = Sort.Ascending;
+            _sort = SortMode.Ascending;
             _activeSortColumn = column;
         }
         else
         {
-            _sort = (Sort)(((int)++_sort) % 3);
+            _sort = (SortMode)(((int)++_sort) % 3);
         }
         StateHasChanged();
     }
@@ -166,9 +157,9 @@
         {
             switch (_sort)
             {
-                case Sort.Ascending:
+                case SortMode.Ascending:
                     return "fa oi oi-sort-ascending";
-                case Sort.Descending:
+                case SortMode.Descending:
                     return "fa oi oi-sort-descending";
             }
         }
@@ -533,7 +524,7 @@
     {
         if (_activeSortColumn != SortColumn.None)
         {
-            if (_sort == Sort.Ascending)
+            if (_sort == SortMode.Ascending)
             {
                 switch (_activeSortColumn)
                 {
@@ -553,7 +544,7 @@
                         return _objects.OrderBy(s => s.LastWrite);
                 }
             }
-            else if (_sort == Sort.Descending)
+            else if (_sort == SortMode.Descending)
             {
                 switch (_activeSortColumn)
                 {
@@ -692,7 +683,7 @@
     {
         try
         {
-            ClearConfirmation.Show();
+            ClearConfirmation.Show(null, string.Format("Are you sure you want to clear object {0} history? This action cannot be undone.", _active?.Template?.Name));
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -703,11 +694,11 @@
     /// <summary>
     /// Clear history.
     /// </summary>
-    public async Task OnClearConfirmation(bool confirm)
+    public async Task OnClearConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 ClearValue arg = new ClearValue()
                     {

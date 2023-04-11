@@ -184,12 +184,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXAgent>(e => new {e.ListenerSettings, e.NotifySettings, e.ReaderSettings, e.Template });
             arg.Where.And<GXAgent>(w => w.Template == false);
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -203,7 +202,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXAgent>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXAgent>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXAgent>(q => q.CreationTime);
+            }
             GXAgent[] agents = (await _host.Connection.SelectAsync<GXAgent>(arg)).ToArray();
             if (response != null)
             {
@@ -315,7 +323,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXAgent agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(arg);
             if (agent == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             agent.Versions = await GetAgentVersionsByAgentIdAsync(User, agent);
             return agent;

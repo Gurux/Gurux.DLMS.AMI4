@@ -4,22 +4,22 @@
 @using System.Linq
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
 @ClaimType: @Claim
 
 @code {
-    [Inject]
-    AuthenticationStateProvider AuthenticationStateProvider { get; set; }
 
     [Parameter]
-    public string ClaimType { get; set; }
+    public string? ClaimType { get; set; }
 
-    public string Claim { get; set; }
+    public string? Claim { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-        if (user.Identity.IsAuthenticated)
+        if (user.Identity != null && user.Identity.IsAuthenticated)
         {
             var userClaims = user.Claims.Where(claim => claim.Type.Equals(ClaimType));
             Claim = userClaims.Any() ? userClaims.Select(claim => claim.Value).Aggregate(AddClaims) : "";

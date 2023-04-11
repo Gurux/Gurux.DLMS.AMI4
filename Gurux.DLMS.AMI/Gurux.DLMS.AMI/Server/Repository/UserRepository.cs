@@ -42,6 +42,8 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -227,7 +229,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Get only users that are in the same user groups than the user.
                 arg.Where.And<GXUserGroupUser>(q => q.UserId == userId);
             }
-            arg.OrderBy.Add<GXUser>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXUser>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXUser>(q => q.CreationTime);
+            }
             arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });
             if (request != null)
             {
@@ -307,7 +317,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXUser ret = (await _host.Connection.SingleOrDefaultAsync<GXUser>(arg));
             if (ret == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Roles must retreave separetly because only role name is shown for security reasons.
             arg = GXSelectArgs.SelectAll<GXRole>();
@@ -318,6 +328,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg = GXSelectArgs.SelectAll<GXUserSetting>(q => q.User == ret);
             arg.Distinct = true;
             ret.Settings = await _host.Connection.SelectAsync<GXUserSetting>(arg);
+            if (ret.Settings == null)
+            {
+                ret.Settings = new List<GXUserSetting>();
+            }
+            //Read rows per page from the system settings.
+            GXConfiguration conf = _host.Connection.SingleOrDefault<GXConfiguration>(GXSelectArgs.SelectAll<GXConfiguration>(w => w.Name == GXConfigurations.System));
+            SystemSettings? settings = null;
+            if (conf != null && !string.IsNullOrEmpty(conf.Settings))
+            {
+                settings = JsonSerializer.Deserialize<SystemSettings>(conf.Settings);
+            }
+            if (settings == null)
+            {
+                settings = new SystemSettings();
+            }
+            SystemSettings s = new SystemSettings()
+            {
+                RowsPerPage = settings.RowsPerPage
+            };
+            ret.Settings.Add(new GXUserSetting()
+            {
+                Name = GXConfigurations.System,
+                Value = JsonSerializer.Serialize(s)
+            });
             return ret;
         }
 

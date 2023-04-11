@@ -33,12 +33,12 @@
             <tr>
                 <th>
                     <input class="form-control" placeholder="Filter by read time..."
-                       type="datetime-local"
+                           type="datetime-local"
                        @onchange="@((ChangeEventArgs __e) => filter.Read = @StatusTile.ToDateTimeOffset(__e.Value))" />
                 </th>
                 <th>
                     <input class="form-control" placeholder="Filter by value..."
-                       type="text"
+                           type="text"
                        @onchange="@((ChangeEventArgs __e) => filter.Value = Convert.ToString(__e.Value))" />
                 </th>
             </tr>
@@ -67,7 +67,7 @@
 </table>
 <br />
 <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage=@($"Are you sure you want to clear history? This action cannot be undone.")>
+         ConfirmationMessage="Are you sure you want to clear history? This action cannot be undone.">
 </Confirm>
 @code {
 
@@ -79,12 +79,6 @@
     }
 
     private int TotalCount { get; set; }
-
-
-    /// <summary>
-    /// Are removed items shown for the admin.
-    /// </summary>
-    bool ShowRemoved;
 
     /// <inheritdoc />
     public string Name
@@ -209,7 +203,7 @@
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
         }
         catch (OperationCanceledException)
@@ -249,11 +243,11 @@
     /// <summary>
     /// Clear history.
     /// </summary>
-    public async Task OnClearConfirmation(bool confirm)
+    public async Task OnClearConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 Guid target = Guid.Parse(Id);
                 ClearValue arg = new ClearValue()
@@ -261,7 +255,6 @@
                         Attributes = new GXAttribute[] { new GXAttribute() { Id = target } }
                     };
                 await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", arg);
-                Updated();
             }
         }
         catch (AccessTokenNotAvailableException exception)

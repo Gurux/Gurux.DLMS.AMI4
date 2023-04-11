@@ -168,9 +168,6 @@
   <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
     <value>Are you sure you want to clear errors?</value>
   </data>
-  <data name="AreYouSureYouWantToDelete" xml:space="preserve">
-    <value>Are you sure you want to delete {0}?</value>
-  </data>
   <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
     <value>Are you sure you want to delete selected items?</value>
   </data>
@@ -788,5 +785,23 @@
   </data>
   <data name="TargetDeleteQuestion" xml:space="preserve">
     <value>Delete the target and its content. This action cannot be undone.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
+    <value>Are you sure you want to clear tasks?</value>
+  </data>
+  <data name="ConfirmDataClear" xml:space="preserve">
+    <value>Confirm Data Clear</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
+    <value>Are you sure you want to close errors?</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
+    <value>Are you sure you want to close selected items?</value>
+  </data>
+  <data name="AgentUpdates" xml:space="preserve">
+    <value>Are you sure you want to update the agents?\r\nAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
+    <value>Are you sure you want to clear log?</value>
   </data>
 </root>

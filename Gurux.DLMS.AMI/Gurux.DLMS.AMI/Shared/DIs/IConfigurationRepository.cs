@@ -54,8 +54,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>Tasks.</returns>
         Task<GXConfiguration[]> ListAsync(
             ClaimsPrincipal User,
-            ListConfiquration? request,
-            ListConfiqurationResponse? response,
+            ListConfiguration? request,
+            ListConfigurationResponse? response,
             CancellationToken cancellationToken);
 
         /// <summary>

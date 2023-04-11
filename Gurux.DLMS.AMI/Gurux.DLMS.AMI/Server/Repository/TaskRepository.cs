@@ -104,7 +104,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXTaskColumns columns = (await _host.Connection.SingleOrDefaultAsync<GXTaskColumns>(arg));
             if (columns == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             if (columns.TriggerUser != null)
             {
@@ -177,8 +177,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXUser user = new GXUser() { Id = userId };
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXTask>(w => w.TriggerUser == user);
             arg.Distinct = true;
-            arg.Descending = true;
-            arg.OrderBy.Add<GXTask>(o => o.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXTask>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXTask>(o => o.CreationTime);
+            }
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
@@ -292,14 +300,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXTask task = (await _host.Connection.SingleOrDefaultAsync<GXTask>(arg));
             if (task == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get columns.
             //This will help to check what data is needed.
             GXTaskColumns columns = (await _host.Connection.SingleOrDefaultAsync<GXTaskColumns>(arg));
             if (columns == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             if (columns.ScriptMethod != null)
             {
@@ -475,7 +483,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else if (it.TriggerSchedule == null && it.TriggerScript == null)
                 {
-                    throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                    throw new ArgumentException(Properties.Resources.UnknownTarget);
                 }
                 if (it.TriggerUser == null)
                 {
@@ -493,7 +501,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     if (it.TriggerUser == null)
                     {
-                        throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                        throw new ArgumentException(Properties.Resources.UnknownTarget);
                     }
                 }
                 it.Creator = creator;
@@ -711,7 +719,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     GXTask task = (await _host.Connection.SingleOrDefaultAsync<GXTask>(arg));
                     if (task == null)
                     {
-                        throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                        throw new ArgumentException(Properties.Resources.UnknownTarget);
                     }
                     list.Add(task);
                 }

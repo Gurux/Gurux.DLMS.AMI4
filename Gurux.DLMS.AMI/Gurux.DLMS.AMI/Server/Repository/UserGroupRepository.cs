@@ -162,11 +162,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Clear();
                 arg.Columns.Add<GXUserGroup>();
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
             }
-            arg.OrderBy.Add<GXUserGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXUserGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXUserGroup>(q => q.CreationTime);
+            }
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -216,15 +224,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXUserGroup>(e => e.Users);
             arg.Distinct = true;
-            GXUser User = await _host.Connection.SingleOrDefaultAsync<GXUser>(arg);
-            if (User == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXUserGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXUserGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get users that belongs for this user group.
@@ -232,7 +235,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(j => j.Id, j => j.UserId);
             arg.Where.And<GXUserGroupUser>(q => q.Removed == null && q.UserGroupId == id);
-            ret.Users = await _host.Connection.SelectAsync<GXUser>(arg);
+            group.Users = await _host.Connection.SelectAsync<GXUser>(arg);
 
             ////////////////////////////////////////////////////
             //Get schedule groups in this user group.
@@ -240,15 +243,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScheduleGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.ScheduleGroupId);
             arg.Where.And<GXUserGroupScheduleGroup>(q => q.Removed == null && q.UserGroupId == id);
-            ret.ScheduleGroups = await _host.Connection.SelectAsync<GXScheduleGroup>(arg);
+            group.ScheduleGroups = await _host.Connection.SelectAsync<GXScheduleGroup>(arg);
             ////////////////////////////////////////////////////
             //Get device groups.
             arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
             arg.Where.And<GXUserGroupDeviceGroup>(q => q.Removed == null && q.UserGroupId == id);
-            ret.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
-            return ret;
+            group.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />
@@ -399,7 +402,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// Add user to user groups.
         /// </summary>
         /// <param name="userId">User ID.</param>
-        /// <param name="group">Group IDs of the user groups where the user is added.</param>
+        /// <param name="groups">Group IDs of the user groups where the user is added.</param>
         public void AddUserToGroups(string userId, IEnumerable<Guid> groups)
         {
             DateTime now = DateTime.Now;

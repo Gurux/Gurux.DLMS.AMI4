@@ -191,8 +191,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXModuleGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXModuleGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXModuleGroup>(q => q.CreationTime);
+            }
             GXModuleGroup[] groups = (await _host.Connection.SelectAsync<GXModuleGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -228,15 +236,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXModuleGroup>(e => e.Modules);
             arg.Distinct = true;
-            GXModule Module = await _host.Connection.SingleOrDefaultAsync<GXModule>(arg);
-            if (Module == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXModuleGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXModuleGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get modules that belongs for this module group.
@@ -244,7 +247,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXModuleGroupModule, GXModule>(j => j.ModuleId, j => j.Id);
             arg.Where.And<GXModuleGroupModule>(q => q.Removed == null && q.ModuleGroupId == id);
-            ret.Modules = await _host.Connection.SelectAsync<GXModule>(arg);
+            group.Modules = await _host.Connection.SelectAsync<GXModule>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this module group.
@@ -252,8 +255,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupModuleGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupModuleGroup>(q => q.Removed == null && q.ModuleGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

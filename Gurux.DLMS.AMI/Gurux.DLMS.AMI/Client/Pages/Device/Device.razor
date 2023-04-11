@@ -355,7 +355,7 @@
                     try
                     {
                         //Get default user settings.
-                        GXUserSetting? settings = await Http.GetFromJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
+                        GXUserSetting? settings = await Http.GetAsJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
                         if (settings != null && !string.IsNullOrEmpty(settings.Value))
                         {
                             Guid Id = JsonSerializer.Deserialize<Guid>(settings.Value);
@@ -534,7 +534,7 @@
             if (_device != null && _device.Id != Guid.Empty)
             {
                 //Get default user settings.
-                GXUserSetting? settings = await Http.GetFromJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
+                GXUserSetting? settings = await Http.GetAsJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
                 if (settings == null)
                 {
                     settings = new GXUserSetting();

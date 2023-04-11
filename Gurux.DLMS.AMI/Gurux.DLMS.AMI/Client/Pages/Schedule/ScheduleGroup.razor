@@ -147,7 +147,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get schedule group data.
-                _scheduleGroup = (await Http.GetFromJsonAsync<GetScheduleGroupResponse>(string.Format("api/ScheduleGroup?id={0}", _scheduleGroup.Id))).Item;
+                _scheduleGroup = (await Http.GetAsJsonAsync<GetScheduleGroupResponse>(string.Format("api/ScheduleGroup?id={0}", _scheduleGroup.Id))).Item;
                 Notifier.UpdateData(GXPages.ScheduleGroups, _scheduleGroup);
                 _scheduleGroup.Modified = true;
                 StateHasChanged();

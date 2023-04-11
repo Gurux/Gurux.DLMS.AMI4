@@ -105,8 +105,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXDeviceTrace>(q => q.CreationTime);
-
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDeviceTrace>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXDeviceTrace>(q => q.CreationTime);
+            }
             //Traces are ignored from the device 
             //so there is no reference relation that is causing problems with JSON parser.
             arg.Columns.Exclude<GXDevice>(e => e.Traces);
@@ -135,7 +142,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDeviceTrace deviceTrace = (await _host.Connection.SingleOrDefaultAsync<GXDeviceTrace>(arg));
             if (deviceTrace == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return deviceTrace;
         }

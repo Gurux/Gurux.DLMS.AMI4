@@ -23,5 +23,10 @@
             get;
             set;
         }
+
+        /// <summary>
+        /// Rows per page.
+        /// </summary>
+        public int RowsPerPage { get; set; } = 100;
     }
 }

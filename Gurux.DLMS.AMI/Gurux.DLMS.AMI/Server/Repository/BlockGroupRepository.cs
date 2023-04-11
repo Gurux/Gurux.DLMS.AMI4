@@ -185,9 +185,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(request.Filter);
             }
-            arg.OrderBy.Add<GXBlockGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXBlockGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXBlockGroup>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -237,15 +245,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Add<GXBlockGroup>();
             arg.Columns.Exclude<GXBlockGroup>(e => e.Blocks);
             arg.Distinct = true;
-            GXBlock block = await _host.Connection.SingleOrDefaultAsync<GXBlock>(arg);
-            if (block == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXBlockGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXBlockGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get blocks that belong for this block group.
@@ -254,7 +257,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //It might be that there are no blocks in the group. For that reason left join is used.
             arg.Joins.AddLeftJoin<GXBlockGroupBlock, GXBlock>(j => j.BlockId, j => j.Id);
             arg.Where.And<GXBlockGroupBlock>(q => q.Removed == null && q.BlockGroupId == id);
-            ret.Blocks = await _host.Connection.SelectAsync<GXBlock>(arg);
+            group.Blocks = await _host.Connection.SelectAsync<GXBlock>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belong for this block group.
@@ -263,8 +266,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //It might be that there are no blocks in the group. For that reason left join is used.
             arg.Joins.AddInnerJoin<GXUserGroupBlockGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupBlockGroup>(q => q.Removed == null && q.BlockGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

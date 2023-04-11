@@ -99,8 +99,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task<GXConfiguration[]> ListAsync(
             ClaimsPrincipal User,
-            ListConfiquration? request,
-            ListConfiqurationResponse? response,
+            ListConfiguration? request,
+            ListConfigurationResponse? response,
             CancellationToken cancellationToken)
         {
             //Only admin can access configurations.
@@ -120,7 +120,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXConfiguration>(q => q.Order);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXConfiguration>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXConfiguration>(q => q.Order);
+            }
             GXConfiguration[] configurations = (await _host.Connection.SelectAsync<GXConfiguration>(arg)).ToArray();
             if (response != null)
             {
@@ -166,7 +174,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXConfiguration conf = await _host.Connection.SingleOrDefaultAsync<GXConfiguration>(arg);
             if (conf == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get localized strings.
             arg = GXSelectArgs.Select<GXLanguage>(c => new { c.Id });

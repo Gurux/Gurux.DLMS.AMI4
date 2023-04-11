@@ -145,7 +145,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get module data.
-                _active = (await Http.GetFromJsonAsync<GetModuleGroupResponse>(string.Format("api/ModuleGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetModuleGroupResponse>(string.Format("api/ModuleGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.ModuleGroups, _active);
                 _active.Modified = true;
             }

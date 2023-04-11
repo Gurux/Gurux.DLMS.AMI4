@@ -387,9 +387,6 @@
   <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
     <value>Haluatko varmasti poistaa virheet?</value>
   </data>
-  <data name="AreYouSureYouWantToDelete" xml:space="preserve">
-    <value>Haluatko varmasti poistaa{0}?</value>
-  </data>
   <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
     <value>Haluatko varmasti poistaa valitut kohteet?</value>
   </data>
@@ -646,7 +643,7 @@
     <value>odotusaika</value>
   </data>
   <data name="AliveTime" xml:space="preserve">
-    <value>Elossa</value>
+    <value>Elossa aika</value>
   </data>
   <data name="TraceLevels" xml:space="preserve">
     <value>Jäljitystasot</value>
@@ -781,12 +778,30 @@
     <value>Suodata lookisen nimen mukaan...</value>
   </data>
   <data name="AgentTokenCreateSucceeded" xml:space="preserve">
-    <value>Olet onnistuneesti lisännyt uuden edustajan käyttöoikeustunnuksen. Kopioi poletti nyt!!</value>
+    <value>Olet onnistuneesti lisännyt uuden edustajan käyttöoikeustunnuksen. Kopioi poletti nyt!</value>
   </data>
   <data name="TargetDisableQuestion" xml:space="preserve">
     <value>Poista kohde käytöstä ja peruuta sen sisältö.</value>
   </data>
   <data name="TargetDeleteQuestion" xml:space="preserve">
     <value>Poista kohde ja sen sisältö. Tätä toimintoa ei voi peruuttaa.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
+    <value>Haluatko varmasti poistaa tehtävät?</value>
+  </data>
+  <data name="ConfirmDataClear" xml:space="preserve">
+    <value>Vahvista tietojen tyhjennys</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
+    <value>Haluatko varmasti sulkea virheet?</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
+    <value>Haluatko varmasti sulkea valitut kohteet?</value>
+  </data>
+  <data name="AgentUpdates" xml:space="preserve">
+    <value>Oletko varma, että haluat päivittää agentit?\r\nKaikki käynnissä olevat työt valmistuvat ennen tämän toiminnon alkamista. Kaikki jonossa olevat työt viivästyvät, kunnes päivitys on valmis.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
+    <value>Haluatko varmasti tyhjentää lokin?</value>
   </data>
 </root>

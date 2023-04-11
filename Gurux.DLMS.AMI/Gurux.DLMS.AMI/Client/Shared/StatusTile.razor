@@ -261,14 +261,14 @@
                 {
                     try
                     {
-                        ListConfiquration req = new ListConfiquration()
+                        ListConfiguration req = new ListConfiguration()
                             {
                                 Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
                                 {
                                     Name = GXConfigurations.Maintenance
                                 }
                             };
-                        var ret = await Http.PostAsJson<ListConfiqurationResponse>("api/Configuration/List", req);
+                        var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
                         if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
                         {
                             MaintenanceSettings? settings = JsonSerializer.Deserialize<MaintenanceSettings>(ret.Configurations[0].Settings);
@@ -322,7 +322,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted DateTime value.</returns>
-    public static DateTime ToDateTime(object value)
+    public static DateTime ToDateTime(object? value)
     {
         if (value == null || (value is string s) && s == "")
         {
@@ -345,7 +345,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted DateTime value.</returns>
-    public static DateTimeOffset? ToDateTimeOffset(object value)
+    public static DateTimeOffset? ToDateTimeOffset(object? value)
     {
         if (value == null || (value is string s) && s == "")
         {
@@ -369,7 +369,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted Guid value.</returns>
-    public static Guid ToGuid(object value)
+    public static Guid ToGuid(object? value)
     {
         if ((value is string s) && s == "")
         {
@@ -393,7 +393,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted signed byte value.</returns>
-    public sbyte ToSByte(object value)
+    public sbyte ToSByte(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -419,7 +419,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted Int16 value.</returns>
-    public Int16 ToInt16(object value)
+    public Int16 ToInt16(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -445,7 +445,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted Int32 value.</returns>
-    public static Int32? ToInt32(object value)
+    public static Int32? ToInt32(object? value)
     {
         if (value == null || (value is string s) && s == "")
         {
@@ -468,7 +468,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted Int64 value.</returns>
-    public Int64 ToInt64(object value)
+    public Int64 ToInt64(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -495,7 +495,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted byte value.</returns>
-    public byte ToByte(object value)
+    public byte ToByte(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -521,7 +521,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted UInt16 value.</returns>
-    public UInt16 ToUInt16(object value)
+    public UInt16 ToUInt16(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -547,7 +547,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted UInt32 value.</returns>
-    public UInt32 ToUInt32(object value)
+    public UInt32 ToUInt32(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -572,7 +572,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted UInt64 value.</returns>
-    public UInt64 ToUInt64(object value)
+    public UInt64 ToUInt64(object? value)
     {
         Clear();
         if ((value is string s) && s == "")
@@ -598,7 +598,7 @@
     /// </remarks>
     /// <param name="value">Converted value.</param>
     /// <returns>Converted boolean value.</returns>
-    public static bool ToBoolean(object value)
+    public static bool ToBoolean(object? value)
     {
         if ((value is string s) && s == "")
         {

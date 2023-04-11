@@ -1,4 +1,5 @@
 ﻿@page "/restStatistic"
+@using Gurux.DLMS.AMI.Client.Helpers.Table;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.Models
@@ -19,68 +20,58 @@
 @inject ConfirmBase Confirm
 @implements IDisposable
 
-<PageTitle>@Properties.Resources.Actions (@Properties.Resources.Total: @Total)</PageTitle>
+<PageTitle>@Properties.Resources.Actions</PageTitle>
 
 <MenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
     </ChildContent>
 </MenuControl>
 
-<MenuControl>
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-    </ChildContent>
-</MenuControl>
-<table class="table table-striped" width="100%">
-    <thead width="100%">
-        <tr width="100%">
-            <th>
-            </th>
-            <th>
-                <!--Path -->
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by start time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by end time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.End = Convert.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-            </th>
-        </tr>
-        <tr width="100%">
-            <th>@Properties.Resources.ExecutionTime</th>
-            <th>@Properties.Resources.Path</th>
-            <th>@Properties.Resources.StartTime</th>
-            <th>@Properties.Resources.Ready</th>
-        </tr>
-    </thead>
-    <tbody width="100%">
-        <Virtualize @ref="virtualize" Context="stat" ItemsProvider="@GetItems" ItemSize="100">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(stat)) @onclick="@(()=>RowSelected(stat))">
-                    <td>@GetTime(stat)</td>
-                    <td>@stat.Path</td>
-                    <td>@stat.Start</td>
-                    <td>@stat.End</td>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table"
+         Context="stat"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.None"
+         ShowRemoved="false">
+    <FilterContent>
+        <th>
+        </th>
+        <th>
+            <!--Path -->
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by start time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by end time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.End = Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <th>@Properties.Resources.ExecutionTime</th>
+        <Th Id="Path">@Properties.Resources.Path</Th>
+        <Th Id="Start" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
+        <Th Id="End">@Properties.Resources.Ready</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@GetTime(stat)</td>
+        <td>@stat.Path</td>
+        <td>@stat.Start</td>
+        <td>@stat.End</td>
+    </ItemContent>
+</GXTable>
 <br />
-<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@($"Confirm Clear")
-         OkTitle=@($"Clear") ConfirmationMessage=@($"Are you sure you want to clear REST statistics log?")>
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle=@Properties.Resources.Clear
+         ConfirmationMessage=@Properties.Resources.AreYouSureYouWantToClearLog>
 </Confirm>
 
 @code {
@@ -130,13 +121,9 @@
     public bool Title { get; set; } = true;
 
     /// <summary>
-    /// Total numbers of rows in the database.
+    /// Reference to the table.
     /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
+    private GXTable<GXRestStatistic>? table;
 
     /// <summary>
     /// Device action log filter.
@@ -147,44 +134,22 @@
     /// Device is verified before system errors are cleared.
     /// </summary>
     protected ConfirmBase? ClearConfirmation;
-    /// <summary>
-    /// Virtualize.
-    /// </summary>
-    protected Virtualize<GXRestStatistic>? virtualize;
-
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXRestStatistic? _active;
-
+    
     private int GetTime(GXRestStatistic item)
     {
         return (int)(item.End.Value - item.Start.Value).TotalMilliseconds;
     }
 
-    protected string GetSelectedClass(GXRestStatistic selected)
-    {
-        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-    protected void RowSelected(GXRestStatistic selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.RestStatistics, _active);
-    }
-
     /// <summary>
-    /// Update virtualized items.
+    /// Update table.
     /// </summary>
     protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
-                Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -195,6 +160,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -203,14 +170,14 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            _active = (GXRestStatistic?)Notifier.GetData(GXPages.RestStatistics);
-            Notifier.On<IEnumerable<GXRestStatistic>>(this, nameof(IGXHubEvents.RestStatisticAdd), (error) =>
+            table.Active = (GXRestStatistic?)Notifier.GetData(GXPages.RestStatistics);
+            Notifier.On<IEnumerable<GXRestStatistic>>(this, nameof(IGXHubEvents.RestStatisticAdd), async (statistics) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXUser>?>(this, nameof(IGXHubEvents.RestStatisticClear), (users) =>
+            Notifier.On<IEnumerable<GXUser>?>(this, nameof(IGXHubEvents.RestStatisticClear), async (users) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.ChangePage(GXPages.RestStatistics, null, true);
             Notifier.Clear();
@@ -230,38 +197,31 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXRestStatistic>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXRestStatistic>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            ListRestStatistics req = new ListRestStatistics() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListRestStatistics req = new ListRestStatistics()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListRestStatisticsResponse>("api/RestStatistic/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the modules.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXRestStatistic>(ret.Statistics, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -293,14 +253,13 @@
     /// <summary>
     /// Clear the REST statistic list.
     /// </summary>
-    public async Task OnClearConfirmation(bool confirm)
+    public async Task OnClearConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 await Http.PostAsJson<ClearRestStatisticResponse>("api/RestStatistic/Clear", new ClearRestStatistic());
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

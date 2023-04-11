@@ -1,5 +1,6 @@
 ﻿@page "/devices"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -21,107 +22,71 @@
 @implements IGXComponentView
 @if (Title)
 {
-    <PageTitle>@Properties.Resources.DevicesTitle (@Properties.Resources.Total: @Total)</PageTitle>
+    <PageTitle>@Properties.Resources.DevicesTitle</PageTitle>
 }
 
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-    <p>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-            <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-            @Properties.Resources.ShowRemoved
+<GXTable @ref="table" Context="device" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by updated time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear"></ContextMenuItem>
         </AuthorizeView>
-    </p>
-}
-<table class="table table-striped">
-    <thead>
-        @if (Filter)
-        {
-            <tr>
-                <th>
-                    <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       type="text"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by updated time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
-            <th>@Properties.Resources.LastRead</th>
-            <th>@Properties.Resources.LastWrite</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="device" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(device)) @onclick="@(()=>RowSelected(device))">
-                    <td><a href="@GetPath(device)" @onclick="() => OnSelect(device)">@device.Name</a></td>
-                    <td>@device.CreationTime</td>
-                    <td>@device.Updated</td>
-                    <td>@device.LastRead</td>
-                    <td>@device.LastWrite</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                        @if (_active == device)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="async () => OnClear()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+        <Th Id="LastRead">@Properties.Resources.LastRead</Th>
+        <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td><a href="@GetPath(device)" @onclick="() => OnSelect(device)">@device.Name</a></td>
+        <td>@device.CreationTime</td>
+        <td>@device.Updated</td>
+        <td>@device.LastRead</td>
+        <td>@device.LastWrite</td>
+    </ItemContent>
+</GXTable>
 <br />
-@if (_active != null)
-{
-    <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage=@($"Are you sure you want to clear device {_active.Name} history? This action cannot be undone.")>
-    </Confirm>
-}
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="">
+</Confirm>
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
 @code {
 
     /// <inheritdoc />
@@ -169,15 +134,6 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
-
     //Get device path.
     private string GetPath(GXDevice target)
     {
@@ -206,7 +162,7 @@
     }
 
     //Verify that history is clear.
-    protected ConfirmBase ClearConfirmation;
+    protected ConfirmBase? ClearConfirmation;
 
     /// <summary>
     /// Device filter.
@@ -215,33 +171,28 @@
     /// <summary>
     /// User is verified before schedule is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
+    protected ConfirmBase? DeleteConfirmation;
     /// <summary>
-    /// Virtualize.
+    /// Table reference.
     /// </summary>
-    protected Virtualize<GXDevice>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXDevice? _active;
+    protected GXTable<GXDevice>? table;
 
     /// <summary>
-    /// Are removed items shown for the admin.
-    /// </summary>
-    bool ShowRemoved;
+    /// User is verified before devices are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
 
     /// <summary>
-    /// Update virtualized items.
+    /// Update table.
     /// </summary>
-    protected async void Updated()
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -250,20 +201,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXDevice device)
+    protected override async Task OnInitializedAsync()
     {
-        return _active != null && device.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXDevice selected)
-    {
-        this._active = selected;
-        Notifier.UpdateData(GXPages.Devices, selected);
-    }
-
-    protected override void OnInitialized()
-    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -272,15 +213,22 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get last selected item.
-            _active = (GXDevice?)Notifier.GetData(GXPages.Devices);
-            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceUpdate), (device) =>
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceUpdate), async (devices) =>
             {
-                Task.Run(Updated);
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceDelete), async (devices) =>
+            {
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Devices, _active);
+            //Get last selected item.
+            if (table != null)
+            {
+                table.Active = (GXDevice?)Notifier.GetData(GXPages.Devices);
+                Notifier.ChangePage(GXPages.Devices, table.Active);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -292,13 +240,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -306,32 +254,25 @@
             {
                 filter.Removed = null;
             }
-            ListDevices req = new ListDevices() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListDevices req = new ListDevices()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the devices.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXDevice>(ret.Devices, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -347,18 +288,18 @@
     /// <summary>
     /// Show device.
     /// </summary>
-    public async void OnShow()
+    public void OnShow()
     {
         try
         {
             Notifier.ClearStatus();
-            if (_active == null)
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.Title = "Edit Device";
             Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.Device, _active);
+            Notifier.UpdateData(GXPages.Device, table.Active);
             NavigationManager.NavigateTo("/objects");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -403,10 +344,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (_active == null)
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.Devices, table.Active);
             Notifier.Title = "Edit Device";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/devicetab");
@@ -429,14 +371,38 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove Device";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/devicetab");
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected devices.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveDevice req = new RemoveDevice()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -455,7 +421,8 @@
     {
         try
         {
-            ClearConfirmation.Show();
+            ClearConfirmation.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray(),
+            "Are you sure you want to clear device history? This action cannot be undone.");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -466,22 +433,30 @@
     /// <summary>
     /// Clear history.
     /// </summary>
-    public async Task OnClearConfirmation(bool confirm)
+    public async Task OnClearConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
-                ClearValue arg = new ClearValue()
+                List<GXDevice> devices = new List<GXDevice>();
+                foreach (var it in table.SingleOrDefault())
+                {
+                    devices.Add(new GXDevice() { Id = it.Id });
+                }
+                await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", new ClearValue()
                     {
-                        Devices = new GXDevice[] { new GXDevice() { Id = _active.Id } }
-                    };
-                await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", arg);
+                        Devices = devices.ToArray()
+                    });
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
         }
     }
 

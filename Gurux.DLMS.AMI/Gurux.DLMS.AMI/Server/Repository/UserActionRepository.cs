@@ -87,7 +87,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -101,9 +100,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXUserAction>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXUserAction>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXUserAction>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             arg.Columns.Add<GXUser>(c => new { c.Id, c.UserName });
             arg.Columns.Exclude<GXUser>(e => e.Actions);
+            //Data amd reply are excluded. Reading those might take a long time.
+            arg.Columns.Exclude<GXUserAction>(e => new { e.Data, e.Reply });
             GXUserAction[] actions = (await _host.Connection.SelectAsync<GXUserAction>(arg)).ToArray();
             if (response != null)
             {
@@ -121,7 +131,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserAction>(where => where.Id == id);
             //Get user.
-            arg.Columns.Add<GXUser>();
+            arg.Columns.Add<GXUser>(c => new { c.Id, c.UserName });
             arg.Joins.AddInnerJoin<GXUserAction, GXUser>(x => x.User, y => y.Id);
             //Actions are ignored from the user 
             //so there is no reference relation that is causing problems with JSON parser.
@@ -129,7 +139,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXUserAction userAction = (await _host.Connection.SingleOrDefaultAsync<GXUserAction>(arg));
             if (userAction == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return userAction;
         }

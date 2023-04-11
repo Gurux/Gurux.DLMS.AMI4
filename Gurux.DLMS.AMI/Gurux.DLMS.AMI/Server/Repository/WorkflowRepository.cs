@@ -159,7 +159,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -173,7 +172,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXWorkflow>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXWorkflow>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXWorkflow>(q => q.CreationTime);
+            }
             if (includeActivity)
             {
                 arg.Columns.Add<GXTrigger>();
@@ -229,7 +237,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXWorkflow workflow = await _host.Connection.SingleOrDefaultAsync<GXWorkflow>(arg);
             if (workflow == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             workflow.ScriptMethods = GetScriptMethods(workflow, includeScripts);
             //Get trigger activity
@@ -452,7 +460,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 workflow.TriggerActivity == null ||
                 workflow.TriggerActivity.Trigger == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             IWorkflowHandler workflowHandler = _serviceProvider.GetRequiredService<IWorkflowHandler>();
             Type? type = Type.GetType(workflow.TriggerActivity.Trigger.ClassName);

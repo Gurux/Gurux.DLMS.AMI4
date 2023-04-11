@@ -133,7 +133,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXSelectArgs args = GXSelectArgs.SelectAll<GXUserError>();
             args.Distinct = true;
             args.Where.And<GXUser>(q => q.Removed == null && q.Id == userId);
-            args.Joins.AddInnerJoin<GXUser, GXUserError>(j => j.Id, j => j.User);
+            args.Joins.AddInnerJoin<GXUserError, GXUser>(j => j.User, j => j.Id);
             return args;
         }
 
@@ -146,8 +146,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
         {
             GXSelectArgs args = GXSelectArgs.SelectAll<GXUserAction>();
             args.Distinct = true;
-            args.Where.And<GXUser>(q => q.Removed == null && q.Id == userId);
-            args.Joins.AddInnerJoin<GXUser, GXUserAction>(j => j.Id, j => j.User);
+            args.Where.And<GXUser>(q => q.Id == userId && q.Removed == null);
+            args.Joins.AddInnerJoin<GXUserAction, GXUser>(j => j.User, j => j.Id);
             return args;
         }
 

@@ -202,7 +202,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -216,8 +215,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXWorkflowLog>(q => q.CreationTime);
-
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXWorkflowLog>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXWorkflowLog>(q => q.CreationTime);
+            }
             arg.Columns.Add<GXWorkflow>(c => new { c.Id, c.Name });
             arg.Columns.Exclude<GXWorkflow>(e => e.Logs);
             GXWorkflowLog[] errors = (await _host.Connection.SelectAsync<GXWorkflowLog>(arg)).ToArray();
@@ -242,7 +249,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXWorkflowLog error = (await _host.Connection.SingleOrDefaultAsync<GXWorkflowLog>(arg));
             if (error == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return error;
         }

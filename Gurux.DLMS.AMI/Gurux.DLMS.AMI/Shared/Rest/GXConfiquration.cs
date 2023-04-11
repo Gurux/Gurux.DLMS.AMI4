@@ -66,7 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Get site information.
     /// </summary>
     [DataContract]
-    public class ListConfiquration : IGXRequest<ListConfiqurationResponse>
+    public class ListConfiguration : IGXRequest<ListConfigurationResponse>
     {
         /// <summary>
         /// Start index.
@@ -110,13 +110,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Order by name.
+        /// </summary>
+        /// <remarks>
+        /// Default order by is used if this is not set.
+        /// </remarks>
+        /// <seealso cref="Descending"/>
+        public string? OrderBy
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Are values shown as descending order.
+        /// </summary>
+        /// <seealso cref="OrderBy"/>
+        public bool Descending
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
     /// Get site information reply.
     /// </summary>
     [DataContract]
-    public class ListConfiqurationResponse
+    public class ListConfigurationResponse
     {
         /// <summary>
         /// List of configuration settings.

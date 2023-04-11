@@ -22,86 +22,50 @@
 @implements IDisposable
 @implements IGXComponentView
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-}
-<table class="table table-striped">
-    <thead>
-        @if (Filter && filter.Versions != null)
-        {
-            <tr>
-                <th>
-                    <input class="form-control" type="text" placeholder="Filter by version number..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Versions[0].Number = Convert.ToString(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="agent" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(agent)) @onclick="@(()=>RowSelected(agent))">
-                    <td>@agent.Name</td>
-                    @if (_active == agent)
+
+<GXTable @ref="table" Context="agent" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by version number..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Versions[0].Number = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <th>@Properties.Resources.Name</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@agent.Name</td>
+        <tr style="width:100%">
+            <table class="table table-striped" style="width:100%">
+                <thead>
+                    <tr style="width:100%">
+                        <th style="display:table-cell; width:40%">@Properties.Resources.Version</th>
+                        <th style="display:table-cell; width:59%">@Properties.Resources.CreationTime</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (agent.Versions != null)
                     {
-                        <td>
-                            <ContextMenuController>
-                                <ChildContent>
-                                    <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                </ChildContent>
-                            </ContextMenuController>
-                        </td>
-                    }
-                    else
-                    {
-                        <td>&nbsp;&nbsp;&nbsp;</td>
-                    }
-                </tr>
-                <tr style="width:100%">
-                    <table class="table table-striped" style="width:100%">
-                        <thead>
-                            <tr style="width:100%">
-                                <th style="display:table-cell; width:40%">@Properties.Resources.Version</th>
-                                <th style="display:table-cell; width:59%">@Properties.Resources.CreationTime</th>
+                        @foreach (var it in agent.Versions)
+                        {
+                            <tr>
+                                <td>@it.Number</td>
+                                <td>@it.CreationTime</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var it in agent.Versions)
-                            {
-                                <tr>
-                                    <td>@it.Number</td>
-                                    <td>@it.CreationTime</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                    <hr />
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
-<br />
-@if (_active != null)
-{
-    <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-         ConfirmationMessage=@($"Are you sure you want to delete \"{_active.Name}\"?")>
-    </Confirm>
-}
+                        }
+                    }
+                </tbody>
+            </table>
+            <hr />
+        </tr>
+    </ItemContent>
+</GXTable>
+<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+         ConfirmationMessage="">
+</Confirm>
 
 @code {
     /// <inheritdoc />
@@ -149,13 +113,6 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    internal int Total
-    {
-        get;
-        private set;
-    }
-
-
     private string? GetVersion(string? version)
     {
         if (version == null)
@@ -165,35 +122,41 @@
         return version;
     }
 
-    private GXAgent[]? agents = null;
     private GXAgent filter = new GXAgent(null);
     //Verify that agant can be removed.
-    protected ConfirmBase DeleteConfirmation;
+    protected ConfirmBase? DeleteConfirmation;
     //Verify that agent can be updated.
-    protected ConfirmBase UpdateConfirmation;
+    protected ConfirmBase? UpdateConfirmation;
     //Verify that all agent can be updated.
-    protected ConfirmBase UpdatesConfirmation;
+    protected ConfirmBase? UpdatesConfirmation;
 
-    protected Virtualize<GXAgent>? virtualize;
-    private GXAgent? _active;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXAgent>? table;
 
-    protected string GetSelectedClass(GXAgent agent)
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
     {
-        return _active != null && agent.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-    protected async void Updated()
-    {
-        if (virtualize != null)
+        try
         {
-            Notifier?.ClearStatus();
-            await virtualize.RefreshDataAsync();
-            StateHasChanged();
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
         }
     }
-
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -201,17 +164,22 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             filter.Versions.Add(new GXAgentVersion());
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), (agents) =>
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), async (agents) =>
             {
-                Updated();
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), (agents) =>
+            Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentDelete), async (agents) =>
             {
-                Updated();
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Agents, _active);
+            if (table != null)
+            {
+                //Get last selected item.
+                table.Active = (GXAgent?)Notifier.GetData(GXPages.Agents);
+            }
+            Notifier.ChangePage(GXPages.Agents, table?.Active);
         }
         catch (Exception ex)
         {
@@ -219,41 +187,32 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(GXItemsProviderRequest request)
     {
-        agents = null;
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            ListAgents req = new ListAgents() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListAgents req = new ListAgents()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/Installers", req, request.CancellationToken);
-            agents = ret.Agents;
-            Total = ret.Count;
-            //Get only selected amount of the devices.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             ItemsProviderResult<GXAgent> value = new ItemsProviderResult<GXAgent>(ret.Agents, ret.Count);
             return value;
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -269,43 +228,47 @@
     /// <summary>
     /// Delete selected agent.
     /// </summary>
-
     public void OnRemove()
     {
         try
         {
-            DeleteConfirmation.Show();
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
         }
-        catch (AccessTokenNotAvailableException exception)
+        catch (Exception ex)
         {
-            exception.Redirect();
+            Notifier?.ProcessError(ex);
         }
     }
 
     /// <summary>
     /// Remove the agent.
     /// </summary>
-    public async Task OnDeleteConfirmation(bool confirm)
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (table != null && args.Confirm)
             {
-                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete",
-                    new RemoveAgent() { Ids = new Guid[] { _active.Id } });
-                await InvokeAsync(StateHasChanged);
+                RemoveAgent req = new RemoveAgent()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
         }
-    }
-
-    public void RowSelected(GXAgent selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Agents, _active);
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
 
     public void Dispose()

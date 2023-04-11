@@ -20,81 +20,48 @@
 @implements IGXComponentView
 @if (Title)
 {
-    <PageTitle>@Properties.Resources.ModulesTitle (@Properties.Resources.Total: @Total)</PageTitle>
+    <PageTitle>@Properties.Resources.ModulesTitle</PageTitle>
 }
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-}
-<table class="table table-striped">
-    <thead>
-        @if (Filter)
-        {
-            <tr>
-                <th>
-                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" type="text" placeholder="Filter by version..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" type="text" placeholder="Filter by available version..."
-                       @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.Version</th>
-            <th>@Properties.Resources.AvailableVersion</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="module" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(module)) @onclick="@(()=>RowSelected(module))">
-                    <td>
-                        <span class=@(ClientHelpers.GetActiveDot(module.Active))>
-                        </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
-                    </td>
-                    <td>@module.Version</td>
-                    <td>@module.AvailableVersion</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-                        @if (_active == module)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Update" Icon="oi oi-pencil" OnClick="@OnUpdate"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="module" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by version..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by available version..."
+                   @onchange="@((ChangeEventArgs __e) => filter.AvailableVersion = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Update" Icon="oi oi-pencil" OnClick="@OnUpdate"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <th>@Properties.Resources.Name</th>
+        <th>@Properties.Resources.Version</th>
+        <th>@Properties.Resources.AvailableVersion</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>
+            <span class=@(ClientHelpers.GetActiveDot(module.Active))>
+            </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
+        </td>
+        <td>@module.Version</td>
+        <td>@module.AvailableVersion</td>
+    </ItemContent>
+</GXTable>
 <br />
-<Confirm @ref="RestartConfirmation" ConfirmationChanged="OnRestartConfirmation" ConfirmationTitle="Confirm restart"
-         OkTitle="@Properties.Resources.Restart" ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
+<Confirm @ref="RestartConfirmation"
+         ConfirmationChanged="OnRestartConfirmation"
+         ConfirmationTitle="Confirm restart"
+         OkTitle="@Properties.Resources.Restart"
+         ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
 </Confirm>
 
 @code {
@@ -149,15 +116,6 @@
     public bool Title { get; set; } = true;
 
     /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
-    private GXModule _active = new GXModule();
-    /// <summary>
     /// Module update filter.
     /// </summary>
     private GXModule filter = new GXModule()
@@ -168,33 +126,21 @@
         };
 
     /// <summary>
-    /// Virtualize.
+    /// Table reference.
     /// </summary>
-    protected Virtualize<GXModule>? virtualize;
-
-    protected string GetSelectedClass(GXModule module)
-    {
-        return _active != null && module.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXModule selected)
-    {
-        _active = selected;
-    }
+    protected GXTable<GXModule>? table;
 
     /// <summary>
-    /// Update virtualized items.
+    /// Update table.
     /// </summary>
     protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -213,9 +159,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), (modules) =>
+            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
@@ -234,38 +180,31 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            ListModules req = new ListModules() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListModules req = new ListModules()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the modules.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -288,12 +227,16 @@
     /// </summary>
     public async void OnUpdate()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            _active.Version = _active.AvailableVersion;
-            UpdateModule req = new UpdateModule() { Module = _active };
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            table.Active.Version = table.Active.AvailableVersion;
+            UpdateModule req = new UpdateModule() { Module = table.Active };
             var ret = await Http.PostAsJson<UpdateModuleResponse>("api/Module/Install", req);
             if (RestartConfirmation != null && ret.Restart)
             {
@@ -317,11 +260,11 @@
     /// <summary>
     /// Ask should the application restart.
     /// </summary>
-    public async Task OnRestartConfirmation(bool confirm)
+    public async Task OnRestartConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 StopApplicationRequest req = new StopApplicationRequest();
                 await Http.PostAsJson("api/Configuration/Restart", req);

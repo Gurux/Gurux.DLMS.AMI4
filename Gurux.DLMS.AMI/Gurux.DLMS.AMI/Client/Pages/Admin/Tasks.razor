@@ -1,5 +1,6 @@
 ﻿@page "/tasks"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -28,99 +29,78 @@
 
 <MenuControl RightCorner="true">
     <ChildContent>
-        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@(async () => OnClear())" />
+        <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@(async () => OnRemove())" />
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
     </ChildContent>
 </MenuControl>
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-}
-<table class="table table-striped">
-    <thead>
-        @if (Filter)
-        {
-            <tr>
-                <th>
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
+<GXTable @ref="table"
+         Context="task"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <!--Target-->
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+        </th>
+        <th>
+            <div>
+                <input class="form-control" placeholder="Filter by start time..."
                        type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                </th>
-                <th>
-                    <div>
-                        <input class="form-control" placeholder="Filter by start time..."
-                           type="datetime-local"
-                           @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
-                    </div>
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by end time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Target</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.TaskType</th>
-            <th>@Properties.Resources.StartTime</th>
-            <th>@Properties.Resources.CompletedTime</th>
-            <th>@Properties.Resources.Result</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="task" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(task)) @onclick="@(()=>RowSelected(task))">
-                    <td>@task.Target</td>
-                    <td>@task.CreationTime</td>
-                    <td>@TaskTypeToString(task.TaskType)</td>
-                    <td>@task.Start</td>
-                    <td>@task.Ready</td>
-                    <td>@task.Result</td>
-                    @if (_active == task)
-                    {
-                        <td>
-                            <ContextMenuController>
-                                <ChildContent>
-                                    <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                </ChildContent>
-                            </ContextMenuController>
-                        </td>
-                    }
-                    else
-                    {
-                        <td>&nbsp;&nbsp;&nbsp;</td>
-                    }
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+                       @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
+            </div>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by end time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <!--Result.-->
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="Target">@Properties.Resources.Target</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="TaskType">@Properties.Resources.TaskType</Th>
+        <Th Id="Start">@Properties.Resources.StartTime</Th>
+        <Th Id="Ready">@Properties.Resources.CompletedTime</Th>
+        <Th Id="Result">@Properties.Resources.Result</Th>
+        <th width="1%"></th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@task.Target</td>
+        <td>@task.CreationTime</td>
+        <td>@TaskTypeToString(task.TaskType)</td>
+        <td>@task.Start</td>
+        <td>@task.Ready</td>
+        <td>@task.Result</td>
+    </ItemContent>
+</GXTable>
 <br />
-<Confirm @ref="RemoveConfirmation" ConfirmationChanged="OnDeleteConfirmation" ConfirmationTitle=@($"Confirm delete")
-         OkTitle="@Properties.Resources.Remove" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 
-<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" ConfirmationTitle=@("Confirm Clear")
-         OkTitle="@Properties.Resources.Clear" ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearErrors">
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
 </Confirm>
 
 @code {
@@ -174,8 +154,14 @@
     /// </summary>
     internal int Total
     {
-        get;
-        private set;
+        get
+        {
+            if (table == null)
+            {
+                return 0;
+            }
+            return table.TotalCount;
+        }
     }
 
 
@@ -203,12 +189,6 @@
         return str;
     }
 
-    private GXTask[]? _tasks = null;
-
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXTask? _active;
     /// <summary>
     /// Task filter.
     ///</summary>
@@ -224,34 +204,21 @@
     ///</summary>
     protected ConfirmBase? ClearConfirmation;
     /// <summary>
-    /// Virtualize.
-    ///</summary>
-    protected Virtualize<GXTask>? virtualize;
-
-    protected string GetSelectedClass(GXTask device)
-    {
-        return _active != null && device.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXTask selected)
-    {
-        this._active = selected;
-        Notifier.UpdateData(GXPages.Tasks, selected);
-    }
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXTask>? table;
 
     /// <summary>
-    /// Update virtualized items.
-    ///</summary>
+    /// Update table.
+    /// </summary>
     protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -263,17 +230,17 @@
     /// <summary>
     /// Task status has changed.
     /// </summary>
-    /// <param name="list">Changed tasks.</param>
-    protected async Task StateChanged(IEnumerable<GXTask> list)
+    /// <param name="tasks">Changed tasks.</param>
+    protected void StateChanged(IEnumerable<GXTask> tasks)
     {
         try
         {
             bool updated = false;
-            if (_tasks != null)
+            if (table != null && table.Items != null)
             {
-                foreach (var it in list)
+                foreach (var it in tasks)
                 {
-                    GXTask? task = _tasks.Where(w => w.Id == it.Id).SingleOrDefault();
+                    GXTask? task = table.Items.Where(w => w.Id == it.Id).SingleOrDefault();
                     if (task != null)
                     {
                         updated = true;
@@ -291,23 +258,18 @@
             }
             if (updated)
             {
-                StateHasChanged();                
+                StateHasChanged();
             }
         }
         catch (Exception)
         {
-            _tasks = null;
-            if (virtualize != null)
-            {
-                Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
-            }
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -324,9 +286,9 @@
             {
                 await Updated();
             });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), async (tasks) =>
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
             {
-                await StateChanged(tasks);
+                StateChanged(tasks);
             });
             Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.TaskClear), async (tasks) =>
             {
@@ -350,44 +312,34 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXTask>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXTask>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            _tasks = null;
-            ListTasks req = new ListTasks() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListTasks req = new ListTasks()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListTasksResponse>("api/Task/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the tasks.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
-            _tasks = ret.Tasks;
             return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine(ex.ToString());
             Notifier?.ProcessError(ex);
         }
         finally
@@ -398,15 +350,30 @@
     }
 
     /// <summary>
-    /// Clear the system error list.
+    /// Remove selected tasks.
     /// </summary>
     public void OnRemove()
     {
-        RemoveConfirmation.Show();
+        try
+        {
+            if (table == null || !table.SelectedItems.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            RemoveConfirmation?.Show();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
 
     /// <summary>
-    /// Clear the system error list.
+    /// Clear the all tasks.
     /// </summary>
     public void OnClear()
     {
@@ -416,20 +383,15 @@
     /// <summary>
     /// Delete the selected task list.
     /// </summary>
-    public async Task OnDeleteConfirmation(bool confirm)
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (table != null && args.Confirm)
             {
                 DeleteTask req = new DeleteTask();
-                if (_active == null)
-                {
-                    throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
-                }
-                req.Ids = new Guid[] { _active.Id };
+                req.Ids = table.SelectedItems.Select(w => w.Id).ToArray();
                 await Http.PostAsJson<DeleteTaskResponse>("api/Task/Delete", req);
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -445,15 +407,14 @@
     /// <summary>
     /// Clear user tasks.
     /// </summary>
-    public async Task OnClearConfirmation(bool confirm)
+    public async Task OnClearConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 ClearTask req = new ClearTask();
                 await Http.PostAsJson<ClearTaskResponse>("api/Task/Clear", req);
-                await InvokeAsync(StateHasChanged);
             }
         }
         catch (AccessTokenNotAvailableException exception)

@@ -311,7 +311,7 @@
                 if (!_active.Modified)
                 {
                     //Get workflow data.
-                    _active = (await Http.GetFromJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", _active.Id))).Item;
+                    _active = (await Http.GetAsJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", _active.Id))).Item;
                     Notifier.UpdateData(GXPages.Workflows, _active);
                     _active.Modified = true;
                 }

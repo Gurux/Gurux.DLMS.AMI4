@@ -45,9 +45,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Net.Http.Json;
-using System.Runtime;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -65,6 +63,11 @@ namespace Gurux.DLMS.AMI.Client
         private Dictionary<string, object?> dataList;
         private readonly ILogger _logger;
         private readonly IGXToasterService _toasterService;
+
+        /// <summary>
+        /// Aount of the rows per page.
+        /// </summary>
+        public int RowsPerPage { get; private set; } = 10;
 
         /// <summary>
         /// Ignored notifications.
@@ -494,14 +497,14 @@ namespace Gurux.DLMS.AMI.Client
                    .WithAutomaticReconnect()
                    .Build();
                     //Load performance settings from the server.
-                    ListConfiquration req = new ListConfiquration()
+                    ListConfiguration req = new ListConfiguration()
                     {
                         Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
                         {
                             Name = GXConfigurations.Performance
                         }
                     };
-                    GetUserResponse? ret = await http.GetFromJsonAsync<GetUserResponse>("/api/User");
+                    GetUserResponse? ret = await http.GetAsJsonAsync<GetUserResponse>("/api/User");
                     var settings = ret.Item.Settings.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
                     if (settings != null && !string.IsNullOrEmpty(settings.Value))
                     {
@@ -509,6 +512,15 @@ namespace Gurux.DLMS.AMI.Client
                         if (s != null)
                         {
                             IgnoreNotification = s.IgnoreNotification;
+                        }
+                    }
+                    settings = ret.Item.Settings.Where(w => w.Name == GXConfigurations.System).SingleOrDefault();
+                    if (settings != null && !string.IsNullOrEmpty(settings.Value))
+                    {
+                        var s = JsonSerializer.Deserialize<SystemSettings>(settings.Value);
+                        if (s != null)
+                        {
+                            RowsPerPage = s.RowsPerPage;
                         }
                     }
                     hubConnection.On<GXModule>(nameof(IGXHubEvents.ModuleSettingsSave), async (module) =>
@@ -1212,6 +1224,18 @@ namespace Gurux.DLMS.AMI.Client
                         if ((IgnoreNotification & TargetType.Configuration) == 0)
                         {
                             _toasterService.Add(new GXToast("Configuration saved.", ToString(items), Color.Info, 15));
+                        }
+                        foreach (var conf in items)
+                        {
+                            //If rows per page is updated.
+                            if (conf.Name == GXConfigurations.System && !string.IsNullOrEmpty(conf.Settings))
+                            {
+                                var s = JsonSerializer.Deserialize<SystemSettings>(conf.Settings);
+                                if (s != null)
+                                {
+                                    RowsPerPage = s.RowsPerPage;
+                                }
+                            }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ConfigurationSave), items);
                     });

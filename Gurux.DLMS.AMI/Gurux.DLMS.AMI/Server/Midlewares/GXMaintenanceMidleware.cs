@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         {
             _next = next;
             _configurationRepository = configurationRepository;
-            ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Maintenance } };
+            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Maintenance } };
             var ret = _configurationRepository.ListAsync(null, req, null, CancellationToken.None).Result;
             if (ret != null && ret.Length == 1 && !string.IsNullOrEmpty(ret[0].Settings))
             {
@@ -93,7 +93,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     delay = (int)(settings.EndTime.Value - DateTime.Now).TotalSeconds;
                 }
                 context.Response.Headers.RetryAfter = delay.ToString();
-                ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Maintenance } };
+                ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Maintenance } };
                 var ret = await _configurationRepository.ListAsync(context.User, req, null, CancellationToken.None);
                 if (ret.Length == 1)
                 {

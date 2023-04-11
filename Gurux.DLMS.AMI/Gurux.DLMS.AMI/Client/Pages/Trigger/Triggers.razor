@@ -21,97 +21,57 @@
 @implements IGXComponentView
 @if (Title)
 {
-    <PageTitle>@Properties.Resources.Triggers (@Properties.Resources.Total: @Total)</PageTitle>
+    <PageTitle>@Properties.Resources.Triggers</PageTitle>
 }
 
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Refresh" Icon="oi oi-reload" OnClick="@(async () => OnRefresh())" />
+            <MenuItem Text="@Properties.Resources.Refresh" Icon="oi oi-reload" OnClick="@OnRefresh" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-        <p>
-            <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-            @Properties.Resources.ShowRemoved
-        </p>
-    </AuthorizeView>
-}
 
-<table class="table table-striped">
-    <thead>
-        @if (Filter)
-        {
-            <tr>
-                <th>
-                </th>
-                <th>
-                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by update time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th></th>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="trigger" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(trigger)) @onclick="@(()=>RowSelected(trigger))">
-                    <td><span class="@trigger.Icon" aria-hidden="true"></span></td>
-                    <td><span class=@(ClientHelpers.GetActiveDot(trigger.Active))></span><a href="/trigger" @onclick="() => OnSelect(trigger)">@trigger.Name</a></td>
-                    <td>@trigger.CreationTime</td>
-                    <td>@trigger.Updated</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
-                        @if (_active == trigger)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnShow()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="trigger" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
+            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnShow()"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td><span class="@trigger.Icon" aria-hidden="true"></span><a href="/trigger" @onclick="() => OnSelect(trigger)">@trigger.Name</a></td>
+        <td>@trigger.CreationTime</td>
+        <td>@trigger.Updated</td>
+    </ItemContent>
+</GXTable>
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 <br />
 @code {
     /// <inheritdoc />
@@ -159,15 +119,6 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
-
     private void OnSelect(GXTrigger target)
     {
         Notifier.Title = "Trigger settings";
@@ -183,33 +134,23 @@
     /// <summary>
     /// User is verified before trigger is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
+    protected ConfirmBase? DeleteConfirmation;
     /// <summary>
-    /// Virtualize.
+    /// Table reference.
     /// </summary>
-    protected Virtualize<GXTrigger>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXTrigger? _active;
+    protected GXTable<GXTrigger>? table;
 
     /// <summary>
-    /// Are removed items shown for the admin.
+    /// Update table.
     /// </summary>
-    bool ShowRemoved;
-
-    /// <summary>
-    /// Update virtualized items.
-    /// </summary>
-    protected async void Updated()
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -218,20 +159,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXTrigger trigger)
+    protected override async Task OnInitializedAsync()
     {
-        return _active != null && trigger.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXTrigger selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.Triggers, _active);
-    }
-
-    protected override void OnInitialized()
-    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -239,19 +170,22 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            //Get last selected item.
-            _active = (GXTrigger?)Notifier.GetData(GXPages.Triggers);
-            Notifier.On<IEnumerable<GXTrigger>>(this, nameof(IGXHubEvents.TriggerUpdate), (trigger) =>
+            Notifier.On<IEnumerable<GXTrigger>>(this, nameof(IGXHubEvents.TriggerUpdate), async (trigger) =>
             {
-                Updated();
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXTrigger>>(this, nameof(IGXHubEvents.TriggerDelete), (trigger) =>
+            Notifier.On<IEnumerable<GXTrigger>>(this, nameof(IGXHubEvents.TriggerDelete), async (trigger) =>
             {
-                Updated();
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Triggers, _active);
+            if (table != null)
+            {
+                //Get last selected item.
+                table.Active = (GXTrigger?)Notifier.GetData(GXPages.Triggers);
+                Notifier.ChangePage(GXPages.Triggers, table.Active);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -263,13 +197,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXTrigger>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXTrigger>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -277,32 +211,25 @@
             {
                 filter.Removed = null;
             }
-            ListTriggers req = new ListTriggers() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListTriggers req = new ListTriggers()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the triggers.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXTrigger>(ret.Triggers, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -328,7 +255,7 @@
             var ret = await Http.PostAsJson<RefreshTriggerResponse>("api/Trigger/Refresh", req);
             if (ret.NewItems)
             {
-                Updated();
+                await Updated();
             }
             Notifier?.ShowInformation(Properties.Resources.Updated, true);
         }
@@ -353,14 +280,61 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.Triggers, table.Active);
             Notifier.Title = "Trigger settings";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/trigger");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove selected triggers.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected triggers.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveTrigger req = new RemoveTrigger()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveTriggerResponse>("api/Trigger/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

@@ -123,12 +123,47 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Admin user can access agents from all users.
+        /// </summary>
+        /// <remarks>
+        /// If true, agents from all users are retreaved, not just current user. 
+        /// </remarks>
+        public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Selected extra information.
         /// </summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
         public TargetType Select
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Order by name.
+        /// </summary>
+        /// <remarks>
+        /// Default order by is used if this is not set.
+        /// </remarks>
+        /// <seealso cref="Descending"/>
+        public string? OrderBy
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Are values shown as descending order.
+        /// </summary>
+        /// <seealso cref="OrderBy"/>
+        public bool Descending
         {
             get;
             set;

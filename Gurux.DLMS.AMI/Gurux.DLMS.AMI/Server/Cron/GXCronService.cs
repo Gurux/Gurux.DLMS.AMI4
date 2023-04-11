@@ -111,7 +111,7 @@ namespace Gurux.DLMS.AMI.Server.Cron
         {
             CronSettings? options;
             _logger.LogInformation("Cron is starting.");
-            ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Cron } };
+            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Cron } };
             GXConfiguration[] ret = _configurationRepository.ListAsync(null, req, null, cancellationToken).Result;
             if (ret != null && ret.Length == 1 && !string.IsNullOrEmpty(ret[0].Settings))
             {
@@ -185,7 +185,7 @@ namespace Gurux.DLMS.AMI.Server.Cron
                     using (IServiceScope scope = _serviceProvider.CreateScope())
                     {
                         IConfigurationRepository configurationRepository = scope.ServiceProvider.GetRequiredService<IConfigurationRepository>();
-                        ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = "Cron" } };
+                        ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = "Cron" } };
                         GXConfiguration[] confs = configurationRepository.ListAsync(user, req, null, CancellationToken.None).Result;
                         foreach (GXConfiguration conf in confs)
                         {

@@ -105,7 +105,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXUserSetting>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXUserSetting>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXUserSetting>(q => q.CreationTime);
+            }
             GXUserSetting[] settings = (await _host.Connection.SelectAsync<GXUserSetting>(arg, cancellationToken)).ToArray();
             if (response != null)
             {

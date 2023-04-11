@@ -142,7 +142,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get block group data.
-                _active = (await Http.GetFromJsonAsync<GetBlockGroupResponse>(string.Format("api/BlockGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetBlockGroupResponse>(string.Format("api/BlockGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.BlockGroups, _active);
                 _active.Modified = true;
             }

@@ -108,17 +108,17 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), (devices) =>
+            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), async (devices) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.AddDeviceErrors), (errors) =>
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.AddDeviceErrors), async (errors) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.CloseDeviceErrors), (errors) =>
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.CloseDeviceErrors), async (errors) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             await GetActiveErrors();
         }

@@ -80,14 +80,14 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Installed:</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" class="form-control"
-                           readonly="readonly" @bind-Value="_active.CreationTime" />
+                                   readonly="readonly" @bind-Value="_active.CreationTime" />
                     </div>
                     @if (_active.Updated != null)
                     {
                         <div class="form-group">
                             <label>@Properties.Resources.Updated:</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" class="form-control"
-                           readonly="readonly" @bind-Value="_active.Updated" />
+                                       readonly="readonly" @bind-Value="_active.Updated" />
                         </div>
                     }
                 </div>
@@ -95,10 +95,13 @@
         }
     </EditForm>
 
-    <Confirm @ref="RestartConfirmation" ConfirmationChanged="OnRestartConfirmation" ConfirmationTitle="Confirm restart"
-         OkTitle="@Properties.Resources.Restart" ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
+    <Confirm @ref="RestartConfirmation"
+         ConfirmationChanged="OnRestartConfirmation"
+         ConfirmationTitle="Confirm restart"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Restart"
+         ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
     </Confirm>
-
 }
 
 @code {
@@ -409,11 +412,11 @@
     /// <summary>
     /// Clear the workflow log list.
     /// </summary>
-    public async Task OnRestartConfirmation(bool confirm)
+    public async Task OnRestartConfirmation(ConfirmArgs args)
     {
         try
         {
-            if (confirm)
+            if (args.Confirm)
             {
                 StopApplicationRequest req = new StopApplicationRequest();
                 await Http.PostAsJson("api/Configuration/Restart", req);

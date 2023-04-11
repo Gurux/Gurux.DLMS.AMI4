@@ -196,6 +196,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to update the agents?\r\nAll running jobs will complete before this action begins. All queued jobs will be delayed until the update is complete..
+        /// </summary>
+        internal static string AgentUpdates {
+            get {
+                return ResourceManager.GetString("AgentUpdates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Alive time.
         /// </summary>
         internal static string AliveTime {
@@ -232,11 +241,38 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Are you sure you want to delete {0}?.
+        ///   Looks up a localized string similar to Are you sure you want to clear log?.
         /// </summary>
-        internal static string AreYouSureYouWantToDelete {
+        internal static string AreYouSureYouWantToClearLog {
             get {
-                return ResourceManager.GetString("AreYouSureYouWantToDelete", resourceCulture);
+                return ResourceManager.GetString("AreYouSureYouWantToClearLog", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear tasks?.
+        /// </summary>
+        internal static string AreYouSureYouWantToClearTasks {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToClearTasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to close errors?.
+        /// </summary>
+        internal static string AreYouSureYouWantToCloseErrors {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToCloseErrors", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to close selected items?.
+        /// </summary>
+        internal static string AreYouSureYouWantToCloseSelectedItems {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToCloseSelectedItems", resourceCulture);
             }
         }
         
@@ -444,6 +480,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Configuration {
             get {
                 return ResourceManager.GetString("Configuration", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Confirm Data Clear.
+        /// </summary>
+        internal static string ConfirmDataClear {
+            get {
+                return ResourceManager.GetString("ConfirmDataClear", resourceCulture);
             }
         }
         

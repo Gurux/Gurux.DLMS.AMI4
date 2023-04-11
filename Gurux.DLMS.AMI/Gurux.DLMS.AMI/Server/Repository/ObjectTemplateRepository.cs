@@ -162,8 +162,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXObjectTemplate>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXObjectTemplate>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXObjectTemplate>(q => q.Id);
+            }
             GXObjectTemplate[] objects = (await _host.Connection.SelectAsync<GXObjectTemplate>(arg)).ToArray();
             if (response != null)
             {
@@ -187,7 +195,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXObjectTemplate obj = await _host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(arg);
             if (obj == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get attribute templates .
             arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(w => w.ObjectTemplate == obj && w.Removed == null);
@@ -210,7 +218,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     obj.CreationTime = now;
                     await _host.Connection.InsertAsync(GXInsertArgs.Insert(obj));
                 }
-                else 
+                else
                 {
                     if (columns != null)
                     {
@@ -241,6 +249,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _eventsNotifier.ObjectTemplateUpdate(users, list);
             }
             return ret.ToArray();
-        }        
+        }
     }
 }

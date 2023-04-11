@@ -180,7 +180,7 @@ namespace Gurux.DLMS.AMI.Client
                 {
                     try
                     {
-                        var mod = (await Http.GetFromJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", module.Id))).Item;
+                        var mod = (await Http.GetAsJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", module.Id)))?.Item;
                         List<Assembly> assemblies = new List<Assembly>();
                         foreach (var it in mod.Assemblies)
                         {

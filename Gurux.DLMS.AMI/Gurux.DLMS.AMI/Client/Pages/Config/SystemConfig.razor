@@ -41,6 +41,11 @@
                     <InputText id="siteEmailAddress" class="form-control"
                            @bind-Value="_settings.SiteEmailAddress" />
                 </div>
+                <div class="form-group">
+                    <label>Rows per page</label>
+                    <InputNumber id="rows" class="form-control"
+                             @bind-Value="_settings.RowsPerPage" />
+                </div>
             </div>
         </div>
     </EditForm>
@@ -104,7 +109,7 @@
             (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get configuration data.
-                _configuration = (await Http.GetFromJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
+                _configuration = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
                 Notifier.UpdateData(GXPages.Configuration, _configuration);
                 _configuration.Modified = true;
             }

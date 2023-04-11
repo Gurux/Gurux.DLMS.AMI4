@@ -186,7 +186,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXModule>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXModule>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXModule>(q => q.Id);
+            }
             List<GXModule> modules = (await _host.Connection.SelectAsync<GXModule>(arg)).ToList();
             if (status != null)
             {
@@ -242,7 +250,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var module = await _host.Connection.SingleOrDefaultAsync<GXModule>(arg);
             if (module == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get script and methods.
             arg = GXSelectArgs.Select<GXScript>(s => new {s.Id, s.Name }, w => w.Module == module);

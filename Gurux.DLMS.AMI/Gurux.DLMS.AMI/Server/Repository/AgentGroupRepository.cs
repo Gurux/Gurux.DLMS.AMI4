@@ -180,8 +180,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXAgentGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXAgentGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXAgentGroup>(q => q.CreationTime);
+            }
             GXAgentGroup[] groups = (await _host.Connection.SelectAsync<GXAgentGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -217,15 +225,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXAgentGroup>(e => e.Agents);
             arg.Distinct = true;
-            GXAgent Agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(arg);
-            if (Agent == null)
+            var group = await _host.Connection.SingleOrDefaultAsync<GXAgentGroup>(arg);
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = await _host.Connection.SingleOrDefaultAsync<GXAgentGroup>(arg);
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get agents that belongs for this agent group.
@@ -233,7 +236,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
             arg.Where.And<GXAgentGroupAgent>(q => q.Removed == null && q.AgentGroupId == id);
-            ret.Agents = await _host.Connection.SelectAsync<GXAgent>(arg);
+            group.Agents = await _host.Connection.SelectAsync<GXAgent>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this agent group.
@@ -241,15 +244,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupAgentGroup>(q => q.Removed == null && q.AgentGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
             ////////////////////////////////////////////////////
             //Get device groups.
             arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
             arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.AgentGroupId == id);
-            ret.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
-            return ret;
+            group.DeviceGroups = await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

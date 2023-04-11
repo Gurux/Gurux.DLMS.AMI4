@@ -117,9 +117,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<IEnumerable<GXRole>>>(this, nameof(IGXHubEvents.RoleUpdate), (roles) =>
+            Notifier.On<IEnumerable<IEnumerable<GXRole>>>(this, nameof(IGXHubEvents.RoleUpdate), async (roles) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });

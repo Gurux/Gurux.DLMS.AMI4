@@ -167,7 +167,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -181,7 +180,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXLanguage>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXLanguage>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXLanguage>(q => q.Id);
+                arg.Descending = true;
+            }
+
             GXLanguage[] languages = (await _host.Connection.SelectAsync<GXLanguage>(arg)).ToArray();
             if (request != null && request.Filter != null && !string.IsNullOrEmpty(request.Filter.Id) &&
                 languages.Any())

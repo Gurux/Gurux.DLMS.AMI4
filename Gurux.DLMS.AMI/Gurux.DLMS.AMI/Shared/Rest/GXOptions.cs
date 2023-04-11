@@ -38,7 +38,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Get configuration settings.
     /// </summary>
     [DataContract]
-    public class ListOptions : IGXRequest<ListConfiqurationResponse>
+    public class ListOptions : IGXRequest<ListConfigurationResponse>
     {
         /// <summary>
         /// Configuration.

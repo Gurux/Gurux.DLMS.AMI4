@@ -147,7 +147,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get componentView group data.
-                _active = (await Http.GetFromJsonAsync<GetComponentViewGroupResponse>(string.Format("api/ComponentViewGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetComponentViewGroupResponse>(string.Format("api/ComponentViewGroup?id={0}", _active.Id))).Item;
                 Notifier.UpdateData(GXPages.ComponentViewGroups, _active);
                 _active.Modified = true;
             }

@@ -97,7 +97,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, 
+        public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<Guid> attributers,
             bool delete)
         {
@@ -164,8 +164,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXAttribute>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXAttribute>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXAttribute>(q => q.Id);
+            }
             GXAttribute[] attributes = (await _host.Connection.SelectAsync<GXAttribute>(arg)).ToArray();
             if (response != null)
             {
@@ -191,7 +199,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXAttribute obj = await _host.Connection.SingleOrDefaultAsync<GXAttribute>(arg);
             if (obj == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get attribute parameters.
             arg = GXSelectArgs.SelectAll<GXAttributeParameter>(w => w.Attribute == obj && w.Removed == null);

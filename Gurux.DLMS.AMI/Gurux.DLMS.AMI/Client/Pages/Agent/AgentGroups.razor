@@ -1,4 +1,5 @@
 ﻿@page "/agentgroups"
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -21,90 +22,59 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-    <p>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-            <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-            @Properties.Resources.ShowRemoved
+<GXTable @ref="table"
+         Context="group"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
         </AuthorizeView>
-    </p>
-}
-
-<table class="table table-striped">
-    <thead>
-        @if (Filter)
-        {
-            <tr>
-                <th>
-                    <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-                <th>
-                    <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-                </th>
-            </tr>
-        }
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="group" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(group)) @onclick="@(()=>RowSelected(group))">
-                    <td>@group.Name</td>
-                    <td>@group.CreationTime</td>
-                    <td>@group.Updated</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-                        @if (_active == group)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@group.Name</td>
+        <td>@group.CreationTime</td>
+        <td>@group.Updated</td>
+    </ItemContent>
+</GXTable>
 <br />
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
 @code {
     /// <inheritdoc />
     public string Name
@@ -151,12 +121,10 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-
-    internal int Total
-    {
-        get;
-        private set;
-    }
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    private GXTable<GXAgentGroup>? table;
 
     /// <summary>
     /// Agent group filter.
@@ -165,32 +133,24 @@
     /// <summary>
     /// User is verified before agent is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
-    /// <summary>
-    /// Virtualize.
-    /// </summary>
-    protected Virtualize<GXAgentGroup>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXAgentGroup? _active;
-    /// <summary>
-    /// Are removed items shown for the admin.
-    /// </summary>
-    bool ShowRemoved;
+    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
-    /// Update virtualized items.
+    /// User is verified before groups are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
+
+    /// <summary>
+    /// Update table.
     /// </summary>
-    protected async void Updated()
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -199,20 +159,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXAgentGroup group)
-    {
-        return _active != null && group.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXAgentGroup selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.AgentGroups, _active);
-    }
-
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -221,15 +171,22 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Return last selected item.
-            _active = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroups);
-            Notifier.On<IEnumerable<GXAgentGroup>>(this, nameof(IGXHubEvents.AgentGroupUpdate), (groups) =>
+            Notifier.On<IEnumerable<GXAgentGroup>>(this, nameof(IGXHubEvents.AgentGroupUpdate), async (groups) =>
             {
-                Task.Run(Updated);
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXAgentGroup>>(this, nameof(IGXHubEvents.AgentGroupDelete), async (agents) =>
+            {
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.AgentGroups, _active);
+            if (table != null)
+            {
+                //Return last selected item.
+                table.Active = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroups);
+                Notifier.ChangePage(GXPages.AgentGroups, table.Active);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -241,13 +198,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(GXItemsProviderRequest request)
     {
         try
         {
             //Don't clear status or error is lost.
             Notifier?.ProgressStart();
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -255,32 +212,26 @@
             {
                 filter.Removed = null;
             }
-            ListAgentGroups req = new ListAgentGroups() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListAgentGroups req = new ListAgentGroups()
+                {
+                    AllUsers = true,
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the agent errors.
-            if (Total != 0)
-            {
-                ret.Count = Total;
-            }
             return new ItemsProviderResult<GXAgentGroup>(ret.AgentGroups, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -323,11 +274,12 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.ChangePage(GXPages.AgentGroups, table.Active);
             Notifier.Title = "Edit agent group";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/agentgrouptab");
@@ -342,7 +294,6 @@
         }
     }
 
-
     /// <summary>
     /// Remove selected agent group.
     /// </summary>
@@ -350,14 +301,38 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove agent group";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/agentgrouptab");
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected agent groups.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveAgentGroup req = new RemoveAgentGroup()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveAgentGroupResponse>("api/AgentGroup/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

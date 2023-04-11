@@ -99,9 +99,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<IEnumerable<GXLanguage>>>(this, nameof(IGXHubEvents.LanguageUpdate), (languages) =>
+            Notifier.On<IEnumerable<IEnumerable<GXLanguage>>>(this, nameof(IGXHubEvents.LanguageUpdate), async (languages) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Refresh, Icon = "oi oi-reload", OnClick = OnRefresh });

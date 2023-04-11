@@ -26,68 +26,38 @@
     </MenuControl>
 </AuthorizeView>
 
-@if (Filter)
-{
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-        </ChildContent>
-    </MenuControl>
-    <p>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-            <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-            @Properties.Resources.ShowRemoved
-        </AuthorizeView>
-    </p>
+<GXTable @ref="table" Context="componentView" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
 
-    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-}
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th width="1%"></th>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.Type</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="componentView" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(componentView)) @onclick="@(()=>RowSelected(componentView))">
-                    <td><span class="@componentView.Icon" aria-hidden="true"></span></td>
-                    <td>@componentView.Name</td>
-                    <td>@componentView.ClassName</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewManager)>
-                        @if (_active == componentView)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewManager)>
+            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <th>@Properties.Resources.Name</th>
+        <th>@Properties.Resources.Type</th>
+    </HeaderContent>
+    <ItemContent>
+        <td><span class="@componentView.Icon" aria-hidden="true"></span></td>
+        <td>@componentView.Name</td>
+        <td>@componentView.ClassName</td>
+    </ItemContent>
+</GXTable>
 <br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
 @code {
     /// <inheritdoc />
     public string Name
@@ -135,46 +105,30 @@
     public bool Title { get; set; } = true;
 
     /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
-    /// <summary>
     /// ComponentView filter.
     /// </summary>
     private GXComponentView filter = new GXComponentView();
     /// <summary>
     /// User is verified before componentView is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
-    /// <summary>
-    /// Virtualize.
-    /// </summary>
-    protected Virtualize<GXComponentView>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXComponentView? _active;
-    /// <summary>
-    /// Are removed items shown for the admin.
-    /// </summary>
-    bool ShowRemoved;
+    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
-    /// Update virtualized items.
+    /// Table reference.
     /// </summary>
-    protected async void Updated()
+    protected GXTable<GXComponentView>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -183,20 +137,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXComponentView componentView)
+    protected override async Task OnInitializedAsync()
     {
-        return _active != null && componentView.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXComponentView selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.ComponentViews, _active);
-    }
-
-    protected override void OnInitialized()
-    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -205,15 +149,18 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get last selected item.
-            _active = (GXComponentView?)Notifier.GetData(GXPages.ComponentViews);
-            Notifier.On<IEnumerable<GXComponentView>>(this, nameof(IGXHubEvents.ComponentViewUpdate), (componentViews) =>
+            Notifier.On<IEnumerable<GXComponentView>>(this, nameof(IGXHubEvents.ComponentViewUpdate), async (componentViews) =>
             {
-                Updated();
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.ComponentViews, _active);
+            //Get last selected item.
+            if (table != null)
+            {
+                table.Active = (GXComponentView?)Notifier.GetData(GXPages.ComponentViews);
+            }
+            Notifier.ChangePage(GXPages.ComponentViews, table?.Active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -225,13 +172,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXComponentView>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXComponentView>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -239,32 +186,25 @@
             {
                 filter.Removed = null;
             }
-            ListComponentViews req = new ListComponentViews() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListComponentViews req = new ListComponentViews()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the block groups.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXComponentView>(ret.ComponentViews, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -280,7 +220,7 @@
     /// <summary>
     /// Refresh new component views.
     /// </summary>
-    public async void OnRefresh()
+    public async Task OnRefresh()
     {
         try
         {
@@ -289,7 +229,7 @@
             var ret = await Http.PostAsJson<RefreshComponentViewResponse>("api/ComponentView/Refresh", req);
             if (ret.NewItems)
             {
-                Updated();
+                await Updated();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -305,16 +245,16 @@
     /// <summary>
     /// Edit componentView.
     /// </summary>
-
     public void OnEdit()
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.ComponentViews, table.Active);
             Notifier.Title = "Edit ComponentView";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/componentViewtab");
@@ -329,23 +269,45 @@
         }
     }
 
-
     /// <summary>
-    /// Remove selected componentView.
+    /// Remove selected component views.
     /// </summary>
-
     public void OnRemove()
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove Component view";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/componentViewtab");
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected component views.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveScriptGroup req = new RemoveScriptGroup()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveScriptGroupResponse>("api/ComponentView/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

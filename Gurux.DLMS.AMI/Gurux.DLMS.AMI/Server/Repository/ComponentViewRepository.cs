@@ -166,7 +166,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXComponentView>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXComponentView>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXComponentView>(q => q.Id);
+            }
             GXComponentView[] componentViews = (await _host.Connection.SelectAsync<GXComponentView>(arg)).ToArray();
             if (response != null)
             {

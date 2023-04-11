@@ -190,8 +190,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXScriptGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXScriptGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXScriptGroup>(q => q.CreationTime);
+            }
             GXScriptGroup[] groups = (await _host.Connection.SelectAsync<GXScriptGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -227,15 +235,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXScriptGroup>(e => e.Scripts);
             arg.Distinct = true;
-            GXScript Script = await _host.Connection.SingleOrDefaultAsync<GXScript>(arg);
-            if (Script == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXScriptGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXScriptGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get scripts that belongs for this script group.
@@ -243,7 +246,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScriptGroupScript, GXScript>(j => j.ScriptId, j => j.Id);
             arg.Where.And<GXScriptGroupScript>(q => q.Removed == null && q.ScriptGroupId == id);
-            ret.Scripts = await _host.Connection.SelectAsync<GXScript>(arg);
+            group.Scripts = await _host.Connection.SelectAsync<GXScript>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this script group.
@@ -251,8 +254,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupScriptGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupScriptGroup>(q => q.Removed == null && q.ScriptGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

@@ -168,7 +168,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXTrigger>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXTrigger>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXTrigger>(q => q.Id);
+            }
+
             GXTrigger[] triggers = (await _host.Connection.SelectAsync<GXTrigger>(arg)).ToArray();
             //Get trigger activities.
             foreach (var trigger in triggers)
@@ -217,7 +226,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXTrigger trigger = await _host.Connection.SingleOrDefaultAsync<GXTrigger>(arg);
             if (trigger == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return trigger;
         }

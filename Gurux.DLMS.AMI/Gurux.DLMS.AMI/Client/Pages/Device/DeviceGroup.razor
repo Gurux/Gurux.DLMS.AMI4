@@ -145,7 +145,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get device group data.
-                _active = (await Http.GetFromJsonAsync<GetDeviceGroupResponse>(string.Format("api/DeviceGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetDeviceGroupResponse>(string.Format("api/DeviceGroup?id={0}", _active.Id)))?.Item;
                 Notifier.UpdateData(GXPages.DeviceGroups, _active);
                 _active.Modified = true;
             }

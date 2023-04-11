@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -18,20 +18,20 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS" Version="9.0.2302.2001" />
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2303.2201" />
     <PackageReference Include="Gurux.DLMS.AMI.Update" Version="4.0.2211.1701" />
     <PackageReference Include="Gurux.Net" Version="8.4.2302.904" />
     <PackageReference Include="Gurux.Serial" Version="8.4.2302.902" />
-    <PackageReference Include="Gurux.Service" Version="2.1.2302.1301" />
+    <PackageReference Include="Gurux.Service" Version="2.1.2304.1101" />
     <PackageReference Include="Gurux.Terminal" Version="8.4.2302.902" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.10" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="7.0.4" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.17.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.18.1" />
     <PackageReference Include="MySql.Data" Version="8.0.32.1" />
     <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.0" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.90" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.100" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.117" />
   </ItemGroup>

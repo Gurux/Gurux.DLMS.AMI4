@@ -22,96 +22,77 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TemplateManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-<MenuControl>
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-    </ChildContent>
-</MenuControl>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>
-            </th>
-            <th>
-                <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       type="text"
-                       @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
-            </th>
-        </tr>
-        <tr>
-            <th>@Properties.Resources.ObjectType</th>
-            <th>@Properties.Resources.Name</th>
-            <th>Logical Name</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="item" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(item)) @onclick="@(()=>RowSelected(item))">
-                    <td>@GetObjectType(item.Template.ObjectType)</td>
-                    <td>@item.Template.Name</td>
-                    <td>@item.Template.LogicalName</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                        @if (_active == item)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="item" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+        </th>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <th>@Properties.Resources.ObjectType</th>
+        <th>@Properties.Resources.Name</th>
+        <th>Logical Name</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@GetObjectType(item.Template.ObjectType)</td>
+        <td>@item.Template.Name</td>
+        <td>@item.Template.LogicalName</td>
+    </ItemContent>
+</GXTable>
 <br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
 @code {
     /// <summary>
     /// Object filter.
     /// </summary>
-    private GXObject filter = new GXObject();
+    private GXObject filter = new GXObject()
+        {
+            Template = new GXObjectTemplate()
+        };
+
     /// <summary>
     /// User is verified before schedule is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
-    /// <summary>
-    /// Virtualize.
-    /// </summary>
-    protected Virtualize<GXObject>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXObject? _active;
+    protected ConfirmBase? DeleteConfirmation;
 
     /// <summary>
-    /// Update virtualized items.
+    /// Table reference.
     /// </summary>
-    protected async void Updated()
+    protected GXTable<GXObject>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -126,20 +107,10 @@
         return ((Gurux.DLMS.Enums.ObjectType)value).ToString();
     }
 
-    protected string GetSelectedClass(GXObject value)
+    protected override async Task OnInitializedAsync()
     {
-        return _active != null && value.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXObject selected)
-    {
-        this._active = selected;
-        Notifier.UpdateData(GXPages.ObjectTemplates, selected);
-    }
-
-    protected override void OnInitialized()
-    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -148,26 +119,25 @@
             }
             Notifier.ClearStatus();
 
-            filter.Template = new GXObjectTemplate();
-            _active = (GXObject?)Notifier.GetData(GXPages.Objects);
-            if (_active == null)
+            table.Active = (GXObject?)Notifier.GetData(GXPages.Objects);
+            if (table.Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
+            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), async (objects) =>
             {
-                Updated();
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectDelete), (objects) =>
+            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectDelete), async (objects) =>
             {
-                Updated();
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), (attributes) =>
+            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), async (attributes) =>
             {
-                Updated();
+                await Updated();
             });
             Notifier.Clear();
-            Notifier.ChangePage(GXPages.Objects, _active);
+            Notifier.ChangePage(GXPages.Objects, table?.Active);
             Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -180,7 +150,7 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXObject>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
@@ -198,16 +168,8 @@
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -228,7 +190,7 @@
     {
         try
         {
-            Notifier?.ClearStatus();
+            Notifier.ClearStatus();
             Notifier.Title = "New object";
             Notifier.Action = CrudAction.Create;
             NavigationManager.NavigateTo("/deviceTemplate/");
@@ -251,14 +213,14 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.ObjectTemplates, table.Active);
             Notifier.Title = "Edit object";
             Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData("objecttemplates", _active);
             NavigationManager.NavigateTo("/deviceTemplate");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -280,15 +242,38 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove object";
-            Notifier.Action = CrudAction.Delete;
-            Notifier.UpdateData("objecttemplates", _active);
-            NavigationManager.NavigateTo($"/deviceTemplate/");
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Template?.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected object templates from the device template.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveObject req = new RemoveObject()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveObjectResponse>("api/Object/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

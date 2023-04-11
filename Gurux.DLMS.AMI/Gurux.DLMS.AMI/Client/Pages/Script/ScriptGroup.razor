@@ -146,7 +146,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get script data.
-                _active = (await Http.GetFromJsonAsync<GetScriptGroupResponse>(string.Format("api/ScriptGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetScriptGroupResponse>(string.Format("api/ScriptGroup?id={0}", _active.Id))).Item;
                 Notifier.ChangePage(GXPages.ScriptGroups, _active);
                 _active.Modified = true;
             }

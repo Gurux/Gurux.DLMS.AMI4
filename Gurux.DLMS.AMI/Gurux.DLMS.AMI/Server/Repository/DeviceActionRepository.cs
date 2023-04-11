@@ -92,7 +92,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -106,8 +105,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXDeviceAction>(q => q.CreationTime);
-
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXDeviceAction>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXDeviceAction>(q => q.CreationTime);
+            }
             //Actions are ignored from the device 
             //so there is no reference relation that is causing problems with JSON parser.
             arg.Columns.Exclude<GXDevice>(e => e.Actions);
@@ -136,7 +143,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDeviceAction deviceAction = (await _host.Connection.SingleOrDefaultAsync<GXDeviceAction>(arg));
             if (deviceAction == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return deviceAction;
         }

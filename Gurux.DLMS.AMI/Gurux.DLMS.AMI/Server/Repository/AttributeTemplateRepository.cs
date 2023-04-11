@@ -185,7 +185,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXAttributeTemplate obj = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg);
             if (obj == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return obj;
         }

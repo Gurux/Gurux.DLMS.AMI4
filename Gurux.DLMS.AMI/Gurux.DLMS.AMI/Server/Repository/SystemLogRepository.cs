@@ -85,9 +85,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(request.Filter);
             }
-            arg.OrderBy.Add<GXSystemLog>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXSystemLog>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXSystemLog>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -116,7 +124,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSystemLog log = await _host.Connection.SingleOrDefaultAsync<GXSystemLog>(arg);
             if (log == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return log;
         }

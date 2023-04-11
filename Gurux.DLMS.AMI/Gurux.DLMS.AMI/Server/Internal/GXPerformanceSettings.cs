@@ -51,7 +51,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         public GXPerformanceSettings(IGXHost host, IConfigurationRepository configurationRepository)
         {
             var User = ServerSettings.GetDefaultAdminUser(host);
-            ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Performance } };
+            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Performance } };
             GXConfiguration[] confs = configurationRepository.ListAsync(User, req, null, CancellationToken.None).Result;
             if (confs.Length == 1)
             {

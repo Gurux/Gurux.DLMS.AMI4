@@ -101,6 +101,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
+        /// <summary>
+        /// Delete device groups.
+        /// </summary>
         [HttpPost("Delete")]
         [Authorize(Policy = GXDeviceGroupPolicies.Delete)]
         public async Task<ActionResult<RemoveDeviceGroupResponse>> Post(RemoveDeviceGroup request)

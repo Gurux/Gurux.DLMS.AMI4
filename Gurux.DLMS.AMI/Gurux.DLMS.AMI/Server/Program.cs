@@ -409,7 +409,7 @@ if (appLifetime != null)
 IConfigurationRepository? configurationRepository = app.Services.GetService<IConfigurationRepository>();
 if (configurationRepository != null && host != null && host.Connection != null)
 {
-    ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = "Status" } };
+    ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = "Status" } };
     var cp = ServerSettings.GetDefaultAdminUser(host);
     if (cp != null)
     {

@@ -165,8 +165,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXObject>(q => q.Id);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXObject>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXObject>(q => q.Id);
+            }
             GXObject[] objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToArray();
             if (response != null)
             {
@@ -192,7 +200,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXObject obj = await _host.Connection.SingleOrDefaultAsync<GXObject>(arg);
             if (obj == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get attributes .
             arg = GXSelectArgs.SelectAll<GXAttribute>(w => w.Object == obj && w.Removed == null);

@@ -107,17 +107,17 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), () =>
+            Notifier.On(this, nameof(IGXHubEvents.ClearSystemLogs), async () =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), (errors) =>
+            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.AddSystemLogs), async (errors) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.CloseSystemLogs), (errors) =>
+            Notifier.On<IEnumerable<GXSystemLog>>(this, nameof(IGXHubEvents.CloseSystemLogs), async (errors) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             await GetActiveErrors();
         }

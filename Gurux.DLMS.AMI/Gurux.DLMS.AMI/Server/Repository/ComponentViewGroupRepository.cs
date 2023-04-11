@@ -193,8 +193,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            arg.OrderBy.Add<GXComponentViewGroup>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXComponentViewGroup>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXComponentViewGroup>(q => q.CreationTime);
+            }
             GXComponentViewGroup[] groups = (await _host.Connection.SelectAsync<GXComponentViewGroup>(arg)).ToArray();
             if (response != null)
             {
@@ -230,15 +238,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             arg.Columns.Exclude<GXComponentViewGroup>(e => e.ComponentViews);
             arg.Distinct = true;
-            GXComponentView ComponentView = await _host.Connection.SingleOrDefaultAsync<GXComponentView>(arg);
-            if (ComponentView == null)
+            var group = (await _host.Connection.SingleOrDefaultAsync<GXComponentViewGroup>(arg));
+            if (group == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
-            }
-            var ret = (await _host.Connection.SingleOrDefaultAsync<GXComponentViewGroup>(arg));
-            if (ret == null)
-            {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             ////////////////////////////////////////////////////
             //Get component views that belongs for this component view group.
@@ -246,7 +249,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXComponentViewGroupComponentView, GXComponentView>(j => j.ComponentViewId, j => j.Id);
             arg.Where.And<GXComponentViewGroupComponentView>(q => q.Removed == null && q.ComponentViewGroupId == id);
-            ret.ComponentViews = await _host.Connection.SelectAsync<GXComponentView>(arg);
+            group.ComponentViews = await _host.Connection.SelectAsync<GXComponentView>(arg);
 
             ////////////////////////////////////////////////////
             //Get user groups that belongs for this component view group.
@@ -254,8 +257,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroupComponentViewGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
             arg.Where.And<GXUserGroupComponentViewGroup>(q => q.Removed == null && q.ComponentViewGroupId == id);
-            ret.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
-            return ret;
+            group.UserGroups = await _host.Connection.SelectAsync<GXUserGroup>(arg);
+            return group;
         }
 
         /// <inheritdoc />

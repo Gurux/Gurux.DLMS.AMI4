@@ -1,5 +1,6 @@
 ﻿@page "/workflowgroups"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -21,83 +22,52 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowGroup)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@(async () => OnAdd())" />
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-<MenuControl>
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-    </ChildContent>
-</MenuControl>
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-    <p>
-        <input type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => ShowRemoved = @StatusTile.ToBoolean(__e.Value))" />
-        @Properties.Resources.ShowRemoved
-    </p>
-</AuthorizeView>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>
-                <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by update time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-        </tr>
-        <tr>
-            <th>@Properties.Resources.Name</th>
-            <th>@Properties.Resources.CreationTime</th>
-            <th>@Properties.Resources.Updated</th>
-            <th width="1%"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <Virtualize @ref="virtualize" Context="group" ItemsProvider="@GetItems">
-            <ItemContent>
-                <tr class=@(GetSelectedClass(group)) @onclick="@(()=>RowSelected(group))">
-                    <td>@group.Name</td>
-                    <td>@group.CreationTime</td>
-                    <td>@group.Updated</td>
-                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
-                        @if (_active == group)
-                        {
-                            <td>
-                                <ContextMenuController>
-                                    <ChildContent>
-                                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="async () => OnEdit()"></ContextMenuItem>
-                                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="async () => OnRemove()"></ContextMenuItem>
-                                    </ChildContent>
-                                </ContextMenuController>
-                            </td>
-                        }
-                        else
-                        {
-                            <td>&nbsp;&nbsp;&nbsp;</td>
-                        }
-                    </AuthorizeView>
-                </tr>
-            </ItemContent>
-            <Placeholder>
-                <p>
-                    @Properties.Resources.Loading&hellip;
-                </p>
-            </Placeholder>
-        </Virtualize>
-    </tbody>
-</table>
+<GXTable @ref="table" Context="group" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@group.Name</td>
+        <td>@group.CreationTime</td>
+        <td>@group.Updated</td>
+    </ItemContent>
+</GXTable>
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 <br />
 @code {
     /// <inheritdoc />
@@ -146,47 +116,29 @@
     public bool Title { get; set; } = true;
 
     /// <summary>
-    /// Total numbers of rows in the database.
-    /// </summary>
-    internal int Total
-    {
-        get;
-        private set;
-    }
-    /// <summary>
     /// Workflow group filter.
     /// </summary>
-    private GXWorkflowGroup filter = new GXWorkflowGroup();
+    private GXWorkflowGroup filter = new GXWorkflowGroup(null);
     /// <summary>
-    /// User is verified before workflow is removed.
+    /// User is verified before workflow group is removed.
     /// </summary>
-    protected ConfirmBase DeleteConfirmation;
+    protected ConfirmBase? DeleteConfirmation;
     /// <summary>
-    /// Virtualize.
+    /// Table reference.
     /// </summary>
-    protected Virtualize<GXWorkflowGroup>? virtualize;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    private GXWorkflowGroup? _active;
+    protected GXTable<GXWorkflowGroup>? table;
 
     /// <summary>
-    /// Are removed items shown for the admin.
+    /// Update table.
     /// </summary>
-    bool ShowRemoved;
-
-    /// <summary>
-    /// Update virtualized items.
-    /// </summary>
-    protected async void Updated()
+    protected async Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -195,20 +147,10 @@
         }
     }
 
-    protected string GetSelectedClass(GXWorkflowGroup group)
+    protected override async Task OnInitializedAsync()
     {
-        return _active != null && group.Id == _active.Id ? "table-info" : "table-striped";
-    }
-
-
-    protected void RowSelected(GXWorkflowGroup selected)
-    {
-        _active = selected;
-        Notifier.UpdateData(GXPages.WorkflowGroups, _active);
-    }
-
-    protected override void OnInitialized()
-    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -216,19 +158,22 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            //Get last selected item.
-            _active = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
-            Notifier.On<IEnumerable<GXWorkflowGroup>>(this, nameof(IGXHubEvents.WorkflowGroupUpdate), (groups) =>
+            Notifier.On<IEnumerable<GXWorkflowGroup>>(this, nameof(IGXHubEvents.WorkflowGroupUpdate), async (groups) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
-            Notifier.On<IEnumerable<GXWorkflowGroup>>(this, nameof(IGXHubEvents.WorkflowGroupDelete), (groups) =>
+            Notifier.On<IEnumerable<GXWorkflowGroup>>(this, nameof(IGXHubEvents.WorkflowGroupDelete), async (groups) =>
             {
-                Task.Run(Updated);
+                await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.WorkflowGroups, _active);
+            //Get last selected item.
+            if (table != null)
+            {
+                table.Active = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
+                Notifier.ChangePage(GXPages.WorkflowGroups, table.Active);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -240,13 +185,13 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXWorkflowGroup>> GetItems(ItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXWorkflowGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (ShowRemoved)
+            if (request.Removed)
             {
                 filter.Removed = DateTimeOffset.MaxValue;
             }
@@ -254,32 +199,25 @@
             {
                 filter.Removed = null;
             }
-            ListWorkflowGroups req = new ListWorkflowGroups() { Index = request.StartIndex, Count = request.Count, Filter = filter };
+            ListWorkflowGroups req = new ListWorkflowGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req, request.CancellationToken);
-            Total = ret.Count;
-            //Get only selected amount of the workflow groups.
-            if (Count != 0)
-            {
-                ret.Count = Count;
-            }
             return new ItemsProviderResult<GXWorkflowGroup>(ret.WorkflowGroups, ret.Count);
         }
         catch (TaskCanceledException)
         {
-            //Let the Virtualize component handle this
+            //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -323,11 +261,12 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            Notifier.ClearStatus();
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
+            Notifier.UpdateData(GXPages.WorkflowGroups, table.Active);
             Notifier.Title = "Edit workflow group";
             Notifier.Action = CrudAction.Update;
             NavigationManager.NavigateTo("/workflowgrouptab");
@@ -349,14 +288,38 @@
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (_active == null)
+            if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Remove workflow group";
-            Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/workflowgrouptab");
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected agent groups.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveWorkflowGroup req = new RemoveWorkflowGroup()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveWorkflowGroupResponse>("api/WorkflowGroup/Delete", req);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

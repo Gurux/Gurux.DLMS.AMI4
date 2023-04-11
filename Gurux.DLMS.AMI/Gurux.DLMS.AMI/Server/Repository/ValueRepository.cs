@@ -322,10 +322,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXValue>();
             arg.Distinct = true;
-            if (request != null)
-            {
-                arg.Descending = request.Descending;
-            }
             if (request != null && request.Filter != null)
             {
                 if (request.Filter.Attribute != null)
@@ -354,7 +350,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 arg.Where.FilterBy(request.Filter);
             }
-            arg.OrderBy.Add<GXValue>(o => o.Read);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXValue>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXValue>(o => o.Read);
+            }
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.

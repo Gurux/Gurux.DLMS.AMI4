@@ -147,7 +147,7 @@
                 (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
             {
                 //Get workflow data.
-                _active = (await Http.GetFromJsonAsync<GetWorkflowGroupResponse>(string.Format("api/WorkflowGroup?id={0}", _active.Id))).Item;
+                _active = (await Http.GetAsJsonAsync<GetWorkflowGroupResponse>(string.Format("api/WorkflowGroup?id={0}", _active.Id))).Item;
                 Notifier.ChangePage(GXPages.WorkflowGroups, _active);
                 _active.Modified = true;
             }

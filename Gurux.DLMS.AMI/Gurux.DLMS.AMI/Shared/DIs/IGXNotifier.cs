@@ -33,7 +33,6 @@
 using Gurux.DLMS.AMI.Shared.Models;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.Collections.ObjectModel;
-using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -49,6 +48,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Amount of the rows in the table.
+        /// </summary>
+        int RowsPerPage
+        {
+            get;
         }
 
         /// <summary>

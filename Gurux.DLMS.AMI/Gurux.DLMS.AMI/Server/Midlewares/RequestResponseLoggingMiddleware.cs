@@ -70,7 +70,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             _recyclableMemoryStreamManager = new RecyclableMemoryStreamManager();
             _configurationRepository = configurationRepository;
 
-            ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Statistic } };
+            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Statistic } };
             GXConfiguration[] confs = _configurationRepository.ListAsync(null, req, null, CancellationToken.None).Result;
             if (confs.Length == 1)
             {

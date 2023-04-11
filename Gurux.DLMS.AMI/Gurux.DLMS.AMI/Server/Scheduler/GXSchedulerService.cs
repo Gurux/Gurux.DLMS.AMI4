@@ -97,7 +97,7 @@ namespace Gurux.DLMS.AMI.Scheduler
         public async Task StartAsync(CancellationToken cancellationToken)
         {
             User = ServerSettings.GetDefaultAdminUser(_host);
-            ListConfiquration req = new ListConfiquration() { Filter = new GXConfiguration() { Name = GXConfigurations.Statistic } };
+            ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = GXConfigurations.Statistic } };
             GXConfiguration[] confs = _configurationRepository.ListAsync(User, req, null, CancellationToken.None).Result;
             if (confs.Length == 1)
             {

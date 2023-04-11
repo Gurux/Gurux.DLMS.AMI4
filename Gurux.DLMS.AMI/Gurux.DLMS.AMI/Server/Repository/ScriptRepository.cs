@@ -182,7 +182,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Distinct = true;
-            arg.Descending = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -196,7 +195,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.OrderBy.Add<GXScript>(q => q.CreationTime);
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXScript>(request.OrderBy);
+            }
+            else
+            {
+                arg.OrderBy.Add<GXScript>(q => q.CreationTime);
+                arg.Descending = true;
+            }
             GXScript[] scripts = (await _host.Connection.SelectAsync<GXScript>(arg)).ToArray();
             if (response != null)
             {
@@ -250,7 +258,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXScript script = await _host.Connection.SingleOrDefaultAsync<GXScript>(arg);
             if (script == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             return script;
         }
@@ -273,7 +281,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXScript saved = await _host.Connection.SingleOrDefaultAsync<GXScript>(arg);
             if (saved == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             bool changed = script.SourceCode != saved.SourceCode;
             if (!changed)
@@ -590,7 +598,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXScriptMethod method = _host.Connection.SingleOrDefault<GXScriptMethod>(arg);
             if (method == null || method.Script == null || method.Script.ByteAssembly == null)
             {
-                throw new ArgumentNullException(Properties.Resources.UnknownTarget);
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             GXAmiScript tmp = new(_serviceProvider);
             tmp.Claims = User;

@@ -979,7 +979,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXDeviceGroupPolicies.View, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceGroupManager } });
+                { Roles = new string[] { GXRoles.Admin, GXRoles.DeviceGroupManager, GXRoles.DeviceGroup } });
             });
             options.AddPolicy(GXDeviceGroupPolicies.Add, policy =>
             {
