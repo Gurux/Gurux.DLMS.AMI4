@@ -67,7 +67,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    throw new Exception(response.ReasonPhrase);
+                    //Throw HttpRequestException.
+                    response.EnsureSuccessStatusCode();
                 }
                 else if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
@@ -105,7 +106,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 throw new Exception("No content is returned from the server.");
             }
         }
-      
+
         public static async Task<T?> GetAsync<T>(string url)
         {
             HttpResponseMessage response = await GXAgentWorker.client.GetAsync(url);

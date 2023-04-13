@@ -34,6 +34,8 @@
 {
     <CascadingValue Value="this">
         <h3>@_object.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType) Object</h3>
+        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+
         <div class="row">
             <div style="width:100%">
                 @switch ((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType)
@@ -410,6 +412,81 @@
     }
 
     /// <summary>
+    /// Selected attributes.
+    /// </summary>
+    List<GXAttribute> selected = new List<GXAttribute>();
+
+    /// <summary>
+    /// Is attribute selected.
+    /// </summary>
+    /// <param name="attribute">Attribute</param>
+    /// <returns>True, if attribute is selected.</returns>
+    public bool IsSelected(GXAttribute attribute)
+    {
+        return selected.Contains(attribute);
+    }
+
+    /// <summary>
+    /// Select or de-select the attribute.
+    /// </summary>
+    /// <param name="attribute">Attribute.</param>
+    public void ToggleAttribute(GXAttribute attribute)
+    {
+        if (selected.Contains(attribute))
+        {
+            selected.Remove(attribute);
+        }
+        else
+        {
+            selected.Add(attribute);
+        }
+    }
+
+    /// <summary>
+    /// Are all attributes selected.
+    /// </summary>
+    /// <param name="selected">Selected item.</param>
+    /// <returns>True, if the row is selected.</returns>
+    protected string? IsSelected()
+    {
+        if (_object?.Attributes != null)
+        {
+            foreach (var it in _object.Attributes)
+            {
+                if (!selected.Contains(it))
+                {
+                    return null;
+                }
+            }
+        }
+        return "checked";
+    }
+
+    /// <summary>
+    /// Select or de-select the attributes.
+    /// </summary>
+    protected void ToggleRow(bool select)
+    {
+        if (_object?.Attributes != null)
+        {
+            foreach (var it in _object.Attributes)
+            {
+                if (select)
+                {
+                    if (!selected.Contains(it))
+                    {
+                        selected.Add(it);
+                    }
+                }
+                else if (selected.Contains(it))
+                {
+                    selected.Remove(it);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Only modified values are written.
     /// </summary>
     public async void OnWrite()
@@ -519,24 +596,25 @@
             {
                 throw new Exception("No item has been selected.");
             }
-            if (_object.Template.ObjectType == (int)ObjectType.ProfileGeneric)
+            if (_object?.Attributes != null)
             {
-                //Profile generic is a special case and it's read with object.
-                GXTask task = new GXTask()
-                    {
-                        Object = new GXObject() { Id = _object.Id },
-                        TaskType = TaskType.Read,
-                    };
-                tasks.Add(task);
-            }
-            else
-            {
+                List<GXAttribute> tmp = new List<GXAttribute>();
                 Guid? batch = null;
-                if (_object.Attributes.Count != 0)
+                if (!selected.Any())
+                {
+                    //Read all objects if no one is selected.
+                    tmp.AddRange(_object.Attributes);
+                }
+                else
+                {
+                    //Read selected objects.
+                    tmp.AddRange(selected);
+                }
+                if (tmp.Count != 1)
                 {
                     batch = Guid.NewGuid();
                 }
-                foreach (var it in _object.Attributes)
+                foreach (var it in tmp)
                 {
                     if (it.Template == null)
                     {

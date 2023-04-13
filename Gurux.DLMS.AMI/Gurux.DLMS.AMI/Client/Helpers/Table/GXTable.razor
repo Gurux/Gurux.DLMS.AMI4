@@ -488,7 +488,7 @@
         {
             current = Active.GetType().GetProperty("Id")?.GetValue(Active);
         }
-        return value.Equals(current) ? "table-info" : "table-striped";
+        return value != null && value.Equals(current) ? "table-info" : "table-striped";
     }
 
     /// <summary>

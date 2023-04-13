@@ -85,6 +85,11 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             if (ret.Succeeded)
             {
                 string groupName = Properties.Resources.Default + " for the " + user.UserName;
+                //Default group name can be max 32 chars.
+                if (groupName.Length > 31)
+                {
+                    groupName = groupName.Substring(0, 31);
+                }
                 _workflowHandler.Execute(typeof(UserTrigger), UserTrigger.Create, user);
                 string?[] roles;
                 //If admin has added the user.

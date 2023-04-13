@@ -42,7 +42,6 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.Admin;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -247,7 +246,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Exclude<GXTask>(e => e.Target);
                     arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                     arg.Columns.Exclude<GXObject>(e => new { e.Tasks, e.Attributes, e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
-                    arg.Columns.Exclude<GXAttribute>(e => new {e.Tasks, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
+                    arg.Columns.Exclude<GXAttribute>(e => new { e.Tasks, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
                     arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                     list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
                 }
@@ -267,7 +266,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Add<GXAttributeTemplate>();
                     arg.Columns.Exclude<GXTask>(e => e.Target);
                     arg.Columns.Exclude<GXObjectTemplate>(e => new { e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
-                    arg.Columns.Exclude<GXObject>(e => new { e.Tasks,  e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
+                    arg.Columns.Exclude<GXObject>(e => new { e.Tasks, e.CreationTime, e.LastError, e.LastErrorMessage, e.LastRead, e.LastAction, e.Updated });
                     arg.Columns.Exclude<GXAttribute>(e => new { e.Object, e.CreationTime, e.Read, e.LastWrite, e.LastAction, e.LastError, e.Updated, e.Value });
                     arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name, e.Weight });
                     list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
@@ -408,6 +407,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (it.Index == null)
                 {
                     it.Index = 0;
+                }
+                if (it.Order == null)
+                {
+                    it.Order = 0;
                 }
                 if (it.Device == null && it.Object == null && it.Attribute == null)
                 {

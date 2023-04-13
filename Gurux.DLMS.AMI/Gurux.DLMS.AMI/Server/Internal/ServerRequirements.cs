@@ -1314,8 +1314,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
             options.AddPolicy(GXObjectPolicies.View, policy =>
             {
                 policy.RequireAuthenticatedUser();
-                policy.Requirements.Add(new ScopeRequirement(GXObjectPolicies.View, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.User } });
+                policy.Requirements.Add(new ScopeRequirement(new string[] { GXObjectPolicies.View, GXObjectPolicies.Edit, GXObjectPolicies.Delete, GXObjectPolicies.Clear }, issuer)
+                {
+                    Roles = new string[] { GXRoles.Admin, GXRoles.User }
+                });
             });
             options.AddPolicy(GXObjectPolicies.Add, policy =>
             {

@@ -655,7 +655,7 @@
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             //If object attributes are not read yet.
-            if (_active.Attributes.Count == 0)
+            if (_active.Attributes == null || !_active.Attributes.Any())
             {
                 HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", _active.Id));
                 ClientHelpers.ValidateStatusCode(response);

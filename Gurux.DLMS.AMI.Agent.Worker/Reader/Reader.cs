@@ -39,6 +39,7 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System;
 using System.Globalization;
+using System.Reflection.PortableExecutable;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
@@ -183,15 +184,29 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 reaNextDay = false;
                 if (task.Object != null && obj.ObjectType == ObjectType.ProfileGeneric && task.Index == 2)
                 {
+                    //Get profile generic parameters if they are already read.
+                    GXObject? tmp;
+                    try
+                    {
+                        tmp = (await GXAgentWorker.client.GetAsJsonAsync<GetObjectResponse>("api/Object?id=" + task.Object.Id))?.Item;
+                        if (tmp == null)
+                        {
+                            tmp = task.Object;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        tmp = task.Object;
+                    }
                     //Add date time object so GXDLMSClient is not thrown an Capture objects not read-exception.
                     GXKeyValuePair<GXDLMSObject, GXDLMSCaptureObject> p = new GXKeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(new GXDLMSClock(), new GXDLMSCaptureObject(2, 0));
                     ((GXDLMSProfileGeneric)obj).CaptureObjects.Add(p);
-                    var start = GetBufferReadTime(task.Object);
-                    if (GetEntriesInUse(task.Object) > 1 && IsSortedByDateTime(task.Object))
+                    var start = GetBufferReadTime(tmp);
+                    if (GetEntriesInUse(tmp) > 1 && IsSortedByDateTime(tmp))
                     {
                         if (start != null)
                         {
-                            int period = GetCapturePeriod(task.Object);
+                            int period = GetCapturePeriod(tmp);
                             if (period == -1)
                             {
                                 throw new Exception("Invalid capture period.");
@@ -215,10 +230,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 //Max 24 hours is read at once.
                                 end = start.Value.DateTime.AddDays(1);
                             }
+                            if (end < start)
+                            {
+                                end = end.AddSeconds(period);
+                            }
                             //Read empty days until present time.
                             do
                             {
-                                logger?.LogError($"Reading {obj} {start} - {end}", obj, start, end);
+                                logger?.LogInformation($"Reading {obj} {start} - {end}", obj, start, end);
                                 val = reader.ReadRowsByRange((GXDLMSProfileGeneric)obj, start.Value.DateTime, end);
                                 if (val != null)
                                 {
@@ -255,7 +274,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                             }
                                         }
                                     };
-                                    await GXAgentWorker.client.PostAsJson("/api/value/Add", v);
+                                    await GXAgentWorker.client.PostAsJson("api/value/Add", v);
                                 }
                                 start = end;
                                 end = end.AddDays(1);
@@ -278,7 +297,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 //If FIFO
                                 if (sm == 1)
                                 {
-                                    UInt32 cnt = (UInt32) (GetEntriesInUse(task.Object));
+                                    UInt32 cnt = (UInt32)(GetEntriesInUse(task.Object));
                                     val = null;
                                     while (cnt != 0)
                                     {

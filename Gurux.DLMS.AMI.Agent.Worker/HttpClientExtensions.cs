@@ -69,5 +69,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 Helpers.ValidateStatusCode(response);
             }
         }
+
+        public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
+            Helpers.ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<RET>();
+            if (ret == null)
+            {
+                throw new Exception("Invalid reply.");
+            }
+            return ret;
+        }
     }
 }

@@ -45,12 +45,12 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <summary>
         /// Scope.
         /// </summary>
-        public string Scope { get; }
+        public string[] Scopes { get; }
 
         /// <summary>
         /// Allowed roles.
         /// </summary>
-        public string[] Roles
+        public string[]? Roles
         {
             get;
             set;
@@ -64,13 +64,28 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <exception cref="ArgumentNullException"></exception>
         public ScopeRequirement(string scope, string issuer)
         {
-            Scope = scope ?? throw new ArgumentNullException(nameof(scope));
+            if (string.IsNullOrEmpty(scope))
+            {
+                throw new ArgumentNullException(nameof(scope));
+            }
+            Scopes = new string[] { scope };
+            Issuer = issuer ?? throw new ArgumentNullException(nameof(issuer));
+        }
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="scopes">Allowed scopes.</param>
+        /// <param name="issuer">Allowed role.</param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public ScopeRequirement(string[] scopes, string issuer)
+        {
+            Scopes = scopes ?? throw new ArgumentNullException(nameof(scopes));
             Issuer = issuer ?? throw new ArgumentNullException(nameof(issuer));
         }
     }
 
     internal class ScopedAccessHandler : AuthorizationHandler<ScopeRequirement>
-    {   
+    {
         protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ScopeRequirement requirement)
         {
             if (requirement.Roles != null)
@@ -91,10 +106,14 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
 
             // Split the scopes string into an array.
-            var tmp = context.User.FindFirst(c => c.Type == "scope" && c.Value == requirement.Scope);
-            if (tmp != null)
+            foreach (var scope in requirement.Scopes)
             {
-                context.Succeed(requirement);
+                var tmp = context.User.FindFirst(c => c.Type == "scope" && c.Value == scope);
+                if (tmp != null)
+                {
+                    context.Succeed(requirement);
+                    break;
+                }
             }
             return Task.CompletedTask;
         }

@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Name of the schedule group.
         /// </summary>
         [DataMember]
-        [StringLength(32)]
+        [StringLength(64)]
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]

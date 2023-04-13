@@ -2,9 +2,10 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
-@using Gurux.DLMS.Enums;
+@using Gurux.DLMS.Enums
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-@using System.Globalization;
+@using System.Globalization
+@using Gurux.DLMS.AMI.Client.Helpers.Switch
 
 <CascadingValue Value="this">
     <div style="width:100%">
@@ -17,6 +18,7 @@
                 }
                 else
                 {
+                    <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
                     <label>@Index @Name</label>
                 }
                 @if (Attribute != null && Attribute.Modified)
@@ -43,15 +45,14 @@
             @if (@Attribute.Template.DataType == (int)Gurux.DLMS.Enums.DataType.Boolean)
             {
                 <div class="form-group">
-                    <input type="checkbox" class="form-check-input" checked="@IsChecked()" disabled="@IsDisabled()"
-                   @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, Convert.ToBoolean(__e.Value)))"
-                           id="boolCb" />
-                    <label class="form-check-label" for="boolCb">@Attribute.Template.Index @Attribute.Template.Name</label>
-                    @if (Attribute != null && Attribute.Modified)
-                    {
-                        <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" blue-color />
-                    }
-                    &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    <Switch Text="@(Attribute.Template.Index + " " + Attribute.Template.Name)" Checked="@IsChecked()" Disabled="@IsDisabled()">
+                        @if (Attribute != null && Attribute.Modified)
+                        {
+                            <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" blue-color />
+                        }
+                        &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    </Switch>
                 </div>
             }
             else @if (@Attribute.Template.ListItems != null && @Attribute.Template.ListItems.Any())
@@ -99,6 +100,7 @@
                 <div class="form-group">
                     <div style="display: inline;">
                         <Tooltip Title="@LastRead">
+                            <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
                             <label>@GetName()</label>
                             @if (Attribute != null && Attribute.Modified)
                             {
@@ -107,8 +109,11 @@
                             &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                         </Tooltip>
                     </div>
-                    <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetValue2(@Attribute)"
+                    @if (!HideValue)
+                    {
+                        <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetValue2(@Attribute)"
                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
+                    }
                 </div>
             }
         }
@@ -117,6 +122,9 @@
 </CascadingValue>
 
 @code {
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
 
     private string GetPath()
     {
@@ -140,6 +148,53 @@
             return Name;
         }
         return Attribute.Template.Index + " " + Attribute.Template.Name;
+    }
+
+    /// <summary>
+    /// Is attribute selected.
+    /// </summary>
+    /// <param name="selected">Selected item.</param>
+    /// <returns>True, if the row is selected.</returns>
+    protected string? IsSelected()
+    {
+        bool ret = false;
+        if (Attribute != null && Parent != null)
+        {
+            ret = Parent.IsSelected(Attribute);
+        }
+        if (ret)
+        {
+            return "checked";
+        }
+        return null;
+    }
+
+
+    /// <summary>
+    /// Select or de-select the attribute.
+    /// </summary>
+    /// <param name="selected">Selected item</param>
+    protected void ToggleRow(bool select)
+    {
+        if (Attribute != null && Parent != null)
+        {
+            Parent.ToggleAttribute(Attribute);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+            throw new ArgumentNullException(nameof(Parent), "Attribute item must exist within a object view.");
+
+        //Select attribute if it's not static or it's not read.
+        if (Attribute != null && (Attribute.Template != null &&
+            (Attribute.Template.ExpirationTime == null || Attribute.Template.ExpirationTime.Value.Year != DateTimeOffset.MaxValue.Year) ||
+        string.IsNullOrEmpty(Attribute.Value)))
+        {
+            Parent.ToggleAttribute(Attribute);
+        }
+        base.OnInitialized();
     }
 
     /// <summary>
@@ -233,10 +288,10 @@
             attribute.Modified = true;
             Updated.InvokeAsync(value);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             //TODO: Notify from the error.
-            Console.WriteLine(ex.Message);   
+            Console.WriteLine(ex.Message);
         }
     }
 
@@ -268,6 +323,12 @@
     }
     [Parameter]
     public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Value is hidden. Only the title and history are shown.
+    /// </summary>
+    [Parameter]
+    public bool HideValue { get; set; }
 
     /// <summary>
     /// Target attribute.

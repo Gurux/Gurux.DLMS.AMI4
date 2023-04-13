@@ -13,6 +13,12 @@
 
 @if (Target != null)
 {
+    <MenuControl>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Reset" Icon="oi oi-magnifying-glass" OnClick="@(async () => Reset())" />
+        </ChildContent>
+    </MenuControl>
+
     <CascadingValue Value="this">
         <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
@@ -22,93 +28,35 @@
         <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
         <hr />
-        <AttributeTile Index="2" Attributes="@Target.Attributes" Name="Buffer" Text="Buffer"></AttributeTile>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <td>
-                        <input class="form-control" placeholder="Filter by read time..."
-                           type="datetime-local"
-                           @onchange="@((ChangeEventArgs __e) => filter.Read = @StatusTile.ToDateTimeOffset(__e.Value))" />
-                    </td>
-                    <td>
-                        <MenuControl>
-                            <ChildContent>
-                                <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@(async () => Updated())" />
-                            </ChildContent>
-                        </MenuControl>
-                    </td>
-                    <td>
-                        <label>
-                            @Properties.Resources.Total @TotalCount
-                        </label>
-                    </td>
-                </tr>
-                <tr>
-                    @foreach (var it in captureObjectNames)
-                    {
-                        <th>@it.Key <br> @it.Value</th>
-                    }
-                </tr>
-            </thead>
-            <tbody>
-                @if (captureObjects != null)
+        <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+        <AttributeTile Index="2" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+        <GXTable @ref="table"
+             Context="row"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.None"
+             ShowRemoved="false"
+             Filter="false">
+            <FilterContent>
+            </FilterContent>
+            <MenuContent>
+            </MenuContent>
+            <HeaderContent>
+                @foreach (var it in captureObjectNames)
                 {
-                    <Virtualize @ref="virtualize" Context="row" ItemsProvider="@GetItems">
-                        <ItemContent>
-                            <tr class=@(GetSelectedClass(row)) @onclick="@(()=>RowSelected(row))">
-                                @ResetPos()
-                            @foreach (var it in row)
-                            {
-                                @if (it is byte[] bt)
-                                {
-                                    @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
-                                    {
-                                        <!--Show date time.-->
-                                        <td>
-                                            @GXDLMSClient.ChangeType(bt, DataType.DateTime,
-                            _templateSettings != null ? _templateSettings.UtcTimeZone : false)
-                                        </td>
-                                    }
-                                    else
-                                    {
-                                        <td>@GXDLMSTranslator.ToHex(bt)</td>
-                                    }
-                                }
-                                else
-                                {
-                                    <td>@Convert.ToString(it)</td>
-                                }
-                                IncreasePos();
-                            }
-                        </tr>
-                    </ItemContent>
-                    <Placeholder>
-                        <p>
-                            @Properties.Resources.Loading&hellip;
-                        </p>
-                    </Placeholder>
-                </Virtualize>
+                    <th Id="it.Key">@it.Key <br> @it.Value</th>
                 }
-            </tbody>
-        </table>
-        @ChildContent
+            </HeaderContent>
+            <ItemContent>
+                @foreach (var it in row)
+                {
+                    <td>@it</td>
+                }
+            </ItemContent>
+        </GXTable>
     </CascadingValue>
 }
 
 @code {
-
-    int pos = 0;
-    private string? ResetPos()
-    {
-        pos = 0;
-        return null;
-    }
-    private string? IncreasePos()
-    {
-        ++pos;
-        return null;
-    }
 
     [CascadingParameter]
     private ObjectView Parent { get; set; }
@@ -122,61 +70,54 @@
     /// Target COSEM object.
     ///</summary>
     [Parameter]
-    public GXObject Target { get; set; }
-
-    private object? _active = null;
-    protected string GetSelectedClass(object value)
-    {
-        return _active != null && value == _active ? "table-info" : "table-striped";
-    }
-
-    public void RowSelected(object selected)
-    {
-        _active = selected;
-    }
+    public GXObject? Target { get; set; }
 
     GXDLMSSettings? _templateSettings = null;
     private GXValue filter = new GXValue();
-    protected Virtualize<object[]>? virtualize;
     private GXObject[]? deviceObjects = null;
     private List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>> captureObjects = new();
+    /// <summary>
+    /// Logical name and description of the capture object.
+    /// </summary>
     private List<KeyValuePair<string, string>> captureObjectNames = new();
-
-    private string GetName(KeyValuePair<string, string> kp)
-    {
-        return "";
-    }
 
     private string GetShortObject()
     {
-        foreach (var it in Target.Attributes)
+        if (Target != null && Target.Attributes != null)
         {
-            if (it.Template != null && it.Template.Index == 6 && !string.IsNullOrEmpty(it.Value))
+            foreach (var it in Target.Attributes)
             {
-                GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
-                string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(tmp[1]);
-                if (str == "0.0.0.0.0.0")
+                if (it.Template != null && it.Template.Index == 6 && !string.IsNullOrEmpty(it.Value))
                 {
-                    return "";
+                    GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
+                    string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(tmp[1]);
+                    if (str == "0.0.0.0.0.0")
+                    {
+                        return "";
+                    }
+                    return str;
                 }
-                return str;
             }
         }
         return "";
     }
 
     /// <summary>
-    /// Update virtualized items.
+    /// Table reference.
+    /// </summary>
+    protected GXTable<object[]>? table;
+
+    /// <summary>
+    /// Update table.
     /// </summary>
     protected async System.Threading.Tasks.Task Updated()
     {
         try
         {
-            if (virtualize != null)
+            if (table != null)
             {
                 Notifier?.ClearStatus();
-                await virtualize.RefreshDataAsync();
-                StateHasChanged();
+                await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
@@ -184,7 +125,8 @@
             Notifier?.ProcessError(ex);
         }
     }
-    private async ValueTask<ItemsProviderResult<object[]>> GetItems(ItemsProviderRequest request)
+
+    private async ValueTask<ItemsProviderResult<object[]>> GetItems(GXItemsProviderRequest request)
     {
         try
         {
@@ -193,12 +135,27 @@
             List<object[]> rows = new();
             ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter, Descending = true };
             var ret = await Http.PostAsJson<ListValuesResponse>("api/Value/List", req, request.CancellationToken);
-            foreach (var it in ret.Values)
+            foreach (var row in ret.Values)
             {
-                if (!string.IsNullOrEmpty(it.Value))
+                if (!string.IsNullOrEmpty(row.Value))
                 {
-                    GXStructure s = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
-                    rows.Add(s.ToArray());
+                    GXStructure columns = (GXStructure)GXDLMSTranslator.XmlToValue(row.Value);
+                    for (int pos = 0; pos != columns.Count; ++pos)
+                    {
+                        @if (columns[pos] is byte[] bt)
+                        {
+                            @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                            {
+                                <!--Show date time.-->
+                                columns[pos] = GXDLMSClient.ChangeType(bt, DataType.DateTime, _templateSettings != null ? _templateSettings.UtcTimeZone : false);
+                            }
+                            else
+                            {
+                                columns[pos] = @GXDLMSTranslator.ToHex(bt);
+                            }
+                        }
+                    }
+                    rows.Add(columns.ToArray());
                 }
                 else
                 {
@@ -212,14 +169,6 @@
         {
             //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
@@ -294,6 +243,12 @@
             {
                 if (it.Template != null && it.Template.Index == 3)
                 {
+                    if (string.IsNullOrEmpty(it.Value))
+                    {
+                        //Read capture objects.
+                        var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
+                        it.Value = ret?.Value;
+                    }
                     if (!string.IsNullOrEmpty(it.Value))
                     {
                         GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(it.Value);
@@ -312,17 +267,17 @@
                                 foreach (var obj in deviceObjects)
                                 {
                                     if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
-                                        obj.Template.LogicalName == str)
+                                    obj.Template.LogicalName == str)
                                     {
                                         try
                                         {
                                             o = GXDLMSClient.CreateObject(ot);
                                             if (aIndex != -1)
                                             {
-                                                str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];                                                
+                                                str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
                                             }
                                         }
-                                        catch(Exception ex)
+                                        catch (Exception ex)
                                         {
                                             str += " " + ex.Message;
                                         }
@@ -345,20 +300,11 @@
                     break;
                 }
             }
-            await Updated();
         }
         catch (TaskCanceledException)
         {
             //Let the table component handle this.
             throw;
-        }
-        catch (OperationCanceledException)
-        {
-            //Might happen when the user scrolls the list rapidly.
-        }
-        catch (ObjectDisposedException)
-        {
-            //Might happen when the user scrolls the list rapidly.
         }
         catch (Exception ex)
         {
