@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfGXDLMSDevice xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Gurux1">
+  <GXDLMSDevice>
+    <Password />
+    <KeyAgreementScheme>0</KeyAgreementScheme>
+    <SystemTitle />
+    <ServerSystemTitle />
+    <DedicatedKey />
+    <BlockCipherKey />
+    <AuthenticationKey />
+    <Challenge />
+    <Signing>0</Signing>
+    <StartProtocol>DLMS</StartProtocol>
+    <MaxInfoTX>1010</MaxInfoTX>
+    <MaxInfoRX>1010</MaxInfoRX>
+    <MacDestinationAddress>0</MacDestinationAddress>
+    <PduSize>1007</PduSize>
+    <InactivityTimeout>10</InactivityTimeout>
+    <SignCipherOrder>0</SignCipherOrder>
+    <Name>Kamstrup-None</Name>
+    <Conformance>2631680</Conformance>
+    <Manufacturer>KAM</Manufacturer>
+    <HDLCAddressing>0</HDLCAddressing>
+    <UseProtectedRelease>false</UseProtectedRelease>
+    <SecurityChangeCheck>false</SecurityChangeCheck>
+    <MediaType>Gurux.Serial.GXSerial</MediaType>
+    <MediaSettings>&lt;Port&gt;COM8&lt;/Port&gt;</MediaSettings>
+    <UseLN>true</UseLN>
+    <Objects2>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.0.1.255</LogicalName>
+        <Description>Ch. 1 Electricity ID  #2</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.0.2.255</LogicalName>
+        <Description>Ch. 1 Electricity ID  #3</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.0.3.255</LogicalName>
+        <Description>Ch. 1 Electricity ID  #4</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.130.1.255</LogicalName>
+        <Description>Man. specific</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.130.2.255</LogicalName>
+        <Description>Man. specific</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.96.1.0.255</LogicalName>
+        <Description>Ch. 1 Metering point ID  #1</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.0.0.255</LogicalName>
+        <Description>Ch. 1 Electricity ID  #1</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.96.1.1.255</LogicalName>
+        <Description>Ch. 1 Metering point ID  #2</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.2.0.255</LogicalName>
+        <Description>Ch. 1 Active firmware identifier</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.2.2.128</LogicalName>
+        <Description>Man. specific</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>1.1.0.0.4.255</LogicalName>
+        <Description>Ch. 1 Electricity ID  #5</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSClock">
+        <Version>0</Version>
+        <LogicalName>0.1.1.0.0.255</LogicalName>
+        <Description>Ch. 1 Clock object  #1</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>3</Index>
+            <Access>0</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>4</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>5</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>6</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>7</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>8</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>9</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSSapAssignment">
+        <Version>0</Version>
+        <LogicalName>0.0.41.0.0.255</LogicalName>
+        <Description>Ch. 0 SAP Assignment</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSAssociationLogicalName">
+        <Version>0</Version>
+        <LogicalName>0.0.40.0.0.255</LogicalName>
+        <Description>Ch. 0 Current association</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>3</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>4</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>5</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>6</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>7</Index>
+            <Access>0</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>8</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSHdlcSetup">
+        <Version>1</Version>
+        <LogicalName>0.0.22.0.0.255</LogicalName>
+        <Description>Ch. 0 IEC HDLC setup</Description>
+        <Attributes>
+          <Item>
+            <Index>1</Index>
+            <Type>OctetString</Type>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>2</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>3</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>4</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>5</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>6</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>7</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>8</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>9</Index>
+            <Access>1</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+    </Objects2>
+  </GXDLMSDevice>
+</ArrayOfGXDLMSDevice>
