@@ -79,6 +79,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the traces.
                 arg = GXSelectArgs.SelectAll<GXDeviceTrace>();
+                arg.Joins.AddInnerJoin<GXDeviceTrace, GXDevice>(j => j.Device, j => j.Id);
             }
             else
             {

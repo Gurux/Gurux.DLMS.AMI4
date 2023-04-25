@@ -510,4 +510,22 @@
   <data name="Notifications" xml:space="preserve">
     <value>Notifications</value>
   </data>
+  <data name="Error" xml:space="preserve">
+    <value>Virhe</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>Ladataan...</value>
+  </data>
+  <data name="Updating" xml:space="preserve">
+    <value>Päivitetään...</value>
+  </data>
+  <data name="Restarting" xml:space="preserve">
+    <value>Käynnistetään uudelleen...</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agentti</value>
+  </data>
+  <data name="Id" xml:space="preserve">
+    <value>Id:</value>
+  </data>
 </root>

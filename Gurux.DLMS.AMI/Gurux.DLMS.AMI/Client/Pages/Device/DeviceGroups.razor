@@ -58,7 +58,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/DeviceGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -71,6 +71,12 @@
 </Confirm>
 <br />
 @code {
+    /// <summary>
+    /// Selected device group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -89,7 +95,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -166,11 +172,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (table != null)
-            {
-                //Get last selected item.
-                table.Active = (GXDeviceGroup?)Notifier.GetData(GXPages.DeviceGroups);
-            }
             Notifier.On<IEnumerable<GXDeviceGroup>>(this, nameof(IGXHubEvents.DeviceGroupUpdate), async (deviceGroup) =>
             {
                 await Updated();
@@ -181,7 +182,11 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.DeviceGroups, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXDeviceGroup() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -199,13 +204,22 @@
         Notifier?.ProgressStart();
         try
         {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
             ListDeviceGroups req = new ListDeviceGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -243,11 +257,7 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New device group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.DeviceGroups, new GXDeviceGroup(""));
-            NavigationManager.NavigateTo("/devicegrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -268,14 +278,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.DeviceGroups, table.Active);
-            Notifier.Title = "Edit device group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/devicegrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceGroup/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -339,7 +346,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceGroups);
         Notifier.RemoveListener(this);
     }
 }

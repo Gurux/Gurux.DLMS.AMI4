@@ -23,7 +23,19 @@
 @implements IGXComponentView
 
 
-<GXTable @ref="table" Context="agent" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="version" ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple" Filter="@Filter"
+         ShowAllUsers="false"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="Filter by version number..."
@@ -34,37 +46,18 @@
         <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <th>@Properties.Resources.Name</th>
+        <th>@Properties.Resources.Version</th>
+        <th>@Properties.Resources.CreationTime</th>
     </HeaderContent>
     <ItemContent>
-        <td>@agent.Name</td>
-        <tr style="width:100%">
-            <table class="table table-striped" style="width:100%">
-                <thead>
-                    <tr style="width:100%">
-                        <th style="display:table-cell; width:40%">@Properties.Resources.Version</th>
-                        <th style="display:table-cell; width:59%">@Properties.Resources.CreationTime</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (agent.Versions != null)
-                    {
-                        @foreach (var it in agent.Versions)
-                        {
-                            <tr>
-                                <td>@it.Number</td>
-                                <td>@it.CreationTime</td>
-                            </tr>
-                        }
-                    }
-                </tbody>
-            </table>
-            <hr />
-        </tr>
+        <td>@version.Number</td>
+        <td>@version.CreationTime</td>
     </ItemContent>
 </GXTable>
-<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-         ConfirmationMessage="">
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         AllowDelete="false"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 
 @code {
@@ -86,7 +79,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -96,7 +89,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the agents shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -133,7 +126,9 @@
     /// <summary>
     /// Table reference.
     /// </summary>
-    protected GXTable<GXAgent>? table;
+    protected GXTable<GXAgentVersion>? table;
+
+    private GXAgent? _active;
 
     /// <summary>
     /// Update table.
@@ -159,11 +154,11 @@
         await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (Notifier == null || filter.Versions == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            filter.Versions.Add(new GXAgentVersion());
+            filter.Versions.Add(new GXAgentVersion() { Active = null });
             Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), async (agents) =>
             {
                 await Updated();
@@ -174,12 +169,6 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
-            {
-                //Get last selected item.
-                table.Active = (GXAgent?)Notifier.GetData(GXPages.Agents);
-            }
-            Notifier.ChangePage(GXPages.Agents, table?.Active);
         }
         catch (Exception ex)
         {
@@ -187,27 +176,48 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXAgent>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXAgentVersion>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
+            if (filter.Versions != null && filter.Versions.Any())
+            {
+                if (request.Removed)
+                {
+                    filter.Versions[0].Removed = DateTimeOffset.MaxValue;
+                }
+                else
+                {
+                    filter.Versions[0].Removed = null;
+                }
+            }
             ListAgents req = new ListAgents()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
                 };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/Installers", req, request.CancellationToken);
-            ItemsProviderResult<GXAgent> value = new ItemsProviderResult<GXAgent>(ret.Agents, ret.Count);
-            return value;
+            if (ret.Agents == null || ret.Agents.Length != 1)
+            {
+                _active = null;
+                return default;
+            }
+            _active = ret.Agents[0];
+            if (_active.Versions == null)
+            {
+                _active = null;
+                return default;
+            }
+            return new ItemsProviderResult<GXAgentVersion>(_active.Versions, _active.Versions.Count);
         }
         catch (TaskCanceledException)
         {
@@ -236,7 +246,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => Properties.Resources.Version + " " + s.Number).ToArray());
         }
         catch (Exception ex)
         {
@@ -251,14 +261,17 @@
     {
         try
         {
-            if (table != null && args.Confirm)
+            if (args.Confirm && table != null && _active != null && _active.Versions != null)
             {
-                RemoveAgent req = new RemoveAgent()
+                foreach (var it in table.SingleOrDefault())
+                {
+                    _active.Versions.Remove(it);
+                }
+                UpdateAgent req = new UpdateAgent()
                     {
-                        Delete = args.Delete,
-                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                        Agents = new GXAgent[] { _active }
                     };
-                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete", req);
+                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Update", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -273,7 +286,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Agents);
         Notifier.RemoveListener(this);
     }
 }

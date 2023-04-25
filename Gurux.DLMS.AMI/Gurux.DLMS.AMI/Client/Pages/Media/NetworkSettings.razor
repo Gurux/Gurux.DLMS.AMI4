@@ -1,5 +1,4 @@
-﻿@page "/networksettings"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -8,6 +7,7 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Device
 
 @attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
 @inject IGXNotifier Notifier
@@ -38,8 +38,10 @@
 @code {
     Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] { Gurux.Net.NetworkType.Tcp, Gurux.Net.NetworkType.Udp };
 
-    private GXDevice _device;
-    private Gurux.Net.GXNet _net;
+    [CascadingParameter]
+    private Device? Parent { get; set; }
+
+    private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
     public string? HostName
     {
@@ -55,7 +57,10 @@
         set
         {
             _net.HostName = value;
-            _device.MediaSettings = _net.Settings;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _net.Settings;
+            }
         }
     }
 
@@ -72,7 +77,10 @@
         set
         {
             _net.Port = value;
-            _device.MediaSettings = _net.Settings;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _net.Settings;
+            }
         }
     }
 
@@ -89,7 +97,10 @@
         set
         {
             _net.Protocol = value;
-            _device.MediaSettings = _net.Settings;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _net.Settings;
+            }
         }
     }
 
@@ -97,10 +108,12 @@
     {
         try
         {
-            //Get device settings.
-            _device = (GXDevice)Notifier.GetData(GXPages.Device);
+            if (Parent?.Active == null)
+            {
+                throw new Exception("Unknown device.");
+            }
             _net = new Gurux.Net.GXNet();
-            _net.Settings = _device.MediaSettings;
+            _net.Settings = Parent.Active.MediaSettings;
         }
         catch (AccessTokenNotAvailableException exception)
         {

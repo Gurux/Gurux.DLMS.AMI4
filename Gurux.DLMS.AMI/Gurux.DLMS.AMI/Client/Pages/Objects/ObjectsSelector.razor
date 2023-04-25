@@ -1,4 +1,4 @@
-﻿@page "/objectsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="objects" />
@@ -24,6 +23,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
     List<GXObject> AllObjects = new List<GXObject>();
     List<GXObject> objects = new List<GXObject>();
 
@@ -52,19 +54,14 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListObjects req = new ListObjects()
                 {
                     Filter = new GXObject()
                 };
-            if (page == GXPages.ScheduleManage)
+            if (ScheduleParent != null && ScheduleParent.Active != null && ScheduleParent.Active.Objects != null)
             {
                 //Get selected objects.
-                GXSchedule? schedule = (GXSchedule?)Notifier.GetData(GXPages.Schedule);
-                if (schedule != null)
-                {
-                    objects = schedule.Objects;
-                }
+                objects = ScheduleParent.Active.Objects;
             }
             else
             {
@@ -78,7 +75,6 @@
                     AllObjects.Add(it);
                 }
             }
-            Notifier.ChangePage(GXPages.ObjectsSelector, null);
             Notifier.UpdateButtons();
         }
         catch (Exception ex)
@@ -89,11 +85,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.ObjectsSelector);
     }
 }
 

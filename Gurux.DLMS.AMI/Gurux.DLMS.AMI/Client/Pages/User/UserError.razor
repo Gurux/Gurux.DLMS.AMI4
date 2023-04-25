@@ -1,5 +1,4 @@
-﻿@page "/usererror"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -27,14 +26,14 @@
                 <div class="form-group">
                     <label>@Properties.Resources.ErrorSeverityLevel</label>
                     <input type="text" id="level" disabled="disabled"
-                       value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
                 </div>
                 @if (!string.IsNullOrEmpty(_active.StackTrace))
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.StackTrace</label>
                         <textarea id="Reply" @bind="_active.StackTrace" rows="10"
-                          readonly="readonly" class="form-control" />
+                                  readonly="readonly" class="form-control" />
                     </div>
                 }
                 @if (_active.User != null)
@@ -65,8 +64,17 @@
     </EditForm>
 }
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXUserError? _active;
-    private string SubmitText = "";
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,24 +87,17 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXUserError?)Notifier.GetData(GXPages.UserLogs);
-            if (_active == null)
+            if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            SubmitText = Notifier.Title;
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            //If user error is not read yet.
-            if (_active.User == null)
-            {
-                //Get user error data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/UserError?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXUserError>();
-            }
-            Notifier.ChangePage(GXPages.UserLogs, _active);
+            //Get user error data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/UserError?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = await response.Content.ReadFromJsonAsync<GXUserError>();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -117,7 +118,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

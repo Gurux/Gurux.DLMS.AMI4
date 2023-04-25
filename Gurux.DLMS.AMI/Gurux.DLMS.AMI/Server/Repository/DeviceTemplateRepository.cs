@@ -333,18 +333,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the device template groups where the device template is removed.</param>
         public void RemoveDevicesFromDeviceGroup(Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXDeviceTemplateGroupDeviceTemplate> list = new List<GXDeviceTemplateGroupDeviceTemplate>();
             foreach (var it in groups)
             {
-                list.Add(new GXDeviceTemplateGroupDeviceTemplate()
-                {
-                    DeviceTemplateId = deviceTemplateId,
-                    DeviceTemplateGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXDeviceTemplateGroupDeviceTemplate>(w => w.DeviceTemplateId == deviceTemplateId && w.DeviceTemplateGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
     }
 }

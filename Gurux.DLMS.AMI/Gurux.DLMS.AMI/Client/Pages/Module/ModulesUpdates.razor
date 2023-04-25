@@ -1,5 +1,4 @@
-﻿@page "/modulesupdates"
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -22,7 +21,14 @@
 {
     <PageTitle>@Properties.Resources.ModulesTitle</PageTitle>
 }
-<GXTable @ref="table" Context="module" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="module"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
@@ -83,7 +89,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -98,7 +104,7 @@
     protected ConfirmBase? RestartConfirmation;
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the modules shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -192,7 +198,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -219,7 +226,7 @@
 
     void OnClose(object sender)
     {
-        NavigationManager.NavigateTo("/module");
+        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/module");
     }
 
     /// <summary>
@@ -282,7 +289,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Modules);
         Notifier.RemoveListener(this);
     }
 }

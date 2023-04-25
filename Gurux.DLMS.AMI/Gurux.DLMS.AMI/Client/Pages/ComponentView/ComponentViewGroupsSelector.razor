@@ -1,4 +1,4 @@
-﻿@page "/componentviewgroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="componentViewGroups" />
@@ -24,6 +23,11 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+    [CascadingParameter]
+    private ComponentViewTab? ComponentViewParent { get; set; }
+
     List<GXComponentViewGroup> allComponentViewGroups = new List<GXComponentViewGroup>();
     List<GXComponentViewGroup> componentViewGroups = new List<GXComponentViewGroup>();
 
@@ -52,44 +56,30 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListComponentViewGroups req = new ListComponentViewGroups()
                 {
                     Filter = new GXComponentViewGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent?.Active?.ComponentViewGroups != null)
             {
                 //Add selected component view.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    componentViewGroups = userGroup.ComponentViewGroups;
-                }
-                else
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
+                componentViewGroups = UserGroupParent.Active.ComponentViewGroups;
+            }
+            else if (ComponentViewParent?.Active?.ComponentViewGroups != null)
+            {
+                //Add selected component view.
+                componentViewGroups = ComponentViewParent.Active.ComponentViewGroups;
             }
             else
             {
-                //Add selected component view.
-                GXComponentView? componentView = (GXComponentView?)Notifier.GetData(GXPages.ComponentView);
-                if (componentView != null)
-                {
-                    componentViewGroups = componentView.ComponentViewGroups;
-                }
-                else
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !componentViewGroups.Any();
-            Notifier.ChangePage(GXPages.ComponentViewGroupsSelector, null);
             var ret = await Http.PostAsJson<ListComponentViewGroupsResponse>("api/ComponentViewGroup/List", req);
             foreach (GXComponentViewGroup it in ret.ComponentViewGroups)
             {
                 //Add default groups when new workflow is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
+                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
                     !componentViewGroups.Where(q => q.Id == it.Id).Any())
                 {
                     componentViewGroups.Add(it);
@@ -108,11 +98,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.ComponentViewGroupsSelector);
     }
 }
 

@@ -63,13 +63,19 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td><span class=@(ClientHelpers.GetActiveDot(workflow.Active))></span>@workflow.Name</td>
+        <Td Path="@("/Config/Workflow/Edit/" + workflow.Id)"><span class=@(ClientHelpers.GetActiveDot(workflow.Active))></span>@workflow.Name</Td>
         <td>@workflow.CreationTime</td>
         <td>@workflow.Updated</td>
     </ItemContent>
 </GXTable>
 <br />
 @code {
+    /// <summary>
+    /// Selected workflow ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -88,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -98,7 +104,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the workflows shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -168,11 +174,10 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
+            if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = (GXWorkflow?)Notifier.GetData(GXPages.Workflows);
-                Notifier.ChangePage(GXPages.Workflows, table.Active);
+                table.Active = new GXWorkflow() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -205,7 +210,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -238,7 +244,7 @@
         Notifier?.ClearStatus();
         try
         {
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
@@ -268,13 +274,8 @@
     {
         try
         {
-            //Set workflow tab to zero so main page the default page.
-            Notifier.UpdateData(GXPages.WorkflowTab, 0);
             Notifier.ClearStatus();
-            Notifier.Title = "New Workflow";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Workflows, new GXWorkflow(null));
-            NavigationManager.NavigateTo("/workflowtab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Workflow/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -293,17 +294,12 @@
     {
         try
         {
-            //Set workflow tab to zero so main page the default page.
-            Notifier.UpdateData(GXPages.WorkflowTab, 0);
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Workflows, table.Active);
-            Notifier.Title = "Edit Workflow";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/workflowtab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Workflow/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -314,7 +310,6 @@
             Notifier?.ProcessError(ex);
         }
     }
-
 
     /// <summary>
     /// Remove selected workflow.
@@ -368,7 +363,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Workflows);
         Notifier.RemoveListener(this);
     }
 }

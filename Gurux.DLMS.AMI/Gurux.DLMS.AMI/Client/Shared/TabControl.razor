@@ -1,4 +1,6 @@
-﻿<CascadingValue Value="this">
+﻿@inject NavigationManager NavigationManager
+
+<CascadingValue Value="this">
     <div style="width:100%">
         @foreach (var row in GetButtonRows())
         {
@@ -6,7 +8,7 @@
                 @foreach (TabPage tabPage in row)
                 {
                     <button type="button"
-                    class="btn @GetButtonClass(tabPage)"
+                            class="btn @GetButtonClass(tabPage)"
                     @onclick=@( () => ActivatePage(tabPage) )>
                         @if (TabTextTemplate != null)
                         {
@@ -36,26 +38,28 @@
 </CascadingValue>
 
 @code {
-
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    public delegate void SelectionChangedEventHandler(int index);
+    /// <param name="page">Tab page.</param>
+    public delegate void SelectionChangedEventHandler(TabPage page);
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
     public int InitialTab { get; set; } = 0;
 
+    [Parameter]
+    public string? Active { get; set; }
+
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    [Parameter] public SelectionChangedEventHandler SelectionChanged { get; set; }
+    [Parameter] public SelectionChangedEventHandler? SelectionChanged { get; set; }
 
     [Parameter]
-    public RenderFragment<TabPage> TabTextTemplate { get; set; }
+    public RenderFragment<TabPage>? TabTextTemplate { get; set; }
 
     /// <summary>
     /// Split buttons for multipe rows.
@@ -83,13 +87,21 @@
     {
         tabPage.Index = Pages.Count;
         Pages.Add(tabPage);
-        if (InitialTab == 0 && Pages.Count == 1)
+        if (!string.IsNullOrEmpty(tabPage.Path) && tabPage.Path == Active)
         {
             ActivePage = tabPage;
         }
-        if (InitialTab != 0 && Pages.Count - 1 == InitialTab)
+        else
         {
-            ActivePage = Pages[InitialTab];
+            if (InitialTab == 0 && Pages.Count == 1)
+            {
+                ActivePage = tabPage;
+            }
+            if (InitialTab != 0 && Pages.Count - 1 == InitialTab)
+            {
+                ActivePage = Pages[InitialTab];
+            }
+
         }
         StateHasChanged();
     }
@@ -101,7 +113,11 @@
     void ActivatePage(TabPage page)
     {
         ActivePage = page;
-        SelectionChanged?.Invoke(page.Index);
+        if (!string.IsNullOrEmpty(page.Path))
+        {
+            NavigationManager.NavigateTo(page.Path);
+        }
+        SelectionChanged?.Invoke(page);
     }
 
     public void ActivatePage(int index)
@@ -109,7 +125,7 @@
         if (Pages.Count > index)
         {
             ActivePage = Pages[index];
-            SelectionChanged?.Invoke(ActivePage.Index);
+            SelectionChanged?.Invoke(ActivePage);
         }
     }
 }

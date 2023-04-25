@@ -67,7 +67,7 @@
     </HeaderContent>
     <ItemContent>
         <td>@trace.Device?.Name</td>
-        <td>@trace.CreationTime</td>
+        <Td Path="@("/DeviceTrace/Edit/" + trace.Id)">@trace.CreationTime</Td>
         <td>@GetDirection(trace)</td>
         <td>@trace.Frame</td>
     </ItemContent>
@@ -82,6 +82,18 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected device trace ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -100,12 +112,23 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
         {
             return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXDeviceTrace? Active
+    {
+        get
+        {
+            return table?.Active;
         }
     }
 
@@ -183,11 +206,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            object? data = Notifier.GetData(GXPages.DeviceTraces);
-            if (table != null)
-            {
-                table.Active = (GXDeviceTrace?)data;
-            }
             Notifier.On<IEnumerable<GXDeviceTrace>>(this, nameof(IGXHubEvents.DeviceTraceAdd), async (error) =>
             {
                 await Updated();
@@ -196,9 +214,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.DeviceTraces, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXDeviceTrace() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -222,7 +244,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -249,7 +272,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceTraces);
         Notifier.RemoveListener(this);
     }
 
@@ -265,9 +287,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.DeviceTraces, table.Active);
-            Notifier.Title = "Device trace";
-            NavigationManager.NavigateTo("/devicetrace");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceTrace/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {

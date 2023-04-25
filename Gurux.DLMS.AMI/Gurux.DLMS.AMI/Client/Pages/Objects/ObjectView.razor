@@ -1,5 +1,4 @@
-﻿@page "/objectview"
-@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -21,51 +20,45 @@
 @implements IDisposable
 @inject ILogger<ObjectView> logger
 
-@if (!string.IsNullOrEmpty(DeviceName))
-{
-    <p>
-        <div class="oi oi-tablet" style="display: inline;">
-            <h2 style="display: inline;">@DeviceName</h2>
-        </div>
-    </p>
-    <hr />
-}
-@if (_object != null && _object.Template != null)
+@if (Active?.Template != null)
 {
     <CascadingValue Value="this">
-        <h3>@_object.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType) Object</h3>
+        <h3>@Active.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType) Object</h3>
         <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
 
         <div class="row">
             <div style="width:100%">
-                @switch ((Gurux.DLMS.Enums.ObjectType)_object.Template.ObjectType)
+                @switch ((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType)
                 {
                     case ObjectType.Data:
-                        <DataView Target="_object"></DataView>
+                        <DataView Target="Active"></DataView>
                         break;
                     case ObjectType.Register:
-                        <RegisterView Target="_object"></RegisterView>
+                        <RegisterView Target="Active"></RegisterView>
                         break;
                     case ObjectType.ProfileGeneric:
-                        <ProfileGenericView Target="_object"></ProfileGenericView>
+                        <ProfileGenericView Target="Active"></ProfileGenericView>
                         break;
                     default:
-                        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@_object.Template.LogicalName"></AttributeTile>
-                        @foreach (var it in _object.Attributes.OrderBy(o => o.Template.Index))
+                        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
+                        @if (Active.Attributes != null)
                         {
-                            <AttributeTile Attribute="@it"></AttributeTile>
+                            @foreach (var it in Active.Attributes.OrderBy(o => o.Template.Index))
+                            {
+                                <AttributeTile Attribute="@it"></AttributeTile>
+                            }
                         }
                         break;
                 }
-                @if (_object.LastError != null)
+                @if (Active.LastError != null)
                 {
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(_object.LastError) + " " + _object.LastErrorMessage)"></AttributeTile>
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(Active.LastError) + " " + Active.LastErrorMessage)"></AttributeTile>
                 }
-                <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(_object.LastRead)"></AttributeTile>
-                <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(_object.LastWrite)"></AttributeTile>
-                @if (_object.LastAction != null)
+                <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(Active.LastRead)"></AttributeTile>
+                <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(Active.LastWrite)"></AttributeTile>
+                @if (Active.LastAction != null)
                 {
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(_object.LastAction)"></AttributeTile>
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(Active.LastAction)"></AttributeTile>
                 }
             </div>
         </div>
@@ -75,9 +68,41 @@
             </ChildContent>
         </MenuControl>
     </CascadingValue>
-    <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_object"></ParametersView>
+    <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
 }
 @code {
+    [CascadingParameter]
+    public Objects? Parent { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    GXObject? _active;
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXObject? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
     /// <summary>
     /// tasks to be performed;
     /// </summary>
@@ -86,16 +111,8 @@
     private ParametersView? ParametersView;
     private List<IGXParameter> Parameters = new List<IGXParameter>();
 
-    private GXObject? _object;
-    private string SubmitText;
-
-    /// <summary>
-    /// Device name.
-    /// </summary>
-    private string? DeviceName;
-
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     public List<MenuItem> MenuItems = new List<MenuItem>();
 
@@ -135,29 +152,19 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
-            if (device == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            DeviceName = device.Name;
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.Clear();
             Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.ValueUpdate), (attributes) =>
            {
                //Update attribute value and last read time if it has been changed.
-               if (_object != null)
+               if (Active != null)
                {
                    foreach (var it in attributes)
                    {
-                       if (it.Object != null && it.Object.Id == _object.Id)
+                       if (it.Object != null && it.Object.Id == Active.Id)
                        {
-                           foreach (var attribute in _object.Attributes)
+                           foreach (var attribute in Active.Attributes)
                            {
                                if (it.Id == attribute.Id)
                                {
@@ -175,31 +182,31 @@
            });
             Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
             {
-                if (_object != null)
+                if (Active != null)
                 {
                     foreach (var it in objects)
                     {
-                        if (it.Id == _object.Id)
+                        if (it.Id == Active.Id)
                         {
                             if (it.LastRead != null)
                             {
-                                _object.LastRead = it.LastRead;
+                                Active.LastRead = it.LastRead;
                             }
                             if (it.LastWrite != null)
                             {
-                                _object.LastWrite = it.LastWrite;
+                                Active.LastWrite = it.LastWrite;
                             }
                             if (it.LastAction != null)
                             {
-                                _object.LastAction = it.LastAction;
+                                Active.LastAction = it.LastAction;
                             }
                             if (it.LastError != null)
                             {
-                                _object.LastError = it.LastError;
+                                Active.LastError = it.LastError;
                             }
                             if (it.LastErrorMessage != null)
                             {
-                                _object.LastErrorMessage = it.LastErrorMessage;
+                                Active.LastErrorMessage = it.LastErrorMessage;
                             }
                             StateHasChanged();
                             break;
@@ -210,13 +217,13 @@
             Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), (attributes) =>
             {
                 //Update attribute value and last read time if it has been changed.
-                if (_object != null)
+                if (Active != null)
                 {
                     foreach (var it in attributes)
                     {
-                        if (it.Object != null && it.Object.Id == _object.Id)
+                        if (Active.Attributes != null && it.Object != null && it.Object.Id == Active.Id)
                         {
-                            foreach (var attribute in _object.Attributes)
+                            foreach (var attribute in Active.Attributes)
                             {
                                 if (it.Id == attribute.Id)
                                 {
@@ -238,11 +245,11 @@
             Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
            {
                //Notify user when read starts.
-               if (_object != null)
+               if (Active != null)
                {
                    foreach (var it in tasks)
                    {
-                       if (it.Object != null && it.Object.Id == _object.Id)
+                       if (it.Object != null && it.Object.Id == Active.Id)
                        {
                            //Show progress when the first task is added.
                            if (!PerformedTask.Any())
@@ -253,7 +260,7 @@
                            }
                            PerformedTask.Add(it.Id);
                        }
-                       else if (it.Attribute != null && _object.Attributes.Select(s => s.Id).Contains(it.Attribute.Id))
+                       else if (it.Attribute != null && Active.Attributes.Select(s => s.Id).Contains(it.Attribute.Id))
                        {
                            //Show progress when the first task is added.
                            if (!PerformedTask.Any())
@@ -270,7 +277,7 @@
             Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
            {
                //Notify user when read ends.
-               if (_object != null)
+               if (Active != null)
                {
                    foreach (var it in tasks)
                    {
@@ -294,25 +301,23 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            GXObject? obj = (GXObject?)Notifier.GetData(GXPages.Objects);
-            if (obj == null)
+            if (Active == null && Id != null)
+            {
+                //Get object data.
+                var tmp = (await Http.GetAsJsonAsync<GetObjectResponse>(string.Format("api/Object?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+            }
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            //If object attributes are not read yet.
-            if (obj.Attributes == null || !obj.Attributes.Any())
+            if (Active != null && Active.Parameters != null)
             {
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Object?id={0}", obj.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                obj = (await response.Content.ReadFromJsonAsync<GetObjectResponse>())?.Item;
-                Notifier.UpdateData(GXPages.Objects, obj);
+                Parameters.AddRange(Active.Parameters);
             }
-            _object = obj;
-            if (_object != null && _object.Parameters != null)
-            {
-                Parameters.AddRange(_object.Parameters);
-            }
-            Notifier.ChangePage(GXPages.Object, _object);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -335,19 +340,19 @@
     /// <returns></returns>
     public bool CanInvokeAction(int index)
     {
-        if (_object != null && _object.Template != null &&
-            _object.Template.ActionAccessLevels != null &&
-            _object.Template.ActionAccessLevels.Length >= index)
+        if (Active != null && Active.Template != null &&
+            Active.Template.ActionAccessLevels != null &&
+            Active.Template.ActionAccessLevels.Length >= index)
         {
-            if (_object.Template.ActionAccessLevels.StartsWith("0x"))
+            if (Active.Template.ActionAccessLevels.StartsWith("0x"))
             {
                 ++index;
-                return Convert.ToUInt16(_object.Template.ActionAccessLevels.Substring(index, 2)) != 0;
+                return Convert.ToUInt16(Active.Template.ActionAccessLevels.Substring(index, 2)) != 0;
             }
             else
             {
                 --index;
-                return Convert.ToUInt16(_object.Template.ActionAccessLevels.Substring(index, 1)) != 0;
+                return Convert.ToUInt16(Active.Template.ActionAccessLevels.Substring(index, 1)) != 0;
             }
         }
         return false;
@@ -361,7 +366,7 @@
         try
         {
             GXTask task = new GXTask();
-            task.Object = new() { Id = _object.Id };
+            task.Object = new() { Id = Active.Id };
             task.TaskType = TaskType.Action;
             task.Data = GXDLMSTranslator.ValueToXml(data);
             task.Index = index;
@@ -381,21 +386,16 @@
     {
         try
         {
-            if (Notifier == null)
+            if (Active == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            if (_object == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Update object parameters.
-            ParametersView?.UpdateSettings<GXObjectParameter>(_object.Parameters);
-            await Http.PostAsJson<UpdateDeviceResponse>("api/Object/Update", new UpdateObject() { Objects = new GXObject[] { _object } });
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ParametersView?.UpdateSettings<GXObjectParameter>(Active.Parameters);
+            await Http.PostAsJson<UpdateDeviceResponse>("api/Object/Update", new UpdateObject() { Objects = new GXObject[] { Active } });
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -449,9 +449,9 @@
     /// <returns>True, if the row is selected.</returns>
     protected string? IsSelected()
     {
-        if (_object?.Attributes != null)
+        if (Active?.Attributes != null)
         {
-            foreach (var it in _object.Attributes)
+            foreach (var it in Active.Attributes)
             {
                 if (!selected.Contains(it))
                 {
@@ -467,9 +467,9 @@
     /// </summary>
     protected void ToggleRow(bool select)
     {
-        if (_object?.Attributes != null)
+        if (Active?.Attributes != null)
         {
-            foreach (var it in _object.Attributes)
+            foreach (var it in Active.Attributes)
             {
                 if (select)
                 {
@@ -494,7 +494,7 @@
         try
         {
             List<GXTask> tasks = new();
-            foreach (var it in _object.Attributes)
+            foreach (var it in Active.Attributes)
             {
                 if (it.Template == null)
                 {
@@ -566,7 +566,7 @@
             {
                 throw new Exception("Nothing to write.");
             }
-            foreach (var it in _object.Attributes)
+            foreach (var it in Active.Attributes)
             {
                 it.Modified = false;
             }
@@ -579,12 +579,6 @@
     }
 
     /// <summary>
-    /// Button clicked.
-    /// </summary>
-    [Parameter]
-    public EventHandler OnClick { get; set; }
-
-    /// <summary>
     /// Read object attributes.
     /// </summary>
     public async void OnRead()
@@ -592,18 +586,18 @@
         try
         {
             List<GXTask> tasks = new();
-            if (_object == null || _object.Template == null)
+            if (Active == null || Active.Template == null)
             {
                 throw new Exception("No item has been selected.");
             }
-            if (_object?.Attributes != null)
+            if (Active?.Attributes != null)
             {
                 List<GXAttribute> tmp = new List<GXAttribute>();
                 Guid? batch = null;
                 if (!selected.Any())
                 {
                     //Read all objects if no one is selected.
-                    tmp.AddRange(_object.Attributes);
+                    tmp.AddRange(Active.Attributes);
                 }
                 else
                 {
@@ -684,13 +678,11 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(GXPages.Objects);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Object);
         Notifier.RemoveListener(this);
     }
 }

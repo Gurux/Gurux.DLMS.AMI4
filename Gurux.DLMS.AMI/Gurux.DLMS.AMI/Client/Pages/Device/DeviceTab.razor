@@ -1,6 +1,8 @@
-﻿@page "/devicetab"
+﻿@page "/Device/{Id:guid?}"
+@page "/Device/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -16,52 +18,116 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <Device></Device>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <DeviceGroupsSelector></DeviceGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-            <TabPage Text=@Properties.Resources.ObjectTemplates Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <Objects></Objects>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl Active="@Action">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <Device Action="@Action"></Device>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceGroupsSelector></DeviceGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <Objects></Objects>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
     private string? Title;
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active item.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
+    public GXDevice Active = new GXDevice(null);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Title = Notifier.Title;
-        Notifier.RemoveLastPage(GXPages.Devices);
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Device;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get device data.
+                var tmp = (await Http.GetAsJsonAsync<GetDeviceResponse>(string.Format("api/Device?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

@@ -26,8 +26,14 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="componentView" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
-
+<GXTable @ref="table"
+         Context="componentView"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -45,8 +51,9 @@
         <th>@Properties.Resources.Type</th>
     </HeaderContent>
     <ItemContent>
-        <td><span class="@componentView.Icon" aria-hidden="true"></span></td>
-        <td>@componentView.Name</td>
+        <Td Path="@("/Config/Component/Edit/" + componentView.Id)">
+            <span class="@componentView.Icon" aria-hidden="true"></span>@componentView.Name
+            </Td>
         <td>@componentView.ClassName</td>
     </ItemContent>
 </GXTable>
@@ -59,6 +66,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected component view ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -77,7 +90,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -153,14 +166,17 @@
             {
                 await Updated();
             });
+            Notifier.On<IEnumerable<GXComponentView>>(this, nameof(IGXHubEvents.ComponentViewDelete), async (componentViews) =>
+            {
+                await Updated();
+            });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get last selected item.
-            if (table != null)
+            if (table != null && Id != null)
             {
-                table.Active = (GXComponentView?)Notifier.GetData(GXPages.ComponentViews);
+                //Get last selected item.
+                table.Active = new GXComponentView() { Id = Id.Value };
             }
-            Notifier.ChangePage(GXPages.ComponentViews, table?.Active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -192,7 +208,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -254,10 +271,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.ComponentViews, table.Active);
-            Notifier.Title = "Edit ComponentView";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/componentViewtab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Component/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -321,7 +335,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ComponentViews);
         Notifier.RemoveListener(this);
     }
 }

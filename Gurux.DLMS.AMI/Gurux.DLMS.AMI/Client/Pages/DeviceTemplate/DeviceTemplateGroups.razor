@@ -1,5 +1,5 @@
-﻿@page "/deviceTemplates"
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -8,18 +8,17 @@
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Shared
-@using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTemplateGroup)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @implements IDisposable
 
-
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateGroupManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
             <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
@@ -28,16 +27,10 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="template" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table" Context="group" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
     <FilterContent>
         <th>
-            <input class="form-control" placeholder="Filter by type..."
-                   type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Type = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                   type="text"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
@@ -58,26 +51,37 @@
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
-        <Th Id="Type">@Properties.Resources.Type</Th>
         <Th Id="Name">@Properties.Resources.Name</Th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@template.Type</td>
-        <td><a href="@GetPath(template)" @onclick="() => OnSelect(template)">@template.Name</a></td>
-        <td>@template.CreationTime</td>
-        <td>@template.Updated</td>
+        <Td Path="@("/DeviceTemplateGroup/Edit/" + group.Id)">@group.Name</Td>
+        <td>@group.CreationTime</td>
+        <td>@group.Updated</td>
     </ItemContent>
 </GXTable>
 <br />
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
 @code {
+    /// <summary>
+    /// Selected device template group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.DeviceTemplatesTitle;
+            return Gurux.DLMS.AMI.Client.Properties.Resources.DeviceTemplateGroups;
         }
     }
 
@@ -118,49 +122,25 @@
     public bool Title { get; set; } = true;
 
     /// <summary>
-    /// Device template filter.
+    /// Device template group filter.
     /// </summary>
-    private GXDeviceTemplate filter = new GXDeviceTemplate();
+    private GXDeviceTemplateGroup filter = new GXDeviceTemplateGroup();
     /// <summary>
-    /// User is verified before device template is removed.
+    /// User is verified before schedule is removed.
     /// </summary>
     protected ConfirmBase? DeleteConfirmation;
-
-    //Get device template path.
-    private string GetPath(GXDeviceTemplate target)
-    {
-        return "/deviceTemplatetab";
-    }
-
-    //Device template is selected.
-    private void OnSelect(GXDeviceTemplate target)
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.Title = "Edit Device Template";
-            Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.DeviceTemplate, target);
-            Notifier.UpdateData(GXPages.DeviceTemplates, target);
-            NavigationManager.NavigateTo("/deviceTemplatetab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
     /// <summary>
-    /// Table reference.
+    /// Reference to the table.
     /// </summary>
-    protected GXTable<GXDeviceTemplate>? table;
+    private GXTable<GXDeviceTemplateGroup>? table;
 
     /// <summary>
-    /// Update table.
+    /// User is verified before groups are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
+
+    /// <summary>
+    /// Update virtualized items.
     /// </summary>
     protected async Task Updated()
     {
@@ -184,23 +164,23 @@
         await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
+            Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateUpdate), async (deviceTemplate) =>
+            Notifier.On<IEnumerable<GXDeviceTemplateGroup>>(this, nameof(IGXHubEvents.DeviceTemplateGroupUpdate), async (groups) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDeviceTemplateGroup>>(this, nameof(IGXHubEvents.DeviceTemplateGroupDelete), async (groups) =>
             {
                 await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
+            if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = (GXDeviceTemplate?)Notifier.GetData(GXPages.DeviceTemplates);
+                table.Active = new GXDeviceTemplateGroup() { Id = Id.Value };
             }
-            Notifier.ChangePage(GXPages.DeviceTemplates, table?.Active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -212,7 +192,7 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplateGroup>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
@@ -226,20 +206,21 @@
             {
                 filter.Removed = null;
             }
-            ListDeviceTemplates req = new ListDeviceTemplates()
+            ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
                 req.Count = Count;
             }
-            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXDeviceTemplate>(ret.Templates, ret.Count);
+            var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXDeviceTemplateGroup>(ret.DeviceTemplateGroups, ret.Count);
         }
         catch (TaskCanceledException)
         {
@@ -258,17 +239,13 @@
     }
 
     /// <summary>
-    /// Add new device template.
+    /// Add new device template group.
     /// </summary>
     public void OnAdd()
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New Device Template";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.DeviceTemplates, new GXDeviceTemplate(""));
-            NavigationManager.NavigateTo("/deviceTemplatetab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceTemplateGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -281,18 +258,18 @@
     }
 
     /// <summary>
-    /// Edit device template.
+    /// Edit device template group.
     /// </summary>
     public void OnEdit()
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (table?.Active == null)
+            Notifier.ClearStatus();
+            if (table == null || table.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            OnSelect(table.Active);
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceTemplateGroup/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -304,8 +281,9 @@
         }
     }
 
+
     /// <summary>
-    /// Remove selected device templates.
+    /// Remove selected device template group.
     /// </summary>
     public void OnRemove()
     {
@@ -315,7 +293,11 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
         }
         catch (Exception ex)
         {
@@ -324,7 +306,7 @@
     }
 
     /// <summary>
-    /// Delete the selected device templates.
+    /// Delete the selected device template groups.
     /// </summary>
     public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
@@ -332,12 +314,12 @@
         {
             if (table != null && args.Confirm)
             {
-                RemoveDeviceTemplate req = new RemoveDeviceTemplate()
+                RemoveDeviceTemplateGroup req = new RemoveDeviceTemplateGroup()
                     {
                         Delete = args.Delete,
                         Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
                     };
-                await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", req);
+                await Http.PostAsJson<RemoveDeviceTemplateGroupResponse>("api/DeviceTemplateGroup/Delete", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -352,7 +334,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceTemplates);
         Notifier.RemoveListener(this);
     }
 }

@@ -1,5 +1,4 @@
-﻿@page "/user"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -15,28 +14,27 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@implements IDisposable
 
-@if (AvailableRoles.Any() && _active != null)
+@if (AvailableRoles.Any() && Active != null)
 {
-    <EditForm Model="@_active">
+    <EditForm Model="@Active">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <label>@Properties.Resources.GivenName</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.GivenName" />
+                           @bind-Value="Active.GivenName" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Surname</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Surname" />
+                           @bind-Value="Active.Surname" />
                 </div>
 
                 <div class="form-group">
                     <label>@Properties.Resources.Email</label>
                     <InputText id="start" disabled="@IsDisabled" class="form-control"
-                           @bind-Value="_active.Email" />
+                           @bind-Value="Active.Email" />
                 </div>
 
                 <div class="form-group">
@@ -49,13 +47,13 @@
                             <tr>
                                 <th>
                                     <input type="checkbox" id="@role1"
-                                   disabled="@OwnSettings(role1)" checked="@IsChecked(role1)"
+                                           disabled="@OwnSettings(role1)" checked="@IsChecked(role1)"
                                    @onchange="@((ChangeEventArgs __e) => @Check(role1, Convert.ToBoolean(__e.Value)))" />
                                     &emsp;@role1
                                 </th>
                                 <th>
                                     <input type="checkbox" id="@role2"
-                                   disabled="@OwnSettings(role2)" checked="@IsChecked(role2)"
+                                           disabled="@OwnSettings(role2)" checked="@IsChecked(role2)"
                                    @onchange="@((ChangeEventArgs __e) => @Check(role2, Convert.ToBoolean(__e.Value)))" />
                                     &emsp;@role2
                                 </th>
@@ -67,7 +65,7 @@
                             <tr>
                                 <th>
                                     <input type="checkbox" id="@role"
-                                   disabled="@OwnSettings(role)" checked="@IsChecked(role)"
+                                           disabled="@OwnSettings(role)" checked="@IsChecked(role)"
                                    @onchange="@((ChangeEventArgs __e) => @Check(role, Convert.ToBoolean(__e.Value)))" />
                                     &emsp;@role
                                 </th>
@@ -76,31 +74,31 @@
                     </table>
                 </div>
             </div>
-            @if (_active.CreationTime != DateTime.MinValue)
+            @if (Active.CreationTime != DateTime.MinValue)
             {
                 <div class="form-group">
                     <label>@Properties.Resources.CreationTime</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                       @bind-Value="_active.CreationTime" />
+                       @bind-Value="Active.CreationTime" />
                 </div>
             }
-            @if (_active.Updated != null)
+            @if (Active.Updated != null)
             {
                 <div class="form-group">
                     <label>@Properties.Resources.Updated</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                       @bind-Value="_active.Updated" />
+                       @bind-Value="Active.Updated" />
                 </div>
             }
-            @if (_active.Removed != null)
+            @if (Active.Removed != null)
             {
                 <div class="form-group">
                     <label>@Properties.Resources.Removed</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                       @bind-Value="_active.Removed" />
+                       @bind-Value="Active.Removed" />
                 </div>
             }
-            @if (Notifier.Action == CrudAction.Delete)
+            @if (action == CrudAction.Delete)
             {
                 <hr />
                 <p>
@@ -122,24 +120,52 @@
 }
 
 @code {
+    [CascadingParameter]
+    private UserTab? Parent { get; set; }
+
+    private GXUser? _active;
+
+    private GXUser? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
 
     int _count = 0;
     private List<string> AvailableRoles = new List<string>();
     private string? _currentUser = null;
-    private GXUser? _active;
-    private string SubmitText;
 
     public bool IsChecked(string value)
     {
-        return _active != null && _active.Roles != null && _active.Roles.Contains(value);
+        return Active != null && Active.Roles != null && Active.Roles.Contains(value);
     }
 
-    public string IsDisabled
+    public string? IsDisabled
     {
         get
         {
-            if (Notifier.Action == CrudAction.Create)
+            if (action == CrudAction.Create)
             {
                 return null;
             }
@@ -164,11 +190,11 @@
     /// </summary>
     public string? OwnSettings(string value)
     {
-        if (_active != null && _active.Id == _currentUser)
+        if (Active != null && Active.Id == _currentUser)
         {
             return "disabled";
         }
-        if (_active != null && _active.Roles != null && _active.Roles.Contains(GXRoles.Admin) && value != GXRoles.Admin)
+        if (Active != null && Active.Roles != null && Active.Roles.Contains(GXRoles.Admin) && value != GXRoles.Admin)
         {
             return "disabled";
         }
@@ -177,15 +203,15 @@
 
     public void Check(string role, bool check)
     {
-        if (_active != null && _active.Roles != null)
+        if (Active != null && Active.Roles != null)
         {
             if (check)
             {
-                _active.Roles.Add(role);
+                Active.Roles.Add(role);
             }
             else
             {
-                _active.Roles.Remove(role);
+                Active.Roles.Remove(role);
             }
         }
     }
@@ -197,11 +223,14 @@
     {
         get
         {
-            return _active.Removed != null;
+            return Active?.Removed != null;
         }
         set
         {
-            _active.Removed = DateTime.Now;
+            if (Active != null)
+            {
+                Active.Removed = DateTime.Now;
+            }
         }
     }
 
@@ -209,19 +238,23 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            _active = (GXUser?)Notifier.GetData(GXPages.Users);
-            if (_active == null)
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get user data.
+                var tmp = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+            }
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-
+            action = ClientHelpers.GetAction(Action);
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             _currentUser = authState.User.FindFirst(c => c.Type == "sub")?.Value;
             ListRoles req = new ListRoles();
@@ -231,33 +264,18 @@
                 foreach (GXRole role in ret.Roles)
                 {
                     AvailableRoles.Add(role.Name);
-                    if (Notifier.Action == CrudAction.Create)
+                    if (action == CrudAction.Create)
                     {
                         //Add default roles when new user is created.
                         if (role.Default.GetValueOrDefault())
                         {
-                            _active.Roles.Add(role.Name);
+                            Active.Roles.Add(role.Name);
                         }
                     }
                 }
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
             Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
 
@@ -267,15 +285,6 @@
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
-            if (!_active.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get device template data.
-                _active = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User/{0}", _active.Id))).Item;
-                Notifier.UpdateData(GXPages.Users, _active);
-                _active.Modified = true;
-            }
-            Notifier.ChangePage(GXPages.User, _active);
             Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -297,37 +306,44 @@
     /// </summary>
     public async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier.Action != CrudAction.Delete && _active.Roles == null)
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Notifier.Action != CrudAction.Delete && Active.Roles == null)
             {
                 throw new Exception("Select user role.");
             }
-            if (Notifier.Action == CrudAction.Delete)
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveUserResponse>("api/User/Delete", new RemoveUser()
                     {
-                        Ids = new string[] { _active.Id },
+                        Ids = new string[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
             else
             {
                 string address;
-                if (Notifier.Action == CrudAction.Create)
+                if (action == CrudAction.Create)
                 {
                     address = "api/User/Add";
                 }
-                else
+                else if (action == CrudAction.Update)
                 {
                     address = "api/User/Update";
                 }
-                await Http.PostAsJson<AddUserResponse>(address, new AddUser() { Users = new GXUser[] { _active } });
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<AddUserResponse>(address, new AddUser() { Users = new GXUser[] { Active } });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -348,12 +364,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.User);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

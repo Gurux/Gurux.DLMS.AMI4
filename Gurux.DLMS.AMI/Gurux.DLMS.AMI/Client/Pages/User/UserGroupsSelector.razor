@@ -1,4 +1,13 @@
-﻿@page "/usergroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Agent;
+@using Gurux.DLMS.AMI.Client.Pages.Block;
+@using Gurux.DLMS.AMI.Client.Pages.ComponentView;
+@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
+@using Gurux.DLMS.AMI.Client.Pages.Module;
+@using Gurux.DLMS.AMI.Client.Pages.Schedule;
+@using Gurux.DLMS.AMI.Client.Pages.Script;
+@using Gurux.DLMS.AMI.Client.Pages.Trigger;
+@using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -13,10 +22,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, User, UserGroupManager, UserGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="userGroups" />
@@ -24,6 +31,33 @@
 </SelectionContainer>
 
 @code {
+
+    [CascadingParameter]
+    private UserTab? UserParent { get; set; }
+    [CascadingParameter]
+    private DeviceGroupTab? DeviceGroupParent { get; set; }
+    [CascadingParameter]
+    private AgentGroupTab? AgentGroupParent { get; set; }
+    [CascadingParameter]
+    private ModuleGroupTab? ModuleGroupParent { get; set; }
+    [CascadingParameter]
+    private WorkflowGroupTab? WorkflowGroupParent { get; set; }
+
+    [CascadingParameter]
+    private TriggerGroupTab? TriggerGroupParent { get; set; }
+    [CascadingParameter]
+    private BlockGroupTab? BlockGroupParent { get; set; }
+
+    [CascadingParameter]
+    private ComponentViewGroupTab? ComponentViewGroupParent { get; set; }
+    [CascadingParameter]
+    private ScriptGroupTab? ScriptGroupParent { get; set; }
+    [CascadingParameter]
+    private DeviceTemplateGroupTab? DeviceTemplateParent { get; set; }
+
+    [CascadingParameter]
+    private ScheduleGroupTab? ScheduleGroupParent { get; set; }
+
     List<GXUserGroup> AllUserGroups = new List<GXUserGroup>();
     List<GXUserGroup> userGroups = new List<GXUserGroup>();
 
@@ -57,134 +91,60 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            string? page = Notifier.GetLastPage();
             ListUserGroups req = new ListUserGroups()
                 {
                     Filter = new GXUserGroup()
                 };
-            if (page == GXPages.ScheduleManage)
+            //Get selected user groups.
+            if (ScheduleGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected schedule group.
-                GXScheduleGroup? scheduleGroup = (GXScheduleGroup?)Notifier.GetData(GXPages.ScheduleGroup);
-                if (scheduleGroup != null)
-                {
-                    userGroups = scheduleGroup.UserGroups;
-                }
+                userGroups = ScheduleGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.DeviceTemplateManage)
+            else if (DeviceTemplateParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected device template group.
-                GXDeviceTemplateGroup? deviceTemplateGroup = (GXDeviceTemplateGroup?)Notifier.GetData(GXPages.DeviceTemplateGroup);
-                if (deviceTemplateGroup != null)
-                {
-                    userGroups = deviceTemplateGroup.UserGroups;
-                }
+                userGroups = DeviceTemplateParent.Active.UserGroups;
             }
-            else if (page == GXPages.DeviceManage)
+            else if (DeviceGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected device group.
-                GXDeviceGroup? deviceGroup = (GXDeviceGroup?)Notifier.GetData(GXPages.DeviceGroup);
-                if (deviceGroup != null)
-                {
-                    userGroups = deviceGroup.UserGroups;
-                }
+                userGroups = DeviceGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.AgentManage)
+            else if (AgentGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected device group.
-                GXAgentGroup? agentGroup = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroup);
-                if (agentGroup != null)
-                {
-                    userGroups = agentGroup.UserGroups;
-                }
+                userGroups = AgentGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.ModuleManage)
+            else if (ModuleGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected module group.
-                GXModuleGroup? moduleGroup = (GXModuleGroup?)Notifier.GetData(GXPages.ModuleGroup);
-                if (moduleGroup != null)
-                {
-                    userGroups = moduleGroup.UserGroups;
-                }
+                userGroups = ModuleGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.WorkflowManage)
+            else if (WorkflowGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected workflow group.
-                GXWorkflowGroup? workflowGroup = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroup);
-                if (workflowGroup != null)
-                {
-                    userGroups = workflowGroup.UserGroups;
-                }
+                userGroups = WorkflowGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.WorkflowGroups)
+            else if (TriggerGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected workflow group.
-                GXWorkflowGroup? workflowGroup = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
-                if (workflowGroup != null)
-                {
-                    userGroups = workflowGroup.UserGroups;
-                }
+                userGroups = TriggerGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.TriggerManage)
+            else if (BlockGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected trigger group.
-                GXTriggerGroup? triggerGroup = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroup);
-                if (triggerGroup != null)
-                {
-                    userGroups = triggerGroup.UserGroups;
-                }
+                userGroups = BlockGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.BlockManage)
+            else if (ComponentViewGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected block group.
-                GXBlockGroup? blockGroup = (GXBlockGroup?)Notifier.GetData(GXPages.BlockGroup);
-                if (blockGroup != null)
-                {
-                    userGroups = blockGroup.UserGroups;
-                }
+                userGroups = ComponentViewGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.ComponentViewManage)
+            else if (ScriptGroupParent?.Active?.UserGroups != null)
             {
-                //Get user groups from selected block group.
-                GXComponentViewGroup? componentViewGroup = (GXComponentViewGroup?)Notifier.GetData(GXPages.ComponentViewGroup);
-                if (componentViewGroup != null)
-                {
-                    userGroups = componentViewGroup.UserGroups;
-                }
+                userGroups = ScriptGroupParent.Active.UserGroups;
             }
-            else if (page == GXPages.ScriptManage)
+            else if (UserParent?.Active?.UserGroups != null)
             {
-                //Get selected script group.
-                GXScriptGroup? scriptGroup = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroup);
-                if (scriptGroup != null)
-                {
-                    userGroups = scriptGroup.UserGroups;
-                }
-            }
-            else if (page == GXPages.ScriptGroups)
-            {
-                //Get selected script group.
-                GXScriptGroup? scriptGroup = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroup);
-                if (scriptGroup != null)
-                {
-                    userGroups = scriptGroup.UserGroups;
-                }
-            }
-            else if (page == GXPages.UserManage)
-            {
-                //Get selected user group.
-                GXUser? user = (GXUser?)Notifier.GetData(GXPages.User);
-                if (user != null)
-                {
-                    userGroups = user.UserGroups;
-                }
+                userGroups = UserParent.Active.UserGroups;
             }
             else
             {
-                throw new ArgumentOutOfRangeException("Unknown manager " + page);
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !userGroups.Any();
-            Notifier.ChangePage(GXPages.UserGroupsSelector, null);
             var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req);
             foreach (GXUserGroup it in ret.UserGroups)
             {
@@ -212,11 +172,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.UserGroupsSelector);
     }
 }
 

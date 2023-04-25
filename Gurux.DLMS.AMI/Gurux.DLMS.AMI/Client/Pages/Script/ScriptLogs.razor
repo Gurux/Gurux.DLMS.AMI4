@@ -75,7 +75,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
+        <Td Path="@("/Config/ScriptLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -98,6 +98,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected script log ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -126,7 +132,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the script logs shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -155,6 +161,18 @@
     /// User is verified before script logs are closed.
     /// </summary>
     protected ConfirmBase? CloseConfirmation;
+
+     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXScriptLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -206,9 +224,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.ScriptLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXScriptLog() { Id = Id.Value };
+            }
         }
         catch (Exception ex)
         {
@@ -242,7 +264,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -279,10 +302,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.ScriptLogs, table.Active);
-            Notifier.Title = "Script Log";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/scriptlog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ScriptLog/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -345,7 +365,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ScriptLogs);
         Notifier.RemoveListener(this);
     }
 

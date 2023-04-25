@@ -12,23 +12,23 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <!--Is user disabled or canceled.-->
+                    <!--Is target disabled or canceled.-->
                     @if (AllowDelete)
                     {
-                        <div class="form-group">
-                            <div>
-                                <input type="radio" @onchange=@(()=>OnValueChange(false)) checked="@(!DeleteTarget)">
-                                <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            </div>
-                            <div>
-                                <input type="radio" @onchange=@(()=>OnValueChange(true)) checked="@(DeleteTarget)">
-                                <label>@Properties.Resources.TargetDeleteQuestion</label>
-                            </div>
+                        <div class="form-check">
+                            <input id="button1" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(false)) checked="@(!DeleteTarget)">
+                            <label class="form-check-label" for="button1">@Properties.Resources.TargetDisableQuestion</label><br>
                         </div>
+                        <div class="form-check">
+                            <input id="button2" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(true)) checked="@(DeleteTarget)">
+                            <label class="form-check-label" for="button2">@Properties.Resources.TargetDeleteQuestion</label>
+                            @Properties.Resources.ThisActionCannotBeUndone
+                        </div>
+                       
                     }
                     @if (!string.IsNullOrEmpty(ConfirmationMessage))
                     {
-                        @ConfirmationMessage
+                        @GetConfirmationMessage()
                     }
                     <!--Print removed items.-->
                     @if (Items != null)

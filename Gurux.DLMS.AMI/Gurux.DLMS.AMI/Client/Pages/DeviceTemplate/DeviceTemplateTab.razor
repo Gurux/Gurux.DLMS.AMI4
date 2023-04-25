@@ -1,0 +1,133 @@
+﻿@page "/DeviceTemplate/{Id:guid?}"
+@page "/DeviceTemplate/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceTemplateManager + "," + GXRoles.DeviceTemplateGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <TabControl Active="@Action">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceTemplate Action="@Action"></DeviceTemplate>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.DeviceTemplateGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceTemplateGroupsSelector></DeviceTemplateGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
+                <TabPage Text=@Properties.Resources.ObjectTemplates Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ObjectTemplates></ObjectTemplates>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXDeviceTemplate Active = new GXDeviceTemplate(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.DeviceTemplate;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get device template data.
+                var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

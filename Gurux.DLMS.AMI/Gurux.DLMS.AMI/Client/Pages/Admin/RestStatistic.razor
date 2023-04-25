@@ -32,6 +32,7 @@
          Context="stat"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.None"
+         ShowAllUsers="false"
          ShowRemoved="false">
     <FilterContent>
         <th>
@@ -48,9 +49,7 @@
             <input class="form-control" placeholder="Filter by end time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.End = Convert.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-        </th>
+        </th>     
     </FilterContent>
     <HeaderContent>
         <th>@Properties.Resources.ExecutionTime</th>
@@ -75,6 +74,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected REST statistic ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -93,7 +98,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -134,9 +139,13 @@
     /// Device is verified before system errors are cleared.
     /// </summary>
     protected ConfirmBase? ClearConfirmation;
-    
+
     private int GetTime(GXRestStatistic item)
     {
+        if (item.End == null || item.Start == null)
+        {
+            return 0;
+        }
         return (int)(item.End.Value - item.Start.Value).TotalMilliseconds;
     }
 
@@ -170,7 +179,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            table.Active = (GXRestStatistic?)Notifier.GetData(GXPages.RestStatistics);
             Notifier.On<IEnumerable<GXRestStatistic>>(this, nameof(IGXHubEvents.RestStatisticAdd), async (statistics) =>
             {
                 await Updated();
@@ -179,9 +187,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.RestStatistics, null, true);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXRestStatistic() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -236,7 +248,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.RestStatistics);
         Notifier.RemoveListener(this);
     }
 

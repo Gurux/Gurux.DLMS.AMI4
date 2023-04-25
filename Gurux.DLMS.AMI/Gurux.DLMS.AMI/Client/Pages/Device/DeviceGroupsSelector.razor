@@ -1,4 +1,5 @@
-﻿@page "/devicegroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Agent;
+@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +17,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="deviceGroups" />
@@ -24,6 +24,16 @@
 </SelectionContainer>
 
 @code {
+
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+
+    [CascadingParameter]
+    private DeviceTab? DeviceParent { get; set; }
+
+    [CascadingParameter]
+    private AgentGroupTab? AgentGroupParent { get; set; }
+
     List<GXDeviceGroup> AllDeviceGroups = new List<GXDeviceGroup>();
     List<GXDeviceGroup> deviceGroups = new List<GXDeviceGroup>();
 
@@ -52,37 +62,24 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListDeviceGroups req = new ListDeviceGroups()
                 {
                     Filter = new GXDeviceGroup()
                 };
-            if (page == GXPages.UserManage)
-            {
-                //Getselected device groups.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    deviceGroups = userGroup.DeviceGroups;
-                }
-            }
-            else if (page == GXPages.DeviceManage)
+            if (UserGroupParent?.Active?.DeviceGroups != null)
             {
                 //Get selected device groups.
-                GXDevice? device = (GXDevice?)Notifier.GetData(GXPages.Device);
-                if (device != null)
-                {
-                    deviceGroups = device.DeviceGroups;
-                }
+                deviceGroups = UserGroupParent.Active.DeviceGroups;
             }
-            else if (page == GXPages.AgentManage)
+            else if (DeviceParent?.Active?.DeviceGroups != null)
             {
                 //Get selected device groups.
-                GXAgentGroup? agentGroup = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroup);
-                if (agentGroup != null)
-                {
-                    deviceGroups = agentGroup.DeviceGroups;
-                }
+                deviceGroups = DeviceParent.Active.DeviceGroups;
+            }
+            else if (AgentGroupParent?.Active?.DeviceGroups != null)
+            {
+                //Get selected device groups.
+                deviceGroups = AgentGroupParent.Active.DeviceGroups;
             }
             else
             {
@@ -104,7 +101,6 @@
                     AllDeviceGroups.Add(it);
                 }
             }
-            Notifier.ChangePage(GXPages.DeviceGroupsSelector, null);
         }
         catch (Exception ex)
         {
@@ -114,11 +110,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.DeviceGroupsSelector);
     }
 }
 

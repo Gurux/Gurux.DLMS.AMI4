@@ -236,6 +236,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
+                arg.Descending = true;
                 arg.OrderBy.Add<GXUser>(q => q.CreationTime);
             }
             arg.Columns.Exclude<GXUser>(q => new { q.PasswordHash, q.SecurityStamp });

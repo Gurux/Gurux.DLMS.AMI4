@@ -57,12 +57,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared;
 using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
-using System.Configuration;
-using Microsoft.Extensions.Logging;
-using System.Text.Json.Serialization;
-using System;
-using AutoMapper.Internal;
-using System.Collections.Generic;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -248,7 +242,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Language,
                 Icon = "oi oi-globe",
                 Description = "With multiple languages enabled, interface text can be translated and registered users may select their preferred language.",
-                Path = "config/languages",
+                Path = "config/language",
                 Order = 4,
                 Settings = JsonSerializer.Serialize(list.ToArray())
             };
@@ -265,7 +259,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Modules,
                 Icon = "oi oi-puzzle-piece",
                 Description = "With modules enabled, new custom functionality can be offered for the users.",
-                Path = "config/modulemanage",
+                Path = "config/Module",
                 Order = 4
             };
             configurations.Add(conf);
@@ -297,7 +291,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.ComponentViews,
                 Icon = "oi oi-layers",
                 Description = "With component views enabled, new custom user interfaces can be offered for the users.",
-                Path = "config/componentviewmanage",
+                Path = "config/Component",
                 Order = 5
             };
             configurations.Add(conf);
@@ -313,7 +307,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Blocks,
                 Icon = "oi oi-browser",
                 Description = "With blocks enabled, new custom user interfaces can be offered for the users.",
-                Path = "config/blockmanage",
+                Path = "config/Block",
                 Order = 6
             };
             configurations.Add(conf);
@@ -329,7 +323,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Triggers,
                 Icon = "oi oi-flash",
                 Description = "With triggers enabled, new custom functionality can be offered for the users.",
-                Path = "config/triggermanage",
+                Path = "config/Trigger",
                 Order = 6
             };
             configurations.Add(conf);
@@ -345,7 +339,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Workflows,
                 Icon = "oi oi-fork",
                 Description = "With Workflows enabled, new custom workflows funtionality can be offered for the users.",
-                Path = "config/workflowmanage",
+                Path = "config/Workflow",
                 Order = 7
             };
             configurations.Add(conf);
@@ -463,7 +457,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Scripts,
                 Icon = "oi oi-script",
                 Description = "With Scripts enabled, workflows funtionality can be expand with scripts.",
-                Path = "config/scriptmanage",
+                Path = "Script",
                 Order = 7
             };
             configurations.Add(conf);
@@ -716,16 +710,8 @@ namespace Gurux.DLMS.AMI.Server
                     host.Connection.UpdateTable<GXDevice>();
                     host.Connection.UpdateTable<GXValue>();
                     host.Connection.UpdateTable<GXAttributeTemplate>();
-                    /*
-                    if (!host.Connection.TableExist<GXObjectError>())
-                    {
-                        host.Connection.CreateTable<GXObjectError>();
-                    }
-                    if (!host.Connection.TableExist<GXAttributeError>())
-                    {
-                        host.Connection.CreateTable<GXAttributeError>();
-                    }
-                    */
+                    //Available serial ports for the agent.
+                    host.Connection.UpdateTable<GXAgent>();
                 }
             }
             else

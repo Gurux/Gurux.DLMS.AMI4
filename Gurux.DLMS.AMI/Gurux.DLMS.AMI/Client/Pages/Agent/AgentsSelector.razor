@@ -1,5 +1,4 @@
-﻿@page "/agentsselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -16,7 +15,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="agents" />
@@ -24,6 +22,10 @@
 </SelectionContainer>
 
 @code {
+
+    [CascadingParameter]
+    private AgentGroupTab? Parent { get; set; }
+
     List<GXAgent> AllAgents = new List<GXAgent>();
     List<GXAgent> agents = new List<GXAgent>();
 
@@ -46,14 +48,15 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.AgentsSelector, null);
-            //Add selected user groups.
-            GXAgentGroup? userGroup = (GXAgentGroup?)Notifier.GetData(GXPages.AgentGroup);
-            if (userGroup == null)
+            if (Parent?.Active?.Agents != null)
+            {
+                //Add selected agents.
+                agents = Parent.Active.Agents;
+            }
+            else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            agents = userGroup.Agents;
             ListAgents req = new ListAgents()
                 {
                     Filter = new GXAgent()
@@ -75,11 +78,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.AgentsSelector);
     }
 }
 

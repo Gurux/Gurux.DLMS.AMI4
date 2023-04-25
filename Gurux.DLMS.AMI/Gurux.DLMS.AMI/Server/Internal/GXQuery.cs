@@ -316,11 +316,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(a => a.DeviceGroupId, b => b.Id);
             args.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceGroupId);
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(a => a.DeviceId, b => b.Id);
+            args.Where.And<GXDevice>(where => where.Id == deviceId);
             args.Where.And<GXUser>(where => where.Removed == null);
             args.Where.And<GXUserGroup>(where => where.Removed == null);
             args.Where.And<GXDeviceGroup>(where => where.Removed == null);
             args.Where.And<GXDevice>(where => where.Removed == null);
-            args.Where.And<GXDevice>(where => where.Id == deviceId);
             return args;
         }
 

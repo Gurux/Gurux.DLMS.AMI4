@@ -1,5 +1,4 @@
-﻿@page "/blockgroup"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -14,71 +13,106 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
-<EditForm Model="@_active">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-    <div class="row">
-        <div style="width:100%">
-            <div class="form-group">
-                <label>@Properties.Resources.Name</label>
-                <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Name" />
-            </div>
-            <div class="form-group">
-                <InputNullableCheckbox @bind-Value="_active.Default" />
-                <label>@Properties.Resources.DefaultGroup</label>
-                <br />
-            </div>            <div class="form-group">
-                <label>@Properties.Resources.Description</label>
-                <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Description" />
-            </div>
-            @if (_active.CreationTime != DateTime.MinValue)
-            {
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
                 <div class="form-group">
-                    <label>@Properties.Resources.CreationTime</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.CreationTime" />
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="Active.Name" />
                 </div>
-            }
-            @if (_active.Updated != null)
-            {
                 <div class="form-group">
-                    <label>@Properties.Resources.Updated</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.Updated" />
-                </div>
-            }
-            @if (_active.Removed != null)
-            {
-                <div class="form-group">
-                    <label>@Properties.Resources.Removed</label>
-                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="_active.Removed" />
-                </div>
-            }
-            @if (Notifier.Action == CrudAction.Delete)
-            {
-                <hr />
-                <p>
-                </p>
-                <div class="form-group">
-                    <InputRadioGroup @bind-Value="DeleteTarget">
-                        <InputRadio Value="false">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                        <InputRadio Value="true">
-                        </InputRadio>
-                        <label>@Properties.Resources.TargetDeleteQuestion</label>
-                    </InputRadioGroup>
+                    <InputNullableCheckbox @bind-Value="Active.Default" />
+                    <label>@Properties.Resources.DefaultGroup</label>
                     <br />
+                </div>            <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                           @bind-Value="Active.Description" />
                 </div>
-            }
+                @if (Active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="Active.Removed" />
+                    </div>
+                }
+                @if (action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
         </div>
-    </div>
-</EditForm>
+    </EditForm>
+}
 @code {
+
+    [CascadingParameter]
+    private BlockGroupTab? Parent { get; set; }
+
+
+    private GXBlockGroup? _active;
+
+    private GXBlockGroup? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
     public string? IsDeleting
     {
@@ -92,43 +126,28 @@
         }
     }
 
-    private GXBlockGroup? _active;
-    private string SubmitText;
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            _active = (GXBlockGroup?)Notifier.GetData(GXPages.BlockGroups);
-            if (_active == null)
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get block group data.
+                var tmp = (await Http.GetAsJsonAsync<GetBlockGroupResponse>(string.Format("api/BlockGroup?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+            }
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -138,15 +157,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            if (!_active.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get block group data.
-                _active = (await Http.GetAsJsonAsync<GetBlockGroupResponse>(string.Format("api/BlockGroup?id={0}", _active.Id))).Item;
-                Notifier.UpdateData(GXPages.BlockGroups, _active);
-                _active.Modified = true;
-            }
-            Notifier.ChangePage(GXPages.BlockGroup, _active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -169,31 +179,38 @@
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            if (Notifier.Action == CrudAction.Delete)
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveBlockGroupResponse>("api/BlockGroup/Delete", new RemoveBlockGroup()
                     {
-                        Ids = new Guid[] { _active.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
             else
             {
                 string address;
-                if (Notifier.Action == CrudAction.Create)
+                if (action == CrudAction.Create)
                 {
                     address = "api/BlockGroup/Add";
                 }
-                else
+                else if (action == CrudAction.Update)
                 {
                     address = "api/BlockGroup/Update";
                 }
-                await Http.PostAsJson<AddBlockGroupResponse>(address, new AddBlockGroup() { BlockGroups = new GXBlockGroup[] { _active } });
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<AddBlockGroupResponse>(address, new AddBlockGroup() { BlockGroups = new GXBlockGroup[] { Active } });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -214,12 +231,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.BlockGroup);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

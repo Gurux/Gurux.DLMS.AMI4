@@ -1,5 +1,4 @@
-﻿@page "/module"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -21,9 +20,9 @@
 @inject ILogger<Module> Logger
 @inject GXModuleService modules
 @implements IDisposable
-@if (_active != null)
+@if (Active != null)
 {
-    <EditForm Model="@_active">
+    <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <ValidationSummary />
         @if (isAdding)
@@ -42,16 +41,16 @@
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <InputNullableCheckbox @bind-Value="_active.Active" />
-                        <label>@Properties.Resources.Active:</label>
+                        <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                        <br />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.Name:</label>
-                        <InputText id="name" class="form-control" readonly="readonly" @bind-Value="_active.Id" />
+                        <InputText id="name" class="form-control" readonly="readonly" @bind-Value="Active.Id" />
                     </div>
-                    @if (!string.IsNullOrEmpty(_active.ConfigurationUI))
+                    @if (!string.IsNullOrEmpty(Active.ConfigurationUI))
                     {
-                        Type? type = Type.GetType(_active.ConfigurationUI);
+                        Type? type = Type.GetType(Active.ConfigurationUI);
                         if (type != null)
                         {
                             RenderFragment renderFragment = (builder) =>
@@ -70,24 +69,24 @@
                         }
                         else
                         {
-                            Logger.LogError("Unknown component {0}", _active.ConfigurationUI);
+                            Logger.LogError("Unknown component {0}", Active.ConfigurationUI);
                         }
                     }
                     <div class="form-group">
                         <label>@Properties.Resources.Version:</label>
-                        <InputText id="version" class="form-control" readonly="readonly" @bind-Value="_active.Version" />
+                        <InputText id="version" class="form-control" readonly="readonly" @bind-Value="Active.Version" />
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.Installed:</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" class="form-control"
-                                   readonly="readonly" @bind-Value="_active.CreationTime" />
+                                   readonly="readonly" @bind-Value="Active.CreationTime" />
                     </div>
-                    @if (_active.Updated != null)
+                    @if (Active.Updated != null)
                     {
                         <div class="form-group">
                             <label>@Properties.Resources.Updated:</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" class="form-control"
-                                       readonly="readonly" @bind-Value="_active.Updated" />
+                                       readonly="readonly" @bind-Value="Active.Updated" />
                         </div>
                     }
                 </div>
@@ -105,17 +104,44 @@
 }
 
 @code {
+    [CascadingParameter]
+    private ModuleTab? Parent { get; set; }
+
+    private GXModule? _active;
+
+    private GXModule? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
     /// <summary>
     /// User is verified before server is restart.
     /// </summary>
-    protected ConfirmBase RestartConfirmation;
+    protected ConfirmBase? RestartConfirmation;
 
     private IGXModuleSettings? _module = null;
     private string? fileName = null;
     private bool isAdding = false;
-    private GXModule? _active;
-    private string SubmitText;
-    private string? Title;
     private bool isLoading;
     object? _moduleSettings;
     bool initialized;
@@ -165,27 +191,27 @@
     private async Task ShowModuleSettings()
     {
         _moduleSettings = null;
-        if (_active != null && !string.IsNullOrEmpty(_active.ConfigurationUI))
+        if (Active != null && !string.IsNullOrEmpty(Active.ConfigurationUI))
         {
-            Type? type = Type.GetType(_active.ConfigurationUI);
+            Type? type = Type.GetType(Active.ConfigurationUI);
             if (type == null)
             {
                 //Load module UI if not loaded yet.
-                await modules.GetModule(Http, _active);
-                type = Type.GetType(_active.ConfigurationUI);
+                await modules.GetModule(Http, Active);
+                type = Type.GetType(Active.ConfigurationUI);
                 if (type == null)
                 {
-                    throw new Exception("Invalid ConfigurationUI " + _active.ConfigurationUI + ".");
+                    throw new Exception("Invalid ConfigurationUI " + Active.ConfigurationUI + ".");
                 }
                 await ShowModuleSettings();
             }
-            if (!string.IsNullOrEmpty(_active.Settings))
+            if (!string.IsNullOrEmpty(Active.Settings))
             {
                 var settings = _module.GetType().GetProperty("Settings");
                 if (settings != null && settings.CanRead && settings.CanWrite &&
                         settings.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
                 {
-                    _moduleSettings = JsonSerializer.Deserialize(_active.Settings, settings.PropertyType);
+                    _moduleSettings = JsonSerializer.Deserialize(Active.Settings, settings.PropertyType);
                 }
             }
         }
@@ -195,37 +221,26 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            _active = (GXModule?)Notifier.GetData(GXPages.Modules);
-            if (_active == null)
+            Notifier.Clear();
+            if (action != CrudAction.Create || ((Active == null || Active.Id == null) && Id != null))
+            {
+                //Get module data.
+                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                await ShowModuleSettings();
+            }
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    isAdding = true;
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-            Title = Notifier.Title;
-
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            isAdding = action == CrudAction.Create;
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -235,21 +250,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-
-            if ((Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                if (!_active.Modified)
-                {
-                    //Get device template data.
-                    HttpResponseMessage response = await Http.GetAsync(string.Format("api/Module?id={0}", _active.Id));
-                    ClientHelpers.ValidateStatusCode(response);
-                    _active = await response.Content.ReadFromJsonAsync<GXModule>();
-                    Notifier.UpdateData(GXPages.Modules, _active);
-                    _active.Modified = true;
-                }
-                await ShowModuleSettings();
-            }
-            Notifier.ChangePage(GXPages.Module, _active);
         }
         catch (Exception ex)
         {
@@ -269,9 +269,13 @@
         HttpResponseMessage response;
         try
         {
-            Notifier.ClearStatus();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
             Notifier.ProgressStart();
-            if (Notifier.Action == CrudAction.Create)
+            Notifier.ClearStatus();
+            if (action == CrudAction.Create)
             {
                 if (content == null)
                 {
@@ -283,31 +287,32 @@
                 if (ret != null && ret.Modules != null && ret.Modules.Any())
                 {
                     _active = ret.Modules[0];
-                    if (_active != null)
+                    if (Active != null)
                     {
                         isAdding = false;
-                        Notifier.UpdateData(GXPages.Modules, _active);
-                        _active.Modified = true;
+                        Notifier.UpdateData(GXPages.Modules, Active);
+                        Active.Modified = true;
                         await modules.LoadModules(Http);
                         await ShowModuleSettings();
                         Notifier.Action = CrudAction.Update;
                         StateHasChanged();
+                        //                        ClientHelpers.NavigateTo(NavigationManager, Notifier, GXPages.ModuleManage);
                     }
                     if (ret.Restart)
                     {
-                        RestartConfirmation.Show();
+                        RestartConfirmation?.Show();
                     }
                 }
             }
-            else if (Notifier.Action == CrudAction.Delete)
+            else if (action == CrudAction.Delete)
             {
-                var ret = await Http.PostAsJson<RemoveModuleResponse>("api/Module/Delete", new RemoveModule() { Modules = new string[] { _active.Id } });
+                var ret = await Http.PostAsJson<RemoveModuleResponse>("api/Module/Delete", new RemoveModule() { Modules = new string[] { Active.Id } });
                 if (ret.Restart)
                 {
-                    RestartConfirmation.Show();
+                    RestartConfirmation?.Show();
                 }
             }
-            else
+            else if (action == CrudAction.Update)
             {
                 if (_module != null)
                 {
@@ -317,24 +322,17 @@
                         _moduleSettings = settings.GetValue(_module);
                         if (_moduleSettings != null)
                         {
-                            _active.Settings = JsonSerializer.Serialize(_moduleSettings);
+                            Active.Settings = JsonSerializer.Serialize(_moduleSettings);
                         }
+                        Notifier.ShowInformation("Settings saved.", true);
                     }
                 }
-                UpdateModule req = new UpdateModule() { Module = _active };
+                UpdateModule req = new UpdateModule() { Module = Active };
                 await Http.PostAsJson<UpdateModuleResponse>("api/Module/Update", req);
-                if (Notifier.Action == CrudAction.Create)
-                {
-                    _active.Modified = true;
-                    await modules.LoadModules(Http);
-                    await ShowModuleSettings();
-                    Notifier.Action = CrudAction.Update;
-                    StateHasChanged();
-                    //Page is not changed when the new module is added.
-                    //User can update module settings immediately.
-                    return;
-                }
-                NavigationManager.NavigateTo(GXPages.ModuleManage);
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -360,8 +358,7 @@
         {
             _module.Cancel();
         }
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -403,7 +400,7 @@
                     }
                     if (_moduleSettings != null)
                     {
-                        _active.Settings = JsonSerializer.Serialize(_moduleSettings);
+                        Active.Settings = JsonSerializer.Serialize(_moduleSettings);
                     }
                 */
         }

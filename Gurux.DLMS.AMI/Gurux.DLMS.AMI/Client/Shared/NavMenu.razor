@@ -24,35 +24,35 @@
         </li>
         <AuthorizeView Roles="Admin, DeviceManager, DeviceGroupManager">
             <li class="nav-item">
-                <NavLink class="nav-link" href="Devicemanage">
+                <NavLink class="nav-link" href="Device">
                     <span class="oi oi-tablet" aria-hidden="true"></span>@Properties.Resources.Devices
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, ScheduleManager">
             <li class="nav-item">
-                <NavLink class="nav-link" href="schedulemanage">
+                <NavLink class="nav-link" href="Schedule">
                     <span class="oi oi-timer" aria-hidden="true"></span>@Properties.Resources.SchedulesTitle
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, TemplateManager">
             <li class="nav-item">
-                <NavLink class="nav-link" href="deviceTemplatemanage">
-                    <span class="oi oi-file" aria-hidden="true"></span>@Properties.Resources.DeviceTemplatesTitle
+                <NavLink class="nav-link" href="DeviceTemplate">
+                    <span class="oi oi-file" aria-hidden="true"></span>@Properties.Resources.DeviceTemplates
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, UserManager, UserGroupManager">
             <li class="nav-item">
-                <NavLink class="nav-link" href="usermanage">
+                <NavLink class="nav-link" href="User">
                     <span class="oi oi-people" aria-hidden="true"></span>&nbsp; @Properties.Resources.UserManagement
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, AgentManager">
             <li class="nav-item">
-                <NavLink class="nav-link" href="agentmanage">
+                <NavLink class="nav-link" href="Agent">
                     <span class="oi oi-wifi" aria-hidden="true"></span>@Properties.Resources.Agents
                 </NavLink>
             </li>
@@ -66,7 +66,7 @@
         </AuthorizeView>
         <AuthorizeView Roles="Admin">
             <li class="nav-item">
-                <NavLink class="nav-link" href="configurations">
+                <NavLink class="nav-link" href="Config">
                     <span class="oi oi-cog" aria-hidden="true"></span>@Properties.Resources.Configuration
                 </NavLink>
             </li>

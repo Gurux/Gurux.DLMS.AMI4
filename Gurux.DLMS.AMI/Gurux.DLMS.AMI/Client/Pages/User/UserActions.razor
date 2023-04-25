@@ -81,6 +81,13 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected user action ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+
     /// <inheritdoc />
     public string Name
     {
@@ -99,7 +106,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -109,7 +116,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the user actions shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -152,6 +159,17 @@
     }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXUserAction? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXUserAction>? table;
@@ -183,26 +201,6 @@
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            object? data = Notifier.GetData(GXPages.UserActions);
-            if (table != null)
-            {
-                table.Active = data as GXUserAction;
-            }
-            string? page = Notifier.GetLastPage();
-            if (page == GXPages.Users)
-            {
-                //Show user actions for the selected user.
-                GXUser? user = (GXUser?)Notifier.GetData(GXPages.Users);
-                if (user != null)
-                {
-                    SelectedUser = "for " + user.UserName;
-                    filter.User = new GXUser() { Id = user.Id };
-                }
-            }
-            else
-            {
-                SelectedUser = "for all users";
-            }
             Notifier.On<IEnumerable<GXUserAction>>(this, nameof(IGXHubEvents.UserActionAdd), async (actions) =>
             {
                 await Updated();
@@ -215,9 +213,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.UserActions, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXUserAction() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -245,7 +247,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -272,7 +275,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.UserActions);
         Notifier.RemoveListener(this);
     }
 
@@ -288,9 +290,8 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.UserActions, table.Active);
-            Notifier.Title = "User action";
-            NavigationManager.NavigateTo("/useraction");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/UserAction/Edit/" + table.Active.Id);
+
         }
         catch (AccessTokenNotAvailableException exception)
         {

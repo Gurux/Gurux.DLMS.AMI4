@@ -1,4 +1,5 @@
-﻿@page "/schedulelogs"
+﻿@page "/ScheduleLogs"
+
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -30,11 +31,11 @@
     </MenuControl>
 </AuthorizeView>
 
-
 <GXTable @ref="table"
          Context="error"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
          Filter="@Filter"
          OnSearch="@Updated">
     <FilterContent>
@@ -77,14 +78,13 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
-        <td>@(error.Schedule != null ? error.Schedule.Name : "")</td>
+        <Td Path="@("/ScheduleLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@error.Schedule?.Name</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
 </GXTable>
-
 <br />
 <Confirm @ref="ClearConfirmation"
          ConfirmationChanged="OnClearConfirmation"
@@ -103,6 +103,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected schedule group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -121,7 +127,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -170,6 +176,17 @@
     public bool ShowClosedErrors { get; set; }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXScheduleLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXScheduleLog>? table;
@@ -215,9 +232,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.ScheduleLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXScheduleLog() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -238,14 +259,15 @@
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
-        {
+        {          
             ListScheduleLogs req = new ListScheduleLogs()
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -282,10 +304,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.ScheduleLogs, table.Active);
-            Notifier.Title = "Schedule logs";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/schedulelog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ScheduleLog/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -348,14 +367,12 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ScheduleLogs);
         Notifier.RemoveListener(this);
     }
 
     /// <summary>
     /// Clear the schedule log list.
     /// </summary>
-
     public void OnClear()
     {
         Notifier?.ClearStatus();

@@ -56,7 +56,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/ScheduleGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -70,6 +70,12 @@
 <br />
 
 @code {
+    /// <summary>
+    /// Selected schedule group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -88,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -154,17 +160,8 @@
         await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (table != null)
-            {
-                //Get last selected item.
-                table.Active = (GXScheduleGroup?)Notifier.GetData(GXPages.ScheduleGroups);
-            }
             Notifier.On<IEnumerable<GXScheduleGroup>>(this, nameof(IGXHubEvents.ScheduleGroupUpdate), async (group) =>
             {
                 await Updated();
@@ -175,7 +172,11 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.ScheduleGroups, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXScheduleGroup() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -207,7 +208,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -240,10 +242,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New schedule group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ScheduleGroups, new GXScheduleGroup(null));
-            NavigationManager.NavigateTo("/schedulegrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ScheduleGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -267,10 +266,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.ScheduleGroups, table.Active);
-            Notifier.Title = "Edit schedule group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/schedulegrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ScheduleGroup/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -294,7 +290,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -335,7 +331,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ScheduleGroups);
         Notifier.RemoveListener(this);
     }
 }

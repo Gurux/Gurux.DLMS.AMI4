@@ -1,0 +1,87 @@
+﻿@page "/config/blockmanage"
+@page "/config/block"
+@page "/config/blockGroup"
+
+@using Gurux.DLMS.AMI.Client.Pages.Block
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.BlockManager + "," + GXRoles.BlockGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "/config/Block", true) == 0)
+    {
+        <BlockTab Action="@Action" Id="@Id"></BlockTab>
+    }
+    else if (string.Compare(Path, "/config/BlockGroup", true) == 0)
+    {
+        <BlockGroupTab Action="@Action" Id="@Id"></BlockGroupTab>
+    }
+}
+else
+{
+<TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockManager)>
+                <TabPage Path="/config/Block" Text=@Properties.Resources.Blocks Icon="oi oi-browser">
+                <div style="position: relative; width: 100%; ">
+                        <Blocks Id="@Id"></Blocks>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockGroupManager)>
+                <TabPage Path="/config/BlockGroup" Text=@Properties.Resources.BlockGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                        <BlockGroups Id="@Id"></BlockGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+
+}
+

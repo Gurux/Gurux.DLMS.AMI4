@@ -26,7 +26,7 @@
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleLogManager)>
     <MenuControl RightCorner="true">
         <ChildContent>
-            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClose" />
+            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
             <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
         </ChildContent>
     </MenuControl>
@@ -38,6 +38,7 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
+         ShowAllUsers="false"
          Filter="@Filter"
          OnSearch="@Updated">
     <FilterContent>
@@ -67,13 +68,13 @@
         <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="async () => OnClose()"></ContextMenuItem>
     </MenuContent>
     <HeaderContent>
-        <th>@Properties.Resources.CreationTime</th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <th>@Properties.Resources.Error</th>
         <th>@Properties.Resources.Level</th>
         <th>@Properties.Resources.CloseTime</th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
+        <Td Path="@("/Config/ModuleLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -95,6 +96,12 @@
          ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
 </Confirm>
 @code {
+     /// <summary>
+    /// Selected module log ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -113,7 +120,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -163,6 +170,17 @@
     public bool ShowClosedErrors { get; set; }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXModuleLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXModuleLog>? table;
@@ -208,9 +226,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.ModuleLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXModuleLog() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -248,7 +270,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -285,10 +308,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.ModuleLogs, table?.Active);
-            Notifier.Title = "Module log";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/modulelog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ModuleLog/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -382,7 +402,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ModuleLogs);
         Notifier.RemoveListener(this);
     }
 }

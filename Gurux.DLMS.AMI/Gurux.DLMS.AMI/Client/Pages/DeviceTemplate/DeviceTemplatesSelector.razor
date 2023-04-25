@@ -1,5 +1,4 @@
-﻿@page "/devicetemplatesselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -13,19 +12,21 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, User, DeviceTemplateGroupManager, DeviceTemplateGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="schedules" />
+    <SelectionList Title="Selected" ItemList="templates" />
     <SelectionList Title="Available" ItemList="AllDeviceTemplates" />
 </SelectionContainer>
 
 @code {
+
+    [CascadingParameter]
+    private DeviceTemplateGroupTab? Parent { get; set; }
+
     List<GXDeviceTemplate> AllDeviceTemplates = new List<GXDeviceTemplate>();
-    List<GXDeviceTemplate> schedules = new List<GXDeviceTemplate>();
+    List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
 
     string GetName(object target)
     {
@@ -40,20 +41,13 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.DeviceTemplatesSelector, null);
-            //Add selected user groups.
-            GXDeviceTemplateGroup? userGroup = (GXDeviceTemplateGroup?)Notifier.GetData(GXPages.DeviceTemplateGroup);
-            if (userGroup == null)
+            if (Parent == null || Parent.Active == null || Parent.Active.DeviceTemplates == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            schedules = userGroup.DeviceTemplates;
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            templates = Parent.Active.DeviceTemplates;
             ListDeviceTemplates req = new ListDeviceTemplates()
                 {
                     Filter = new GXDeviceTemplate()
@@ -61,7 +55,7 @@
             var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
             foreach (GXDeviceTemplate it in ret.Templates)
             {
-                if (!schedules.Exists(q => q.Id == it.Id))
+                if (!templates.Exists(q => q.Id == it.Id))
                 {
                     AllDeviceTemplates.Add(it);
                 }
@@ -75,11 +69,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.DeviceTemplatesSelector);
     }
 }
 

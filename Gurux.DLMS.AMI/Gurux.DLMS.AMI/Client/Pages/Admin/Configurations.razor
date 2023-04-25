@@ -1,4 +1,4 @@
-﻿@page "/configurations"
+﻿@page "/config"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -22,7 +22,13 @@
 <h1>@Properties.Resources.SettingsTitle</h1>
 <hr />
 
-<GXTable @ref="table" Context="conf" ItemsProvider="@GetItems" OnSearch="@Updated" ShowRemoved="false" ShowAll="true">
+<GXTable @ref="table"
+         Context="conf"
+         ItemsProvider="@GetItems"
+         OnSearch="@Updated"
+         ShowAllUsers="false"
+         ShowRemoved="false"
+         ShowAllData="true">
     <FilterContent>
         <th>
         </th>
@@ -52,6 +58,13 @@
 
 
 @code {
+    /// <summary>
+    /// Selected block ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+
     private string GetPath(GXConfiguration target)
     {
         //If custom UI is used.
@@ -59,7 +72,7 @@
         {
             return target.Path;
         }
-        return "/configurations";
+        return "/Config";
     }
 
     private void OnSelect(GXConfiguration target)
@@ -69,11 +82,11 @@
         Notifier.UpdateData(GXPages.Configurations, target);
         if (!string.IsNullOrEmpty(target.Path))
         {
-            NavigationManager.NavigateTo(target.Path);
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, target.Path);
         }
         else
         {
-            NavigationManager.NavigateTo("/configurations");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
         }
     }
 
@@ -154,22 +167,17 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Return last selected item.
-            object? data = Notifier.GetData(GXPages.Configurations);
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
             {
                 await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
+            if (table != null && Id != null)
             {
-                if (data is GXConfiguration c1)
-                {
-                    table.Active = c1;
-                }
+                //Get last selected item.
+                table.Active = new GXConfiguration() { Id = Id.Value };
             }
-            Notifier.ChangePage(GXPages.Configurations, table?.Active, true);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -204,7 +212,7 @@
             //If custom UI is used.
             if (!string.IsNullOrEmpty(table.Active.Path))
             {
-                NavigationManager.NavigateTo(table.Active.Path);
+                ClientHelpers.NavigateTo(NavigationManager, Notifier, table.Active.Path);
             }
             else
             {
@@ -227,7 +235,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Configurations);
         Notifier.RemoveListener(this);
     }
 }

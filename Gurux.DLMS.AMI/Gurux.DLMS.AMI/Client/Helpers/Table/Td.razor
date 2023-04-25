@@ -1,0 +1,65 @@
+﻿@namespace Gurux.DLMS.AMI.Client.Helpers.Table
+@using Gurux.DLMS.AMI.Shared.DIs;
+
+@inherits ComponentBase
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<td style="@CssStyle" class="@CssClass" @attributes="@AdditionalAttributes">
+    <a href="@Path" @onclick="() => OnSelect()">
+        @ChildContent
+    </a>
+</td>
+
+@code
+{
+    /// <summary>
+    /// Parent table.
+    /// </summary>
+    [CascadingParameter]
+    private IGXTable? Parent { get; set; }
+
+    [Parameter]
+    public string? Path { get; set; }
+
+    /// <summary>
+    /// Gets or sets the item template for the list.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? CssStyle { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    //New target is selected.
+    private void OnSelect()
+    {
+        if (Notifier != null)
+        {
+            Notifier.ChangePage(NavigationManager.Uri);
+        }
+        if (!string.IsNullOrEmpty(Path))
+        {
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, Path);
+        }
+    }
+
+    /// <summary>
+    /// Initialize context menu.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "Th must exist within a GXTable");
+        }
+        base.OnInitialized();
+    }
+}

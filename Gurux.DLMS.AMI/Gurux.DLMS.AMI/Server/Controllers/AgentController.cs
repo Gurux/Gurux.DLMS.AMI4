@@ -92,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         public async Task<ActionResult<ListAgentInstallersResponse>> Post(ListAgentInstallers request)
         {
             ListAgentInstallersResponse ret = new ListAgentInstallersResponse();
-            await _agentRepository.ListInstallersAsync(User, request, ret);
+            await _agentRepository.ListInstallersAsync(User, request, false, ret);
             return ret;
         }
 
@@ -136,7 +136,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             {
                 return BadRequest(Properties.Resources.InvalidId);
             }
-            await _agentRepository.UpdateStatusAsync(User, request.Id, request.Status);
+            await _agentRepository.UpdateStatusAsync(User, request.Id, request.Status, request.Data);
             return Ok();
         }
 
@@ -148,7 +148,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         public async Task<ActionResult<DownloadAgentResponse>> Post(DownloadAgent request, CancellationToken token)
         {
             Version? version = null;
-            var installedAgents = await _agentRepository.ListInstallersAsync(User, null, null);
+            var installedAgents = await _agentRepository.ListInstallersAsync(User, null, false, null);
             if (request.Agent == null || request.Agent.Id == Guid.Empty ||
                 string.IsNullOrEmpty(request.Agent.UpdateVersion))
             {
@@ -185,9 +185,24 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             }
             if (request.Agent != null)
             {
-                await _agentRepository.UpdateStatusAsync(User, request.Agent.Id, AgentStatus.Downloading);
+                await _agentRepository.UpdateStatusAsync(User, request.Agent.Id, AgentStatus.Downloading, null);
             }
             return new DownloadAgentResponse() { Urls = urls.ToArray() };
+        }
+
+        /// <summary>
+        /// Install agent version.
+        /// </summary>
+        [HttpPost("Install")]
+        [Authorize(Policy = GXAgentPolicies.Edit)]
+        public async Task<ActionResult<InstallAgentResponse>> Post(InstallAgent request)
+        {
+            if (request.Agents == null || !request.Agents.Any())
+            {
+                return BadRequest(Properties.Resources.InvalidId);
+            }
+            await _agentRepository.UpdateAsync(User, request.Agents, c => c.UpdateVersion);
+            return new InstallAgentResponse();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿@page "/agentlogs"
+﻿@page "/AgentLogs"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -78,7 +78,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
+        <Td Path="@("/AgentLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@(error.Agent != null ? error.Agent.Name : "")</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
@@ -104,6 +104,18 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected schedule group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -122,7 +134,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -183,6 +195,16 @@
     public bool ShowClosedErrors { get; set; }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXAgentLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+    /// <summary>
     /// Update table.
     /// </summary>
     protected async Task Updated()
@@ -223,9 +245,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.AgentLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXAgentLog() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -263,7 +289,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -310,13 +337,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Agent error";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/agentLog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/AgentLog/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -379,7 +404,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.AgentLogs);
         Notifier.RemoveListener(this);
     }
 

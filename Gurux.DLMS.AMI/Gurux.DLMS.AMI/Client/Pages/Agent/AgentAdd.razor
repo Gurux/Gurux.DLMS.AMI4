@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <h1>Configure your account</h1>
 Configure your account by following the steps outlined <a target="_blank" href="https://www.gurux.fi/agent-configure">here</a>.
@@ -25,7 +24,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
     <DataAnnotationsValidator />
     <ValidationSummary />
     <button class="btn btn-secondary" @onclick="OnDownload">
-        <div class="oi oi-flash"></div>
+        <div class="oi oi-data-transfer-download"></div>
         &nbsp;@Properties.Resources.DownloadAgent
     </button>
     <p>
@@ -41,7 +40,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
                    @bind-Value="TokenExpiration" />
     </div>
     <button class="btn btn-secondary" @onclick="OnToken">
-        <div class="oi oi-flash"></div>
+        <div class="oi oi-key"></div>
         &nbsp;@Properties.Resources.GenerateAccessToken
     </button>
     @if (Token != null)
@@ -136,7 +135,7 @@ Configure your account by following the steps outlined <a target="_blank" href="
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -148,7 +147,6 @@ Configure your account by following the steps outlined <a target="_blank" href="
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Agent, null);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -165,12 +163,6 @@ Configure your account by following the steps outlined <a target="_blank" href="
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.Agent);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

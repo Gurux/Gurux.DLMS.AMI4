@@ -93,7 +93,7 @@
                 case CrudAction.Update:
                     break;
                 default:
-                    NavigationManager.NavigateTo("/configurations");
+                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
                     return;
             }
             if (!_configuration.Modified &&
@@ -116,9 +116,6 @@
                     _settings.Message = ((MarkupString)_settings.Message).ToString();
                 }
             }
-            //Configurations needs to be update as well.
-            Notifier.ChangePage(GXPages.Configurations, _configuration);
-            Notifier.ChangePage(GXPages.Maintenance, _configuration);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -154,8 +151,7 @@
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { _configuration };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
         }
         catch (Exception ex)
         {
@@ -195,13 +191,11 @@
     ///</summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
     }
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Maintenance);
         Notifier.RemoveListener(this);
     }
 }

@@ -1,5 +1,7 @@
-﻿@page "/blocktab"
+﻿@page "/config/block/{Id:guid?}"
+@page "/config/block/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -15,45 +17,109 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-browser">
-                <div style="position: relative; width: 100%; ">
-                    <Block></Block>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.BlockGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <BlockGroupsSelector></BlockGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-browser">
+                    <div style="position: relative; width: 100%; ">
+                        <Block Action="@Action"></Block>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.BlockGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <BlockGroupsSelector></BlockGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
     private string? Title;
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active item.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
+    public GXBlock Active = new GXBlock(null);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Title = Notifier.Title;
-        Notifier.RemoveLastPage(GXPages.Blocks);
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Block;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get block data.
+                var tmp = (await Http.GetAsJsonAsync<GetBlockResponse>(string.Format("api/Block?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

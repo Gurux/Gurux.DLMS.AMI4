@@ -69,6 +69,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid scriptGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupScriptGroup>(a => a.Id, b => b.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupScriptGroup, GXScriptGroup>(a => a.ScriptGroupId, b => b.Id);
             arg.Where.And<GXScriptGroup>(where => where.Removed == null && where.Id == scriptGroupId);
@@ -78,6 +79,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private async Task<List<GXScript>> GetJoinedScripts(Guid scriptGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScript>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScript, GXScriptGroupScript>(a => a.Id, b => b.ScriptId);
             arg.Joins.AddInnerJoin<GXScriptGroupScript, GXScriptGroup>(a => a.ScriptGroupId, b => b.Id);
             arg.Where.And<GXScriptGroup>(where => where.Removed == null && where.Id == scriptGroupId);
@@ -89,6 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<GXScriptGroup>> GetJoinedScriptGroups(ClaimsPrincipal User, Guid scriptId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScriptGroup>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScriptGroup, GXScriptGroupScript>(a => a.Id, b => b.ScriptGroupId);
             arg.Joins.AddInnerJoin<GXScriptGroupScript, GXScript>(a => a.ScriptId, b => b.Id);
             arg.Where.And<GXScript>(where => where.Removed == null && where.Id == scriptId);
@@ -99,6 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? groupId)
         {
             GXSelectArgs args = GXQuery.GetUsersByScriptGroup(ServerHelpers.GetUserId(User), groupId);
+            args.Distinct = true;
             List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
             List<string> ret = users.Select(s => s.Id).ToList();
             if (User != null && User.IsInRole(GXRoles.Admin))
@@ -112,6 +116,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? groupIds)
         {
             GXSelectArgs args = GXQuery.GetUsersByScriptGroups(ServerHelpers.GetUserId(User), groupIds);
+            args.Distinct = true;
             List<GXUser> users = await _host.Connection.SelectAsync<GXUser>(args);
             List<string> ret = users.Select(s => s.Id).ToList();
             if (User != null && User.IsInRole(GXRoles.Admin))
@@ -177,6 +182,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(request.Filter);
             }
+            arg.Distinct = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -333,7 +339,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveScriptGroupFromUserGroups(it.Id, removed);
                     }
                     //Map scripts to Script group.
-                    if (it.Scripts != null && it.Scripts.Count != 0)
+                    if (it.Scripts != null && it.Scripts.Any())
                     {
                         List<GXScript> list3 = await GetJoinedScripts(it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

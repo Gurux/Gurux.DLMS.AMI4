@@ -71,15 +71,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _userGroupRepository = userGroupRepository;
         }
 
-        public async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid deviceTemplateId)
+        /// <summary>
+        /// Returns user groups where device template belongs.
+        /// </summary>
+        /// <param name="groupId">Device template group ID.</param>
+        /// <returns>User groups where device template belongs.</returns>
+        public async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid groupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
-            arg.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null && where.Id == deviceTemplateId);
+            arg.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null && where.Id == groupId);
             return (await _host.Connection.SelectAsync<GXUserGroup>(arg));
         }
-
 
         /// <inheritdoc />
         public async Task<List<GXDeviceTemplateGroup>> GetJoinedDeviceTemplateGroups(ClaimsPrincipal user, Guid deviceTemplateId)
@@ -89,6 +93,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
             arg.Where.And<GXDeviceTemplate>(where => where.Removed == null && where.Id == deviceTemplateId);
             return (await _host.Connection.SelectAsync<GXDeviceTemplateGroup>(arg));
+        }
+
+        /// <summary>
+        /// Returns user groups where device template belongs.
+        /// </summary>
+        /// <param name="groupId">Device template group ID.</param>
+        /// <returns>User groups where device template belongs.</returns>
+        private async Task<List<GXDeviceTemplate>> GetJoinedDeviceTemplate(ClaimsPrincipal user, Guid groupId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceTemplate>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(a => a.Id, b => b.DeviceTemplateGroupId);
+            arg.Joins.AddInnerJoin<GXDeviceTemplateGroupDeviceTemplate, GXDeviceTemplate>(a => a.DeviceTemplateId, b => b.Id);
+            arg.Where.And<GXDeviceTemplateGroup>(where => where.Removed == null && where.Id == groupId);
+            return (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg));
         }
 
         /// <inheritdoc />
@@ -151,36 +169,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 list.Add(userId);
             }
-            return list;
-        }
-
-        /// <summary>
-        /// Get all device template groups that this user can access. 
-        /// </summary>
-        /// <returns></returns>
-        List<Guid> GetGroups(string userId, bool isAdmin)
-        {
-            GXSelectArgs args;
-            List<GXDeviceTemplateGroup> groups;
-            //Check that user can access this group.
-            if (isAdmin)
-            {
-                args = GXSelectArgs.Select<GXDeviceTemplateGroup>(a => a.Id, q => q.Removed == null);
-                groups = _host.Connection.Select<GXDeviceTemplateGroup>(args);
-            }
-            else
-            {
-                args = GXSelectArgs.Select<GXDeviceTemplateGroup>(a => a.Id, q => q.Removed == null);
-                args.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.DeviceTemplateGroupId);
-                args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-                args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(a => a.Id, b => b.UserGroupId);
-                args.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(a => a.UserId, b => b.Id);
-                args.Where.And<GXUserGroup>(q => q.Removed == null);
-                args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null);
-                args.Where.And<GXUser>(q => q.Removed == null && q.Id == userId);
-                groups = _host.Connection.Select<GXDeviceTemplateGroup>(args);
-            }
-            List<Guid> list = groups.Select(s => s.Id).ToList();
             return list;
         }
 
@@ -379,8 +367,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     args.Exclude<GXDeviceTemplateGroup>(q => new { q.CreationTime, q.UserGroups, q.DeviceTemplates });
                     _host.Connection.Update(args);
 
-                    //Map user group to DeviceTemplate group.
-                    if (it.UserGroups != null && it.UserGroups.Count != 0)
+                    //Map user group to device template group.
+                    if (it.UserGroups != null && it.UserGroups.Any())
                     {
                         List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);
                         List<Guid> groups = list2.Select(s => s.Id).ToList();
@@ -396,10 +384,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             RemoveDeviceTemplateGroupFromUserGroups(it.Id, removed);
                         }
                     }
-                    //Map device template group to device template.
-                    if (it.DeviceTemplates != null && it.DeviceTemplates.Count != 0)
+                    //Map device templates to device template group.
+                    if (it.DeviceTemplates != null && it.DeviceTemplates.Any())
                     {
-                        List<GXDeviceTemplateGroup> list2 = await GetJoinedDeviceTemplateGroups(User, it.Id);
+                        List<GXDeviceTemplate> list2 = await GetJoinedDeviceTemplate(User, it.Id);
                         List<Guid> groups = list2.Select(s => s.Id).ToList();
                         Guid[] tmp = it.DeviceTemplates.Select(s => s.Id).ToArray();
                         Guid[] removed = groups.Except(tmp).ToArray();

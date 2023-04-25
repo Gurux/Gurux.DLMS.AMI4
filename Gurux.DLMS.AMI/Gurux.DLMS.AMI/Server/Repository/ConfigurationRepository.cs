@@ -326,7 +326,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             if (resources != null)
             {
-                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteRange(resources));
+                foreach (var it in resources)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXLocalizedResource>(it.Id));
+                }
             }
         }
 

@@ -1,0 +1,97 @@
+﻿@page "/config/workflowmanage"
+@page "/config/workflow"
+@page "/config/workflowgroup"
+@page "/config/WorkflowLog/{Id:guid?}"
+@page "/config/WorkflowLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Workflow
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.WorkflowManager + "," + GXRoles.WorkflowGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "config/Workflow", true) == 0)
+    {
+        <WorkflowTab Action="@Action" Id="@Id"></WorkflowTab>
+    }
+    else if (string.Compare(Path, "config/WorkflowGroup", true) == 0)
+    {
+        <WorkflowGroupTab Action="@Action" Id="@Id"></WorkflowGroupTab>
+    }
+    else if (string.Compare(Path, "config/WorkflowLog", true) == 0)
+    {
+        <WorkflowLog Id="@Id"></WorkflowLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowManager)>
+                <TabPage Path="config/Workflow" Text=@Properties.Resources.Workflows Icon="oi oi-fork">
+                    <div style="position: relative; width: 100%; ">
+                        <Workflows Id="@Id"></Workflows>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowGroupManager)>
+                <TabPage Path="config/WorkflowGroup" Text=@Properties.Resources.WorkflowGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <WorkflowGroups Id="@Id"></WorkflowGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowLog)>
+                <TabPage Path="config/WorkflowLog" Text=@Properties.Resources.WorkflowLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <WorkflowLogs Id="@Id"></WorkflowLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

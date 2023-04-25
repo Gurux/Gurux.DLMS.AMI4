@@ -464,18 +464,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Device template groups where the device template is removed.</param>
         public void RemoveDevicesFromDeviceGroup(Guid deviceTemplateId, IEnumerable<GXDeviceGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXDeviceGroupDevice> list = new List<GXDeviceGroupDevice>();
             foreach (var it in groups)
             {
-                list.Add(new GXDeviceGroupDevice()
-                {
-                    DeviceId = deviceTemplateId,
-                    DeviceGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => w.DeviceId == deviceTemplateId && w.DeviceGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <summary>
@@ -508,13 +500,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="parameters">Removed device parameters.</param>
         public void RemoveDeviceParameters(GXDevice device, IEnumerable<GXDeviceParameter> parameters)
         {
-            DateTime now = DateTime.Now;
             foreach (GXDeviceParameter it in parameters)
             {
-                it.Removed = now;
-                it.Device = device;
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXDeviceParameter>(it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
+            //_host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }
     }
 }

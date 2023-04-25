@@ -52,19 +52,35 @@ namespace Gurux.DLMS.AMI.Server.Internal
             /// <summary>
             /// Included properties.
             /// </summary>
-            public IEnumerable<PropertyInfo> included;
+            public IEnumerable<PropertyInfo> Included;
             /// <summary>
             /// Excluded properties.
             /// </summary>
-            public IEnumerable<PropertyInfo> excluded;
+            public IEnumerable<PropertyInfo> Excluded;
             /// <summary>
             /// Context
             /// </summary>
-            public SchemaFilterContext context;
+            public SchemaFilterContext Context;
             /// <summary>
             /// Build objects.
             /// </summary>
-            public Dictionary<string, OpenApiSchema> cache;
+            public Dictionary<string, OpenApiSchema> Cache;
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            public SchemaTreeArg(string name,
+                IEnumerable<PropertyInfo> included,
+                IEnumerable<PropertyInfo> excluded,
+                SchemaFilterContext context,
+                Dictionary<string, OpenApiSchema> cache)
+            {
+                Name = name;
+                Included = included;
+                Excluded = excluded;
+                Context = context;
+                Cache = cache;
+            }
+
         }
 
         ILogger<SwaggerSchemaFilter> _logger;
@@ -146,7 +162,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 type = Nullable.GetUnderlyingType(type);
             }
-            if (type != null && 
+            if (type != null &&
                 type.IsClass &&
                 type != typeof(string) &&
                 type != typeof(Guid))
@@ -186,9 +202,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 ret = Nullable.GetUnderlyingType(type);
             }
-            if (ret != null && 
+            if (ret != null &&
                 ret.IsClass &&
-                ret.GetIEnumerableType() == null && 
+                ret.GetIEnumerableType() == null &&
                 ret != typeof(string) &&
                 ret != typeof(Guid) &&
                 ret != typeof(Byte))
@@ -223,7 +239,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             Type type,
             string name)
         {
-            foreach (var a in args.included)
+            foreach (var a in args.Included)
             {
                 var tmp = a.GetCustomAttributes<IncludeSwaggerAttribute>();
                 foreach (var it in tmp)
@@ -238,7 +254,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     }
                 }
             }
-            foreach (var a in args.excluded)
+            foreach (var a in args.Excluded)
             {
                 var tmp = a.GetCustomAttributes<ExcludeSwaggerAttribute>();
                 foreach (var it in tmp)
@@ -263,8 +279,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             SchemaTreeArg args,
             Type type,
             PropertyInfo prop)
-        {           
-            foreach (var a in args.included)
+        {
+            foreach (var a in args.Included)
             {
                 var tmp = a.GetCustomAttributes<IncludeSwaggerAttribute>();
                 foreach (var it in tmp)
@@ -282,8 +298,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
                         return true;
                     }
                 }
-            }           
-            foreach (var a in args.excluded)
+            }
+            foreach (var a in args.Excluded)
             {
                 var tmp = a.GetCustomAttributes<ExcludeSwaggerAttribute>();
                 foreach (var it in tmp)
@@ -322,24 +338,24 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     if (type != null)
                     {
                         string name = type.Name;
-                        var objectSchema3 = args.context.SchemaRepository.Schemas.Where(w => w.Key == name).SingleOrDefault();
-                        if (objectSchema3.Key != null)                       
+                        var objectSchema3 = args.Context.SchemaRepository.Schemas.Where(w => w.Key == name).SingleOrDefault();
+                        if (objectSchema3.Key != null)
                         {
                             name = FirstCharToLowerCase(p.Name);
                             schema.Properties.Remove(name);
-                            if (!args.cache.ContainsKey(type.Name))
+                            if (!args.Cache.ContainsKey(type.Name))
                             {
                                 OpenApiSchema s = new OpenApiSchema { Type = "array" };
                                 schema.Properties.Add(name, s);
                                 s.Items = new OpenApiSchema { Type = objectSchema3.Value.Type };
-                                args.cache[type.Name] = s.Items;
+                                args.Cache[type.Name] = s.Items;
                                 // Console.WriteLine("{");
                                 BuildSchemaTree(args, type, s.Items);
                                 // Console.WriteLine("}");
                             }
                             else
                             {
-                                schema.Properties.Add(name, args.cache[type.Name]);
+                                schema.Properties.Add(name, args.Cache[type.Name]);
                                 _logger.LogInformation(name + " gets " + type.Name + " from the cache.");
                             }
                         }
@@ -356,7 +372,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                             type = target;
                         }
 
-                        var objectSchema2 = args.context.SchemaRepository.Schemas.Where(w => w.Key == type.Name).SingleOrDefault();
+                        var objectSchema2 = args.Context.SchemaRepository.Schemas.Where(w => w.Key == type.Name).SingleOrDefault();
                         var t = objectSchema2.Value.Properties.Where(w => string.Compare(w.Key, p.Name, true) == 0).SingleOrDefault();
                         //Property is not found from the schema when JsonIgnore is used.
                         if (t.Key != null)
@@ -364,7 +380,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                             if (GetPropertyType(p.PropertyType) != null)
                             {
                                 string name = FirstCharToLowerCase(p.Name);
-                                if (!args.cache.ContainsKey(p.PropertyType.Name))
+                                if (!args.Cache.ContainsKey(p.PropertyType.Name))
                                 {
                                     OpenApiSchema s = new OpenApiSchema
                                     {
@@ -372,7 +388,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                         ReadOnly = t.Value.ReadOnly,
                                         WriteOnly = t.Value.WriteOnly
                                     };
-                                    args.cache[p.PropertyType.Name] = s;
+                                    args.Cache[p.PropertyType.Name] = s;
                                     schema.Properties.Add(t.Key, s);
                                     type = GetPropertyType(p.PropertyType);
                                     if (type == null)
@@ -392,7 +408,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                                 }
                                 else
                                 {
-                                    schema.Properties.Add(t.Key, args.cache[p.PropertyType.Name]);
+                                    schema.Properties.Add(t.Key, args.Cache[p.PropertyType.Name]);
                                     _logger.LogInformation(target.Name + " gets " + p.PropertyType.Name + " from the cache.");
                                 }
                             }
@@ -427,8 +443,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return;
             }
-            // Console.WriteLine("------------------------------------------------------------");
-            // Console.WriteLine(context.Type.Name);
+            Console.WriteLine("------------------------------------------------------------");
+            Console.WriteLine(context.Type.Name);
             var include = context.Type.GetProperties()
                 .Where(t => t.GetCustomAttributes<IncludeSwaggerAttribute>().Any());
             var exclude = context.Type.GetProperties()
@@ -457,33 +473,28 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     {
                         s = new OpenApiSchema { Type = "array" };
                         s.Items = new OpenApiSchema();
-                        SchemaTreeArg args = new SchemaTreeArg
-                        {
-                            Name = context.Type.Name,
-                            included = include,
-                            excluded = exclude,
-                            context = context,
-                            cache = cache
-                        };
+                        SchemaTreeArg args = new SchemaTreeArg(context.Type.Name,
+                            include,
+                            exclude,
+                            context,
+                            cache);
                         BuildSchemaTree(args, type, s.Items);
                     }
                     else
                     {
                         s = new OpenApiSchema { Type = objectSchema3.Value.Type };
-                        SchemaTreeArg args = new SchemaTreeArg
-                        {
-                            Name = context.Type.Name,
-                            included = include,
-                            excluded = exclude,
-                            context = context,
-                            cache = cache
-                        };
+                        SchemaTreeArg args = new SchemaTreeArg(
+                            context.Type.Name,
+                            include,
+                            exclude,
+                            context,
+                            cache);
                         BuildSchemaTree(args, type, s);
                     }
                     schema.Properties.Add(name, s);
                 }
             }
-            // Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
         }
     }
 }

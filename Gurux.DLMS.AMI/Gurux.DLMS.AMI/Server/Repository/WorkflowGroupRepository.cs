@@ -336,7 +336,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveWorkflowGroupFromUserGroups(it.Id, removed);
                     }
                     //Map workflows to Workflow group.
-                    if (it.Workflows != null && it.Workflows.Count != 0)
+                    if (it.Workflows != null && it.Workflows.Any())
                     {
                         List<GXWorkflow> list3 = await GetJoinedWorkflows(it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

@@ -1,4 +1,4 @@
-﻿@page "/scriptmethodsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -14,10 +14,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, User, ScriptGroupManager, ScriptGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="scriptMethods" />
@@ -25,6 +23,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private WorkflowTab? Parent { get; set; }
+
     List<GXScriptMethod> AllScriptMethods = new List<GXScriptMethod>();
     List<GXScriptMethod> scriptMethods = new List<GXScriptMethod>();
 
@@ -49,21 +50,15 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            string? page = Notifier.GetLastPage();
-            if (page == GXPages.WorkflowManage)
+            if (Parent?.Active?.ScriptMethods != null)
             {
                 //Get scripts from selected script group.
-                GXWorkflow? workflow = (GXWorkflow?)Notifier.GetData(GXPages.Workflow);
-                if (workflow != null && workflow.ScriptMethods != null)
-                {
-                    scriptMethods = workflow.ScriptMethods;
-                }
+                scriptMethods = Parent.Active.ScriptMethods;
             }
             else
             {
-                throw new ArgumentOutOfRangeException("Unknown manager " + page);
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ChangePage(GXPages.ScriptsSelector, null);
             ListScripts req = new ListScripts();
             var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req);
             foreach (GXScript script in ret.Scripts)
@@ -91,11 +86,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.ScriptsSelector);
     }
 }
 

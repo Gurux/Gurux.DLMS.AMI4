@@ -398,7 +398,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveDeviceGroupFromUserGroups(it.Id, removed);
                     }
                     //Map devices to device group.
-                    if (it.Devices != null && it.Devices.Count != 0)
+                    if (it.Devices != null)
                     {
                         List<GXDevice> devices = GetDevicessByDeviceGroupId(user, it.Id);
                         var comparer2 = new UniqueComparer<GXDevice, Guid>();
@@ -414,7 +414,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Map agent groups to device groups.
-                    if (it.AgentGroups != null && it.AgentGroups.Count != 0)
+                    if (it.AgentGroups != null)
                     {
                         List<GXAgentGroup> agentGroups = GetAgentGroupsByDeviceGroupId(user, it.Id);
                         var comparer2 = new UniqueComparer<GXAgentGroup, Guid>();
@@ -467,18 +467,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the device groups where the device is removed.</param>
         public void RemoveDeviceGroupFromUserGroups(Guid deviceGroupId, IEnumerable<Guid> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXUserGroupDeviceGroup> list = new List<GXUserGroupDeviceGroup>();
             foreach (var ug in groups)
             {
-                list.Add(new GXUserGroupDeviceGroup()
-                {
-                    UserGroupId = ug,
-                    DeviceGroupId = deviceGroupId,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXUserGroupDeviceGroup>(w => w.UserGroupId == ug && w.DeviceGroupId == deviceGroupId));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <summary>

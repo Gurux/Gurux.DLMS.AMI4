@@ -319,13 +319,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="parameters">Removed object parameters.</param>
         public void RemoveObjectParameters(GXObject obj, IEnumerable<GXObjectParameter> parameters)
         {
-            DateTime now = DateTime.Now;
             foreach (GXObjectParameter it in parameters)
             {
-                it.Removed = now;
-                it.Object = obj;
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXObjectParameter>(it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }
     }
 }

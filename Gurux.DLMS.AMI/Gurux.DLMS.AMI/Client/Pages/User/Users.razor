@@ -32,7 +32,12 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="user" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="user"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="Filter by given name..."
@@ -98,7 +103,7 @@
     <ItemContent>
         <td>@user.GivenName</td>
         <td>@user.Surname</td>
-        <td>@user.Email</td>
+        <Td Path="@("/User/Edit/" + user.Id)">@user.Email</Td>
         <td>@user.EmailConfirmed</td>
         <td>@RolesToString(user.Roles)</td>
         <td>@user.CreationTime</td>
@@ -116,6 +121,13 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected user ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+
     /// <inheritdoc />
     public string Name
     {
@@ -134,7 +146,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -144,7 +156,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the users shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -254,8 +266,11 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.RemoveLastPage(GXPages.UserGroups);
-            Notifier.ChangePage(GXPages.Users, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXUser() { Id = Id.Value.ToString() };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -287,7 +302,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -320,10 +336,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New User";
-            Notifier.UpdateData(GXPages.Users, new GXUser(null));
-            Notifier.Action = CrudAction.Create;
-            NavigationManager.NavigateTo("/usertab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/User/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -347,10 +360,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Users, table.Active);
-            Notifier.Title = "Edit User";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/usertab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/User/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -427,7 +437,7 @@
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.UpdateData(GXPages.Users, table.Active);
-            NavigationManager.NavigateTo($"/userActions");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/userActions");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -452,7 +462,7 @@
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.UpdateData(GXPages.Users, table.Active);
-            NavigationManager.NavigateTo($"/agents");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/agents");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -466,7 +476,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Users);
         Notifier.RemoveListener(this);
     }
 }

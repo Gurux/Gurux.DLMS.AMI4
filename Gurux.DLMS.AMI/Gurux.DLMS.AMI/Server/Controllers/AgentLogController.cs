@@ -35,7 +35,6 @@ using Microsoft.AspNetCore.Mvc;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Server.Models;
-using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {

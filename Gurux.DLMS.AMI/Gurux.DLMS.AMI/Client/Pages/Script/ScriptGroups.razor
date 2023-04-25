@@ -55,7 +55,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/Config/ScriptGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -69,6 +69,13 @@
 
 <br />
 @code {
+    /// <summary>
+    /// Selected script group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+
     /// <inheritdoc />
     public string Name
     {
@@ -87,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -169,12 +176,11 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
+            if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroups);
+                table.Active = new GXScriptGroup() { Id = Id.Value };
             }
-            Notifier.ChangePage(GXPages.ScriptGroups, table?.Active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -210,7 +216,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -243,10 +250,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New script group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ScriptGroups, new GXScriptGroup(null));
-            NavigationManager.NavigateTo("/scriptgrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/ScriptGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -270,10 +274,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.ScriptGroups, table.Active);
-            Notifier.Title = "Edit script group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/scriptgrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/ScriptGroup/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -333,7 +334,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ScriptGroups);
         Notifier.RemoveListener(this);
     }
 }

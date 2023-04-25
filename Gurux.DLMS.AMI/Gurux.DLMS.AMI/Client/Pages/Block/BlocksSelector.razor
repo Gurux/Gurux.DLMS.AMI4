@@ -1,5 +1,4 @@
-﻿@page "/blocksselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -16,7 +15,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="blocks" />
@@ -24,6 +22,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private BlockGroupTab? Parent { get; set; }
+
     List<GXBlock> AllBlocks = new List<GXBlock>();
     List<GXBlock> blocks = new List<GXBlock>();
 
@@ -42,14 +43,15 @@
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.BlocksSelector, null);
-            //Add selected user groups.
-            GXBlockGroup? userGroup = (GXBlockGroup?)Notifier.GetData(GXPages.BlockGroup);
-            if (userGroup == null)
+            if (Parent?.Active?.Blocks != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
+                //Add selected blocks.
+                blocks = Parent.Active.Blocks;
             }
-            blocks = userGroup.Blocks;
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
             ListBlocks req = new ListBlocks();
             var ret = await Http.PostAsJson<ListBlocksResponse>("api/Block/List", req);
             foreach (GXBlock it in ret.Blocks)
@@ -68,11 +70,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.BlocksSelector);
     }
 }
 

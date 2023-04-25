@@ -1,4 +1,4 @@
-﻿@page "/agentgroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="agentGroups" />
@@ -24,6 +23,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private DeviceGroupTab? DeviceGroupParent { get; set; }
+
+    [CascadingParameter]
+    private AgentTab? AgentParent { get; set; }
+
     List<GXAgentGroup> AllAgentGroups = new List<GXAgentGroup>();
     List<GXAgentGroup> agentGroups = new List<GXAgentGroup>();
 
@@ -52,35 +57,25 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListAgentGroups req = new ListAgentGroups()
                 {
                     Filter = new GXAgentGroup()
                 };
-            if (page == GXPages.DeviceManage)
+            if (DeviceGroupParent?.Active?.AgentGroups != null)
             {
-                //There are no default agent groups for the device.
-                //All agents can read the meter as a default.
+                //Get selected agent groups.
+                agentGroups = DeviceGroupParent.Active.AgentGroups;
             }
-            else if (page == GXPages.AgentManage)
+            else if (AgentParent?.Active?.AgentGroups != null)
             {
-                //Get selected agent.
-                GXAgent? agent = (GXAgent?)Notifier.GetData(GXPages.Agent);
-                if (agent != null)
-                {
-                    agentGroups = agent.AgentGroups;
-                }
-                else
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
+                //Get selected agent groups.
+                agentGroups = AgentParent.Active.AgentGroups;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !agentGroups.Any();
-            Notifier.ChangePage(GXPages.AgentGroupsSelector, null);
             Notifier.UpdateButtons();
             var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req);
             foreach (GXAgentGroup it in ret.AgentGroups)
@@ -105,11 +100,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.AgentGroupsSelector);
     }
 }
 

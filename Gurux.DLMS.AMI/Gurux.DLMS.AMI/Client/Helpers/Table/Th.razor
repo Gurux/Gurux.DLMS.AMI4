@@ -9,8 +9,11 @@
 
 @code 
 {
+    /// <summary>
+    /// Parent table.
+    /// </summary>
     [CascadingParameter]
-    private IGXTable Parent { get; set; }
+    private IGXTable? Parent { get; set; }
 
     /// <summary>
     /// Gets or sets the item template for the list.

@@ -103,6 +103,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected user error ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -121,7 +127,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -131,7 +137,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the user errors shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -169,6 +175,17 @@
     /// Closed errors are shown.
     /// </summary>
     public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXUserError? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
 
     /// <summary>
     /// Table reference.
@@ -216,9 +233,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.UserLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXUserError() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -256,7 +277,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -293,10 +315,8 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.UserLogs, table.Active);
-            Notifier.Title = "User error";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/usererror");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/UserError/Edit/" + table.Active.Id);
+
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -359,7 +379,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.UserLogs);
         Notifier.RemoveListener(this);
     }
 

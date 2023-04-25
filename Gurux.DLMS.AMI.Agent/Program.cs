@@ -38,6 +38,7 @@ using System.Runtime.Loader;
 using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Agent.Shared;
 using Microsoft.Extensions.DependencyInjection;
+using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Agent
 {
@@ -216,6 +217,11 @@ namespace Gurux.DLMS.AMI.Agent
                         catch (UnauthorizedAccessException)
                         {
                             _logger.LogError("Failed to connect to the server. Invalid personal access token.");
+                            break;
+                        }
+                        catch (GXAmiNotFoundException)
+                        {
+                            _logger.LogError("Failed to connect to the server. Unknown agent.");
                             break;
                         }
                         catch (HttpRequestException ex)

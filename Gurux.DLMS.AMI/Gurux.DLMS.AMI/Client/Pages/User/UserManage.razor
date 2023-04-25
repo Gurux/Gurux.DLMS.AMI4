@@ -1,4 +1,10 @@
-﻿@page "/usermanage"
+﻿@page "/User"
+@page "/UserGroup"
+@page "/UserError/{Id:guid?}"
+@page "/UserError/{Action}/{Id:guid?}"
+@page "/UserAction/{Id:guid?}"
+@page "/UserAction/{Action}/{Id:guid?}"
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
@@ -13,60 +19,91 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.User, GXRoles.UserManager)>
-            <TabPage Text=@Properties.Resources.UsersTitle Icon="oi oi-people">
-                <div style="position: relative; width: 100%; ">
-                    <Users></Users>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroup, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.UserGroupsTitle>
-                <div style="position: relative; width: 100%; ">
-                    <UserGroups></UserGroups>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserError, GXRoles.UserErrorManager)>
-            <TabPage Text=@Properties.Resources.UserErrors Icon="oi oi-warning">
-                <div style="position: relative; width: 100%; ">
-                    <UserErrors></UserErrors>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserAction, GXRoles.UserActionManager)>
-            <TabPage Text=@Properties.Resources.UserActions Icon="oi oi-info">
-                <div style="position: relative; width: 100%; ">
-                    <UserActions></UserActions>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "User", true) == 0)
+    {
+        <UserTab Action="@Action" Id="@Id"></UserTab>
+    }
+    else if (string.Compare(Path, "UserGroup", true) == 0)
+    {
+        <UserGroupTab Action="@Action" Id="@Id"></UserGroupTab>
+    }
+    else if (string.Compare(Path, "UserError", true) == 0)
+    {
+        <UserError Action="@Action" Id="@Id"></UserError>
+    }
+    else if (string.Compare(Path, "UserAcion", true) == 0)
+    {
+        <UserAction Action="@Action" Id="@Id"></UserAction>
+    }   
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.User, GXRoles.UserManager)>
+                <TabPage Path="User" Text=@Properties.Resources.UsersTitle Icon="oi oi-people">
+                    <div style="position: relative; width: 100%; ">
+                        <Users Id="@Id"></Users>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroup, GXRoles.UserGroupManager)>
+                <TabPage Path="UserGroup"  Text=@Properties.Resources.UserGroupsTitle>
+                    <div style="position: relative; width: 100%; ">
+                        <UserGroups Id="@Id"></UserGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserError, GXRoles.UserErrorManager)>
+                <TabPage Path="UserError" Text=@Properties.Resources.UserErrors Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <UserErrors Id="@Id"></UserErrors>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserAction, GXRoles.UserActionManager)>
+                <TabPage Path="UserAction" Text=@Properties.Resources.UserActions Icon="oi oi-info">
+                    <div style="position: relative; width: 100%; ">
+                        <UserActions Id="@Id" ></UserActions>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
 <br />
 @code {
-    private int ActiveTab { get; set; } = 0;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; } = "User";
 
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
     {
-        Notifier.RemoveLastPage();
-        Notifier.UpdateData(GXPages.UserManage, index);
+        Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
-        object? data = Notifier.GetData(GXPages.UserManage);
-        if ((data is int value) && value != 0)
-        {
-            ActiveTab = value;
-        }
-        Notifier.ChangePage(GXPages.UserManage, data, true);
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
 }
 

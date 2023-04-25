@@ -1,5 +1,4 @@
-﻿@page "/device"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Gurux.Net
 @using Gurux.Serial
@@ -23,154 +22,186 @@
 @using System.Text.Json.Serialization
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = "Admin, DeviceManager")]
+@attribute [Authorize(Roles = "Admin, Device, DeviceManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @implements IDisposable
+<CascadingValue Value="this">
 
-@if (_templateSettings != null && _device != null)
-{
-    @if (templates != null && templates.Any())
+    @if (_templateSettings != null && Active != null)
     {
-        @if (Notifier.Action != CrudAction.Create)
+        @if (templates != null && templates.Any())
         {
-            <MenuControl RightCorner="true" Bottom="true">
-                <ChildContent>
-                    <MenuItem Text="Save as default" Icon="oi oi-pencil" OnClick="@(async () => OnDefault())" />
-                </ChildContent>
-            </MenuControl>
-        }
-        <EditForm Model="@_device">
-            <div class="row">
-                <div style="width:100%">
-                    <div class="form-group">
-                        <label>Type:</label>
-                        <InputSelect id="type" class="form-control"
-                             @bind-Value="SelectedTemplate" disabled="@IsCreate()">
-                            @foreach (var it in templates)
-                            {
-                                <option value="@it.Name">@it.Name</option>
-                            }
-                        </InputSelect>
+            @if (Notifier.Action != CrudAction.Create)
+            {
+                <MenuControl RightCorner="true" Bottom="true">
+                    <ChildContent>
+                        <MenuItem Text="Save as default" Icon="oi oi-pencil" OnClick="@(async () => OnDefault())" />
+                    </ChildContent>
+                </MenuControl>
+            }
+            <EditForm Model="@Active">
+                <div class="row">
+                    <div style="width:100%">
+                        <div class="form-group">
+                            <label>Type:</label>
+                            <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedTemplate" disabled="@IsCreate()">
+                                @foreach (var it in templates)
+                                {
+                                    <option value="@it.Name">@it.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="form-group">
+                            <label>Manufacturer:</label>
+                            <InputText id="manuacturer" class="form-control" readonly="readonly"
+                               @bind-Value="_templateSettings.Manufacturer" />
+                        </div>
+                        <div class="form-group">
+                            <label>Name:</label>
+                            <InputText id="name" class="form-control"
+                               @bind-Value="Active.Name" />
+                        </div>
+                        <div class="form-group">
+                            <label style="margin:auto">&nbsp;Interface:&nbsp;</label>
+                            <select class="form-control" @bind="@_settings.InterfaceType">
+                                @foreach (var it in InterfaceList)
+                                {
+                                    <option value="@Convert.ToInt32(it)">@it</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Authentication:</label>
+                            <InputText id="authentication" class="form-control" readonly="readonly"
+                               @bind-Value="Authentication" />
+                        </div>
+                        <div class="form-group">
+                            <label>Password:</label>
+                            <InputText id="password" class="form-control"
+                               @bind-Value="Password" disabled="@IsAuthenticated()" />
+                        </div>
+                        <div class="form-group">
+                            <label style="margin:auto">Media:</label>
+                            <select class="form-control" @bind="@Active.MediaType">
+                                @foreach (var it in MediaList)
+                                {
+                                    <option value="@it.Key"> @it.Value </option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Wait time:</label>
+                            <InputNumber id="resend" class="form-control"
+                                 @bind-Value="Active.WaitTime" />
+                        </div>
+                        <div class="form-group">
+                            <label>Resend count:</label>
+                            <InputNumber id="resend" class="form-control"
+                                 @bind-Value="Active.ResendCount" />
+                        </div>
+                        <div class="form-group">
+                            <label>@Properties.Resources.TraceLevels:</label>
+                            <select class="form-control" @bind="Active.TraceLevel">
+                                @foreach (var it in TraceLevels)
+                                {
+                                    <option value="@it">@it</option>
+                                }
+                            </select>
+                        </div>
+                        @if (Active.MediaType == typeof(GXNet).FullName)
+                        {
+                            <NetworkSettings @ref=networkSettings></NetworkSettings>
+                        }
+                        @if (Active.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(Active.MediaType))
+                        {
+                            <SerialSettings @ref=serialSettings></SerialSettings>
+                        }
+                        <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                     </div>
-                    <div class="form-group">
-                        <label>Manufacturer:</label>
-                        <InputText id="manuacturer" class="form-control" readonly="readonly"
-                           @bind-Value="_templateSettings.Manufacturer" />
-                    </div>
-                    <div class="form-group">
-                        <label>Name:</label>
-                        <InputText id="name" class="form-control"
-                           @bind-Value="_device.Name" />
-                    </div>
-                    <div class="form-group">
-                        <label style="margin:auto">&nbsp;Interface:&nbsp;</label>
-                        <select class="form-control" @bind="@_settings.InterfaceType">
-                            @foreach (var it in InterfaceList)
-                            {
-                                <option value="@Convert.ToInt32(it)">@it</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Authentication:</label>
-                        <InputText id="authentication" class="form-control" readonly="readonly"
-                           @bind-Value="Authentication" />
-                    </div>
-                    <div class="form-group">
-                        <label>Password:</label>
-                        <InputText id="password" class="form-control"
-                           @bind-Value="Password" disabled="@IsAuthenticated()" />
-                    </div>
-                    <div class="form-group">
-                        <label style="margin:auto">Media:</label>
-                        <select class="form-control" @bind="@_device.MediaType">
-                            @foreach (var it in MediaList)
-                            {
-                                <option value="@it.Key"> @it.Value </option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Wait time:</label>
-                        <InputNumber id="resend" class="form-control"
-                             @bind-Value="_device.WaitTime" />
-                    </div>
-                    <div class="form-group">
-                        <label>Resend count:</label>
-                        <InputNumber id="resend" class="form-control"
-                             @bind-Value="_device.ResendCount" />
-                    </div>
-                    <div class="form-group">
-                        <label>@Properties.Resources.TraceLevels:</label>
-                        <select class="form-control" @bind="_device.TraceLevel">
-                            @foreach (var it in TraceLevels)
-                            {
-                                <option value="@it">@it</option>
-                            }
-                        </select>
-                    </div>
-                    @if (_device.MediaType == typeof(GXNet).FullName)
+                    @if (Active.CreationTime != DateTime.MinValue)
                     {
-                        <NetworkSettings @ref=networkSettings></NetworkSettings>
+                        <div class="form-group">
+                            <label>@Properties.Resources.CreationTime</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.CreationTime" />
+                        </div>
                     }
-                    @if (_device.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(_device.MediaType))
+                    @if (Active.Updated != null)
                     {
-                        <SerialSettings @ref=serialSettings></SerialSettings>
+                        <div class="form-group">
+                            <label>@Properties.Resources.Updated</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.Updated" />
+                        </div>
                     }
-                    <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@_device"></ParametersView>
+                    @if (Active.Removed != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.Removed</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="Active.Removed" />
+                        </div>
+                    }
+                    @if (action == CrudAction.Delete)
+                    {
+                        <hr />
+                        <p>
+                        </p>
+                        <div class="form-group">
+                            <InputRadioGroup @bind-Value="DeleteTarget">
+                                <InputRadio Value="false">
+                                </InputRadio>
+                                <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                                <InputRadio Value="true">
+                                </InputRadio>
+                                <label>@Properties.Resources.TargetDeleteQuestion</label>
+                            </InputRadioGroup>
+                            <br />
+                        </div>
+                    }
                 </div>
-                @if (_device.CreationTime != DateTime.MinValue)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.CreationTime</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                       @bind-Value="_device.CreationTime" />
-                    </div>
-                }
-                @if (_device.Updated != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Updated</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                       @bind-Value="_device.Updated" />
-                    </div>
-                }
-                @if (_device.Removed != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Removed</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                       @bind-Value="_device.Removed" />
-                    </div>
-                }
-                @if (Notifier.Action == CrudAction.Delete)
-                {
-                    <hr />
-                    <p>
-                    </p>
-                    <div class="form-group">
-                        <InputRadioGroup @bind-Value="DeleteTarget">
-                            <InputRadio Value="false">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
-                            <InputRadio Value="true">
-                            </InputRadio>
-                            <label>@Properties.Resources.TargetDeleteQuestion</label>
-                        </InputRadioGroup>
-                        <br />
-                    </div>
-                }
-            </div>
-        </EditForm>
+            </EditForm>
+        }
+        else if (templates != null)
+        {
+            Notifier.ShowInformation(string.Format("{0}Device templates{1} must be added before devices can be added.", "<a href=DeviceTemplates>", "</a>"));
+        }
     }
-    else if (templates != null)
-    {
-        Notifier.ShowInformation(string.Format("{0}Device templates{1} must be added before devices can be added.", "<a href=DeviceTemplateManage>", "</a>"));
-    }
-}
+</CascadingValue>
 @code {
+    [CascadingParameter]
+    private DeviceTab? Parent { get; set; }
+
+    private GXDevice? _active;
+
+    public GXDevice? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
     private ParametersView? ParametersView;
     private List<IGXParameter> Parameters = new List<IGXParameter>();
@@ -181,9 +212,7 @@
     Dictionary<string, string> MediaList = new Dictionary<string, string>();
     private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _settings;
     private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _templateSettings;
-    private string SubmitText;
-    private string? Title;
-    private GXDevice? _device;
+
     /// <summary>
     /// List of templates.
     /// </summary>
@@ -219,7 +248,7 @@
 
     string? IsCreate()
     {
-        if (Notifier.Action == CrudAction.Create)
+        if (action == CrudAction.Create)
         {
             return null;
         }
@@ -240,7 +269,7 @@
     {
         get
         {
-            if (_device == null || _device.Template == null)
+            if (Active == null || Active.Template == null)
             {
                 return null;
             }
@@ -284,28 +313,28 @@
     {
         get
         {
-            if (_device == null || _device.Template == null)
+            if (Active == null || Active.Template == null)
             {
                 return null;
             }
-            return _device.Template.Name;
+            return Active.Template.Name;
         }
         set
         {
-            if (_device != null && templates != null)
+            if (Active != null && templates != null)
             {
                 foreach (GXDeviceTemplate it in templates)
                 {
                     if (it.Name == value)
                     {
-                        _device.Template = it;
-                        _device.WaitTime = it.WaitTime;
-                        _device.ResendCount = it.ResendCount;
-                        _device.MediaType = it.MediaType;
-                        _device.MediaSettings = it.MediaSettings;
-                        _device.Settings = it.Settings;
+                        Active.Template = it;
+                        Active.WaitTime = it.WaitTime;
+                        Active.ResendCount = it.ResendCount;
+                        Active.MediaType = it.MediaType;
+                        Active.MediaSettings = it.MediaSettings;
+                        Active.Settings = it.Settings;
                         //Update template settings.
-                        _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Template.Settings);
+                        _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
                         break;
                     }
                 }
@@ -335,23 +364,28 @@
         HttpResponseMessage response;
         try
         {
-            if (Notifier == null)
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                //Get device data.
+                var tmp = (await Http.GetAsJsonAsync<GetDeviceResponse>(string.Format("api/Device?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
             }
-            _device = (GXDevice?)Notifier.GetData(GXPages.Devices);
-            if (_device == null)
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
+            action = ClientHelpers.GetAction(Action);
             InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HDLC);
             InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.WRAPPER);
-            switch (Notifier.Action)
+            switch (action)
             {
                 case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
                     try
                     {
                         //Get default user settings.
@@ -365,9 +399,9 @@
                             GXDevice? tmp = await response.Content.ReadFromJsonAsync<GXDevice>();
                             if (tmp != null)
                             {
-                                _device = tmp;
-                                _device.Id = Guid.Empty;
-                                _device.Name = null;
+                                _active = tmp;
+                                Active.Id = Guid.Empty;
+                                Active.Name = null;
                             }
                         }
                     }
@@ -377,18 +411,15 @@
                     }
                     break;
                 case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
                     break;
                 case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
                     break;
                 default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
                     return;
             }
-            Title = Notifier.Title;
             Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -398,18 +429,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            //If device settings are not read yet..
-            if (!_device.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get device data.
-                response = await Http.GetAsync(string.Format("api/Device?id={0}", _device.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _device = (await response.Content.ReadFromJsonAsync<GetDeviceResponse>()).Item;
-                Notifier.UpdateData(GXPages.Devices, _device);
-                _device.Modified = true;
-            }
-            Notifier.ChangePage(GXPages.Device, _device);
             ListDeviceTemplates req = new ListDeviceTemplates()
                 {
                     Filter = new GXDeviceTemplate()
@@ -417,34 +436,37 @@
             var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
             templates = new List<GXDeviceTemplate>();
             templates.AddRange(ret.Templates);
-            if (_device.Template == null)
+            if (Active.Template == null)
             {
                 if (templates.Count != 0)
                 {
-                    _device.Template = templates[0];
-                    _device.WaitTime = _device.Template.WaitTime;
-                    _device.ResendCount = _device.Template.ResendCount;
+                    Active.Template = templates[0];
+                    Active.WaitTime = Active.Template.WaitTime;
+                    Active.ResendCount = Active.Template.ResendCount;
                 }
             }
-            if (_device.Template != null
-                && !string.IsNullOrEmpty(_device.Template.Settings))
+            if (Active.Template != null
+                && !string.IsNullOrEmpty(Active.Template.Settings))
             {
-                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Template.Settings);
+                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
             }
-            if (!string.IsNullOrEmpty(_device.Settings))
+            if (!string.IsNullOrEmpty(Active.Settings))
             {
-                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_device.Settings);
+                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
             }
             else
             {
                 //Use template settings as default meter settings when the meter is created.
                 _settings = _templateSettings;
             }
-            if (string.IsNullOrEmpty(_device.MediaType))
+            if (string.IsNullOrEmpty(Active.MediaType))
             {
-                _device.MediaType = typeof(GXNet).FullName;
+                Active.MediaType = typeof(GXNet).FullName;
             }
-            Parameters.AddRange(_device.Parameters);
+            if (Active.Parameters != null)
+            {
+                Parameters.AddRange(Active.Parameters);
+            }
         }
         catch (Exception ex)
         {
@@ -463,52 +485,48 @@
     {
         try
         {
-            if (Notifier == null)
+            if (Active == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_device == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            if (networkSettings != null && _device.MediaType == "Gurux.Net.GXNet")
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (networkSettings != null && Active.MediaType == "Gurux.Net.GXNet")
             {
                 networkSettings.Validate();
             }
-            else if (serialSettings != null && _device.MediaType == "Gurux.Serial.GXSerial")
+            else if (serialSettings != null && Active.MediaType == "Gurux.Serial.GXSerial")
             {
                 serialSettings.Validate();
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            HttpResponseMessage response;
             //Update device parameters.
-            ParametersView?.UpdateSettings<GXDeviceParameter>(_device.Parameters);
-            _device.Settings = JsonSerializer.Serialize(_settings);
-            if (Notifier.Action == CrudAction.Delete)
+            ParametersView?.UpdateSettings<GXDeviceParameter>(Active.Parameters);
+            Active.Settings = JsonSerializer.Serialize(_settings);
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", new RemoveDevice()
                     {
-                        Ids = new Guid[] { _device.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
-            else if (Notifier.Action == CrudAction.Create)
+            else if (action == CrudAction.Create)
             {
                 await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Add", new UpdateDevice()
                     {
-                        Devices = new GXDevice[] { _device }
+                        Devices = new GXDevice[] { Active }
                     });
             }
-            else
+            else if (action == CrudAction.Update)
             {
                 await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Update", new UpdateDevice()
                     {
-                        Devices = new GXDevice[] { _device }
+                        Devices = new GXDevice[] { Active }
                     });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -531,7 +549,7 @@
     {
         try
         {
-            if (_device != null && _device.Id != Guid.Empty)
+            if (Active != null && Active.Id != Guid.Empty)
             {
                 //Get default user settings.
                 GXUserSetting? settings = await Http.GetAsJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
@@ -540,7 +558,7 @@
                     settings = new GXUserSetting();
                     settings.Name = "Ami.Device";
                 }
-                settings.Value = JsonSerializer.Serialize(_device.Id);
+                settings.Value = JsonSerializer.Serialize(Active.Id);
                 await Http.PostAsJson("api/UserSetting/Add", new GXUserSetting[] { settings });
             }
         }
@@ -556,19 +574,17 @@
         {
             try
             {
-                ParametersView.Cancel();
+                ParametersView?.Cancel();
             }
             catch (Exception ex)
             {
                 Notifier.ProcessError(ex);
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
     }
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Device);
     }
 }

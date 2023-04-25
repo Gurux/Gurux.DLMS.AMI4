@@ -188,6 +188,41 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        public async Task<GXComponentView> ReadAsync(
+            ClaimsPrincipal user,
+            Guid id)
+        {
+            bool isAdmin = false;
+            if (user != null)
+            {
+                isAdmin = user.IsInRole(GXRoles.Admin);
+            }
+            GXSelectArgs arg;
+            if (user == null || isAdmin)
+            {
+                //Admin can see all the component views.
+                arg = GXSelectArgs.SelectAll<GXComponentView>(w => w.Id == id);
+                arg.Joins.AddLeftJoin<GXComponentView, GXComponentViewGroupComponentView>(x => x.Id, y => y.ComponentViewId);
+                arg.Joins.AddLeftJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
+            }
+            else
+            {
+                string userId = ServerHelpers.GetUserId(user);
+                arg = GXQuery.GetComponentViewsByUser(userId, id);
+                arg.Joins.AddInnerJoin<GXComponentViewGroupComponentView, GXComponentViewGroup>(j => j.ComponentViewGroupId, j => j.Id);
+            }
+            arg.Columns.Add<GXComponentViewGroup>();
+            arg.Columns.Exclude<GXComponentViewGroup>(e => e.ComponentViews);
+            arg.Distinct = true;
+            GXComponentView view = await _host.Connection.SingleOrDefaultAsync<GXComponentView>(arg);
+            if (view == null)
+            {
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
+            }           
+            return view;
+        }
+
+        /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User,
             IEnumerable<GXComponentView> componentViews,
@@ -292,18 +327,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the component view groups where the component view is removed.</param>
         public void RemoveComponentViewsFromComponentViewGroup(Guid componentViewId, IEnumerable<GXComponentViewGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXComponentViewGroupComponentView> list = new List<GXComponentViewGroupComponentView>();
             foreach (var it in groups)
             {
-                list.Add(new GXComponentViewGroupComponentView()
-                {
-                    ComponentViewId = componentViewId,
-                    ComponentViewGroupId = it.Id,
-                    //Removed = now
-                });
+                GXDeleteArgs args = GXDeleteArgs.Delete<GXComponentViewGroupComponentView>(
+                    w => w.ComponentViewId == componentViewId && w.ComponentViewGroupId == it.Id);
+                _host.Connection.Delete(args);
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
 

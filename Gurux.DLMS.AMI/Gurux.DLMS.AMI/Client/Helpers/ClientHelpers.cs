@@ -38,6 +38,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components;
+using Gurux.DLMS.AMI.Shared.DIs;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
@@ -300,5 +302,65 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
         }
 
+        public static string GetParentUrl(string url)
+        {
+            return url.Replace("/Edit/", "/").Replace("/Add/", "/").Replace("/Add", "");
+        }
+
+        /// <summary>
+        /// Navigate to the given url and save the current url.
+        /// </summary>
+        /// <param name="navigationManager">Navigation manager.</param>
+        /// <param name="notifier">Notifier.</param>
+        /// <param name="url">Url.</param>
+        public static void NavigateTo(this NavigationManager navigationManager, IGXNotifier notifier, string url)
+        {
+            notifier.ChangePage(navigationManager.Uri);
+            navigationManager.NavigateTo(url);
+        }
+
+        /// <summary>
+        /// Navigate to the previous url.
+        /// </summary>
+        /// <param name="navigationManager">Navigation manager.</param>
+        /// <param name="notifier">Notifier.</param>
+        public static void NavigateToLastPage(this NavigationManager navigationManager, IGXNotifier notifier)
+        {
+            if (notifier.LastUrl != null)
+            {
+                navigationManager.NavigateTo(notifier.LastUrl);
+            }
+            else
+            {
+                navigationManager.NavigateTo(GetParentUrl(navigationManager.Uri));
+            }
+        }
+
+        /// <summary>
+        /// Convert string to CRUD action.
+        /// </summary>
+        /// <param name="value">String.</param>
+        /// <returns>CRUD action.</returns>
+        public static CrudAction GetAction(string? value)
+        {
+            CrudAction ret;
+            if (string.Compare(value, "Add", true) == 0)
+            {
+                ret = CrudAction.Create;
+            }
+            else if (string.Compare(value, "Edit", true) == 0)
+            {
+                ret = CrudAction.Update;
+            }
+            else if (string.Compare(value, "Remove", true) == 0)
+            {
+                ret = CrudAction.Delete;
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            return ret;
+        }
     }
 }

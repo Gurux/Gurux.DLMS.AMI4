@@ -117,7 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="DeviceTemplatesTitle" xml:space="preserve">
+  <data name="DeviceTemplates" xml:space="preserve">
     <value>Laitepohjat</value>
   </data>
   <data name="DevicesTitle" xml:space="preserve">
@@ -339,9 +339,6 @@
   <data name="UserGroupsTitle" xml:space="preserve">
     <value>Käyttäjäryhmät</value>
   </data>
-  <data name="DeviceGroupsTitle" xml:space="preserve">
-    <value>Laiteryhmät</value>
-  </data>
   <data name="DeviceGroups" xml:space="preserve">
     <value>Laiteryhmät</value>
   </data>
@@ -393,7 +390,7 @@
   <data name="BlockGroups" xml:space="preserve">
     <value>Lohkoryhmät</value>
   </data>
-  <data name="BlocksTitle" xml:space="preserve">
+  <data name="Blocks" xml:space="preserve">
     <value>Lohkot</value>
   </data>
   <data name="Body" xml:space="preserve">
@@ -418,13 +415,13 @@
     <value>Komponentti</value>
   </data>
   <data name="ComponentViewGroup" xml:space="preserve">
-    <value>Komponenttinäkymän ryhmä</value>
+    <value>Komponenttiryhmä</value>
   </data>
   <data name="ComponentViewGroups" xml:space="preserve">
-    <value>Komponenttinäkymäryhmät</value>
+    <value>Komponenttiryhmät</value>
   </data>
   <data name="ComponentViews" xml:space="preserve">
-    <value>Komponenttinäkymät</value>
+    <value>Komponentit</value>
   </data>
   <data name="Data" xml:space="preserve">
     <value>Tieto</value>
@@ -442,9 +439,6 @@
     <value>Laitevirheet</value>
   </data>
   <data name="DeviceTemplateGroups" xml:space="preserve">
-    <value>Laitteen malliryhmät</value>
-  </data>
-  <data name="DeviceTemplateGroupsTitle" xml:space="preserve">
     <value>Laitteen malliryhmät</value>
   </data>
   <data name="EndTime" xml:space="preserve">
@@ -532,7 +526,7 @@
     <value>Aloita</value>
   </data>
   <data name="Schedule" xml:space="preserve">
-    <value>Ajankohta</value>
+    <value>Ajastus</value>
   </data>
   <data name="ScheduleLogs" xml:space="preserve">
     <value>Aikataulu loki</value>
@@ -784,7 +778,7 @@
     <value>Poista kohde käytöstä ja peruuta sen sisältö.</value>
   </data>
   <data name="TargetDeleteQuestion" xml:space="preserve">
-    <value>Poista kohde ja sen sisältö. Tätä toimintoa ei voi peruuttaa.</value>
+    <value>Poista kohde ja sen sisältö.</value>
   </data>
   <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
     <value>Haluatko varmasti poistaa tehtävät?</value>
@@ -803,5 +797,59 @@
   </data>
   <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
     <value>Haluatko varmasti tyhjentää lokin?</value>
+  </data>
+  <data name="ShowDataForAllUsers" xml:space="preserve">
+    <value>Näytä kaikkien käyttäjien tiedot.</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Ajastusryhmä</value>
+  </data>
+  <data name="WorkflowGroup" xml:space="preserve">
+    <value>Työnkulkuryhmä</value>
+  </data>
+  <data name="UserGroup" xml:space="preserve">
+    <value>Käyttäjäryhmä</value>
+  </data>
+  <data name="ModuleGroup" xml:space="preserve">
+    <value>Moduuliryhmä</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Laitteen malliryhmä</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Laiteryhmä</value>
+  </data>
+  <data name="BlockGroup" xml:space="preserve">
+    <value>Lohkoryhmä</value>
+  </data>
+  <data name="Block" xml:space="preserve">
+    <value>Lohko</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Agenttiryhmä</value>
+  </data>
+  <data name="TriggerGroup" xml:space="preserve">
+    <value>Liipaisinryhmä</value>
+  </data>
+  <data name="ThisActionCannotBeUndone" xml:space="preserve">
+    <value>Tätä toimintoa ei voi peruuttaa.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Laitepohja</value>
+  </data>
+  <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
+    <value>Näkymässä näkyvien rivien määrä</value>
+  </data>
+  <data name="ShowFilter" xml:space="preserve">
+    <value>Näytä suodatin</value>
+  </data>
+  <data name="ShowTotal" xml:space="preserve">
+    <value>Näytä yhteensä</value>
+  </data>
+  <data name="ShowMenu" xml:space="preserve">
+    <value>Näytä valikko</value>
+  </data>
+  <data name="SerialPort" xml:space="preserve">
+    <value>Sarjaportti</value>
   </data>
 </root>

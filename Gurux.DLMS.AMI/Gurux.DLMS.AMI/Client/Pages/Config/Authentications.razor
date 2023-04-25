@@ -94,7 +94,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
             _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
             if (_active == null)
             {
@@ -107,7 +106,7 @@
                 case CrudAction.Update:
                     break;
                 default:
-                    NavigationManager.NavigateTo("/configurations");
+                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
                     return;
             }
             if (!_active.Modified &&
@@ -122,8 +121,7 @@
             {
                 _authentications.AddRange(JsonSerializer.Deserialize<AuthenticationSettings[]>(_active.Settings));
             }
-            Notifier.ChangePage(GXPages.Configurations, _active);
-            Notifier.ChangePage(GXPages.Authentications, _authentications);
+            Notifier.UpdateData(GXPages.Authentications, _authentications);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -155,7 +153,7 @@
             Notifier.UpdateData(GXPages.Authentication, _selected);
             Notifier.Title = "Remove authentication";
             Notifier.Action = CrudAction.Delete;
-            NavigationManager.NavigateTo("/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
         }
         catch (Exception ex)
         {
@@ -174,7 +172,7 @@
             Notifier.Title = "New authentication";
             Notifier.Action = CrudAction.Create;
             Notifier.UpdateData(GXPages.Authentication, new AuthenticationSettings());
-            NavigationManager.NavigateTo("/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -201,7 +199,7 @@
             Notifier.Title = "Edit authentication";
             Notifier.UpdateData(GXPages.Authentication, _selected);
             Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
         }
         catch (Exception ex)
         {
@@ -217,7 +215,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Authentications);
         Notifier.RemoveListener(this);
     }
 }

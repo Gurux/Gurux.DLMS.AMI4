@@ -202,6 +202,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the errors.
                 arg = GXSelectArgs.SelectAll<GXDeviceError>();
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceError>(j => j.Id, j => j.Device);
             }
             else
             {

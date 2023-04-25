@@ -43,6 +43,7 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Triggers;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Client.Pages.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -337,18 +338,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the trigger groups where the trigger is removed.</param>
         public void RemoveTriggersFromTriggerGroup(Guid triggerId, IEnumerable<GXTriggerGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXTriggerGroupTrigger> list = new List<GXTriggerGroupTrigger>();
             foreach (var it in groups)
             {
-                list.Add(new GXTriggerGroupTrigger()
-                {
-                    TriggerId = triggerId,
-                    TriggerGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXTriggerGroupTrigger>(w => w.TriggerId == triggerId && w.TriggerGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <summary>

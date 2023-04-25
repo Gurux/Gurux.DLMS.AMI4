@@ -1,5 +1,4 @@
-﻿@page "/devicetemplate"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,17 +15,17 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Text.Json
+@using System.Web;
 
 @attribute [Authorize(Roles = "Admin, TemplateManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 @inject ILogger<DeviceTemplate> Logger
 
-@if (template != null)
+@if (Active != null)
 {
-    <EditForm Model="@template">
+    <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <table>
@@ -42,21 +41,15 @@
                         {
                             <p><InputFile OnChange="@LoadFile" /></p>
                         }
-                        @if (templates != null && templates.Any())
+                        @if (IsAdding && templates != null && templates.Any())
                         {
-                            @if (IsAdding)
-                            {
-                            <th>Type:</th>
-                            <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device template type">
-                                    @if (templates != null)
-                                    {
-                                        @foreach (var it in templates)
-                                        {
-                                        <option value="@it.Type">@it.Type</option>
-                                        }
-                                    }
-                            </InputSelect>
-                            }
+                        <th>Type:</th>
+                        <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device Active type">
+                                @foreach (var it in templates)
+                                {
+                                <option value="@it.Type">@it.Type</option>
+                                }
+                        </InputSelect>
                         }
                     }
                 </th>
@@ -68,7 +61,7 @@
                 <th>
                     <InputText id="name" disabled="@IsDeleting"
                            @bind-Value="TemplateName"
-                               placeholder="Device template name" />
+                               placeholder="Device Active name" />
                 </th>
             </tr>
             <tr>
@@ -77,7 +70,7 @@
                 </th>
                 <th>
                     <InputNumber id="waitTime" disabled="@IsDeleting"
-                             @bind-Value="template.WaitTime" />
+                             @bind-Value="Active.WaitTime" />
                 </th>
             </tr>
             <tr>
@@ -86,26 +79,26 @@
                 </th>
                 <th>
                     <InputNumber id="resendCount" disabled="@IsDeleting"
-                             @bind-Value="template.ResendCount" />
+                             @bind-Value="Active.ResendCount" />
                 </th>
             </tr>
-            @if (template.Updated != null)
+            @if (Active.Updated != null)
             {
                 <div class="form-group">
                     <label>@Properties.Resources.Updated</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                       @bind-Value="template.Updated" />
+                       @bind-Value="Active.Updated" />
                 </div>
             }
-            @if (template.Removed != null)
+            @if (Active.Removed != null)
             {
                 <div class="form-group">
                     <label>@Properties.Resources.Remove</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                       @bind-Value="template.Removed" />
+                       @bind-Value="Active.Removed" />
                 </div>
             }
-            @if (Notifier.Action == CrudAction.Delete)
+            @if (action == CrudAction.Delete)
             {
                 <hr />
                 <p>
@@ -126,19 +119,46 @@
     </EditForm>
 }
 @code {
+
+    [CascadingParameter]
+    private DeviceTemplateTab? Parent { get; set; }
+    private GXDeviceTemplate? _active;
+
+    private GXDeviceTemplate? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
     private bool isLoading;
-    private GXDeviceTemplate template = new GXDeviceTemplate();
     List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
-    private string SubmitText;
-    private string? Title;
     private string? fileName = null;
 
     public string? IsDeleting
     {
         get
         {
-            if (Notifier.Action != CrudAction.Delete)
+            if (action != CrudAction.Delete)
             {
                 return null;
             }
@@ -146,24 +166,22 @@
         }
     }
 
-    //User changes name of the template.
+    //User changes name of the Active.
     string? TemplateName
     {
         get
         {
-            if (template == null)
+            if (Active == null)
             {
                 return null;
             }
-            return template.Name;
+            return Active.Name;
         }
         set
         {
-            if (template != null)
+            if (Active != null)
             {
-                template.Name = value;
-                Notifier.UpdateData(GXPages.DeviceTemplates, template);
-                Notifier.UpdateData(GXPages.DeviceTemplate, template);
+                Active.Name = value;
             }
         }
     }
@@ -172,7 +190,7 @@
     {
         get
         {
-            return Notifier.Action == CrudAction.Create;
+            return action == CrudAction.Create;
         }
     }
 
@@ -182,21 +200,19 @@
         public static string Key = "Gurux Ltd.";
     }
 
-    private string TemplateType
+    private string? TemplateType
     {
         get
         {
-            return template.Type;
+            return Active?.Type;
         }
         set
         {
             foreach (GXDeviceTemplate it in templates)
             {
-                if (it.Type == value)
+                if (Parent != null && it.Type == value)
                 {
-                    template = it;
-                    Notifier.UpdateData(GXPages.DeviceTemplates, template);
-                    Notifier.UpdateData(GXPages.DeviceTemplate, template);
+                    _active = it;
                     break;
                 }
             }
@@ -423,11 +439,10 @@
                 }
                 templates.Add(t);
             }
-            if (templates.Count != 0)
+            if (Parent != null && templates.Any())
             {
-                template = templates[0];
+                _active = templates[0];
             }
-            Notifier.UpdateData(GXPages.AvailableDeviceTemplates, templates);
         }
         catch (Exception ex)
         {
@@ -467,50 +482,28 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            template = (GXDeviceTemplate?)Notifier.GetData(GXPages.DeviceTemplates);
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-            Title = Notifier.Title;
-            if (!template.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
+            Notifier.Clear();
+            if (Active == null && Id != null)
             {
                 //Get device template data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTemplate?id={0}", template.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                template = (await response.Content.ReadFromJsonAsync<GetDeviceTemplateResponse>()).Item;
-                templates.Add(template);
-                Notifier.UpdateData(GXPages.DeviceTemplates, template);
-                template.Modified = true;
-            }
-            else
-            {
-                templates = (List<GXDeviceTemplate>)Notifier.GetData(GXPages.AvailableDeviceTemplates);
-                if (templates == null)
+                var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
+                if (tmp?.Item != null)
                 {
-                    templates = new List<GXDeviceTemplate>();
+                    _active = tmp.Item;
                 }
             }
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action);
+            if (action != CrudAction.Create)
+            {
+                templates.Add(Active);
+            }
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -519,7 +512,6 @@
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
-            Notifier.ChangePage(GXPages.DeviceTemplate, template);
             Notifier.UpdateButtons();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -537,38 +529,45 @@
     }
 
     /// <summary>
-    /// Save device template.
+    /// Save device Active.
     /// </summary>
     public async void OnSave()
     {
         try
         {
-            Notifier?.ClearStatus();
-            if (Notifier.Action == CrudAction.Delete)
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", new RemoveDeviceTemplate()
                     {
-                        Ids = new Guid[] { template.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
-            else if (Notifier.Action == CrudAction.Create)
+            else if (action == CrudAction.Create)
             {
                 await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Add", new UpdateDeviceTemplate()
                     {
-                        Templates = new GXDeviceTemplate[] { template }
+                        Templates = new GXDeviceTemplate[] { Active }
+                    });
+            }
+            else if (action == CrudAction.Update)
+            {
+                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Update", new UpdateDeviceTemplate()
+                    {
+                        Templates = new GXDeviceTemplate[] { Active }
                     });
             }
             else
             {
-                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Update", new UpdateDeviceTemplate()
-                    {
-                        Templates = new GXDeviceTemplate[] { template }
-                    });
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.UpdateData(GXPages.AvailableDeviceTemplates, null);
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -585,13 +584,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.UpdateData(GXPages.AvailableDeviceTemplates, null);
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.DeviceTemplate);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

@@ -1,0 +1,525 @@
+﻿@page "/ObjectTemplate/{Action}"
+@page "/ObjectTemplate/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.Objects;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text;
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
+{
+    <CascadingValue Value="this">
+        <ObjectTemplate Action="@Action" Id="@Id"></ObjectTemplate>
+    </CascadingValue>
+}
+else
+{
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TemplateManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
+
+    <GXTable @ref="table"
+         Context="template"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
+        <FilterContent>
+            <th>
+                <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
+                       type="search"
+                   @oninput="@SearchByObjectType" />
+            </th>
+            <th>
+                <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                       type="search"
+                   @oninput="@SearchByName" />
+            </th>
+            <th>
+                <input class="form-control" placeholder="@Properties.Resources.FilterByLogicalName"
+                   @oninput="@SearchByLogicalName" />
+            </th>
+        </FilterContent>
+        <MenuContent>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </MenuContent>
+        <HeaderContent>
+            <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
+            <th>Access rights</th>
+            <th>Expiration times</th>
+        </HeaderContent>
+        <ItemContent>
+            <td>@GetObjectType(template.ObjectType)</td>
+            <Td Path=@("/ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
+            <td>@template.LogicalName</td>
+            <td>@GetAccessRights(template)</td>
+            <td>@GetExpirationTimes(template)</td>
+        </ItemContent>
+    </GXTable>
+    <Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+    </Confirm>
+}
+
+<br />
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected object template ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter]
+    private DeviceTemplateTab? Parent { get; set; }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the object templates shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Device filter.
+    /// </summary>
+    private GXObjectTemplate filter = new GXObjectTemplate();
+
+    /// <summary>
+    /// Filter using object type.
+    /// </summary>
+    private string? filterByObjectType;
+    /// <summary>
+    /// Filter using object name.
+    /// </summary>
+    private string? filterByName;
+    /// <summary>
+    /// Filter by logical name of the object.
+    /// </summary>
+    private string? filterByLogicalName;
+
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase? RemoveConfirmation;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXObjectTemplate>? table;
+
+    private GXDeviceTemplate? _device;
+    /// <summary>
+    /// Active device.
+    /// </summary>
+    public GXDeviceTemplate? Device
+    {
+        get
+        {
+            if (_device != null)
+            {
+                return _device;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Active object template.
+    /// </summary>
+    public GXObjectTemplate? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    //Get object type as a string.
+    public string GetObjectType(int value)
+    {
+        return ((Gurux.DLMS.Enums.ObjectType)value).ToString();
+    }
+
+    private string GetAccessRights(GXObjectTemplate template)
+    {
+        if (template.Attributes == null)
+        {
+            return "";
+        }
+        var obj = GXDLMSClient.CreateObject((Enums.ObjectType)template.ObjectType);
+        StringBuilder sb = new StringBuilder();
+        foreach (var it in template.Attributes)
+        {
+            if (obj is IGXDLMSBase b)
+            {
+                try
+                {
+                    sb.Append(b.GetNames()[it.Index - 1] + " is " + ((Enums.AccessMode)it.AccessLevel));
+                }
+                catch (Exception)
+                {
+                    sb.Append(it.Index + " is " + ((Enums.AccessMode)it.AccessLevel));
+                }
+            }
+            else
+            {
+                sb.Append(it.Index + " is " + ((Enums.AccessMode)it.AccessLevel));
+            }
+            sb.Append(", ");
+        }
+        if (sb.Length != 0)
+        {
+            sb.Length -= 2;
+        }
+        return sb.ToString();
+    }
+
+    private string GetExpirationTimes(GXObjectTemplate template)
+    {
+        if (template.Attributes == null)
+        {
+            return "";
+        }
+        var obj = GXDLMSClient.CreateObject((Enums.ObjectType)template.ObjectType);
+        StringBuilder sb = new StringBuilder();
+        foreach (var it in template.Attributes)
+        {
+            if (it.ExpirationTime != null)
+            {
+                string str;
+                if (it.ExpirationTime.Value.Year == DateTimeOffset.MaxValue.Year)
+                {
+                    str = "static";
+                }
+                else
+                {
+                    str = it.ExpirationTime.Value.ToString("HH:mm:ss");
+                }
+                if (obj is IGXDLMSBase b)
+                {
+                    try
+                    {
+                        sb.Append(b.GetNames()[it.Index - 1] + " is " + str);
+                    }
+                    catch (Exception)
+                    {
+                        sb.Append(it.Index + " is " + str);
+                    }
+                }
+                else
+                {
+                    sb.Append(it.Index + " is " + str);
+                }
+                sb.Append(", ");
+            }
+        }
+        if (sb.Length != 0)
+        {
+            sb.Length -= 2;
+        }
+        return sb.ToString();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("ObjectTemplate/"))
+        {
+            //If object template is shown.
+            return;
+        }
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            if (Device == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXObjectTemplate>>(this, nameof(IGXHubEvents.ObjectTemplateUpdate), async (templates) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXObjectTemplate>>(this, nameof(IGXHubEvents.ObjectTemplateDelete), async (templates) =>
+            {
+                if (Device?.Objects != null)
+                {
+                    foreach (var it in templates)
+                    {
+                        var item = Device.Objects.Where(w => w.Id == it.Id).SingleOrDefault();
+                        if (item != null)
+                        {
+                            Device.Objects.Remove(item);
+                            await Updated();
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXObjectTemplate() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Search by object type.
+    /// </summary>
+    private async Task SearchByObjectType(ChangeEventArgs args)
+    {
+        filterByObjectType = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    /// <summary>
+    /// Search by name.
+    /// </summary>
+    private async Task SearchByName(ChangeEventArgs args)
+    {
+        filterByName = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    /// <summary>
+    /// Search by logical name.
+    /// </summary>
+    private async Task SearchByLogicalName(ChangeEventArgs args)
+    {
+        filterByLogicalName = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        if (Device?.Objects != null)
+        {
+            List<GXObjectTemplate> objects = new();
+            objects.AddRange(Device.Objects);
+            if (!string.IsNullOrEmpty(filterByObjectType))
+            {
+                objects.RemoveAll(q => ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
+            }
+            if (!string.IsNullOrEmpty(filterByName))
+            {
+                objects.RemoveAll(q => q.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
+            }
+            if (!string.IsNullOrEmpty(filterByLogicalName))
+            {
+                objects.RemoveAll(q => q.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
+            }
+            return new ItemsProviderResult<GXObjectTemplate>(objects, Device.Objects.Count);
+        }
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            if (Device != null)
+            {
+                filter.DeviceTemplate = new GXDeviceTemplate() { Id = Device.Id };
+            }
+            ListObjectTemplates req = new ListObjectTemplates()
+                {
+                    Index = (UInt64)request.StartIndex,
+                    Count = (UInt64)request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    //Attributes are also read.
+                    Select = TargetType.AttributeTemplate
+                };
+            var ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Edit object template.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Device == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ObjectTemplate/Edit/" + Device.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove selected object templates.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected object templates.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveObjectTemplate req = new RemoveObjectTemplate()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveObjectTemplateResponse>("api/ObjectTemplate/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

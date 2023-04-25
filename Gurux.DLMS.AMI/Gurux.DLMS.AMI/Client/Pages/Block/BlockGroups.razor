@@ -57,7 +57,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/Config/BlockGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -71,6 +71,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -89,7 +95,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -163,14 +169,17 @@
             {
                 await Updated();
             });
+            Notifier.On<IEnumerable<GXBlockGroup>>(this, nameof(IGXHubEvents.BlockGroupDelete), async (groups) =>
+            {
+                await Updated();
+            });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get last selected item.
-            if (table != null)
+            if (table != null && Id != null)
             {
-                table.Active = (GXBlockGroup?)Notifier.GetData(GXPages.BlockGroups);
+                //Get last selected item.
+                table.Active = new GXBlockGroup() { Id = Id.Value };
             }
-            Notifier.ChangePage(GXPages.BlockGroups, table?.Active);
         }
         catch (Exception ex)
         {
@@ -198,7 +207,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -230,15 +240,7 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New block group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.BlockGroups, new GXBlockGroup(null));
-            NavigationManager.NavigateTo("/blockgrouptab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/BlockGroup/Add");
         }
         catch (Exception ex)
         {
@@ -259,10 +261,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.BlockGroups, table.Active);
-            Notifier.Title = "Edit block group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/blockgrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/BlockGroup/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -312,7 +311,7 @@
                         Delete = args.Delete,
                         Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
                     };
-                await Http.PostAsJson<RemoveBlockGroupResponse>("api/ScriptGroup/Delete", req);
+                await Http.PostAsJson<RemoveBlockGroupResponse>("api/BlockGroup/Delete", req);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -327,7 +326,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.BlockGroups);
         Notifier.RemoveListener(this);
     }
 }

@@ -54,6 +54,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
+        /// Get component view information.
+        /// </summary>
+        /// <param name="id">Block id.</param>
+        /// <returns>Block information.</returns>
+        [HttpGet]
+        [Authorize(Policy = GXBlockPolicies.View)]
+        public async Task<ActionResult<GetComponentViewResponse>> Get(Guid id)
+        {
+            return new GetComponentViewResponse()
+            {
+                Item = await _componentviewRepository.ReadAsync(User, id)
+            };
+        }
+
+        /// <summary>
         /// List component views.
         /// </summary>
         [HttpPost("List")]

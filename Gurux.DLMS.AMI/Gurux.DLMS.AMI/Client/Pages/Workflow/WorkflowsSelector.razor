@@ -1,4 +1,4 @@
-﻿@page "/workflowselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Script;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -13,10 +13,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, User, WorkflowGroupManager, WorkflowGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="workflows" />
@@ -24,6 +22,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private ScriptTab? ScriptParent { get; set; }
+    [CascadingParameter]
+    private WorkflowGroupTab? WorkflowGroupParent { get; set; }
+
+
     List<GXWorkflow> AllWorkflows = new List<GXWorkflow>();
     List<GXWorkflow> workflows = new List<GXWorkflow>();
 
@@ -46,33 +50,19 @@
             }
             Notifier.ClearStatus();
             Notifier.ProgressStart();
-            string? page = Notifier.GetLastPage();
-            if (page == GXPages.Script)
+            //Add selected workflow groups.
+            if (ScriptParent?.Active?.Workflows != null)
             {
-                //Add selected workflow groups.
-                GXScript? group = (GXScript?)Notifier.GetData(GXPages.ScriptGroups);
-                if (group == null)
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
-                workflows = group.Workflows;
+                workflows = ScriptParent.Active.Workflows;
             }
-            else if (page == GXPages.WorkflowGroups)
+            else if (WorkflowGroupParent?.Active?.Workflows != null)
             {
-                //Add selected workflow groups.
-                GXWorkflowGroup? group = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
-                if (group == null)
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
-                workflows = group.Workflows;
+                workflows = WorkflowGroupParent.Active.Workflows;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-
-            Notifier.ChangePage(GXPages.WorkflowsSelector, null);
             ListWorkflows req = new ListWorkflows()
                 {
                     Filter = new GXWorkflow()
@@ -94,11 +84,6 @@
         {
             Notifier.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.WorkflowsSelector);
     }
 }
 

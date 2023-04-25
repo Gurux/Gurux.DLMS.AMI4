@@ -54,7 +54,7 @@
         <Th Id="EndTime">@Properties.Resources.EndTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td><span class=@(ClientHelpers.GetActiveDot(block.Active))></span>@block.Name</td>
+        <Td Path="@("/Config/Block/Edit/" + block.Id)"><span class=@(ClientHelpers.GetActiveDot(block.Active))></span>@block.Name</Td>
         <td>@block.BlockType</td>
         <td>@block.Title</td>
         <td>@block.Location</td>
@@ -65,17 +65,23 @@
 </GXTable>
 <br />
 <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove" ConfirmationMessage="" 
+         OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected block ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
         get
         {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.BlocksTitle;
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Blocks;
         }
     }
 
@@ -88,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -147,7 +153,6 @@
         }
     }
 
-
     protected override async Task OnInitializedAsync()
     {
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
@@ -158,23 +163,35 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
+            Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get last selected item.
-            if (table != null)
-            {
-                table.Active = (GXBlock?)Notifier.GetData(GXPages.Blocks);
-            }
             Notifier.On<IEnumerable<GXBlock>>(this, nameof(IGXHubEvents.BlockUpdate), async (blocks) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXBlock>>(this, nameof(IGXHubEvents.BlockDelete), async (blocks) =>
             {
                 await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Blocks, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXBlock() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
             exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
         }
     }
 
@@ -198,7 +215,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -230,15 +248,7 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New Block";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Blocks, new GXBlock(null));
-            NavigationManager.NavigateTo("/blocktab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Block/Add");
         }
         catch (Exception ex)
         {
@@ -258,10 +268,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Blocks, table?.Active);
-            Notifier.Title = "Edit Block";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/blocktab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Block/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -325,7 +332,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Blocks);
         Notifier.RemoveListener(this);
     }
 }

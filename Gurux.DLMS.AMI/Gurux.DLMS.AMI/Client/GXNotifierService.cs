@@ -32,7 +32,6 @@
 
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Helpers.Toaster;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -45,7 +44,6 @@ using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -59,10 +57,22 @@ namespace Gurux.DLMS.AMI.Client
     {
         private readonly ConcurrentDictionary<string, List<EventHandler>> _handlers = new ConcurrentDictionary<string, List<EventHandler>>(StringComparer.Ordinal);
 
-        private List<string> pageList;
+        /// <summary>
+        /// Url is saved before the page is changed.
+        /// </summary>
+        public string? LastUrl { get; set; }
         private Dictionary<string, object?> dataList;
         private readonly ILogger _logger;
         private readonly IGXToasterService _toasterService;
+
+        public void ChangePage(string page)
+        {
+            LastUrl = page;
+            if (OnPageChanged != null)
+            {
+                OnPageChanged?.Invoke();
+            }
+        }
 
         /// <summary>
         /// Aount of the rows per page.
@@ -82,7 +92,6 @@ namespace Gurux.DLMS.AMI.Client
             ILoggerFactory lf = services.GetRequiredService<ILoggerFactory>();
             _logger = lf.CreateLogger(nameof(GXNotifierService));
             _toasterService = services.GetRequiredService<IGXToasterService>();
-            pageList = new List<string>();
             dataList = new Dictionary<string, object?>();
             Items = new List<GXMenuItem>();
         }
@@ -100,15 +109,6 @@ namespace Gurux.DLMS.AMI.Client
         {
             Items.Add(menu);
             OnUpdateButtons?.Invoke();
-        }
-
-        /// <summary>
-        /// Return selection path.
-        /// </summary>
-        /// <returns>Selection path</returns>
-        public ReadOnlyCollection<string> GetSelectionPath()
-        {
-            return pageList.AsReadOnly();
         }
 
         /// <summary>
@@ -168,73 +168,13 @@ namespace Gurux.DLMS.AMI.Client
         /// <inheritdoc />
         public void ClearHistory()
         {
-            pageList.Clear();
+            LastUrl = null;
         }
-
-        /// <inheritdoc />
-        public void ChangePage(string page, object? data)
-        {
-            ChangePage(page, data, false);
-        }
-
-        /// <inheritdoc />
-        public void ChangePage(string page, object? data, bool isRoot)
-        {
-            if (isRoot)
-            {
-                pageList.Clear();
-            }
-            pageList.Add(page);
-            dataList[page] = data;
-            OnPageChanged?.Invoke();
-            UpdateButtons();
-        }
-
+      
         /// <inheritdoc />
         public void UpdateData(string page, object? data)
         {
             dataList[page] = data;
-        }
-
-
-        /// <inheritdoc />
-        public void RemovePage(string page)
-        {
-            foreach (var it in pageList)
-            {
-                if (it == page)
-                {
-                    pageList.Remove(it);
-                    break;
-                }
-            }
-        }
-
-        /// <inheritdoc />
-        public void RemoveLastPage(string page)
-        {
-            RemovePage(page);
-        }
-
-        /// <inheritdoc />
-        public string? RemoveLastPage()
-        {
-            string? page = GetLastPage();
-            if (page != null)
-            {
-                pageList.RemoveAt(pageList.Count - 1);
-            }
-            return page;
-        }
-
-        /// <inheritdoc />
-        public string? GetLastPage()
-        {
-            if (pageList.Count == 0)
-            {
-                return null;
-            }
-            return pageList[pageList.Count - 1];
         }
 
         /// <inheritdoc />
@@ -270,15 +210,6 @@ namespace Gurux.DLMS.AMI.Client
         }
 
         /// <inheritdoc />
-        public async Task PageChanged()
-        {
-            if (OnPageChanged != null)
-            {
-                OnPageChanged?.Invoke();
-            }
-        }
-
-        /// <inheritdoc />
         public void RemoveListener(object listener)
         {
             lock (_handlers)
@@ -297,7 +228,7 @@ namespace Gurux.DLMS.AMI.Client
             }
         }
 
-        /// <inheritdoc cref="IGXNotifier.ChangedAsync"/>
+        /// <inheritdoc />
         public async Task ChangedAsync<T>(string methodName, T value)
         {
             ReadOnlyCollection<EventHandler>? handlers = null;
@@ -1395,7 +1326,7 @@ namespace Gurux.DLMS.AMI.Client
                         {
                             _toasterService.Add(new GXToast("Role updated", ToString(roles), Color.Info, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.RoleUpdate));
+                        await ChangedAsync(nameof(IGXHubEvents.RoleUpdate), roles);
                     });
                     hubConnection.On<IEnumerable<GXRole>>(nameof(IGXHubEvents.RoleDelete), async (roles) =>
                     {
@@ -1403,8 +1334,26 @@ namespace Gurux.DLMS.AMI.Client
                         {
                             _toasterService.Add(new GXToast("Role deleted", ToString(roles), Color.Warning, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.RoleDelete));
+                        await ChangedAsync(nameof(IGXHubEvents.RoleDelete), roles);
                     });
+
+                    hubConnection.On<IEnumerable<GXObjectTemplate>>(nameof(IGXHubEvents.ObjectTemplateUpdate), async (templates) =>
+                    {
+                        if ((IgnoreNotification & TargetType.ObjectTemplate) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Object template updated", ToString(templates), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ObjectTemplateUpdate), templates);
+                    });
+                    hubConnection.On<IEnumerable<GXObjectTemplate>>(nameof(IGXHubEvents.ObjectTemplateDelete), async (templates) =>
+                    {
+                        if ((IgnoreNotification & TargetType.ObjectTemplate) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Object template deleted", ToString(templates), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ObjectTemplateDelete), templates);
+                    });
+
                     await hubConnection.StartAsync();
                 }
             }

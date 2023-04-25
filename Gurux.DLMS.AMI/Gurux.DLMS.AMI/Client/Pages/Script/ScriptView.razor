@@ -1,5 +1,4 @@
-﻿@page "/scriptview"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -20,54 +19,53 @@
 @inject IGXNotifier Notifier
 @inject ILogger<ScriptView> _logger;
 
-@if (_active != null)
+@if (Active != null)
 {
-    <EditForm Model="@_active">
+    <EditForm Model="@Active">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputNullableCheckbox @bind-Value="@_active.Active" />
-                    <label>@Properties.Resources.Active</label>
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
                     <br />
                 </div>
                 <div class="form-group">
-                    <InputCheckbox @bind-Value="_active.ServerSide" />
+                    <InputCheckbox @bind-Value="Active.ServerSide" />
                     <label>@Properties.Resources.ServerSide</label>
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
-                    <InputText id="name" disabled="@IsDeleting" @bind-Value="_active.Name" class="form-control" />
+                    <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
                 </div>
-                <ScriptEditor @bind-SourceCode="_active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
+                <ScriptEditor @bind-SourceCode="Active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
                 <button class="btn button" @onclick="OnValidate">
                     <div class="oi oi-flash"></div>
                     &nbsp;Validate
                 </button>
-                @if (_active.CreationTime != DateTime.MinValue)
+                @if (Active.CreationTime != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
-                           @bind-Value="_active.CreationTime" />
+                           @bind-Value="Active.CreationTime" />
                     </div>
                 }
-                @if (_active.Updated != null)
+                @if (Active.Updated != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                           @bind-Value="_active.Updated" />
+                           @bind-Value="Active.Updated" />
                     </div>
                 }
-                @if (_active.Removed != null)
+                @if (Active.Removed != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="_active.Removed" />
+                           @bind-Value="Active.Removed" />
                     </div>
                 }
-                @if (Notifier.Action == CrudAction.Delete)
+                @if (action == CrudAction.Delete)
                 {
                     <hr />
                     <p>
@@ -89,9 +87,38 @@
     </EditForm>
 }
 @code {
-    private bool DeleteTarget;
+
+    [CascadingParameter]
+    private ScriptTab? Parent { get; set; }
+
     private GXScript? _active;
-    private string SubmitText = "";
+
+    private GXScript? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool DeleteTarget;
 
     public string? IsDeleting
     {
@@ -107,37 +134,25 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier == null)
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                //Get script data.
+                var tmp = (await Http.GetAsJsonAsync<GetScriptResponse>(string.Format("api/Script?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
             }
-            //Get selected item.
-            _active = (GXScript?)Notifier.GetData(GXPages.Scripts);
-            if (_active == null)
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action); if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -147,17 +162,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            if (!_active.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get script view data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/Script?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = (await response.Content.ReadFromJsonAsync<GetScriptResponse>()).Item;
-                Notifier.UpdateData(GXPages.Scripts, _active);
-                _active.Modified = true;
-            }
-            Notifier.ChangePage(GXPages.Script, _active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -178,15 +182,15 @@
     /// </summary>
     public async void OnValidate()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (string.IsNullOrEmpty(_active.SourceCode))
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.IsNullOrEmpty(Active?.SourceCode))
             {
                 throw new Exception("No script to execute.");
             }
-            ValidateScript req = new ValidateScript() { Script = _active.SourceCode };
+            ValidateScript req = new ValidateScript() { Script = Active.SourceCode };
             var ret = await Http.PostAsJson<ValidateScriptResponse>("api/Script/Validate", req);
             GXScriptException[]? errors = null;
             if (!string.IsNullOrEmpty(ret.Errors))
@@ -217,36 +221,43 @@
     /// </summary>
     public async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier.Action == CrudAction.Delete)
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveScriptResponse>("api/Script/Delete", new RemoveScript()
                     {
-                        Ids = new Guid[] { _active.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
             else
             {
                 string address;
-                if (Notifier.Action == CrudAction.Create)
+                if (action == CrudAction.Create)
                 {
                     address = "api/Script/Add";
                 }
-                else
+                else if (action == CrudAction.Update)
                 {
                     address = "api/Script/Update";
                 }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
                 await Http.PostAsJson<UpdateScriptResponse>(address, new UpdateScript()
                     {
-                        Scripts = new List<GXScript>() { _active }
+                        Scripts = new List<GXScript>() { Active }
                     });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -267,7 +278,6 @@
     ///</summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

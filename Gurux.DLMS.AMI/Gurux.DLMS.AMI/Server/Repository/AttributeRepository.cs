@@ -298,13 +298,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="parameters">Removed attribute parameters.</param>
         public void RemoveAttributeParameters(GXAttribute obj, IEnumerable<GXAttributeParameter> parameters)
         {
-            DateTime now = DateTime.Now;
             foreach (GXAttributeParameter it in parameters)
             {
-                it.Removed = now;
-                it.Attribute = obj;
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXAttributeParameter>(it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
+//            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }
 
         /// <inheritdoc />

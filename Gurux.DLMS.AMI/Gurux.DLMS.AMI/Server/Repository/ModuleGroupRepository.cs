@@ -292,10 +292,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXModuleGroup>(e => e.UserGroups);
+                    args.Exclude<GXModuleGroup>(e => new { e.Modules, e.UserGroups, e.Updated });
                     _host.Connection.Insert(args);
                     list.Add(it.Id);
                     AddModuleGroupToUserGroups(it.Id, it.UserGroups.Select(s => s.Id).ToArray());
+                    if (it.Modules != null)
+                    {
+                        AddModulesToModuleGroup(it.Id, it.Modules.Select(s => s.Id).ToArray());
+                    }
                 }
                 else
                 {
@@ -310,7 +314,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXModuleGroup>(q => new { q.UserGroups, q.CreationTime });
+                    args.Exclude<GXModuleGroup>(q => new { q.Modules, q.UserGroups, q.CreationTime });
                     _host.Connection.Update(args);
                     //Map user group to Module group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);
@@ -327,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveModuleGroupFromUserGroups(it.Id, removed);
                     }
                     //Map modules to Module group.
-                    if (it.Modules != null && it.Modules.Count != 0)
+                    if (it.Modules != null && it.Modules.Any())
                     {
                         List<GXModule> list3 = await GetJoinedModules(it.Id);
                         List<string> groups2 = list3.Select(s => s.Id).ToList();

@@ -1,0 +1,99 @@
+﻿@page "/config/scriptmanage"
+@page "/config/Script"
+@page "/config/ScriptGroup"
+@page "/config/ScriptLog/{Id:guid?}"
+@page "/config/ScriptLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScriptManager + "," + GXRoles.ScriptGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "config/Script", true) == 0)
+    {
+        <ScriptTab Action="@Action" Id="@Id"></ScriptTab>
+    }
+    else if (string.Compare(Path, "config/ScriptGroup", true) == 0)
+    {
+        <ScriptGroupTab Action="@Action" Id="@Id"></ScriptGroupTab>
+    }
+    else if (string.Compare(Path, "config/ScriptLog", true) == 0)
+    {
+        <ScriptLog Id="@Id"></ScriptLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptManager)>
+                <TabPage Path="config/Script" Text=@Properties.Resources.Scripts Icon="oi oi-script">
+                    <div style="position: relative; width: 100%; ">
+                        <Scripts Id="@Id"></Scripts>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptGroupManager)>
+                <TabPage Path="config/ScriptGroup" Text=@Properties.Resources.ScriptGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ScriptGroups Id="@Id"></ScriptGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScriptLogManager)>
+                <TabPage Path="config/ScriptLog" Text=@Properties.Resources.ScriptLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <ScriptLogs Id="@Id"></ScriptLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

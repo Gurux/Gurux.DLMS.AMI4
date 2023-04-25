@@ -1,4 +1,7 @@
-﻿@page "/agentmanage"
+﻿@page "/Agent"
+@page "/AgentGroup"
+@page "/AgentLog/{Id:guid?}"
+@page "/AgentLog/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -14,61 +17,86 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager)>
-            <TabPage Text=@Properties.Resources.Agents Icon="oi oi-wifi">
-                <div style="position: relative; width: 100%; ">
-                    <Agents></Agents>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroup, GXRoles.AgentGroupManager)>
-            <TabPage Text=@Properties.Resources.AgentGroups>
-                <div style="position: relative; width: 100%; ">
-                    <AgentGroups></AgentGroups>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
-            <TabPage Text=@Properties.Resources.Manage Icon="oi oi-cog">
-                <div style="position: relative; width: 100%; ">
-                    <AgentsManage></AgentsManage>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog, GXRoles.AgentLogManager)>
-            <TabPage Text=@Properties.Resources.AgentLogs Icon="oi oi-warning">
-                <div style="position: relative; width: 100%; ">
-                    <AgentLogs></AgentLogs>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-
-    </ChildContent>
-</TabControl>
+<!--If user adds a new item or modifies the existing one.-->
+@if (Path != null && string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "AgentGroup", true) == 0)
+    {
+        <AgentGroupTab Action="@Action" Id="@Id"></AgentGroupTab>
+    }
+    else if (string.Compare(Path, "Agent", true) == 0)
+    {
+        @if (string.Compare(Action, "Add", true) == 0)
+        {
+            <AgentAdd></AgentAdd>
+        }
+        else
+        {
+            <AgentTab Action="@Action" Id="@Id"></AgentTab>
+        }
+    }
+    else if (string.Compare(Path, "AgentLog", true) == 0)
+    {
+        <AgentLog Action="@Action" Id="@Id"></AgentLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager)>
+                <TabPage Path="Agent" Text=@Properties.Resources.Agents Icon="oi oi-wifi">
+                    <div style="position: relative; width: 100%; ">
+                        <Agents Id="@Id"></Agents>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroup, GXRoles.AgentGroupManager)>
+                <TabPage Path="AgentGroup" Text=@Properties.Resources.AgentGroups>
+                    <div style="position: relative; width: 100%; ">
+                        <AgentGroups Id="@Id"></AgentGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog, GXRoles.AgentLogManager)>
+                <TabPage Path="AgentLog" Text=@Properties.Resources.AgentLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <AgentLogs Id="@Id"></AgentLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
 <br />
 @code {
 
-    private int ActiveTab { get; set; } = 0;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
 
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
     {
-        Notifier.UpdateData(GXPages.AgentManage, index);
+        Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
-        object? data = Notifier.GetData(GXPages.AgentManage);
-        if ((data is int value) && value != 0)
-        {
-            ActiveTab = value;
-        }
-        Notifier.ChangePage(GXPages.AgentManage, data, true);
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
 }
 

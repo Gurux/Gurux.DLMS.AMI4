@@ -147,47 +147,50 @@
         }
     }
 
-    public void UpdateSettings<T>(List<T> parameters) where T : IGXParameter
+    public void UpdateSettings<T>(List<T>? parameters) where T : IGXParameter
     {
         try
         {
-            string? id = null;
-            //Save module device settings.
-            foreach (var module in _modules)
+            if (parameters != null)
             {
-                if (module.Value is IGXParameterSettings ps)
+                string? id = null;
+                //Save module device settings.
+                foreach (var module in _modules)
                 {
-                    id = ps.Name;
-                    ps.Save();
-                }
-                else
-                {
-                    throw new Exception(Properties.Resources.InvalidTarget);
-                }
-            }
-            //Serialize module device settings.
-            foreach (var module in _modules)
-            {
-                var settings = module.Value.GetType().GetProperty("Settings");
-                if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
-                {
-                    var value = settings.GetValue(module.Value);
-                    if (value != null)
+                    if (module.Value is IGXParameterSettings ps)
                     {
-                        T? param = parameters.SingleOrDefault(w => w.Module.Id == id && w.Name == id);
-                        if (param == null)
+                        id = ps.Name;
+                        ps.Save();
+                    }
+                    else
+                    {
+                        throw new Exception(Properties.Resources.InvalidTarget);
+                    }
+                }
+                //Serialize module device settings.
+                foreach (var module in _modules)
+                {
+                    var settings = module.Value.GetType().GetProperty("Settings");
+                    if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                    {
+                        var value = settings.GetValue(module.Value);
+                        if (value != null)
                         {
-                            param = Activator.CreateInstance<T>();
-                            param.Name = id;
-                            param.Module = new GXModule() { Id = module.Key };
-                            parameters.Add(param);
+                            T? param = parameters.SingleOrDefault(w => w.Module.Id == id && w.Name == id);
+                            if (param == null)
+                            {
+                                param = Activator.CreateInstance<T>();
+                                param.Name = id;
+                                param.Module = new GXModule() { Id = module.Key };
+                                parameters.Add(param);
+                            }
+                            param.Settings = JsonSerializer.Serialize(value);
                         }
-                        param.Settings = JsonSerializer.Serialize(value);
                     }
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw;
         }

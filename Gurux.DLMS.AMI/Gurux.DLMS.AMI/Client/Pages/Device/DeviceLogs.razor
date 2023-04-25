@@ -1,4 +1,4 @@
-﻿@page "/deviceerrors"
+﻿@page "/devicelogs"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -75,7 +75,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
+        <Td Path="@("/DeviceLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -98,6 +98,18 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected device log ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -116,7 +128,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -162,6 +174,17 @@
     public bool ShowClosedErrors { get; set; }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXDeviceError? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXDeviceError>? table;
@@ -189,12 +212,12 @@
     {
         try
         {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
             if (Notifier == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), async (errors) =>
             {
                 await Updated();
@@ -207,9 +230,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.DeviceLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXDeviceError() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -247,7 +274,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -284,10 +312,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.DeviceLogs, table.Active);
-            Notifier.Title = "Device error";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/devicelog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceLog/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -346,7 +371,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceLogs);
         Notifier.RemoveListener(this);
     }
 

@@ -11,10 +11,16 @@
     public RenderFragment ChildContent { get; set; }
 
     ///<summary>
+    ///Tab page path.
+    ///</summary>
+    [Parameter]
+    public string? Path { get; set; }
+
+    ///<summary>
     ///Tab page header text.
     ///</summary>
     [Parameter]
-    public string Text { get; set; }
+    public string Text { get; set; } = "";
 
     ///<summary>
     ///Icon class

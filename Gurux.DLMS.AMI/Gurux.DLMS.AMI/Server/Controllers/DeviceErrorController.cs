@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Mvc;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Server.Models;
+using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -56,14 +57,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// Get available device errors.
+        /// Get device error information.
         /// </summary>
-        /// <returns>All device errors.</returns>
+        /// <param name="id">Device trace id.</param>
+        /// <returns>Device trace.</returns>
         [HttpGet]
         [Authorize(Policy = GXDeviceErrorPolicies.View)]
-        public async Task<ActionResult<ListDeviceErrorsResponse>> Get(CancellationToken cancellationToken)
+        public async Task<ActionResult<GetDeviceErrorResponse>> Get(Guid id)
         {
-            return await Post(new ListDeviceErrors(), cancellationToken);
+            return new GetDeviceErrorResponse()
+            {
+                Item = await _deviceErrorRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>

@@ -1,0 +1,98 @@
+﻿@page "/config/triggermanage"
+@page "/config/TriggerGroup"
+@page "/config/Trigger/{Id:guid?}"
+@page "/config/Trigger/{Action}/{Id:guid?}"
+@page "/config/TriggerLog/{Id:guid?}"
+@page "/config/TriggerLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Trigger
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.TriggerManager + "," + GXRoles.TriggerGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "config/Trigger", true) == 0)
+    {
+        <Trigger Action="@Action" Id="@Id"></Trigger>
+    }
+    else if (string.Compare(Path, "config/TriggerGroup", true) == 0)
+    {
+        <TriggerGroupTab Action="@Action" Id="@Id"></TriggerGroupTab>
+    }
+    else
+    {
+        <p>@Path</p>
+    }
+}
+else
+{
+<TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <TabTextTemplate>
+        <span class=@context.Icon aria-hidden="true"></span>
+        @context.Text
+    </TabTextTemplate>
+    <ChildContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
+                <TabPage Path="config/Trigger" Text=@Properties.Resources.Triggers Icon="oi oi-flash">
+                <div style="position: relative; width: 100%; ">
+                    <Triggers Id="@Id"></Triggers>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
+                <TabPage Path="config/TriggerGroup" Text=@Properties.Resources.TriggerGroups Icon="oi oi-timer">
+                <div style="position: relative; width: 100%; ">
+                    <TriggerGroups Id="@Id"></TriggerGroups>
+                </div>
+            </TabPage>
+        </AuthorizeView>
+    </ChildContent>
+</TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        if (string.Compare(Path, "config/triggermanage", true) == 0)
+        {
+            Path = "/config/Trigger";
+        }
+    }
+}
+

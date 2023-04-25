@@ -1,5 +1,4 @@
-﻿@page "/usersselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -16,7 +15,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="users" />
@@ -24,6 +22,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? Parent { get; set; }
+
     List<GXUser> AllUsers = new List<GXUser>();
     List<GXUser> users = new List<GXUser>();
 
@@ -56,12 +57,14 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            Notifier.ChangePage(GXPages.UsersSelector, null);
             //Get selected user groups.
-            GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-            if (userGroup != null)
+            if (Parent?.Active?.Users != null)
             {
-                users = userGroup.Users;
+                users = Parent.Active.Users;
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             ListUsers req = new ListUsers()
                 {
@@ -88,11 +91,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.UsersSelector);
     }
 }
 

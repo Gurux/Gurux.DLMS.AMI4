@@ -2,6 +2,8 @@
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @inject IGXNotifier Notifier
+@inject NavigationManager NavigationManager
+@implements IDisposable
 
 <CascadingValue Value=this>
     @ChildContent
@@ -22,7 +24,7 @@
 <a href="@GetHelpPath()" target="_blank"><div class="oi oi-question-mark"></div></a>
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     ///
     string? _page;
@@ -30,13 +32,28 @@
     private string GetHelpPath()
     {
         string str = "https://gurux.fi/gurux.dlms.ami4";
-        /*
         if (!string.IsNullOrEmpty(_page))
         {
             str += "/" + _page;
         }
-        */
         return str;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        string path = NavigationManager.ToBaseRelativePath(e.Location);
+        int start = 0;
+        if (path.ToLower().StartsWith("config/"))
+        {
+            start = 7;
+        }
+        int pos = path.IndexOf('/', start);
+        if (pos != -1)
+        {
+            path = path.Substring(0, pos);
+        }
+        _page = path;
+        StateHasChanged();
     }
 
     protected override void OnInitialized()
@@ -46,25 +63,16 @@
         {
             StateHasChanged();
         };
-        Notifier.OnPageChanged += () =>
-        {
-            var path = Notifier.GetSelectionPath();
-            if (path.Count > 1 && path[path.Count - 2] == GXPages.Configurations)
-            {
-                _page = "configurations/" + Notifier.GetLastPage();
-            }
-            else
-            {
-                _page = Notifier.GetLastPage();
-            }
-            //
-            StateHasChanged();
-        };
-
+        NavigationManager.LocationChanged += OnLocationChanged;
         if (Notifier.Items.Count != 0)
         {
             Notifier.Items.Clear();
             StateHasChanged();
         }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }

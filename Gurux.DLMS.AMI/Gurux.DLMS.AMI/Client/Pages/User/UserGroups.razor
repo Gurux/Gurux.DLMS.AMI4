@@ -66,11 +66,11 @@
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
         <Th Id="Description">@Properties.Resources.Description</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Ascending">@Properties.Resources.CreationTime</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/UserGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.Description</td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
@@ -84,6 +84,18 @@
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 @code {
+    [CascadingParameter]
+    private UserManage? UserManageParent { get; set; }
+
+    [CascadingParameter]
+    private UserTab? UserParent { get; set; }
+
+    /// <summary>
+    /// Selected user group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -102,7 +114,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -112,7 +124,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the user groups shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -166,8 +178,10 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -176,46 +190,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Return last selected item.
-            object? data = Notifier.GetData(GXPages.UserGroups);
-            if (data is GXUserGroup ug && table != null)
-            {
-                table.Active = ug;
-            }
-            //Don't modify menu or change page user groups are filtered.
-            //This is done when tab page is added.
-            if (data is GXUser u)
-            {
-                filter.Users.Add(u);
-            }
-            else if (data is GXScheduleGroup sg)
-            {
-                filter.ScheduleGroups.Add(sg);
-            }
-            else if (data is GXDeviceGroup dg)
-            {
-                filter.DeviceGroups.Add(dg);
-            }
-            else if (data is GXDeviceTemplateGroup dtg)
-            {
-                filter.DeviceTemplateGroups.Add(dtg);
-            }
-            else if (data is GXAgentGroup ag)
-            {
-                filter.AgentGroups.Add(ag);
-            }
-            else if (data is GXModuleGroup mg)
-            {
-                filter.ModuleGroups.Add(mg);
-            }
-            else if (data is GXWorkflowGroup wfg)
-            {
-                filter.WorkflowGroups.Add(wfg);
-            }
-            else if (data is GXTriggerGroup tg)
-            {
-                filter.TriggerGroups.Add(tg);
-            }
             Notifier.On<IEnumerable<GXUserGroup>>(this, nameof(IGXHubEvents.UserGroupUpdate), async (groups) =>
             {
                 await Updated();
@@ -226,8 +200,11 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.RemoveLastPage(GXPages.Users);
-            Notifier.ChangePage(GXPages.UserGroups, data);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXUserGroup() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -259,12 +236,12 @@
             }
             ListUserGroups req = new ListUserGroups()
                 {
-                    AllUsers = true,
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -297,10 +274,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New User group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData("usergroups", new GXUserGroup(null));
-            NavigationManager.NavigateTo("/usergrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/UserGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -320,14 +294,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.UserGroups, table.Active);
-            Notifier.Title = "Edit User group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/usergrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/UserGroup/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -371,12 +342,12 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.UpdateData("usergroups", table.Active);
-            NavigationManager.NavigateTo($"/users");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/users");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -396,12 +367,12 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             Notifier.UpdateData("usergroups", table.Active);
-            NavigationManager.NavigateTo($"/agents");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, $"/agents");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -442,7 +413,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.UserGroups);
         Notifier.RemoveListener(this);
     }
 }

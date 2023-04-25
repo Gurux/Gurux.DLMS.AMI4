@@ -1,5 +1,4 @@
-﻿@page "/scriptgroup"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -14,10 +13,10 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
-@if (_active != null)
+
+@if (Active != null)
 {
-    <EditForm Model="@_active">
+    <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="row">
@@ -25,43 +24,43 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Name" />
+                           @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
-                    <InputNullableCheckbox @bind-Value="_active.Default" />
+                    <InputNullableCheckbox @bind-Value="Active.Default" />
                     <label>@Properties.Resources.DefaultGroup</label>
                     <br />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Description</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Description" />
+                           @bind-Value="Active.Description" />
                 </div>
-                @if (_active.CreationTime != DateTime.MinValue)
+                @if (Active.CreationTime != DateTime.MinValue)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.CreationTime" />
+                           @bind-Value="Active.CreationTime" />
                     </div>
                 }
-                @if (_active.Updated != null)
+                @if (Active.Updated != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.Updated" />
+                           @bind-Value="Active.Updated" />
                     </div>
                 }
-                @if (_active.Removed != null)
+                @if (Active.Removed != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="_active.Removed" />
+                           @bind-Value="Active.Removed" />
                     </div>
                 }
-                @if (Notifier.Action == CrudAction.Delete)
+                @if (action == CrudAction.Delete)
                 {
                     <hr />
                     <p>
@@ -83,6 +82,36 @@
     </EditForm>
 }
 @code {
+    [CascadingParameter]
+    private ScriptGroupTab? Parent { get; set; }
+
+    private GXScriptGroup? _active;
+
+    private GXScriptGroup? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
     public string? IsDeleting
     {
@@ -96,43 +125,28 @@
         }
     }
 
-    private GXScriptGroup? _active;
-    private string SubmitText;
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            _active = (GXScriptGroup?)Notifier.GetData(GXPages.ScriptGroups);
-            if (_active == null)
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get script group data.
+                var tmp = (await Http.GetAsJsonAsync<GetScriptGroupResponse>(string.Format("api/ScriptGroup?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+            }
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -142,15 +156,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            if (!_active.Modified &&
-                (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get script data.
-                _active = (await Http.GetAsJsonAsync<GetScriptGroupResponse>(string.Format("api/ScriptGroup?id={0}", _active.Id))).Item;
-                Notifier.ChangePage(GXPages.ScriptGroups, _active);
-                _active.Modified = true;
-            }
-            Notifier.ChangePage(GXPages.ScriptGroup, _active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -172,33 +177,40 @@
 
     public async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier.Action == CrudAction.Delete)
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveScriptGroupResponse>("api/ScriptGroup/Delete", new RemoveScriptGroup()
                     {
-                        Ids = new Guid[] { _active.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
             else
             {
                 string address;
-                if (Notifier.Action == CrudAction.Create)
+                if (action == CrudAction.Create)
                 {
                     address = "api/ScriptGroup/Add";
                 }
-                else
+                else if (action == CrudAction.Update)
                 {
                     address = "api/ScriptGroup/Update";
                 }
-                await Http.PostAsJson<AddScriptGroupResponse>(address, new AddScriptGroup() { ScriptGroups = new GXScriptGroup[] { _active } });
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<AddScriptGroupResponse>(address, new AddScriptGroup() { ScriptGroups = new GXScriptGroup[] { Active } });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -219,12 +231,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.ScriptGroup);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

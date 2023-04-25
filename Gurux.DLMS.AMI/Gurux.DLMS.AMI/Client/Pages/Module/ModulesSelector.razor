@@ -1,5 +1,4 @@
-﻿@page "/modulesselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -16,7 +15,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="modules" />
@@ -24,6 +22,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private ModuleGroupTab? Parent { get; set; }
+
     List<GXModule> AllModules = new List<GXModule>();
     List<GXModule> modules = new List<GXModule>();
 
@@ -46,14 +47,14 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.ModulesSelector, null);
-            //Add selected user groups.
-            GXModuleGroup? userGroup = (GXModuleGroup?)Notifier.GetData(GXPages.ModuleGroup);
-            if (userGroup == null)
+            if (Parent?.Active?.Modules != null)
+            {
+                modules = Parent.Active.Modules;
+            }
+            else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            modules = userGroup.Modules;
             ListModules req = new ListModules()
                 {
                     Filter = new GXModule()
@@ -75,11 +76,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.ModulesSelector);
     }
 }
 

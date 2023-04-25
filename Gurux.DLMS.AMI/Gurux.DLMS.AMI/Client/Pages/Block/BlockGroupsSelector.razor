@@ -1,4 +1,4 @@
-﻿@page "/blockgroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="blockGroups" />
@@ -24,6 +23,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+
+    [CascadingParameter]
+    private BlockTab? BlockParent { get; set; }
+
     List<GXBlockGroup> AllBlockGroups = new List<GXBlockGroup>();
     List<GXBlockGroup> blockGroups = new List<GXBlockGroup>();
 
@@ -52,39 +57,25 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListBlockGroups req = new ListBlockGroups()
                 {
                     Filter = new GXBlockGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent?.Active?.BlockGroups != null)
             {
-                //Add selected block.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    blockGroups = userGroup.BlockGroups;
-                }
-                else
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
+                //Add selected block groups.
+                blockGroups = UserGroupParent.Active.BlockGroups;
+            }
+            else if (BlockParent?.Active?.BlockGroups != null)
+            {
+                //Add selected block groups.
+                blockGroups = BlockParent.Active.BlockGroups;
             }
             else
             {
-                //Add selected block.
-                GXBlock? block = (GXBlock?)Notifier.GetData(GXPages.Block);
-                if (block != null)
-                {
-                    blockGroups = block.BlockGroups;
-                }
-                else
-                {
-                    throw new ArgumentException(Properties.Resources.InvalidTarget);
-                }
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !blockGroups.Any();
-            Notifier.ChangePage(GXPages.BlockGroupsSelector, null);
             var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);
             foreach (GXBlockGroup it in ret.BlockGroups)
             {
@@ -108,11 +99,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.BlockGroupsSelector);
     }
 }
 

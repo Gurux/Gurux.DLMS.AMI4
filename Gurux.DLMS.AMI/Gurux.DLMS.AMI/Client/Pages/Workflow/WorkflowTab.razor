@@ -1,6 +1,8 @@
-﻿@page "/workflowtab"
+﻿@page "/config/Workflow/{Id:guid?}"
+@page "/config/Workflow/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Script
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -16,63 +18,116 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowGroupManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-fork">
-                <div style="position: relative; width: 100%; ">
-                    <Workflow></Workflow>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.WorkflowGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <WorkflowGroupsSelector></WorkflowGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text="@Properties.Resources.ScriptMethods" Icon="oi oi-script">
-                <div style="position: relative; width: 100%; ">
-                    <ScriptMethodsSelector></ScriptMethodsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowGroupManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-fork">
+                    <div style="position: relative; width: 100%; ">
+                        <Workflow Action="@Action"></Workflow>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.WorkflowGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <WorkflowGroupsSelector></WorkflowGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text="@Properties.Resources.ScriptMethods" Icon="oi oi-script">
+                    <div style="position: relative; width: 100%; ">
+                        <ScriptMethodsSelector></ScriptMethodsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
-    private string? Title;
-    private int ActiveTab { get; set; } = 0;
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active page.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-        Notifier.UpdateData(GXPages.WorkflowTab, index);
-    }
+    [Parameter]
+    public string? Page { get; set; }
 
-    protected override void OnInitialized()
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXWorkflow Active = new GXWorkflow(null);
+
+    protected override async Task OnInitializedAsync()
     {
-        if (Notifier == null)
+        try
         {
-            throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Workflow;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get workflow data.
+                var tmp = (await Http.GetAsJsonAsync<GetWorkflowResponse>("api/Workflow?id=" + Id));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
         }
-        Title = Notifier.Title;
-        object data = Notifier.GetData(GXPages.WorkflowTab);
-        if ((data is int value) && value != 0)
+        catch (AccessTokenNotAvailableException exception)
         {
-            ActiveTab = value;
+            exception.Redirect();
         }
-        Notifier.RemoveLastPage(GXPages.Workflows);
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

@@ -160,6 +160,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Agent group.
+        /// </summary>
+        internal static string AgentGroup {
+            get {
+                return ResourceManager.GetString("AgentGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Agent groups.
         /// </summary>
         internal static string AgentGroups {
@@ -228,6 +237,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string AMiQuestions {
             get {
                 return ResourceManager.GetString("AMiQuestions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Amount of the rows shown on the view.
+        /// </summary>
+        internal static string AmountOfTheRowsShownOnTheView {
+            get {
+                return ResourceManager.GetString("AmountOfTheRowsShownOnTheView", resourceCulture);
             }
         }
         
@@ -313,11 +331,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Block.
+        /// </summary>
+        internal static string Block {
+            get {
+                return ResourceManager.GetString("Block", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Block cipher key.
         /// </summary>
         internal static string BlockCipherKey {
             get {
                 return ResourceManager.GetString("BlockCipherKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Block groups.
+        /// </summary>
+        internal static string BlockGroup {
+            get {
+                return ResourceManager.GetString("BlockGroup", resourceCulture);
             }
         }
         
@@ -333,9 +369,9 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Blocks.
         /// </summary>
-        internal static string BlocksTitle {
+        internal static string Blocks {
             get {
-                return ResourceManager.GetString("BlocksTitle", resourceCulture);
+                return ResourceManager.GetString("Blocks", resourceCulture);
             }
         }
         
@@ -439,7 +475,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Component view.
+        ///   Looks up a localized string similar to Component.
         /// </summary>
         internal static string ComponentView {
             get {
@@ -448,7 +484,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Component view group.
+        ///   Looks up a localized string similar to Component group.
         /// </summary>
         internal static string ComponentViewGroup {
             get {
@@ -457,7 +493,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Component view groups.
+        ///   Looks up a localized string similar to Component groups.
         /// </summary>
         internal static string ComponentViewGroups {
             get {
@@ -466,7 +502,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Component views.
+        ///   Looks up a localized string similar to Components.
         /// </summary>
         internal static string ComponentViews {
             get {
@@ -619,20 +655,20 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Device groups.
+        ///   Looks up a localized string similar to Device group.
         /// </summary>
-        internal static string DeviceGroups {
+        internal static string DeviceGroup {
             get {
-                return ResourceManager.GetString("DeviceGroups", resourceCulture);
+                return ResourceManager.GetString("DeviceGroup", resourceCulture);
             }
         }
         
         /// <summary>
         ///   Looks up a localized string similar to Device groups.
         /// </summary>
-        internal static string DeviceGroupsTitle {
+        internal static string DeviceGroups {
             get {
-                return ResourceManager.GetString("DeviceGroupsTitle", resourceCulture);
+                return ResourceManager.GetString("DeviceGroups", resourceCulture);
             }
         }
         
@@ -655,6 +691,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Device Template.
+        /// </summary>
+        internal static string DeviceTemplate {
+            get {
+                return ResourceManager.GetString("DeviceTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device template group.
+        /// </summary>
+        internal static string DeviceTemplateGroup {
+            get {
+                return ResourceManager.GetString("DeviceTemplateGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Device template groups.
         /// </summary>
         internal static string DeviceTemplateGroups {
@@ -664,20 +718,11 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Device template groups.
-        /// </summary>
-        internal static string DeviceTemplateGroupsTitle {
-            get {
-                return ResourceManager.GetString("DeviceTemplateGroupsTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Device Templates.
         /// </summary>
-        internal static string DeviceTemplatesTitle {
+        internal static string DeviceTemplates {
             get {
-                return ResourceManager.GetString("DeviceTemplatesTitle", resourceCulture);
+                return ResourceManager.GetString("DeviceTemplates", resourceCulture);
             }
         }
         
@@ -1150,6 +1195,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Module group.
+        /// </summary>
+        internal static string ModuleGroup {
+            get {
+                return ResourceManager.GetString("ModuleGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Module groups.
         /// </summary>
         internal static string ModuleGroups {
@@ -1528,6 +1582,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Schedule group.
+        /// </summary>
+        internal static string ScheduleGroup {
+            get {
+                return ResourceManager.GetString("ScheduleGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Schedule groups.
         /// </summary>
         internal static string ScheduleGroups {
@@ -1636,6 +1699,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Serial port.
+        /// </summary>
+        internal static string SerialPort {
+            get {
+                return ResourceManager.GetString("SerialPort", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Server address.
         /// </summary>
         internal static string ServerAddress {
@@ -1681,11 +1753,47 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Show data for all users..
+        /// </summary>
+        internal static string ShowDataForAllUsers {
+            get {
+                return ResourceManager.GetString("ShowDataForAllUsers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show filter.
+        /// </summary>
+        internal static string ShowFilter {
+            get {
+                return ResourceManager.GetString("ShowFilter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show menu.
+        /// </summary>
+        internal static string ShowMenu {
+            get {
+                return ResourceManager.GetString("ShowMenu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Show removed targets.
         /// </summary>
         internal static string ShowRemoved {
             get {
                 return ResourceManager.GetString("ShowRemoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Show total count.
+        /// </summary>
+        internal static string ShowTotal {
+            get {
+                return ResourceManager.GetString("ShowTotal", resourceCulture);
             }
         }
         
@@ -1780,7 +1888,7 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Delete the target and its content. This action cannot be undone..
+        ///   Looks up a localized string similar to Delete the target and its content..
         /// </summary>
         internal static string TargetDeleteQuestion {
             get {
@@ -1830,6 +1938,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string TaskWaitTime {
             get {
                 return ResourceManager.GetString("TaskWaitTime", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This action cannot be undone..
+        /// </summary>
+        internal static string ThisActionCannotBeUndone {
+            get {
+                return ResourceManager.GetString("ThisActionCannotBeUndone", resourceCulture);
             }
         }
         
@@ -1911,6 +2028,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Trigger {
             get {
                 return ResourceManager.GetString("Trigger", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trigger group.
+        /// </summary>
+        internal static string TriggerGroup {
+            get {
+                return ResourceManager.GetString("TriggerGroup", resourceCulture);
             }
         }
         
@@ -2014,6 +2140,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to User group.
+        /// </summary>
+        internal static string UserGroup {
+            get {
+                return ResourceManager.GetString("UserGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to User groups.
         /// </summary>
         internal static string UserGroupsTitle {
@@ -2082,6 +2217,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Workflow {
             get {
                 return ResourceManager.GetString("Workflow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Workflow group.
+        /// </summary>
+        internal static string WorkflowGroup {
+            get {
+                return ResourceManager.GetString("WorkflowGroup", resourceCulture);
             }
         }
         

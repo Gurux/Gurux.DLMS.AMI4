@@ -1,5 +1,4 @@
-﻿@page "/scriptsselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -13,10 +12,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, User, ScriptGroupManager, ScriptGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="scripts" />
@@ -24,6 +21,9 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private ScriptGroupTab? Parent { get; set; }
+
     List<GXScript> AllScripts = new List<GXScript>();
     List<GXScript> scripts = new List<GXScript>();
 
@@ -46,18 +46,14 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            string? page = Notifier.GetLastPage();
-            if (page == GXPages.ScriptGroups)
+            if (Parent?.Active?.Scripts != null)
             {
-                //Get scripts from selected script group.
-                GXScriptGroup scriptGroup = (GXScriptGroup)Notifier.GetData(GXPages.ScriptGroup);
-                scripts = scriptGroup.Scripts;
+                scripts = Parent.Active.Scripts;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier.ChangePage(GXPages.ScriptsSelector, null);
             ListScripts req = new ListScripts()
                 {
                     Filter = new GXScript()
@@ -81,11 +77,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.ScriptsSelector);
     }
 }
 

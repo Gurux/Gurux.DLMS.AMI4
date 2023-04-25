@@ -57,7 +57,7 @@
         <th>@Properties.Resources.Updated</th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/Config/ModuleGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -70,6 +70,12 @@
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 @code {
+    /// <summary>
+    /// Selected module group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -88,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -159,18 +165,21 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            if (table != null)
-            {
-                //Return last selected item.
-                table.Active = (GXModuleGroup?)Notifier.GetData(GXPages.ModuleGroups);
-            }
             Notifier.On<IEnumerable<GXModuleGroup>>(this, nameof(IGXHubEvents.ModuleGroupUpdate), async (moduleGroup) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXModuleGroup>>(this, nameof(IGXHubEvents.ModuleGroupDelete), async (moduleGroup) =>
             {
                 await Updated();
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.ModuleGroups, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXModuleGroup() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -202,7 +211,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -235,14 +245,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New module group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.ModuleGroups, new GXModuleGroup(null));
-            NavigationManager.NavigateTo("/modulegrouptab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/ModuleGroup/Add");
         }
         catch (Exception ex)
         {
@@ -262,10 +265,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.ModuleGroups, table.Active);
-            Notifier.Title = "Edit module group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/modulegrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/ModuleGroup/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -325,7 +325,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.ModuleGroups);
         Notifier.RemoveListener(this);
     }
 }

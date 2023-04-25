@@ -1,4 +1,4 @@
-﻿@page "/componentviewsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="componentViews" />
@@ -24,6 +23,10 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private ComponentViewGroupTab? Parent { get; set; }
+
+
     List<GXComponentView> AllComponentViews = new List<GXComponentView>();
     List<GXComponentView> componentViews = new List<GXComponentView>();
 
@@ -46,14 +49,15 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.ComponentViewsSelector, null);
-            //Add selected user groups.
-            GXComponentViewGroup? userGroup = (GXComponentViewGroup?)Notifier.GetData(GXPages.ComponentViewGroup);
-            if (userGroup == null)
+            if (Parent?.Active?.ComponentViews != null)
+            {
+                //Add selected user groups.
+                componentViews = Parent.Active.ComponentViews;
+            }
+            else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            componentViews = userGroup.ComponentViews;
             ListComponentViews req = new ListComponentViews()
                 {
                     Filter = new GXComponentView()
@@ -75,11 +79,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.ComponentViewsSelector);
     }
 }
 

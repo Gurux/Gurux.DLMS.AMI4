@@ -70,7 +70,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@error.CreationTime</td>
+        <Td Path="@("/Config/WorkflowLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -91,6 +91,13 @@
 </Confirm>
 
 @code {
+
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -109,7 +116,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -155,6 +162,16 @@
     /// </summary>
     public bool ShowClosedErrors { get; set; }
 
+    /// <summary>
+    /// Get active item.
+    /// </summary>
+    public GXWorkflowLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
 
     /// <summary>
     /// Table reference.
@@ -202,9 +219,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.WorkflowLogs, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXWorkflowLog() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -242,7 +263,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -279,10 +301,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.WorkflowLogs, table.Active);
-            Notifier.Title = "Workflow log";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/workflowlog");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/WorkflowLog/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -346,7 +365,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.WorkflowLogs);
         Notifier.RemoveListener(this);
     }
 

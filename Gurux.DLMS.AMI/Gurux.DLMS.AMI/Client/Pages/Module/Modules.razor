@@ -25,7 +25,14 @@
     <h1>@Properties.Resources.ModulesTitle</h1>
 }
 
-<GXTable @ref="table" Context="module" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" ShowRemoved="false" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="module"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
@@ -55,14 +62,14 @@
     <HeaderContent>
         <th>@Properties.Resources.Name</th>
         <th>@Properties.Resources.Version</th>
-        <th>@Properties.Resources.CreationTime</th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <th>@Properties.Resources.Updated</th>
     </HeaderContent>
     <ItemContent>
-        <td>
+        <Td Path="@("/Config/Module/Edit/" + module.Id)">
             <span class=@(ClientHelpers.GetActiveDot(module.Active))>
             </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
-        </td>
+        </Td>
         <td>@module.Version</td>
         <td>@module.CreationTime</td>
         <td>@module.Updated</td>
@@ -72,10 +79,17 @@
          ConfirmationChanged="OnDeleteConfirmation"
          OkTitle="@Properties.Resources.Remove"
          ConfirmationMessage=""
+         AllowDelete = "false"
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 <br />
 @code {
+    /// <summary>
+    /// Selected module ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -94,7 +108,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -104,7 +118,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the modules shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -169,19 +183,22 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            if (table != null)
-            {
-                //Return last selected item.
-                table.Active = (GXModule?)Notifier.GetData(GXPages.Modules);
-            }
             Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
             {
                 await Updated();
             });
+            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleDelete), async (modules) =>
+            {
+                await Updated();
+            });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Modules, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXModule() { Id = Id };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -205,7 +222,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -230,11 +248,6 @@
         return default;
     }
 
-    void OnClose(object sender)
-    {
-        NavigationManager.NavigateTo("/module");
-    }
-
     /// <summary>
     /// Edit module.
     /// </summary>
@@ -247,10 +260,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.ChangePage(GXPages.Modules, table?.Active);
-            Notifier.Title = "Edit Module";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/moduletab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Module/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -314,7 +324,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Modules);
         Notifier.RemoveListener(this);
     }
 }

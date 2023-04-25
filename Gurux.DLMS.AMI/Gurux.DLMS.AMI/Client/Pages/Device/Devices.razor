@@ -1,4 +1,5 @@
-﻿@page "/devices"
+﻿@page "/Devices"
+
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Client.Helpers.Table
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -34,7 +35,12 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="device" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="device"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -67,7 +73,7 @@
         <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
     </HeaderContent>
     <ItemContent>
-        <td><a href="@GetPath(device)" @onclick="() => OnSelect(device)">@device.Name</a></td>
+        <Td Path=@("Objects/" + device.Id)>@device.Name</Td>
         <td>@device.CreationTime</td>
         <td>@device.Updated</td>
         <td>@device.LastRead</td>
@@ -88,6 +94,11 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected device ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
 
     /// <inheritdoc />
     public string Name
@@ -107,7 +118,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -133,33 +144,6 @@
     /// </summary>
     [Parameter]
     public bool Title { get; set; } = true;
-
-    //Get device path.
-    private string GetPath(GXDevice target)
-    {
-        return "/objects";
-    }
-
-    //Device is selected.
-    private void OnSelect(GXDevice target)
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.Title = "Edit device";
-            Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.Device, target);
-            NavigationManager.NavigateTo("/objects");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
 
     //Verify that history is clear.
     protected ConfirmBase? ClearConfirmation;
@@ -223,11 +207,10 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get last selected item.
-            if (table != null)
+            if (table != null && Id != null)
             {
-                table.Active = (GXDevice?)Notifier.GetData(GXPages.Devices);
-                Notifier.ChangePage(GXPages.Devices, table.Active);
+                //Get last selected item.
+                table.Active = new GXDevice() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -260,7 +243,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -286,45 +270,13 @@
     }
 
     /// <summary>
-    /// Show device.
-    /// </summary>
-    public void OnShow()
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            if (table == null || table.Active == null)
-            {
-                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
-            }
-            Notifier.Title = "Edit Device";
-            Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.Device, table.Active);
-            NavigationManager.NavigateTo("/objects");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-
-    }
-
-    /// <summary>
     /// Add new device.
     /// </summary>
     public void OnAdd()
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New Device";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Devices, new GXDevice(""));
-            NavigationManager.NavigateTo("/devicetab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Device/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -344,14 +296,12 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Devices, table.Active);
-            Notifier.Title = "Edit Device";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/devicetab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Device/Edit/" + table?.Active.Id);
+
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -462,7 +412,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Devices);
         Notifier.RemoveListener(this);
     }
 }

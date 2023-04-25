@@ -1,0 +1,116 @@
+﻿@page "/config/modulemanage"
+@page "/config/module"
+@page "/config/modulegroup"
+
+@using Gurux.DLMS.AMI.Client.Pages.Module
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ModuleManager + "," + GXRoles.ModuleGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "/config/module", true) == 0)
+    {
+        <ModuleTab Action="@Action" Id="@Id"></ModuleTab>
+    }
+    else if (string.Compare(Path, "/config/moduleGroup", true) == 0)
+    {
+        <ModuleGroupTab Action="@Action" Id="@GetId()"></ModuleGroupTab>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
+                <TabPage Text=@Properties.Resources.ModulesTitle Icon="oi oi-puzzle-piece">
+                    <div style="position: relative; width: 100%; ">
+                        <Modules></Modules>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleGroupManager)>
+                <TabPage Text=@Properties.Resources.ModuleGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ModuleGroups></ModuleGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                <TabPage Text="Manage" Icon="oi oi-cog">
+                    <div style="position: relative; width: 100%; ">
+                        <ModulesManage></ModulesManage>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                <TabPage Text="Updates">
+                    <div style="position: relative; width: 100%; ">
+                        <ModulesUpdates></ModulesUpdates>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleLog)>
+                <TabPage Text=@Properties.Resources.ModuleLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <ModuleLogs></ModuleLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+    <br />
+}
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private Guid? GetId()
+    {
+        if (string.IsNullOrEmpty(Id))
+        {
+            return null;
+        }
+        return Guid.Parse(Id);
+    }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

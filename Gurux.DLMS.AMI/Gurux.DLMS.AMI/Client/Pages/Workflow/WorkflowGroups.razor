@@ -57,7 +57,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@group.Name</td>
+        <Td Path="@("/Config/WorkflowGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
@@ -70,6 +70,12 @@
 </Confirm>
 <br />
 @code {
+    /// <summary>
+    /// Selected workflow group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -88,7 +94,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -168,11 +174,10 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get last selected item.
-            if (table != null)
+            if (table != null && Id != null)
             {
-                table.Active = (GXWorkflowGroup?)Notifier.GetData(GXPages.WorkflowGroups);
-                Notifier.ChangePage(GXPages.WorkflowGroups, table.Active);
+                //Get last selected item.
+                table.Active = new GXWorkflowGroup() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -205,7 +210,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -238,10 +244,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New workflow group";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.WorkflowGroups, new GXWorkflowGroup(null));
-            NavigationManager.NavigateTo("/workflowgrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/WorkflowGroup/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -266,10 +269,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.WorkflowGroups, table.Active);
-            Notifier.Title = "Edit workflow group";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/workflowgrouptab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/WorkflowGroup/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -333,7 +333,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.WorkflowGroups);
         Notifier.RemoveListener(this);
     }
 }

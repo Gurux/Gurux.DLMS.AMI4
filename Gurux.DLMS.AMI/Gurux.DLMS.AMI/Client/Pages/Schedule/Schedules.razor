@@ -75,7 +75,7 @@
         <Th Id="ExecutionTime">@Properties.Resources.LastExecutionTime</Th>
     </HeaderContent>
     <ItemContent>
-        <td><a href="@GetPath(schedule)" @onclick="() => OnSelect(schedule)">@schedule.Name</a></td>
+        <Td Path="@("/Schedule/Edit/" + schedule.Id)">@schedule.Name</Td>
         <td>@schedule.Start</td>
         <td>@schedule.CreationTime</td>
         <td>@schedule.Updated</td>
@@ -91,6 +91,12 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -109,7 +115,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -119,7 +125,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the schedules shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -135,33 +141,6 @@
     /// </summary>
     [Parameter]
     public bool Title { get; set; } = true;
-
-    //Get schedule path.
-    private string GetPath(GXSchedule target)
-    {
-        return "/scheduletab";
-    }
-
-    //Schedule is selected.
-    private void OnSelect(GXSchedule target)
-    {
-        try
-        {
-            Notifier.ClearStatus();
-            Notifier.Title = "Edit Schedule";
-            Notifier.Action = CrudAction.Update;
-            Notifier.UpdateData(GXPages.Schedules, target);
-            NavigationManager.NavigateTo("/scheduletab");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
 
     /// <summary>
     /// Schedule filter.
@@ -208,11 +187,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (table != null)
-            {
-                //Get last selected item.
-                table.Active = (GXSchedule?)Notifier.GetData(GXPages.Schedules);
-            }
             Notifier.On<IEnumerable<GXSchedule>>(this, nameof(IGXHubEvents.ScheduleUpdate), async (schedule) =>
             {
                 await Updated();
@@ -224,7 +198,11 @@
             //Clear buttons.
             Notifier.Clear();
             Notifier.UpdateButtons();
-            Notifier.ChangePage(GXPages.Schedules, table?.Active);
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXSchedule() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -260,7 +238,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -322,13 +301,7 @@
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.Title = "New Schedule";
-            Notifier.Action = CrudAction.Create;
-            GXSchedule schedule = new GXSchedule(null);
-            schedule.Start = new GXDateTime(-1, -1, -1, 0, 0, 0, 0).ToFormatString();
-            Notifier.UpdateData(GXPages.Schedules, schedule);
-            NavigationManager.NavigateTo("/scheduletab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Schedule/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -352,7 +325,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            OnSelect(table.Active);
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Schedule/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -376,7 +349,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -417,7 +390,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Schedules);
         Notifier.RemoveListener(this);
     }
 }

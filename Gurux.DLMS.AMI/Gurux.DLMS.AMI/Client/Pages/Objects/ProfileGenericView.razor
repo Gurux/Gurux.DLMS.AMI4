@@ -20,8 +20,8 @@
     </MenuControl>
 
     <CascadingValue Value="this">
-        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
-        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template?.Name"></AttributeTile>
+        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template?.LogicalName"></AttributeTile>
         <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="6" Attributes="@Target.Attributes" GetValue="@GetShortObject"></AttributeTile>
@@ -59,10 +59,10 @@
 @code {
 
     [CascadingParameter]
-    private ObjectView Parent { get; set; }
+    private ObjectView? Parent { get; set; }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     private int TotalCount { get; set; }
 
@@ -135,31 +135,35 @@
             List<object[]> rows = new();
             ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter, Descending = true };
             var ret = await Http.PostAsJson<ListValuesResponse>("api/Value/List", req, request.CancellationToken);
-            foreach (var row in ret.Values)
+            if (ret.Values != null)
             {
-                if (!string.IsNullOrEmpty(row.Value))
+                foreach (var row in ret.Values)
                 {
-                    GXStructure columns = (GXStructure)GXDLMSTranslator.XmlToValue(row.Value);
-                    for (int pos = 0; pos != columns.Count; ++pos)
+                    if (!string.IsNullOrEmpty(row.Value))
                     {
-                        @if (columns[pos] is byte[] bt)
+                        GXStructure columns = (GXStructure)GXDLMSTranslator.XmlToValue(row.Value);
+                        for (int pos = 0; pos != columns.Count; ++pos)
                         {
-                            @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                            @if (columns[pos] is byte[] bt)
                             {
-                                <!--Show date time.-->
-                                columns[pos] = GXDLMSClient.ChangeType(bt, DataType.DateTime, _templateSettings != null ? _templateSettings.UtcTimeZone : false);
+                                @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                                {
+                                    <!--Show date time.-->
+                                    columns[pos] = GXDLMSClient.ChangeType(bt, DataType.DateTime, _templateSettings != null ? _templateSettings.UtcTimeZone : false);
+                                }
+                                else
+                                {
+                                    columns[pos] = @GXDLMSTranslator.ToHex(bt);
+                                }
                             }
-                            else
-                            {
-                                columns[pos] = @GXDLMSTranslator.ToHex(bt);
-                            }
+
                         }
+                        rows.Add(columns.ToArray());
                     }
-                    rows.Add(columns.ToArray());
-                }
-                else
-                {
-                    --ret.Count;
+                    else
+                    {
+                        --ret.Count;
+                    }
                 }
             }
             TotalCount = ret.Count;
@@ -186,7 +190,7 @@
     ///</summary>
     private void Reset()
     {
-        Parent.OnAction(1, (sbyte)0);
+        Parent?.OnAction(1, (sbyte)0);
     }
 
     /// <summary>
@@ -194,7 +198,7 @@
     ///</summary>
     private void Capture()
     {
-        Parent.OnAction(2, (sbyte)0);
+        Parent?.OnAction(2, (sbyte)0);
     }
 
     //Add action buttons.
@@ -202,19 +206,22 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             if (Parent == null)
             {
                 throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
             }
             //Get capture objects.
-            GXDevice? dev = (GXDevice?)Notifier.GetData(GXPages.Device);
-            if (dev != null)
+            if (Parent.Parent?.Device != null)
             {
-                deviceObjects = dev.Objects.ToArray();
+                GXDevice dev = Parent.Parent.Device;
+                if (dev.Objects == null)
+                {
+                    deviceObjects = null;
+                }
+                else
+                {
+                    deviceObjects = dev.Objects.ToArray();
+                }
                 if (dev.Template != null && dev.Template.Settings != null)
                 {
                     _templateSettings = JsonSerializer.Deserialize<GXDLMSSettings>(dev.Template.Settings);
@@ -229,77 +236,85 @@
             Capture,
             !Parent.CanInvokeAction(1)));
 
-            //Search buffer attribute.
-            foreach (var it in Target.Attributes)
+            if (Target?.Attributes != null)
             {
-                if (it.Template != null && it.Template.Index == 2)
+                //Search buffer attribute.
+                foreach (var it in Target.Attributes)
                 {
-                    filter.Attribute = new GXAttribute() { Id = it.Id };
-                    break;
-                }
-            }
-            //Search capture objects.
-            foreach (var it in Target.Attributes)
-            {
-                if (it.Template != null && it.Template.Index == 3)
-                {
-                    if (string.IsNullOrEmpty(it.Value))
+                    if (it.Template != null && it.Template.Index == 2)
                     {
-                        //Read capture objects.
-                        var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
-                        it.Value = ret?.Value;
+                        filter.Attribute = new GXAttribute() { Id = it.Id };
+                        break;
                     }
-                    if (!string.IsNullOrEmpty(it.Value))
+                }
+                //Search capture objects.
+                foreach (var it in Target.Attributes)
+                {
+                    if (it.Template != null && it.Template.Index == 3)
                     {
-                        GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(it.Value);
-                        foreach (GXStructure it2 in tmp)
+                        if (string.IsNullOrEmpty(it.Value))
                         {
-                            GXDLMSObject? o = null;
-                            ObjectType ot = (ObjectType)Convert.ToInt32(it2[0]);
-                            string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
-                            KeyValuePair<string, string> kp = new KeyValuePair<string, string>("", "");
-                            int aIndex = Convert.ToInt32(it2[2]);
-                            int dIndex = Convert.ToInt32(it2[3]);
-                            GXDLMSCaptureObject co = new GXDLMSCaptureObject() { AttributeIndex = aIndex, DataIndex = dIndex };
-                            //Find capture objects from the association view and update capture object names.
-                            if (deviceObjects != null)
+                            //Read capture objects.
+                            var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
+                            it.Value = ret?.Value;
+                        }
+                        if (!string.IsNullOrEmpty(it.Value))
+                        {
+                            GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(it.Value);
+                            foreach (GXStructure it2 in tmp)
                             {
-                                foreach (var obj in deviceObjects)
+                                GXDLMSObject? o = null;
+                                ObjectType ot = (ObjectType)Convert.ToInt32(it2[0]);
+                                string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
+                                KeyValuePair<string, string> kp = new KeyValuePair<string, string>("", "");
+                                int aIndex = Convert.ToInt32(it2[2]);
+                                int dIndex = Convert.ToInt32(it2[3]);
+                                GXDLMSCaptureObject co = new GXDLMSCaptureObject() { AttributeIndex = aIndex, DataIndex = dIndex };
+                                //Find capture objects from the association view and update capture object names.
+                                if (deviceObjects != null)
                                 {
-                                    if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
-                                    obj.Template.LogicalName == str)
+                                    foreach (var obj in deviceObjects)
                                     {
-                                        try
+                                        if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
+                                        obj.Template.LogicalName == str)
                                         {
-                                            o = GXDLMSClient.CreateObject(ot);
-                                            if (aIndex != -1)
+                                            try
                                             {
-                                                str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
+                                                o = GXDLMSClient.CreateObject(ot);
+                                                if (aIndex != -1)
+                                                {
+                                                    str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
+                                                }
                                             }
+                                            catch (Exception ex)
+                                            {
+                                                str += " " + ex.Message;
+                                            }
+                                            if (obj.Template.Name == null)
+                                            {
+                                                throw new Exception(Properties.Resources.InvalidTarget);
+                                            }
+                                            kp = new KeyValuePair<string, string>(str, obj.Template.Name);
+                                            break;
                                         }
-                                        catch (Exception ex)
-                                        {
-                                            str += " " + ex.Message;
-                                        }
-                                        kp = new KeyValuePair<string, string>(str, obj.Template.Name);
-                                        break;
                                     }
                                 }
+                                if (o == null)
+                                {
+                                    //If object is not in the association view.
+                                    o = GXDLMSClient.CreateObject(ot);
+                                    GXDLMSConverter c = new GXDLMSConverter();
+                                    kp = new KeyValuePair<string, string>(str, c.GetDescription(str, ot)[0]);
+                                }
+                                captureObjects.Add(new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, co));
+                                captureObjectNames.Add(kp);
                             }
-                            if (o == null)
-                            {
-                                //If object is not in the association view.
-                                o = GXDLMSClient.CreateObject(ot);
-                                GXDLMSConverter c = new GXDLMSConverter();
-                                kp = new KeyValuePair<string, string>(str, c.GetDescription(str, ot)[0]);
-                            }
-                            captureObjects.Add(new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, co));
-                            captureObjectNames.Add(kp);
                         }
+                        break;
                     }
-                    break;
                 }
             }
+            StateHasChanged();
         }
         catch (TaskCanceledException)
         {

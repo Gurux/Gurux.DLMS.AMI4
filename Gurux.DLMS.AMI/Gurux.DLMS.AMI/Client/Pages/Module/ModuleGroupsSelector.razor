@@ -1,4 +1,4 @@
-﻿@page "/modulegroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="moduleGroups" />
@@ -24,6 +23,11 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+    [CascadingParameter]
+    private ModuleTab? ModuleParent { get; set; }
+
     List<GXModuleGroup> AllModuleGroups = new List<GXModuleGroup>();
     List<GXModuleGroup> moduleGroups = new List<GXModuleGroup>();
 
@@ -52,40 +56,30 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListModuleGroups req = new ListModuleGroups()
                 {
                     Filter = new GXModuleGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent?.Active?.ModuleGroups != null)
             {
                 //Add selected module.
-                GXUserGroup userGroup = (GXUserGroup)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    moduleGroups = userGroup.ModuleGroups;
-                }
+                moduleGroups = UserGroupParent.Active.ModuleGroups;
             }
-            else if (page == GXPages.ModuleManage)
+            else if (ModuleParent?.Active?.ModuleGroups != null)
             {
                 //Add selected module.
-                GXModule module = (GXModule)Notifier.GetData(GXPages.Module);
-                if (module != null)
-                {
-                    moduleGroups = module.ModuleGroups;
-                }
+                moduleGroups = ModuleParent.Active.ModuleGroups;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !moduleGroups.Any();
-            Notifier.ChangePage(GXPages.ModuleGroupsSelector, null);
             var ret = await Http.PostAsJson<ListModuleGroupsResponse>("api/ModuleGroup/List", req);
             foreach (GXModuleGroup it in ret.ModuleGroups)
             {
                 //Add default groups when new module is created.
-                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value && 
+                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
                     !moduleGroups.Where(q => q.Id == it.Id).Any())
                 {
                     moduleGroups.Add(it);
@@ -104,11 +98,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.ModuleGroupsSelector);
     }
 }
 

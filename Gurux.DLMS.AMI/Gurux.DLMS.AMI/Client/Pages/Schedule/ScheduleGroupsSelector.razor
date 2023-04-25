@@ -1,4 +1,4 @@
-﻿@page "/schedulegroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -13,10 +13,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, ScheduleGroup, ScheduleGroupManager, UserGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="scheduleGroups" />
@@ -24,6 +22,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
     List<GXScheduleGroup> AllScheduleGroups = new List<GXScheduleGroup>();
     List<GXScheduleGroup> scheduleGroups = new List<GXScheduleGroup>();
 
@@ -52,35 +56,29 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListScheduleGroups req = new ListScheduleGroups()
                 {
                     Filter = new GXScheduleGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent != null && UserGroupParent.Active != null && UserGroupParent.Active.ScheduleGroups != null)
             {
-                //Add selected schedule.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    scheduleGroups = userGroup.ScheduleGroups;
-                }
+                //Add selected schedules.
+                scheduleGroups = UserGroupParent.Active.ScheduleGroups;
             }
-            else if (page == GXPages.ScheduleManage)
+            else if (ScheduleParent != null && ScheduleParent.Active != null && ScheduleParent.Active.ScheduleGroups != null)
             {
-                //Add selected schedule.
-                GXSchedule? schedule = (GXSchedule?)Notifier.GetData(GXPages.Schedules);
-                if (schedule != null)
-                {
-                    scheduleGroups = schedule.ScheduleGroups;
-                }
+                //Add selected schedules.
+                scheduleGroups = ScheduleParent.Active.ScheduleGroups;
+            }
+            else
+            {
+                scheduleGroups = null;
             }
             if (scheduleGroups == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scheduleGroups.Any();
-            Notifier.ChangePage(GXPages.ScheduleGroupsSelector, null);
             var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req);
             foreach (GXScheduleGroup it in ret.ScheduleGroups)
             {
@@ -104,11 +102,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.ScheduleGroupsSelector);
     }
 }
 

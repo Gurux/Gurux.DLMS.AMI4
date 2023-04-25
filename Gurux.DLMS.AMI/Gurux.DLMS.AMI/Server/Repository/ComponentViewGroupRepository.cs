@@ -328,7 +328,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveComponentViewGroupFromUserGroups(it.Id, removed);
                     }
                     //Map componentViews to ComponentView group.
-                    if (it.ComponentViews != null && it.ComponentViews.Count != 0)
+                    if (it.ComponentViews != null && it.ComponentViews.Any())
                     {
                         List<GXComponentView> list3 = await GetJoinedComponentViews(user, it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

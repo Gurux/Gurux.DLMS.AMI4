@@ -70,6 +70,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private async Task<List<GXUserGroup>> GetJoinedUserGroups(Guid scheduleGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXUserGroup>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupScheduleGroup>(a => a.Id, b => b.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupScheduleGroup, GXScheduleGroup>(a => a.ScheduleGroupId, b => b.Id);
             arg.Where.And<GXScheduleGroup>(where => where.Removed == null && where.Id == scheduleGroupId);
@@ -79,6 +80,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private async Task<List<GXSchedule>> GetJoinedSchedules(ClaimsPrincipal user, Guid scheduleGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXSchedule>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXSchedule, GXScheduleGroupSchedule>(a => a.Id, b => b.ScheduleId);
             arg.Joins.AddInnerJoin<GXScheduleGroupSchedule, GXScheduleGroup>(a => a.ScheduleGroupId, b => b.Id);
 
@@ -86,8 +88,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXUserGroupScheduleGroup, GXUserGroup>(x => x.UserGroupId, y => y.Id);
             arg.Joins.AddInnerJoin<GXUserGroup, GXUserGroupUser>(x => x.Id, y => y.UserGroupId);
             arg.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(x => x.UserId, y => y.Id);
-            var id = ServerHelpers.GetUserId(user);
-            arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
+            if (user != null && !user.IsInRole(GXRoles.Admin))
+            {
+                var id = ServerHelpers.GetUserId(user);
+                arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
+            }
             arg.Where.And<GXScheduleGroup>(where => where.Removed == null && where.Id == scheduleGroupId);
             return (await _host.Connection.SelectAsync<GXSchedule>(arg));
         }
@@ -96,6 +101,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<List<GXScheduleGroup>> GetJoinedScheduleGroups(ClaimsPrincipal user, Guid scheduleId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScheduleGroup>(where => where.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScheduleGroup, GXScheduleGroupSchedule>(a => a.Id, b => b.ScheduleGroupId);
             arg.Joins.AddInnerJoin<GXScheduleGroupSchedule, GXSchedule>(a => a.ScheduleId, b => b.Id);
 
@@ -191,6 +197,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(request.Filter);
             }
+            arg.Distinct = true;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -347,7 +354,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveScheduleGroupFromUserGroups(it.Id, removed);
                     }
                     //Map schedules to Schedule group.
-                    if (it.Schedules != null && it.Schedules.Count != 0)
+                    if (it.Schedules != null && it.Schedules.Any())
                     {
                         List<GXSchedule> list3 = await GetJoinedSchedules(user, it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

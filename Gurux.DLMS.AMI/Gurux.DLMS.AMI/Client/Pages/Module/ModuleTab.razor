@@ -1,5 +1,7 @@
-﻿@page "/moduletab"
+﻿@page "/config/module/{Action}"
+@page "/config/module/{Action}/{Id}"
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -15,45 +17,109 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-puzzle-piece">
-                <div style="position: relative; width: 100%; ">
-                    <Module></Module>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.ModuleGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <ModuleGroupsSelector></ModuleGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-puzzle-piece">
+                    <div style="position: relative; width: 100%; ">
+                        <Module Action="@Action" Id="@Id"></Module>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.ModuleGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ModuleGroupsSelector></ModuleGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
     private string? Title;
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active item.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
+    public GXModule Active = new GXModule("");
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Title = Notifier.Title;
-        Notifier.RemoveLastPage(GXPages.Modules);
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Id + " " + Properties.Resources.Module;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get module data.
+                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>("api/Module?id=" + Id));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

@@ -43,6 +43,15 @@
         }
 
         /// <summary>
+        /// Data from the all users is shown for the admin.
+        /// </summary>
+        public bool ShowAllUserData
+        {
+            get;
+        }
+
+
+        /// <summary>
         /// The <see cref="System.Threading.CancellationToken"/> used to relay cancellation of the request.
         /// </summary>
         public CancellationToken CancellationToken { get; }
@@ -52,12 +61,24 @@
         /// </summary>
         /// <param name="startIndex">The start index of the data segment requested.</param>
         /// <param name="count">The requested number of items to be provided.</param>
-        /// <param name="cancellationToken">
+        /// <param name="showAllUserData">Data from the all users is shown for the admin.</param>
+        /// <param name="removed">Are removed items searched.</param>
+        /// <param name="orderBy">Default order by is used if this is not set.</param>
+        /// <param name="descending"></param>
+        /// <param name="cancellationToken">Are values shown as descending order.</param>
+        /// <param name="descending"></param>
         /// The <see cref="System.Threading.CancellationToken"/> used to relay cancellation of the request.
         /// </param>
-        public GXItemsProviderRequest(int startIndex, int count, bool removed, string? orderBy, bool descending, CancellationToken cancellationToken)
+        public GXItemsProviderRequest(int startIndex,
+            int count,
+            bool showAllUserData,
+            bool removed,
+            string? orderBy,
+            bool descending,
+            CancellationToken cancellationToken)
         {
             StartIndex = startIndex;
+            ShowAllUserData = showAllUserData;
             Count = count;
             OrderBy = orderBy;
             Descending = descending;

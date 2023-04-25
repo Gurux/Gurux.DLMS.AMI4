@@ -43,6 +43,8 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Client.Pages.Workflow;
+using Gurux.DLMS.AMI.Client.Pages.Script;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -173,6 +175,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             else
             {
+                arg.Descending = true;
                 arg.OrderBy.Add<GXUserGroup>(q => q.CreationTime);
             }
             if (request != null && request.Count != 0)
@@ -188,7 +191,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
             GXUserGroup[] groups = (await _host.Connection.SelectAsync<GXUserGroup>(arg, cancellationToken)).ToArray();
             if (response != null)
             {
@@ -307,19 +309,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     List<string> users = await GetUsersAsync(user, userGroup.Id);
                     userGroup.Updated = now;
                     userGroup.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    List<string> usersIds = userGroup.Users.Select(s => s.Id).ToList();
-                    m = GXSelectArgs.Select<GXUserGroupUser>(c => c.UserId, where => where.Removed == null && where.UserGroupId == userGroup.Id);
-                    m.Joins.AddInnerJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
-                    m.Where.And<GXUser>(w => w.Removed == null);
-                    List<string> userTableIds = _host.Connection.Select<string>(m);
                     GXUpdateArgs args = GXUpdateArgs.Update(userGroup, columns);
-                    args.Exclude<GXUserGroup>(q => new { q.CreationTime, q.Users, q.ScheduleGroups });
+                    args.Exclude<GXUserGroup>(q => new { q.CreationTime, q.Users, q.ScheduleGroups, q.DeviceGroups, q.DeviceTemplateGroups });
                     _host.Connection.Update(args);
                     //Map users to user group.
-                    if (userGroup.Users != null && userGroup.Users.Count != 0)
+                    if (userGroup.Users != null && userGroup.Users.Any())
                     {
-                        string[] removed = userTableIds.Except(users).ToArray();
-                        string[] added = users.Except(userTableIds).ToArray();
+                        string[] tmp = userGroup.Users.Select(s => s.Id).ToArray();
+                        string[] removed = users.Except(tmp).ToArray(); 
+                        string[] added = tmp.Except(users).ToArray();
                         foreach (var ug in added)
                         {
                             GXUserGroupUser ugu = new GXUserGroupUser()
@@ -330,13 +328,47 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             };
                             _host.Connection.Insert(GXInsertArgs.Insert(ugu));
                         }
-                        foreach (var ug in removed)
+                        foreach (var it in removed)
                         {
-                            _host.Connection.Delete(GXDeleteArgs.Delete(ug));
+                            await _host.Connection.DeleteAsync(GXDeleteArgs.Delete<GXUserGroupUser>(w => w.UserGroupId == userGroup.Id && w.UserId == it));
                         }
                     }
+                    //Map device groups to user group.
+                    if (userGroup.DeviceGroups != null && userGroup.DeviceGroups.Any())
+                    {
+                        List<GXDeviceGroup> deviceGroups = await GetJoinedDeviceGroups(userGroup.Id);
+                        var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
+                        List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(userGroup.DeviceGroups, comparer).ToList();
+                        List<GXDeviceGroup> addedDeviceGroups = userGroup.DeviceGroups.Except(deviceGroups, comparer).ToList();
+                        if (removedDeviceGroups.Any())
+                        {
+                            RemoveDeviceGroupsFromUserGroup(userGroup.Id, removedDeviceGroups);
+                        }
+                        if (addedDeviceGroups.Any())
+                        {
+                            AddDeviceGroupToUserGroup(userGroup.Id, addedDeviceGroups);
+                        }
+                    }
+
+                    //Map device template groups to user group.
+                    if (userGroup.DeviceTemplateGroups != null && userGroup.DeviceTemplateGroups.Any())
+                    {
+                        List<GXDeviceTemplateGroup> groups = await GetJoinedDeviceTemplateGroups(userGroup.Id);
+                        var comparer = new UniqueComparer<GXDeviceTemplateGroup, Guid>();
+                        List<GXDeviceTemplateGroup> removedGroups = groups.Except(userGroup.DeviceTemplateGroups, comparer).ToList();
+                        List<GXDeviceTemplateGroup> addedGroups = userGroup.DeviceTemplateGroups.Except(groups, comparer).ToList();
+                        if (removedGroups.Any())
+                        {
+                            RemoveDeviceTemplateGroupsFromUserGroup(userGroup.Id, removedGroups);
+                        }
+                        if (addedGroups.Any())
+                        {
+                            AddDeviceTemplateGroupToUserGroup(userGroup.Id, addedGroups);
+                        }
+                    }
+
                     //Map schedule groups to user group.
-                    if (userGroup.ScheduleGroups != null && userGroup.ScheduleGroups.Count != 0)
+                    if (userGroup.ScheduleGroups != null && userGroup.ScheduleGroups.Any())
                     {
                         List<GXScheduleGroup> scheduleGroups = await GetJoinedScheduleGroups(userGroup.Id);
                         var comparer = new UniqueComparer<GXScheduleGroup, Guid>();
@@ -458,11 +490,84 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
+        /// Map device group to user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID.</param>
+        /// <param name="groups">Added device groups.</param>
+        public void AddDeviceGroupToUserGroup(Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
+        {
+            DateTime now = DateTime.Now;
+            List<GXUserGroupDeviceGroup> list = new List<GXUserGroupDeviceGroup>();
+            foreach (GXDeviceGroup it in groups)
+            {
+                list.Add(new GXUserGroupDeviceGroup()
+                {
+                    UserGroupId = userGroupId,
+                    DeviceGroupId = it.Id,
+                    CreationTime = now
+                });
+            }
+            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove map between device group and user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID.</param>
+        /// <param name="groups">Removed device groups.</param>
+        public void RemoveDeviceGroupsFromUserGroup(Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
+        {
+            GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupDeviceGroup>();
+            foreach (var it in groups)
+            {
+                args.Where.Or<GXUserGroupDeviceGroup>(w => w.UserGroupId == userGroupId &&
+                    w.DeviceGroupId == it.Id);
+            }
+            _host.Connection.Delete(args);
+        }
+
+        /// <summary>
+        /// Map device template group to user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID.</param>
+        /// <param name="groups">Added device template groups.</param>
+        public void AddDeviceTemplateGroupToUserGroup(Guid userGroupId, IEnumerable<GXDeviceTemplateGroup> groups)
+        {
+            DateTime now = DateTime.Now;
+            List<GXUserGroupDeviceTemplateGroup> list = new List<GXUserGroupDeviceTemplateGroup>();
+            foreach (GXDeviceTemplateGroup it in groups)
+            {
+                list.Add(new GXUserGroupDeviceTemplateGroup()
+                {
+                    UserGroupId = userGroupId,
+                    DeviceTemplateGroupId = it.Id,
+                    CreationTime = now
+                });
+            }
+            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove map between device template group and user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID.</param>
+        /// <param name="groups">Removed device template groups.</param>
+        public void RemoveDeviceTemplateGroupsFromUserGroup(Guid userGroupId, IEnumerable<GXDeviceTemplateGroup> groups)
+        {
+            GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupDeviceTemplateGroup>();
+            foreach (var it in groups)
+            {
+                args.Where.Or<GXUserGroupDeviceTemplateGroup>(w => w.UserGroupId == userGroupId &&
+                    w.DeviceTemplateGroupId == it.Id);
+            }
+            _host.Connection.Delete(args);
+        }
+
+        /// <summary>
         /// Returns schedule groups that belong for this user group.
         /// </summary>
         /// <param name="userGroupId">User group ID</param>
         /// <returns>List of schedule groups.</returns>
-
         public async Task<List<GXScheduleGroup>> GetJoinedScheduleGroups(Guid userGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScheduleGroup>(where => where.Removed == null);
@@ -470,6 +575,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXUserGroupScheduleGroup, GXUserGroup>(a => a.UserGroupId, b => b.Id);
             arg.Where.And<GXUserGroup>(where => where.Removed == null && where.Id == userGroupId);
             return (await _host.Connection.SelectAsync<GXScheduleGroup>(arg));
+        }
+
+        /// <summary>
+        /// Returns device groups that belong for this user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID</param>
+        /// <returns>List of device groups.</returns>
+        public async Task<List<GXDeviceGroup>> GetJoinedDeviceGroups(Guid userGroupId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
+            arg.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            arg.Where.And<GXUserGroup>(where => where.Removed == null && where.Id == userGroupId);
+            return (await _host.Connection.SelectAsync<GXDeviceGroup>(arg));
+        }
+
+        /// <summary>
+        /// Returns device template groups that belong for this user group.
+        /// </summary>
+        /// <param name="userGroupId">User group ID</param>
+        /// <returns>List of device template groups.</returns>
+        public async Task<List<GXDeviceTemplateGroup>> GetJoinedDeviceTemplateGroups(Guid userGroupId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceTemplateGroup>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.DeviceTemplateGroupId);
+            arg.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            arg.Where.And<GXUserGroup>(where => where.Removed == null && where.Id == userGroupId);
+            return (await _host.Connection.SelectAsync<GXDeviceTemplateGroup>(arg));
         }
 
         /// <inheritdoc />

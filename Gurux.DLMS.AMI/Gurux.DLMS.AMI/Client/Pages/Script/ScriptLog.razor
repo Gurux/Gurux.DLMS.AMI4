@@ -1,5 +1,4 @@
-﻿@page "/scriptlog"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -27,13 +26,13 @@
                     <div class="form-group">
                         <label>@Properties.Resources.StackTrace</label>
                         <textarea id="Reply" @bind="_active.StackTrace" rows="10"
-                          readonly="readonly" class="form-control" />
+                                  readonly="readonly" class="form-control" />
                     </div>
                 }
                 <div class="form-group">
                     <label>@Properties.Resources.ErrorSeverityLevel</label>
                     <input type="text" id="level" disabled="disabled"
-                       value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
                 </div>
                 @if (_active.Script != null)
                 {
@@ -63,8 +62,13 @@
     </EditForm>
 }
 @code {
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXScriptLog? _active;
-    private string SubmitText = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,23 +81,17 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXScriptLog?)Notifier.GetData(GXPages.ScriptLogs);
-            if (_active == null)
+            if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            SubmitText = Notifier.Title;
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            //If script log is not read yet.
-            if (_active.Script == null)
-            {
-                //Get script log data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/ScriptLog?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXScriptLog>();
-            }
+            //Get script log data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/ScriptLog?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = await response.Content.ReadFromJsonAsync<GXScriptLog>();
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -114,6 +112,6 @@
     /// </summary>
     private void OnCancel()
     {
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

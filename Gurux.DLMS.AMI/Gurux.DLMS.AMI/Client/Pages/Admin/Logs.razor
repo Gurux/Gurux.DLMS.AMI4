@@ -14,7 +14,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-<TabControl SelectionChanged="SelectionChanged">
+<TabControl>
     <TabTextTemplate>
         <span class=@context.Icon aria-hidden="true"></span>
         @context.Text
@@ -45,17 +45,6 @@
 </TabControl>
 <br />
 @code {
-    /// <summary>
-    /// User has selected a new tab.
-    /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
-
-    protected override void OnInitialized()
-    {
-    }
+    
 }
 

@@ -1,6 +1,8 @@
-﻿@page "/triggergrouptab"
+﻿@page "/config/TriggerGroup/{Id:guid?}"
+@page "/config/TriggerGroup/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.User
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -16,52 +18,116 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <TriggerGroup></TriggerGroup>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.Triggers Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <TriggersSelector></TriggersSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.UserGroupsTitle Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <UserGroupsSelector></UserGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <TriggerGroup Action="@Action"></TriggerGroup>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.Triggers Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <TriggersSelector></TriggersSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.UserGroupsTitle Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <UserGroupsSelector></UserGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
     private string? Title;
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active item.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
+    public GXTriggerGroup Active = new GXTriggerGroup(null);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Title = Notifier.Title;
-        Notifier.RemoveLastPage(GXPages.TriggerGroups);
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.TriggerGroup;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get trigger group data.
+                var tmp = (await Http.GetAsJsonAsync<GetTriggerGroupResponse>(string.Format("api/TriggerGroup?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

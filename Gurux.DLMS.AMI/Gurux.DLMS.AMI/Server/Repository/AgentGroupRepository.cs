@@ -257,7 +257,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
+            ClaimsPrincipal User,
             IEnumerable<GXAgentGroup> AgentGroups,
             Expression<Func<GXAgentGroup, object?>>? columns)
         {
@@ -331,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Map agents to Agent group.
-                    if (it.Agents != null && it.Agents.Count != 0)
+                    if (it.Agents != null && it.Agents.Any())
                     {
                         List<GXAgent> agents = GetAgentsByAgentGroupId(it.Id);
                         var comparer = new UniqueComparer<GXAgent, Guid>();
@@ -347,7 +347,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Map device groups to agent group.
-                    if (it.DeviceGroups != null && it.DeviceGroups.Count != 0)
+                    if (it.DeviceGroups != null)
                     {
                         List<GXDeviceGroup> deviceGroups;
                         using (IServiceScope scope = _serviceProvider.CreateScope())

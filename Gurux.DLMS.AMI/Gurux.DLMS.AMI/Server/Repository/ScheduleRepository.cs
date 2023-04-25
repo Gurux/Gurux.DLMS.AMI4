@@ -154,7 +154,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal User, 
+        public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<Guid> schedulers,
             bool delete)
         {
@@ -236,7 +236,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null && (request.Select & TargetType.User) != 0)
             {
                 //User info is also read.
-                arg.Columns.Add<GXUser>(s => new {s.Id, s.UserName });
+                arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
                 arg.Joins.AddInnerJoin<GXSchedule, GXUser>(j => j.Creator, j => j.Id);
             }
             GXSchedule[] schedules = (await _host.Connection.SelectAsync<GXSchedule>(arg)).ToArray();
@@ -277,6 +277,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg = GXSelectArgs.SelectAll<GXSchedule>(w => w.Id == id);
                 arg.Joins.AddInnerJoin<GXSchedule, GXScheduleGroupSchedule>(x => x.Id, y => y.ScheduleId);
                 arg.Joins.AddInnerJoin<GXScheduleGroupSchedule, GXScheduleGroup>(j => j.ScheduleGroupId, j => j.Id);
+                arg.Where.And<GXScheduleGroup>(w => w.Removed == null);
             }
             else
             {
@@ -301,6 +302,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             //Get objects with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template }, q => q.Removed == null);
+            arg.Distinct = true;
             arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name });
             arg.Joins.AddInnerJoin<GXObject, GXScheduleToObject>(s => s.Id, o => o.ObjectId);
             arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template, o => o.Id);
@@ -308,6 +310,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             schedule.Objects = _host.Connection.Select<GXObject>(arg);
             //Get attributes with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXAttribute>(s => new { s.Id, s.Template }, q => q.Removed == null);
+            arg.Distinct = true;
             arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
             arg.Joins.AddInnerJoin<GXAttribute, GXScheduleToAttribute>(s => s.Id, o => o.AttributeId);
             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(s => s.Template, o => o.Id);
@@ -315,6 +318,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             schedule.Attributes = _host.Connection.Select<GXAttribute>(arg);
             //Get devices with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Template }, q => q.Removed == null);
+            arg.Distinct = true;
             arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
             arg.Joins.AddInnerJoin<GXDevice, GXScheduleToDevice>(s => s.Id, o => o.DeviceId);
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(s => s.Template, o => o.Id);
@@ -323,11 +327,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
             //Get devices groups with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, q => q.Removed == null);
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXDeviceGroup, GXScheduleToDeviceGroup>(s => s.Id, o => o.DeviceGroupId);
             arg.Where.And<GXScheduleToDeviceGroup>(w => w.ScheduleId == id && w.Removed == null);
             schedule.DeviceGroups = _host.Connection.Select<GXDeviceGroup>(arg);
             //Get script methods with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXScriptMethod>(s => new { s.Id });
+            arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXScriptMethod, GXScheduleScript>(s => s.Id, o => o.ScriptMethodId);
             arg.Where.And<GXScheduleScript>(w => w.ScheduleId == id && w.Removed == null);
             schedule.ScriptMethods = _host.Connection.Select<GXScriptMethod>(arg);
@@ -343,7 +349,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc/>
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
+            ClaimsPrincipal user,
             IEnumerable<GXSchedule> schedulers,
             Expression<Func<GXSchedule, object?>>? columns)
         {
@@ -738,10 +744,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Schedule groups where the schedule is removed.</param>
         public void RemoveSchedulesFromScheduleGroup(Guid scheduleId, IEnumerable<GXScheduleGroup> groups)
         {
-            var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceGroup>();
+            var args = GXDeleteArgs.DeleteAll<GXScheduleGroupSchedule>();
             foreach (var it in groups)
             {
-                args.Where.Or<GXScheduleToDeviceGroup>(w => w.DeviceGroupId == it.Id &&
+                args.Where.Or<GXScheduleGroupSchedule>(w => w.ScheduleGroupId == it.Id &&
                     w.ScheduleId == scheduleId);
             }
             _host.Connection.Delete(args);

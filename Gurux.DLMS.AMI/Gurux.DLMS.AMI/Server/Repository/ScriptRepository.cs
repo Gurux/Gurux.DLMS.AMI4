@@ -471,16 +471,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the script groups where the script is removed.</param>
         private void RemoveScriptsFromScriptGroup(Guid scriptId, IEnumerable<GXScriptGroup> groups)
         {
-            List<GXScriptGroupScript> list = new();
             foreach (var it in groups)
             {
-                list.Add(new GXScriptGroupScript()
-                {
-                    ScriptId = scriptId,
-                    ScriptGroupId = it.Id,
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXScriptGroupScript>(w => w.ScriptId == scriptId && w.ScriptGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <summary>
@@ -503,7 +497,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="methods">Removed script methods.</param>
         private void RemoveScriptMethodsFromScript(IEnumerable<GXScriptMethod> methods)
         {
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(methods));
+            foreach (var it in methods)
+            {
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXScriptMethod>(it.Id));
+            }
         }
 
         /// <inheritdoc cref="IScriptRepository.Compile"/>

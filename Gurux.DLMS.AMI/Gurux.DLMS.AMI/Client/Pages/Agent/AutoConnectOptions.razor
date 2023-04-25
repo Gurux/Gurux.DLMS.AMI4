@@ -1,5 +1,4 @@
-﻿@page "/autoconnectoptions"
-@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
@@ -12,7 +11,6 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
-
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 
 @if (Settings != null)
@@ -21,8 +19,7 @@
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputCheckbox @bind-Value="Settings.Active" />
-                    <label>@Properties.Resources.Active</label>
+                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
                     <br />
                 </div>
                 <div class="form-group">
@@ -32,7 +29,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Protocol</label>
-                    <select class="form-control" @bind="Settings.NetworkType">
+                    <select class="form-select" @bind="Settings.NetworkType">
                         @foreach (var it in NetworkTypeList)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -41,7 +38,7 @@
                 </div>
                 <div class="form-group">
                     <label style="margin:auto">Interface</label>
-                    <select class="form-control" @bind="@Settings.Interface">
+                    <select class="form-select" @bind="@Settings.Interface">
                         @foreach (var it in InterfaceList)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -65,7 +62,7 @@
                 </div>
                 <div class="form-group">
                     <label style="margin:auto">Authentication</label>
-                    <select class="form-control" @bind="@Settings.Authentication">
+                    <select class="form-select" @bind="@Settings.Authentication">
                         @foreach (var it in Authentications)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -79,7 +76,7 @@
                 </div>
                 <div class="form-group">
                     <label style="margin:auto">@Properties.Resources.Security</label>
-                    <select class="form-control" @bind="@Settings.Security">
+                    <select class="form-select" @bind="@Settings.Security">
                         @foreach (var it in Securities)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -93,7 +90,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.TraceLevels</label>
-                    <select class="form-control" @bind="Settings.TraceLevel">
+                    <select class="form-select" @bind="Settings.TraceLevel">
                         @foreach (var it in TraceLevels)
                         {
                             <option value="@it">@it</option>

@@ -1,5 +1,4 @@
-﻿@page "/workflowlog"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -64,8 +63,10 @@
     </EditForm>
 }
 @code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXWorkflowLog? _active;
-    private string SubmitText = "";
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,22 +79,20 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXWorkflowLog?)Notifier.GetData(GXPages.WorkflowLogs);
-            if (_active == null)
+            if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            SubmitText = Notifier.Title;
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            //If workflow log is not read yet.
-            if (_active.Workflow == null)
+            //Get workflow log data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/WorkflowLog?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = await response.Content.ReadFromJsonAsync<GXWorkflowLog>();
+            if (_active == null)
             {
-                //Get workflow log data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/WorkflowLog?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXWorkflowLog>();
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -115,6 +114,6 @@
     /// </summary>
     private void OnCancel()
     {
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

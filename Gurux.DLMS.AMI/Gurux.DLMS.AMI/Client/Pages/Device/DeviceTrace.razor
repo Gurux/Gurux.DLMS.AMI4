@@ -1,5 +1,4 @@
-﻿@page "/devicetrace"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -47,8 +46,19 @@
     </EditForm>
 }
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXDeviceTrace? _active;
-    private string SubmitText = "";
 
     private string GetDirection()
     {
@@ -59,31 +69,24 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXDeviceTrace?)Notifier.GetData(GXPages.DeviceTraces);
+            if (Id == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //Read device trace item.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTrace?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = (await response.Content.ReadFromJsonAsync<GetDeviceTrace>())?.Item;
             if (_active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            SubmitText = Notifier.Title;
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
-            Notifier.UpdateButtons();
-            //If device error is not read yet.
-            if (_active.Device == null)
-            {
-                //Get device error data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/DeviceTrace?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = await response.Content.ReadFromJsonAsync<GXDeviceTrace>();
-            }
-            Notifier.ChangePage(GXPages.DeviceTrace, _active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -104,7 +107,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceTrace);
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

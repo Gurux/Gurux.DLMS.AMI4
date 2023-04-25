@@ -105,7 +105,8 @@ namespace Gurux.DLMS.AMI.Scheduler
         public async Task RunAsync(ClaimsPrincipal user)
         {
             var inatalledModules = await _moduleRepository.ListWithVersionsAsync(user);
-            var installerAgents = await _agentRepository.ListInstallersAsync(user, null, null);
+            var installerAgents = await _agentRepository.ListInstallersAsync(user, null, true, null);
+
             DateTime now = DateTime.Now;
             //Check modules.
             string address = "/ami4/modules/modules.json";

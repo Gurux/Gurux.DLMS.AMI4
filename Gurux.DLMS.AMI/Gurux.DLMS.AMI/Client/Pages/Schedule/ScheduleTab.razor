@@ -1,7 +1,10 @@
-﻿@page "/scheduletab"
+﻿@page "/Schedule/{Id:guid?}"
+@page "/Schedule/{Action}/{Id:guid?}"
+
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -17,59 +20,114 @@
 <h1>
     @Title
 </h1>
-<TabControl SelectionChanged="SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
-            <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <Schedule></Schedule>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-            <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <ScheduleGroupsSelector></ScheduleGroupsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-            <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <DevicesSelector></DevicesSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-            <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <ObjectsSelector></ObjectsSelector>
-                </div>
-            </TabPage>
-        </AuthorizeView>       
-    </ChildContent>
-</TabControl>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <Schedule Action="@Action"></Schedule>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ScheduleGroupsSelector></ScheduleGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <DevicesSelector></DevicesSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ObjectsSelector></ObjectsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
 <br />
 @code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private string? Title;
 
     /// <summary>
-    /// User has selected a new tab.
+    /// Active item.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
-    {
-        Notifier.RemoveLastPage();
-    }
+    public GXSchedule Active = new GXSchedule(null);
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        Title = Notifier.Title;
-        Notifier.RemoveLastPage(GXPages.Schedules);
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Schedule;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get schedule data.
+                var tmp = (await Http.GetAsJsonAsync<GetScheduleResponse>(string.Format("api/Schedule?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 }
 

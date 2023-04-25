@@ -324,7 +324,8 @@ if (host != null)
     {
         foreach (GXAgent agent in agents)
         {
-            await agentRepository.UpdateStatusAsync(ServerHelpers.CreateClaimsPrincipalFromUser(agent.Creator), agent.Id, AgentStatus.Offline);
+            await agentRepository.UpdateStatusAsync(
+                ServerHelpers.CreateClaimsPrincipalFromUser(agent.Creator), agent.Id, AgentStatus.Offline, null);
         }
     }
 }

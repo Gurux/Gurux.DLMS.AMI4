@@ -61,7 +61,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td><span class="@trigger.Icon" aria-hidden="true"></span><a href="/trigger" @onclick="() => OnSelect(trigger)">@trigger.Name</a></td>
+        <Td Path="@("/Config/Trigger/Edit/" + trigger.Id)"><span class="@trigger.Icon" aria-hidden="true"></span>@trigger.Name</Td>
         <td>@trigger.CreationTime</td>
         <td>@trigger.Updated</td>
     </ItemContent>
@@ -74,6 +74,12 @@
 </Confirm>
 <br />
 @code {
+    /// <summary>
+    /// Selected trigger ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -92,7 +98,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -102,7 +108,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the triggers shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -119,14 +125,6 @@
     [Parameter]
     public bool Title { get; set; } = true;
 
-    private void OnSelect(GXTrigger target)
-    {
-        Notifier.Title = "Trigger settings";
-        Notifier.Action = CrudAction.Update;
-        Notifier.UpdateData(GXPages.Triggers, target);
-        NavigationManager.NavigateTo("/trigger");
-    }
-
     /// <summary>
     /// Trigger filter.
     /// </summary>
@@ -135,6 +133,18 @@
     /// User is verified before trigger is removed.
     /// </summary>
     protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXTrigger? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
     /// <summary>
     /// Table reference.
     /// </summary>
@@ -180,11 +190,10 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            if (table != null)
+            if (table != null && Id != null)
             {
                 //Get last selected item.
-                table.Active = (GXTrigger?)Notifier.GetData(GXPages.Triggers);
-                Notifier.ChangePage(GXPages.Triggers, table.Active);
+                table.Active = new GXTrigger() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -217,7 +226,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -281,14 +291,12 @@
         try
         {
             Notifier.ClearStatus();
-            if (table == null || !table.SingleOrDefault().Any())
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Triggers, table.Active);
-            Notifier.Title = "Trigger settings";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/trigger");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Trigger/Edit/" + table.Active.Id);
+
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -348,7 +356,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Triggers);
         Notifier.RemoveListener(this);
     }
 }

@@ -1,4 +1,8 @@
-﻿@page "/schedulemanage"
+﻿@page "/Schedule"
+@page "/ScheduleGroup"
+@page "/ScheduleLog/{Id:guid?}"
+@page "/ScheduleLog/{Action}/{Id:guid?}"
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -12,58 +16,83 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
-            <TabPage Text=@Properties.Resources.SchedulesTitle Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <Schedules></Schedules>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleGroupManager)>
-            <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <ScheduleGroups></ScheduleGroups>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog, GXRoles.ScheduleLogManager)>
-            <TabPage Text=@Properties.Resources.ScheduleLogs Icon="oi oi-warning">
-                <div style="position: relative; width: 100%; ">
-                    <ScheduleLogs></ScheduleLogs>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "ScheduleGroup", true) == 0)
+    {
+        <ScheduleGroupTab Action="@Action" Id="@Id"></ScheduleGroupTab>
+    }
+    else if (string.Compare(Path, "Schedule", true) == 0)
+    {
+        <ScheduleTab Action="@Action" Id="@Id"></ScheduleTab>
+    }
+    else if (string.Compare(Path, "ScheduleLog", true) == 0)
+    {
+        <ScheduleLog Id="@Id"></ScheduleLog>
+    }    
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
+                <TabPage Path="Schedule" Text=@Properties.Resources.SchedulesTitle Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <Schedules Id="@Id"></Schedules>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleGroupManager)>
+                <TabPage Path="ScheduleGroup" Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <ScheduleGroups Id="@Id"></ScheduleGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog, GXRoles.ScheduleLogManager)>
+                <TabPage Path="ScheduleLog" Text=@Properties.Resources.ScheduleLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <ScheduleLogs Id="@Id"></ScheduleLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
 <br />
 @code {
 
-    private int ActiveTab { get; set; } = 0;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
 
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
     {
-        Notifier.RemoveLastPage();
-        Notifier.UpdateData(GXPages.ScheduleManage, index);
+        Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
-        object? data = Notifier.GetData(GXPages.ScheduleManage);
-        if ((data is int value) && value != 0)
-        {
-            ActiveTab = value;
-        }
-        Notifier.ChangePage(GXPages.ScheduleManage, data, true);
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
 }
 

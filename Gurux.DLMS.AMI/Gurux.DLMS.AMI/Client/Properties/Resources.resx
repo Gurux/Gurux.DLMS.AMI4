@@ -174,7 +174,7 @@
   <data name="BlockGroups" xml:space="preserve">
     <value>Block groups</value>
   </data>
-  <data name="BlocksTitle" xml:space="preserve">
+  <data name="Blocks" xml:space="preserve">
     <value>Blocks</value>
   </data>
   <data name="Body" xml:space="preserve">
@@ -205,16 +205,16 @@
     <value>Component</value>
   </data>
   <data name="ComponentView" xml:space="preserve">
-    <value>Component view</value>
+    <value>Component</value>
   </data>
   <data name="ComponentViewGroup" xml:space="preserve">
-    <value>Component view group</value>
+    <value>Component group</value>
   </data>
   <data name="ComponentViewGroups" xml:space="preserve">
-    <value>Component view groups</value>
+    <value>Component groups</value>
   </data>
   <data name="ComponentViews" xml:space="preserve">
-    <value>Component views</value>
+    <value>Components</value>
   </data>
   <data name="Configuration" xml:space="preserve">
     <value>Configuration</value>
@@ -255,9 +255,6 @@
   <data name="DeviceGroups" xml:space="preserve">
     <value>Device groups</value>
   </data>
-  <data name="DeviceGroupsTitle" xml:space="preserve">
-    <value>Device groups</value>
-  </data>
   <data name="Devices" xml:space="preserve">
     <value>Devices</value>
   </data>
@@ -267,10 +264,7 @@
   <data name="DeviceTemplateGroups" xml:space="preserve">
     <value>Device template groups</value>
   </data>
-  <data name="DeviceTemplateGroupsTitle" xml:space="preserve">
-    <value>Device template groups</value>
-  </data>
-  <data name="DeviceTemplatesTitle" xml:space="preserve">
+  <data name="DeviceTemplates" xml:space="preserve">
     <value>Device Templates</value>
   </data>
   <data name="Edit" xml:space="preserve">
@@ -784,7 +778,7 @@
     <value>Disable the target and unpublish its content.</value>
   </data>
   <data name="TargetDeleteQuestion" xml:space="preserve">
-    <value>Delete the target and its content. This action cannot be undone.</value>
+    <value>Delete the target and its content.</value>
   </data>
   <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
     <value>Are you sure you want to clear tasks?</value>
@@ -803,5 +797,59 @@
   </data>
   <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
     <value>Are you sure you want to clear log?</value>
+  </data>
+  <data name="ShowDataForAllUsers" xml:space="preserve">
+    <value>Show data for all users.</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Schedule group</value>
+  </data>
+  <data name="WorkflowGroup" xml:space="preserve">
+    <value>Workflow group</value>
+  </data>
+  <data name="UserGroup" xml:space="preserve">
+    <value>User group</value>
+  </data>
+  <data name="ModuleGroup" xml:space="preserve">
+    <value>Module group</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Device template group</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Device group</value>
+  </data>
+  <data name="BlockGroup" xml:space="preserve">
+    <value>Block groups</value>
+  </data>
+  <data name="Block" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Agent group</value>
+  </data>
+  <data name="TriggerGroup" xml:space="preserve">
+    <value>Trigger group</value>
+  </data>
+  <data name="ThisActionCannotBeUndone" xml:space="preserve">
+    <value>This action cannot be undone.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Device Template</value>
+  </data>
+  <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
+    <value>Amount of the rows shown on the view</value>
+  </data>
+  <data name="ShowFilter" xml:space="preserve">
+    <value>Show filter</value>
+  </data>
+  <data name="ShowTotal" xml:space="preserve">
+    <value>Show total count</value>
+  </data>
+  <data name="ShowMenu" xml:space="preserve">
+    <value>Show menu</value>
+  </data>
+  <data name="SerialPort" xml:space="preserve">
+    <value>Serial port</value>
   </data>
 </root>

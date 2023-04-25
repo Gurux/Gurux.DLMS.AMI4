@@ -1,4 +1,4 @@
-﻿@page "/workflowgroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="workflowGroups" />
@@ -24,6 +23,11 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+    [CascadingParameter]
+    private WorkflowTab? WorkflowParent { get; set; }
+
     List<GXWorkflowGroup> AllWorkflowGroups = new List<GXWorkflowGroup>();
     List<GXWorkflowGroup> workflowGroups = new List<GXWorkflowGroup>();
 
@@ -44,38 +48,24 @@
 
     protected override async Task OnInitializedAsync()
     {
-        string? page = Notifier.GetLastPage();
-        if (page == null)
-        {
-            throw new ArgumentException(Properties.Resources.InvalidTarget);
-        }
-
         ListWorkflowGroups req = new ListWorkflowGroups()
             {
                 Filter = new GXWorkflowGroup()
             };
-        if (page == GXPages.UserManage)
+        //Add selected workflow groups.
+        if (UserGroupParent?.Active?.WorkflowGroups != null)
         {
-            //Add selected workflow.
-            GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-            if (userGroup == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            workflowGroups = userGroup.WorkflowGroups;
+            workflowGroups = UserGroupParent.Active.WorkflowGroups;
+        }
+        else if (WorkflowParent?.Active?.WorkflowGroups != null)
+        {
+            workflowGroups = WorkflowParent.Active.WorkflowGroups;
         }
         else
         {
-            //Add selected workflow.
-            GXWorkflow? workflow = (GXWorkflow?)Notifier.GetData(GXPages.Workflows);
-            if (workflow == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            workflowGroups = workflow.WorkflowGroups;
+            throw new Exception(Properties.Resources.InvalidTarget);
         }
         bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !workflowGroups.Any();
-        Notifier.ChangePage(GXPages.WorkflowGroupsSelector, null);
         var ret = await Http.PostAsJson<ListWorkflowGroupsResponse>("api/WorkflowGroup/List", req);
         foreach (GXWorkflowGroup it in ret.WorkflowGroups)
         {
@@ -90,11 +80,6 @@
                 AllWorkflowGroups.Add(it);
             }
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.WorkflowGroupsSelector);
     }
 }
 

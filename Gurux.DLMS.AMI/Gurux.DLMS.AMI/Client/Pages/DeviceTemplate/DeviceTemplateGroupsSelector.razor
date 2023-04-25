@@ -1,4 +1,4 @@
-﻿@page "/devicetemplategroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -13,10 +13,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, DeviceTemplateGroup, DeviceTemplateGroupManager, UserGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="deviceTemplateGroups" />
@@ -24,6 +22,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private DeviceTemplateTab? DeviceTemplateParent { get; set; }
+
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+
     List<GXDeviceTemplateGroup> AllDeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
     List<GXDeviceTemplateGroup> deviceTemplateGroups = new List<GXDeviceTemplateGroup>();
 
@@ -52,36 +56,30 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
                 {
                     Filter = new GXDeviceTemplateGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent != null && UserGroupParent.Active != null && UserGroupParent.Active.DeviceTemplateGroups != null)
             {
-                //Add selected device template.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    deviceTemplateGroups = userGroup.DeviceTemplateGroups;
-                }
+                //Add selected device templates.
+                deviceTemplateGroups = UserGroupParent.Active.DeviceTemplateGroups;
+            }
+            else if (DeviceTemplateParent != null && DeviceTemplateParent.Active != null && DeviceTemplateParent.Active.DeviceTemplateGroups != null)
+            {
+                //Add selected device templates.
+                deviceTemplateGroups = DeviceTemplateParent.Active.DeviceTemplateGroups;
             }
             else
             {
-                //Add selected device template.
-                GXDeviceTemplate? devicetemplate = (GXDeviceTemplate?)Notifier.GetData(GXPages.DeviceTemplate);
-                if (devicetemplate != null)
-                {
-                    deviceTemplateGroups = devicetemplate.DeviceTemplateGroups;
-                }
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !deviceTemplateGroups.Any();
-            Notifier.ChangePage(GXPages.DeviceTemplateGroupsSelector, null);
             var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req);
             foreach (GXDeviceTemplateGroup it in ret.DeviceTemplateGroups)
             {
                 //Add default groups when new device template is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
+                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
                     !deviceTemplateGroups.Where(q => q.Id == it.Id).Any())
                 {
                     deviceTemplateGroups.Add(it);
@@ -100,11 +98,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.DeviceTemplateGroupsSelector);
     }
 }
 

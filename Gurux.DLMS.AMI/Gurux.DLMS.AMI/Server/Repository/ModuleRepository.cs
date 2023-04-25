@@ -376,18 +376,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the module groups where the module is removed.</param>
         public void RemoveModulesFromModuleGroup(string moduleId, IEnumerable<GXModuleGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXModuleGroupModule> list = new();
             foreach (var it in groups)
             {
-                list.Add(new GXModuleGroupModule()
-                {
-                    ModuleId = moduleId,
-                    ModuleGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXModuleGroupModule>(w => w.ModuleId == moduleId && w.ModuleGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
     }
 }

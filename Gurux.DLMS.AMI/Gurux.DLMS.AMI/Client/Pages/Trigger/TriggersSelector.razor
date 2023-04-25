@@ -1,5 +1,4 @@
-﻿@page "/triggersselector"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -17,16 +16,19 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="schedules" />
+    <SelectionList Title="Selected" ItemList="triggers" />
     <SelectionList Title="Available" ItemList="AllTriggers" />
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private TriggerGroupTab? Parent { get; set; }
+
+
     List<GXTrigger> AllTriggers = new List<GXTrigger>();
-    List<GXTrigger> schedules = new List<GXTrigger>();
+    List<GXTrigger> triggers = new List<GXTrigger>();
 
     string GetName(object target)
     {
@@ -47,14 +49,15 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.ChangePage(GXPages.TriggersSelector, null);
-            //Add selected user groups.
-            GXTriggerGroup? userGroup = (GXTriggerGroup?)Notifier.GetData(GXPages.TriggerGroup);
-            if (userGroup == null)
+            if (Parent != null && Parent.Active != null && Parent.Active.Triggers != null)
+            {
+                //Add selected triggers.
+                triggers = Parent.Active.Triggers;
+            }
+            else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            schedules = userGroup.Triggers;
             ListTriggers req = new ListTriggers()
                 {
                     Filter = new GXTrigger()
@@ -62,7 +65,7 @@
             var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req);
             foreach (GXTrigger it in ret.Triggers)
             {
-                if (!schedules.Exists(q => q.Id == it.Id))
+                if (!triggers.Exists(q => q.Id == it.Id))
                 {
                     AllTriggers.Add(it);
                 }
@@ -80,11 +83,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.TriggersSelector);
     }
 }
 

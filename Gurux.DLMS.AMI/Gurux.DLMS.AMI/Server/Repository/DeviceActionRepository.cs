@@ -80,6 +80,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the actions.
                 arg = GXSelectArgs.SelectAll<GXDeviceAction>();
+                arg.Distinct = true;
+                arg.Joins.AddInnerJoin<GXDeviceAction, GXDevice>(j => j.Device, j => j.Id);
             }
             else
             {

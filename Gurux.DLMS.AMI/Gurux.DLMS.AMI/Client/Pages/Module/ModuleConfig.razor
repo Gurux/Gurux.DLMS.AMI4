@@ -1,5 +1,4 @@
-﻿@page "/moduleconfig"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -51,11 +50,9 @@
                     SubmitText = Properties.Resources.Remove;
                     break;
                 default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
                     return;
             }
-            Notifier.ChangePage("moduleconfig", module);
-            NavigationManager.NavigateTo(module.ConfigurationUI);
         }
         catch (Exception ex)
         {
@@ -63,12 +60,12 @@
         }
     }
 
-    private async Task HandleValidSubmit()
+    private void HandleValidSubmit()
     {
         try
         {
             Notifier?.ClearStatus();
-            NavigationManager.NavigateTo("/modules");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/modules");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -82,6 +79,6 @@
 
     private void OnCancel()
     {
-        NavigationManager.NavigateTo(Notifier.RemoveLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

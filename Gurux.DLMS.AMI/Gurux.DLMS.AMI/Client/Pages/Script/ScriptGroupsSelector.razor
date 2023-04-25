@@ -1,4 +1,4 @@
-﻿@page "/scriptgroupsselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -13,10 +13,8 @@
 @using System.Linq
 
 @attribute [Authorize(Roles = "Admin, ScriptGroup, ScriptGroupManager, UserGroup")]
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="scriptGroups" />
@@ -24,6 +22,13 @@
 </SelectionContainer>
 
 @code {
+
+    [CascadingParameter]
+    private ScriptTab? ScriptParent { get; set; }
+
+    [CascadingParameter]
+    private UserGroupTab? UserGroupParent { get; set; }
+
     List<GXScriptGroup> AllScriptGroups = new List<GXScriptGroup>();
     List<GXScriptGroup> scriptGroups = new List<GXScriptGroup>();
 
@@ -52,36 +57,33 @@
             }
             Notifier?.ProgressStart();
             Notifier?.ClearStatus();
-            string? page = Notifier.GetLastPage();
             ListScriptGroups req = new ListScriptGroups()
                 {
                     Filter = new GXScriptGroup()
                 };
-            if (page == GXPages.UserManage)
+            if (UserGroupParent?.Active?.ScriptGroups != null)
             {
-                //Add selected script.
-                GXUserGroup? userGroup = (GXUserGroup?)Notifier.GetData(GXPages.UserGroup);
-                if (userGroup != null)
-                {
-                    scriptGroups = userGroup.ScriptGroups;
-                }
+                scriptGroups = UserGroupParent.Active.ScriptGroups;
+            }
+            else if (ScriptParent != null && ScriptParent.Active != null && ScriptParent.Active.ScriptGroups != null)
+            {
+                //Add selected script groups.
+                scriptGroups = ScriptParent.Active.ScriptGroups;
             }
             else
             {
-                //Add selected script.
-                GXScript? script = (GXScript?)Notifier.GetData(GXPages.Scripts);
-                if (script != null)
-                {
-                    scriptGroups = script.ScriptGroups;
-                }
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (scriptGroups == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scriptGroups.Any();
-            Notifier.ChangePage(GXPages.ScriptGroupsSelector, null);
             var ret = await Http.PostAsJson<ListScriptGroupsResponse>("api/ScriptGroup/List", req);
             foreach (GXScriptGroup it in ret.ScriptGroups)
             {
                 //Add default groups when new script is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
+                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
                     !scriptGroups.Where(q => q.Id == it.Id).Any())
                 {
                     scriptGroups.Add(it);
@@ -101,11 +103,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemoveLastPage(GXPages.ScriptGroupsSelector);
     }
 }
 

@@ -13,6 +13,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.ComponentModel;
+@using System.ComponentModel.DataAnnotations;
 
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
@@ -22,16 +24,27 @@
 @implements IDisposable
 @implements IGXComponentView
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
-            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+@if (Menu)
+{
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Update" Icon="oi oi-loop-circular" OnClick="@OnUpdateVersion" />
+                <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+                <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
+}
 
-<GXTable @ref="table" Context="agent" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="agent"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         Total="@Total"
+         Menu="@Menu"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
@@ -59,6 +72,7 @@
     <MenuContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
             <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Update" Icon="oi oi-loop-circular" OnClick="@OnUpdateVersion"></ContextMenuItem>
             <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
         </AuthorizeView>
     </MenuContent>
@@ -70,11 +84,18 @@
         <Th Id="Version">@Properties.Resources.Version</Th>
     </HeaderContent>
     <ItemContent>
-        <td><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</td>
+        <Td Path="@("/Agent/Edit/" + agent.Id)"><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</Td>
         <td>@agent.CreationTime</td>
         <td>@agent.Detected</td>
         <td>@agent.Status</td>
-        <td>@GetVersion(agent.Version)</td>
+        @if (IsNewVersionAvailable(agent))
+        {
+            <td><Tooltip Title=@string.Format("Version {0} is available.", agent.AvailableVersion)>@GetVersion(agent.Version) <span class="oi oi-loop-circular" aria-hidden="true"></span></Tooltip></td>
+        }
+        else
+        {
+            <td>@GetVersion(agent.Version)</td>
+        }
     </ItemContent>
 </GXTable>
 <br />
@@ -84,8 +105,32 @@
          ConfirmationMessage=""
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
+<Confirm @ref="UpdateConfirmation"
+         ConfirmationChanged="OnUpdateConfirmation"
+         OkTitle="@Properties.Resources.Update"
+         AllowDelete="false"
+         ConfirmationTitle="@Properties.Resources.ConfirmUpdate"
+         ConfirmationMessage="@Properties.Resources.AgentUpdates">
+</Confirm>
 
 @code {
+    /// <summary>
+    /// Selected agent ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool IsNewVersionAvailable(GXAgent agent)
+    {
+        if (string.IsNullOrEmpty(agent.Version) ||
+            !string.IsNullOrEmpty(agent.UpdateVersion) ||
+            agent.Version == agent.AvailableVersion)
+        {
+            return false;
+        }
+        return true;
+    }
+
     /// <inheritdoc />
     public string Name
     {
@@ -104,7 +149,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -114,23 +159,32 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the agents shown on the view.
     /// </summary>
     [Parameter]
+    [Display(Name = "AmountOfTheRowsShownOnTheView", ResourceType = typeof(Properties.Resources))]
     public int Count { get; set; } = 0;
 
     /// <summary>
     /// Is filter shown.
     /// </summary>
     [Parameter]
+    [Display(Name = "ShowFilter", ResourceType = typeof(Properties.Resources))]
     public bool Filter { get; set; } = true;
 
     /// <summary>
-    /// Is title shown.
+    /// Show total count.
     /// </summary>
     [Parameter]
-    public bool Title { get; set; } = true;
+    [Display(Name = "ShowTotal", ResourceType = typeof(Properties.Resources))]
+    public bool Total { get; set; } = true;
 
+    /// <summary>
+    /// Is menu shown.
+    /// </summary>
+    [Parameter]
+    [Display(Name = "ShowMenu", ResourceType = typeof(Properties.Resources))]
+    public bool Menu { get; set; } = true;
 
     private string? GetVersion(string? version)
     {
@@ -153,6 +207,9 @@
     /// Verify that agant can be removed.
     /// </summary>
     protected ConfirmBase? DeleteConfirmation;
+
+    //Verify that agent can be updated.
+    protected ConfirmBase? UpdateConfirmation;
 
     /// <summary>
     /// Reference to the table.
@@ -216,8 +273,10 @@
         }
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -239,6 +298,12 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXAgent() { Id = Id.Value };
+            }
+
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -267,12 +332,12 @@
 
             ListAgents req = new ListAgents()
                 {
-                    AllUsers = true,
                     Index = request.StartIndex,
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -299,21 +364,71 @@
     }
 
     /// <summary>
+    /// Update the selected agents to the new version.
+    /// </summary>
+    public void OnUpdateVersion()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            UpdateConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray(), Properties.Resources.AgentUpdates);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Update the agent.
+    /// </summary>
+    public async Task OnUpdateConfirmation(ConfirmArgs args)
+    {
+        if (table != null && args.Confirm)
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            try
+            {
+                //Version to update.
+                InstallAgent req = new InstallAgent();
+                foreach (var it in table.SingleOrDefault())
+                {
+                    req.Agents.Add(new GXAgent()
+                        {
+                            Id = it.Id,
+                            UpdateVersion = it.AvailableVersion,
+                            ConcurrencyStamp = it.ConcurrencyStamp
+                        });
+                }
+                await Http.PostAsJson<UpdateAgentResponse>("api/agent/Install", req);
+            }
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier?.ProgressEnd();
+            }
+        }
+    }
+
+    /// <summary>
     /// Add new agent.
     /// </summary>
     public void OnAdd()
     {
         try
         {
-            Notifier.ClearStatus();
-            Notifier.UpdateData(GXPages.Agents, new GXAgent(null));
-            Notifier.Title = "Add Agent";
-            Notifier.Action = CrudAction.Create;
-            NavigationManager.NavigateTo("/agentadd");
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Agent/Add");
         }
         catch (Exception ex)
         {
@@ -324,20 +439,16 @@
     /// <summary>
     /// Edit agent.
     /// </summary>
-
     public void OnEdit()
     {
         try
         {
             Notifier.ClearStatus();
-            if (table == null || table.Active == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Agents, table.Active);
-            Notifier.Title = "Edit Agent";
-            Notifier.Action = CrudAction.Update;
-            NavigationManager.NavigateTo("/agenttab");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Agent/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -349,7 +460,6 @@
         }
     }
 
-
     /// <summary>
     /// Delete selected agents.
     /// </summary>
@@ -357,11 +467,11 @@
     {
         try
         {
-            if (table != null && !table.SingleOrDefault().Any())
+            if (table == null && !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -403,7 +513,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Agents);
         Notifier.RemoveListener(this);
     }
 }

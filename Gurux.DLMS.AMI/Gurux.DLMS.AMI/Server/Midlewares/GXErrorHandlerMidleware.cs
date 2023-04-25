@@ -60,9 +60,61 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 //Client has canceled the operation.
                 //This is ignored.
             }
+            catch (GXAMIForbiddenException ex)
+            {
+                context.Response.ContentType = "text/plain";
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                }
+                if (ex.Message == null)
+                {
+                    await context.Response.WriteAsync("Access forbidden.");
+                }
+                else
+                {
+                    await context.Response.WriteAsync(ex.Message);
+                }
+            }
+            catch (GXAmiNotFoundException ex)
+            {
+                context.Response.ContentType = "text/plain";
+                context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                }
+                if (ex.Message == null)
+                {
+                    await context.Response.WriteAsync("Unknown target.");
+                }
+                else
+                {
+                    await context.Response.WriteAsync(ex.Message);
+                }
+            }
+            
+            catch (UnauthorizedAccessException ex)
+            {
+                context.Response.ContentType = "text/plain";
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+                {
+                    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                }
+                if (ex.Message == null)
+                {
+                    await context.Response.WriteAsync("Unauthorized access.");
+                }
+                else
+                {
+                    await context.Response.WriteAsync(ex.Message);
+                }
+            }            
             catch (ArgumentException ex)
             {
-                context.Response.ContentType = "application/json";
+                context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
                 {
@@ -79,7 +131,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (GXAmiException ex)
             {
-                context.Response.ContentType = "application/json";
+                context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
                 {

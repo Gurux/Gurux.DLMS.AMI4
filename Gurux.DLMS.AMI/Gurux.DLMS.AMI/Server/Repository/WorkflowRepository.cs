@@ -374,16 +374,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the workflow groups where the workflow is removed.</param>
         public void RemoveWorkflowsFromWorkflowGroup(Guid workflowId, IEnumerable<GXWorkflowGroup> groups)
         {
-            List<GXWorkflowGroupWorkflow> list = new();
             foreach (var it in groups)
             {
-                list.Add(new GXWorkflowGroupWorkflow()
-                {
-                    WorkflowId = workflowId,
-                    WorkflowGroupId = it.Id,
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXWorkflowGroupWorkflow>(w => w.WorkflowId == workflowId && w.WorkflowGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <summary>
@@ -438,16 +432,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="methods">Removed script methods.</param>
         public void RemoveScriptMethodsFromWorkflow(GXWorkflow workflow, IEnumerable<GXScriptMethod> methods)
         {
-            List<GXWorkflowScriptMethod> list = new();
             foreach (GXScriptMethod it in methods)
             {
-                list.Add(new GXWorkflowScriptMethod()
-                {
-                    MethodId = it.Id,
-                    WorkflowId = workflow.Id
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXWorkflowScriptMethod>(w => w.MethodId == it.Id && w.WorkflowId == workflow.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <inheritdoc />

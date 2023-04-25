@@ -1,5 +1,4 @@
-﻿@page "/useraction"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -54,6 +53,18 @@
     </EditForm>
 }
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected user action ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXUserAction? _active;
 
     protected override async Task OnInitializedAsync()
@@ -67,24 +78,17 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXUserAction?)Notifier.GetData(GXPages.UserActions);
-            if (_active == null)
+            if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-
-            //If user action is not read yet.
-            if (string.IsNullOrEmpty(_active.Data) && string.IsNullOrEmpty(_active.Reply))
-            {
-                //Get user action data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/UserAction?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = (await response.Content.ReadFromJsonAsync<GetUserAction>())?.Item;
-            }
-            Notifier.ChangePage(GXPages.UserActions, _active);
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
+            //Get user action data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/UserAction?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = (await response.Content.ReadFromJsonAsync<GetUserAction>())?.Item;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -105,6 +109,6 @@
     /// </summary>
     private void OnCancel()
     {
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

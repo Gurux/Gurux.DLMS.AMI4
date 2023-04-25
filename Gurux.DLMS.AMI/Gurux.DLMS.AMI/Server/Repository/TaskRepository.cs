@@ -42,6 +42,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Client.Pages.Agent;
+using Gurux.DLMS.AMI.Client.Pages.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -768,7 +770,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 c.Batch
             }, where => where.Start == null && where.Ready == null);
             arg.OrderBy.Add<GXTask>(o => o.CreationTime);
-            arg.Joins.AddInnerJoin<GXTask, GXDevice>(a => a.TargetDevice, b => b.Id);
+            arg.Joins.AddInnerJoin<GXTask, GXDevice>(a => a.TargetDevice.Value, b => b.Id);
             if (DeviceId != null && DeviceId != Guid.Empty)
             {
                 Guid id = DeviceId.Value;
@@ -781,6 +783,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             // Don't get meters that are read by other agents.
             GXSelectArgs onProgress = GXSelectArgs.Select<GXTask>(c => c.Id, q => q.Ready == null && q.OperatingAgent != null);
             arg.Where.And<GXTask>(q => !GXSql.Exists(onProgress));
+            //Don't select tasks assigned for the given agent group and the agent doesn't belong to that.
+            //Check are device groups assigned for the agent group.
+            //This is faster to check with own query.
+            GXSelectArgs isAssigned = GXSelectArgs.Select<GXAgentGroupDeviceGroup>(c => GXSql.One, w => w.Removed == null);
+            isAssigned.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
+            isAssigned.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupAgent>(j => j.Id, j => j.AgentGroupId);
+            isAssigned.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
+            isAssigned.Where.And<GXAgent>(w => w.Id == agentId && w.Removed == null);
+            int count = _host.Connection.SingleOrDefault<int>(isAssigned);
+            if (count != 0)
+            {
+                //Device is assigned for the agent.
+                //Return agent groups where the agent belongs.
+                GXSelectArgs agentGroups = GXSelectArgs.Select<GXAgentGroup>(c => c.Id, q => q.Removed == null);
+                agentGroups.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupAgent>(j => j.Id, j => j.AgentGroupId);
+                agentGroups.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgent>(j => j.AgentId, j => j.Id);
+                agentGroups.Where.And<GXAgent>(w => w.Id == agentId && w.Removed == null);
+                //Get devices that agent can access.
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId);
+                arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                arg.Joins.AddInnerJoin<GXDeviceGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
+                arg.Where.And<GXAgentGroupDeviceGroup>(q => GXSql.Exists(agentGroups));
+            }
             GXTask[] tasks = new GXTask[0];
             GXTask? task = _host.Connection.SingleOrDefault<GXTask>(arg);
             List<GXTask> notified = new List<GXTask>();

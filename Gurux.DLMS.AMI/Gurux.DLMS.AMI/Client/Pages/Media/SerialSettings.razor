@@ -1,5 +1,4 @@
-﻿@page "/serialsettings"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -8,6 +7,7 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Pages.Device
 
 @attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
 @inject IGXNotifier Notifier
@@ -22,7 +22,9 @@
     </div>
 </div>
 @code {
-    private GXDevice? _device;
+    [CascadingParameter]
+    private Device? Parent { get; set; }
+
     private GXSerialTemplate _serial = new GXSerialTemplate();
 
     public string? PortName
@@ -38,9 +40,9 @@
         set
         {
             _serial.PortName = value;
-            if (_device != null)
+            if (Parent?.Active != null)
             {
-                _device.MediaSettings = _serial.Settings;
+                Parent.Active.MediaSettings = _serial.Settings;
             }
         }
     }
@@ -49,12 +51,11 @@
     {
         try
         {
-            //Get device settings.
-            _device = (GXDevice?)Notifier.GetData(GXPages.Device);
-            if (_device != null)
+            if (Parent?.Active == null)
             {
-                _serial.Settings = _device.MediaSettings;
+                throw new Exception("Unknown device.");
             }
+            _serial.Settings = Parent.Active.MediaSettings;
         }
         catch (Exception ex)
         {

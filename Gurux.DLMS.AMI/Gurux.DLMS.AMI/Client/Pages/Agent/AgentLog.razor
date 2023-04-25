@@ -1,5 +1,4 @@
-﻿@page "/agentlog"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -56,38 +55,42 @@
     </EditForm>
 }
 @code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private GXAgentLog? _active;
-    private string SubmitText = "";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            _active = (GXAgentLog?)Notifier.GetData(GXPages.AgentLogs);
+            if (Id == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //Read agent log item.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/AgentLog?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = (await response.Content.ReadFromJsonAsync<GetAgentLogResponse>())?.Item;
             if (_active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            SubmitText = Notifier.Title;
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
-            Notifier.UpdateButtons();
-            //If agent error is not read yet.
-            if (_active.Agent == null)
-            {
-                //Get agent error data.
-                HttpResponseMessage response = await Http.GetAsync(string.Format("api/AgentLog?id={0}", _active.Id));
-                ClientHelpers.ValidateStatusCode(response);
-                _active = (await response.Content.ReadFromJsonAsync<GetAgentLogResponse>()).Item;
-            }
-            Notifier.ChangePage(GXPages.AgentLogs, _active);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -108,6 +111,6 @@
     /// </summary>
     private void OnCancel()
     {
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

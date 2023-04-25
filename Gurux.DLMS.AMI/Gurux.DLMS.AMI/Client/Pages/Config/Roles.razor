@@ -130,14 +130,11 @@
                 case CrudAction.Update:
                     break;
                 default:
-                    NavigationManager.NavigateTo("/configurations");
+                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
                     return;
             }
             ListRoles req = new ListRoles() { Filter = filter };
             _roles = (await Http.PostAsJson<ListRolesResponse>("api/Role/List", req)).Roles;
-            //Configurations needs to be update as well.
-            Notifier.ChangePage(GXPages.Configurations, _roles);
-            Notifier.ChangePage(GXPages.Roles, _roles);
         }
         catch (Exception ex)
         {
@@ -160,8 +157,7 @@
             Notifier?.ClearStatus();
             UpdateRole req = new UpdateRole() { Roles = _roles };
             await Http.PostAsJson<UpdateRoleResponse>("api/Role/Update", req);
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
         }
         catch (Exception ex)
         {
@@ -178,13 +174,11 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.RemoveLastPage());
+        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
     }
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.Roles);
         Notifier.RemoveListener(this);
     }
 }

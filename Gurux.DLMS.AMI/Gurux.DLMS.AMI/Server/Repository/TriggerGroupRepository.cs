@@ -324,7 +324,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveTriggerGroupFromUserGroups(it.Id, removed);
                     }
                     //Map triggers to Trigger group.
-                    if (it.Triggers != null && it.Triggers.Count != 0)
+                    if (it.Triggers != null && it.Triggers.Any())
                     {
                         List<GXTrigger> list3 = await GetJoinedTriggers(it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

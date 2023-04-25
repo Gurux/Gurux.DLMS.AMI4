@@ -1,4 +1,4 @@
-﻿@page "/deviceActions"
+﻿@page "/DeviceActions"
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -71,8 +71,8 @@
     </HeaderContent>
     <ItemContent>
         <td>@action.Device.Name</td>
-        <td>@action.CreationTime</td>
-        <td>@((DeviceActionType)@action.Type)</td>
+        <Td Path="@("/DeviceAction/Edit/" + action.Id)">@action.CreationTime</Td>
+        <td>@((DeviceActionType?)@action.Type)</td>
         <td>@action.Data</td>
         <td>@action.Reply</td>
     </ItemContent>
@@ -87,6 +87,18 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected device action ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -105,7 +117,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -148,6 +160,17 @@
     }
 
     /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXDeviceAction? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXDeviceAction>? table;
@@ -177,24 +200,13 @@
         await Task.Delay(1);
         try
         {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
             if (Notifier == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            object? data = Notifier.GetData(GXPages.DeviceActions);
-            if (table != null)
-            {
-                table.Active = data as GXDeviceAction;
-            }
-            if (data is GXDevice device)
-            {
-                SelectedDevice = "for " + device.Name;
-            }
-            else
-            {
-                SelectedDevice = "for all devices";
-            }
             Notifier.On<IEnumerable<GXDeviceAction>>(this, nameof(IGXHubEvents.DeviceActionAdd), async (error) =>
             {
                 await Updated();
@@ -203,9 +215,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.DeviceActions, null);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXDeviceAction() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -229,7 +245,8 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
@@ -256,7 +273,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.DeviceActions);
         Notifier.RemoveListener(this);
     }
 
@@ -272,9 +288,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.DeviceActions, table.Active);
-            Notifier.Title = "Device action";
-            NavigationManager.NavigateTo("/deviceaction");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/DeviceAction/Edit/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {

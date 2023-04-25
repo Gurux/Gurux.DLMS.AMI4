@@ -1,4 +1,4 @@
-﻿@page "/devicesselector"
+﻿@using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,7 +16,6 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
 <SelectionContainer GetName="GetName" GetDescription="GetDescription">
     <SelectionList Title="Selected" ItemList="devices" />
@@ -24,6 +23,12 @@
 </SelectionContainer>
 
 @code {
+    [CascadingParameter]
+    private DeviceGroupTab? DeviceGropParent { get; set; }
+
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
     List<GXDevice> AllDevices = new List<GXDevice>();
     List<GXDevice> devices = new List<GXDevice>();
 
@@ -40,23 +45,17 @@
     {
         try
         {
-            string? page = Notifier.GetLastPage();
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected device group.
-            if (page == GXPages.DeviceManage)
+            if (DeviceGropParent?.Active?.Devices != null)
             {
-                GXDeviceGroup deviceGroup = (GXDeviceGroup)Notifier.GetData(GXPages.DeviceGroup);
-                devices = deviceGroup.Devices;
+                //Get selected devices.
+                devices = DeviceGropParent.Active.Devices;
             }
-            else if (page == GXPages.ScheduleManage)
+            else if (ScheduleParent?.Active?.Devices != null)
             {
-                //Get selected objects.
-                GXSchedule schedule = (GXSchedule)Notifier.GetData(GXPages.Schedule);
-                if (schedule != null)
-                {
-                    devices = schedule.Devices;
-                }
+                //Get selected devices.
+                devices = ScheduleParent.Active.Devices;
             }
             else
             {
@@ -71,7 +70,6 @@
                     AllDevices.Add(it);
                 }
             }
-            Notifier.ChangePage(GXPages.DevicesSelector, null);
         }
         catch (Exception ex)
         {
@@ -81,11 +79,6 @@
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.DevicesSelector);
     }
 }
 

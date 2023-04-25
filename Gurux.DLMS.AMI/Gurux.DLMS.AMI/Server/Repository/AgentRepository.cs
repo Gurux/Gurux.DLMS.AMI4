@@ -44,6 +44,9 @@ using System.Diagnostics;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Mysqlx;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -182,7 +185,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetAgentsByUser(userId, null);
             }
-            arg.Columns.Exclude<GXAgent>(e => new {e.ListenerSettings, e.NotifySettings, e.ReaderSettings, e.Template });
+            arg.Columns.Exclude<GXAgent>(e => new { e.ListenerSettings, e.NotifySettings, e.ReaderSettings, e.Template });
             arg.Where.And<GXAgent>(w => w.Template == false);
             if (request != null)
             {
@@ -228,6 +231,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXAgent[]> ListInstallersAsync(
             ClaimsPrincipal User,
             ListAgentInstallers? request,
+            bool includeRemoved,
             ListAgentInstallersResponse? response)
         {
             bool isAdmin = true;
@@ -235,33 +239,40 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 isAdmin = User.IsInRole(GXRoles.Admin);
             }
-            GXSelectArgs arg;
-            if (isAdmin || User == null)
-            {
-                //Admin can see all the agent installers.
-                arg = GXSelectArgs.SelectAll<GXAgent>();
-            }
-            else
-            {
-                string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetAgentsByUser(userId, null);
-            }
+            //Admin can see all the agent installers. Installers are not part of any agent group.
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgent>();
             arg.Distinct = true;
             arg.Descending = true;
             if (request != null && request.Filter != null)
             {
                 if (request.Filter.Versions != null && request.Filter.Versions.Any())
                 {
-                    string? number = request.Filter.Versions[0].Number;
+                    GXAgentVersion ver = request.Filter.Versions[0];
+                    if (ver.Removed == null)
+                    {
+                        arg.Where.And<GXAgentVersion>(w => w.Removed == null);
+                    }
+                    else
+                    {
+                        includeRemoved = true;
+                        arg.Where.And<GXAgentVersion>(w => w.Removed != null);
+                    }
+                    string? number = ver.Number;
                     if (!string.IsNullOrEmpty(number))
                     {
                         arg.Where.And<GXAgentVersion>(w => w.Number.Contains(number));
                     }
+                    request.Filter.Versions = null;
                 }
                 arg.Where.FilterBy(request.Filter);
             }
             arg.Where.And<GXAgent>(w => w.Template == true);
             arg.Joins.AddInnerJoin<GXAgent, GXAgentVersion>(j => j.Id, j => j.Agent);
+            if (!includeRemoved)
+            {
+                //If removed agents are also included.
+                arg.Where.And<GXAgentVersion>(w => w.Removed == null);
+            }
             arg.Columns.Add<GXAgentVersion>();
             arg.Columns.Exclude<GXAgentVersion>(e => e.Agent);
             arg.Distinct = true;
@@ -308,13 +319,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the agents.
                 arg = GXSelectArgs.SelectAll<GXAgent>(w => w.Id == id);
-                arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(x => x.Id, y => y.AgentId);
-                arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
+                arg.Where.And<GXAgentGroup>(w => w.Removed == null);
+                arg.Where.And<GXAgentGroupAgent>(w => w.Removed == null);
+                //Agent installers are not part of any group.
+                arg.Joins.AddLeftJoin<GXAgent, GXAgentGroupAgent>(x => x.Id, y => y.AgentId);
+                arg.Joins.AddLeftJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
             }
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetAgentsByUser(userId, id);
+                arg.Where.And<GXAgentGroup>(w => w.Removed == null);
+                arg.Where.And<GXAgentGroupAgent>(w => w.Removed == null);
                 arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
             }
             arg.Columns.Add<GXAgentGroup>();
@@ -350,34 +366,38 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Dictionary<GXAgent, List<string>> updates = new Dictionary<GXAgent, List<string>>();
             foreach (GXAgent agent in agents)
             {
-                if (string.IsNullOrEmpty(agent.Name))
+                if (string.IsNullOrEmpty(agent.Name) && (columns == null || ServerHelpers.Contains(columns, nameof(GXAgent.Name))))
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
                 if (agent.Id == Guid.Empty)
                 {
-                    if (agent.AgentGroups == null || !agent.AgentGroups.Any())
+                    //Agent installers are not part of any group.
+                    if (!agent.Template.GetValueOrDefault(false))
                     {
-                        agent.AgentGroups = new List<GXAgentGroup>();
-                        ListAgentGroups request = new ListAgentGroups() { Filter = new GXAgentGroup() { Default = true } };
-                        GXAgentGroup[] groups = await _agentGroupRepository.ListAsync(user, request, null, CancellationToken.None);                        
-                        agent.AgentGroups.AddRange(groups);
-                    }
-                    if (!agent.AgentGroups.Any())
-                    {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                    }
-                    if (agent.ReaderSettings == null)
-                    {
-                        agent.ReaderSettings = JsonSerializer.Serialize(new ReaderSettings());
-                    }
-                    if (agent.ListenerSettings == null)
-                    {
-                        agent.ListenerSettings = JsonSerializer.Serialize(new ListenerSettings());
-                    }
-                    if (agent.NotifySettings == null)
-                    {
-                        agent.NotifySettings = JsonSerializer.Serialize(new NotifySettings());
+                        if (agent.AgentGroups == null || !agent.AgentGroups.Any())
+                        {
+                            agent.AgentGroups = new List<GXAgentGroup>();
+                            ListAgentGroups request = new ListAgentGroups() { Filter = new GXAgentGroup() { Default = true } };
+                            GXAgentGroup[] groups = await _agentGroupRepository.ListAsync(user, request, null, CancellationToken.None);
+                            agent.AgentGroups.AddRange(groups);
+                        }
+                        if (!agent.AgentGroups.Any())
+                        {
+                            throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                        }
+                        if (agent.ReaderSettings == null)
+                        {
+                            agent.ReaderSettings = JsonSerializer.Serialize(new ReaderSettings());
+                        }
+                        if (agent.ListenerSettings == null)
+                        {
+                            agent.ListenerSettings = JsonSerializer.Serialize(new ListenerSettings());
+                        }
+                        if (agent.NotifySettings == null)
+                        {
+                            agent.NotifySettings = JsonSerializer.Serialize(new NotifySettings());
+                        }
                     }
                     agent.CreationTime = now;
                     agent.Creator = creator;
@@ -417,12 +437,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Update agent versions.
-                    List<GXAgentVersion> agentVersions = await GetAgentVersionsByAgentIdAsync(user, agent);
-                    var comparer1 = new UniqueComparer<GXAgentVersion, Guid>();
-                    List<GXAgentVersion> addedAgentVersions = agent.Versions.Except(agentVersions, comparer1).ToList();
-                    if (addedAgentVersions.Any())
+                    if (agent.Versions != null && agent.Versions.Any())
                     {
-                        AddAgentVersionToAgent(agent, addedAgentVersions);
+                        List<GXAgentVersion> agentVersions = await GetAgentVersionsByAgentIdAsync(user, agent);
+                        var comparer1 = new UniqueComparer<GXAgentVersion, Guid>();
+                        List<GXAgentVersion> addedAgentVersions = agent.Versions.Except(agentVersions, comparer1).ToList();
+                        List<GXAgentVersion> removedAgentVersions = agentVersions.Except(agent.Versions, comparer1).ToList();
+                        if (addedAgentVersions.Any())
+                        {
+                            AddAgentVersionToAgent(agent, addedAgentVersions);
+                        }
+                        if (removedAgentVersions.Any())
+                        {
+                            RemoveAgentVersionFromAgent(agent, removedAgentVersions);
+                        }
                     }
                 }
                 updates[agent] = await GetUsersAsync(user, agent.Id);
@@ -454,6 +482,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
+        /// Remove agent version from agent.
+        /// </summary>
+        /// <param name="agent">Agent.</param>
+        /// <param name="versions">Removed agent versions.</param>
+        private void RemoveAgentVersionFromAgent(GXAgent agent, IEnumerable<GXAgentVersion> versions)
+        {
+            DateTime now = DateTime.Now;
+            foreach (GXAgentVersion it in versions)
+            {
+                it.Removed = now;
+                _host.Connection.Update(GXUpdateArgs.Update(it, c => c.Removed));
+            }
+        }
+
+        /// <summary>
         /// Map agent group to user groups.
         /// </summary>
         /// <param name="agentId">Agent ID.</param>
@@ -481,32 +524,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Agent groups where the agent is removed.</param>
         private void RemoveAgentsFromAgentGroup(Guid agentId, IEnumerable<GXAgentGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXAgentGroupAgent> list = new List<GXAgentGroupAgent>();
             foreach (var it in groups)
             {
-                list.Add(new GXAgentGroupAgent()
-                {
-                    AgentId = agentId,
-                    AgentGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXAgentGroupAgent>(w => w.AgentId == agentId && w.AgentGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
         /// <inheritdoc />
-        public async Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status)
+        public async Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data)
         {
             GXSelectArgs args = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, where => where.Id == agentId && where.Removed == null);
             GXAgent agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(args);
             if (agent == null)
             {
-                throw new UnauthorizedAccessException();
+                throw new GXAmiNotFoundException(Properties.Resources.Agent + " " + Properties.Resources.Id + " " + agentId.ToString());
             }
             agent.Status = status;
             agent.Detected = DateTime.Now;
-            GXUpdateArgs update = GXUpdateArgs.Update(agent, c => new { c.Status, c.Detected });
+            GXUpdateArgs update;
+            if (status == AgentStatus.SerialPortChange)
+            {
+                //Serial port is added or removed for the agent.
+                agent.SerialPorts = data;
+                update = GXUpdateArgs.Update(agent, c => new { c.Status, c.Detected, c.SerialPorts });
+            }
+            else
+            {
+                update = GXUpdateArgs.Update(agent, c => new { c.Status, c.Detected });
+            }
             await _host.Connection.UpdateAsync(update);
             //Only part of the agent properties are send.
             GXAgent tmp = new GXAgent()
@@ -520,21 +565,44 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
             }
-            if (status == AgentStatus.Connected || status == AgentStatus.Offline)
+            //Update agent state for the agent log.
+            GXAgentLog? log = new GXAgentLog(TraceLevel.Info);
+            log.Agent = agent;
+            switch (status)
             {
-                //Update agent state for the agent log.
-                GXAgentLog log = new GXAgentLog(TraceLevel.Info);
-                log.Agent = agent;
-                if (status == AgentStatus.Connected)
-                {
+                case AgentStatus.Connected:
                     log.Message = Properties.Resources.Connected;
-                }
-                else if (status == AgentStatus.Offline)
-                {
+                    break;
+                case AgentStatus.Offline:
                     log.Message = Properties.Resources.Offline;
-                }
+                    break;
+                case AgentStatus.Error:
+                    log.Message = Properties.Resources.Error;
+                    break;
+                case AgentStatus.Downloading:
+                    log.Message = Properties.Resources.Downloading;
+                    break;
+                case AgentStatus.Updating:
+                    log.Message = Properties.Resources.Updating;
+                    break;
+                case AgentStatus.Restarting:
+                    log.Message = Properties.Resources.Restarting;
+                    break;
+                case AgentStatus.SerialPortChange:
+                    log.Message = "Serial ports changed.";
+                    break;
+                default:
+                    log = null;
+                    break;
+            }
+            if (log != null)
+            {
+                //Add agent log. Idle status is not logged.
                 IAgentLogRepository repository = _serviceProvider.GetRequiredService<IAgentLogRepository>();
                 await repository.AddAsync(User, new GXAgentLog[] { log });
+            }
+            if (status == AgentStatus.Connected || status == AgentStatus.Offline)
+            {
                 //Reset running tasks if agent connects or disconnects.
                 args = GXSelectArgs.SelectAll<GXTask>(where => where.Start != null && where.Ready == null);
                 args.Joins.AddInnerJoin<GXTask, GXAgent>(j => j.OperatingAgent, j => j.Id);
@@ -552,7 +620,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXAgent agent = await ReadAsync(User, it.Id);
                 if (agent == null)
                 {
-                    throw new UnauthorizedAccessException();
+                    throw new GXAmiNotFoundException(it.Id.ToString());
                 }
                 if (string.IsNullOrEmpty(it.UpdateVersion))
                 {

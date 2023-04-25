@@ -1,5 +1,4 @@
-﻿@page "/notifyoptions"
-@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
@@ -21,13 +20,12 @@
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputCheckbox @bind-Value="Settings.Active" />
-                    <label>@Properties.Resources.Active</label>
+                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
                     <br />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Protocol</label>
-                    <select class="form-control" @bind="Settings.NetworkType">
+                    <select class="form-select" @bind="Settings.NetworkType">
                         @foreach (var it in NetworkTypeList)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -35,8 +33,13 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>@Properties.Resources.Port</label>
+                    <InputNumber id="threads" class="form-control"
+                             @bind-Value="Settings.Port" />
+                </div>
+                <div class="form-group">
                     <label style="margin:auto">Interface</label>
-                    <select class="form-control" @bind="@Settings.Interface">
+                    <select class="form-select" @bind="@Settings.Interface">
                         @foreach (var it in InterfaceList)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -62,11 +65,6 @@
                     <label>@Properties.Resources.AuthenticationKey</label>
                     <InputText id="name" class="form-control"
                            @bind-Value="Settings.AuthenticationKey" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Port</label>
-                    <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.Port" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ExpirationTime</label>

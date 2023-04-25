@@ -220,7 +220,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return blocks;
         }
 
-        /// <inheritdoc cref="IBlockRepository.ListAsync"/>
+        /// <inheritdoc />
         public async Task<GXBlock> ReadAsync(
             ClaimsPrincipal user,
             Guid id)
@@ -235,8 +235,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the blocks.
                 arg = GXSelectArgs.SelectAll<GXBlock>(w => w.Id == id);
-                arg.Joins.AddInnerJoin<GXBlock, GXBlockGroupBlock>(x => x.Id, y => y.BlockId);
-                arg.Joins.AddInnerJoin<GXBlockGroupBlock, GXBlockGroup>(j => j.BlockGroupId, j => j.Id);
+                arg.Joins.AddLeftJoin<GXBlock, GXBlockGroupBlock>(x => x.Id, y => y.BlockId);
+                arg.Joins.AddLeftJoin<GXBlockGroupBlock, GXBlockGroup>(j => j.BlockGroupId, j => j.Id);
             }
             else
             {
@@ -350,7 +350,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     block.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(block);
-                    args.Exclude<GXBlock>(q => new { q.CreationTime, q.BlockGroups });
+                    args.Exclude<GXBlock>(q => new {q.BlockGroups, block.Resources });
                     _host.Connection.Insert(args);
                     list.Add(block.Id);
                     AddBlockToBlockGroups(block.Id, block.BlockGroups);
@@ -475,7 +475,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             if (resources != null)
             {
-                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteRange(resources));
+                foreach(var it in resources)
+                {
+                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXLocalizedResource>(it.Id));
+                }
             }
         }
 
@@ -519,21 +522,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Group IDs of the block groups where the block is removed.</param>
         public void RemoveBlocksFromBlockGroup(Guid blockId, IEnumerable<GXBlockGroup> groups)
         {
-            DateTime now = DateTime.Now;
-            List<GXBlockGroupBlock> list = new();
-            foreach (var it in groups)
+            foreach (GXBlockGroup it in groups)
             {
-                list.Add(new GXBlockGroupBlock()
-                {
-                    BlockId = blockId,
-                    BlockGroupId = it.Id,
-                    Removed = now
-                });
+                _host.Connection.Delete(GXDeleteArgs.Delete<GXBlockGroupBlock>(w => w.BlockId == blockId && w.BlockGroupId == it.Id));
             }
-            _host.Connection.Delete(GXDeleteArgs.DeleteRange(list));
         }
 
-        /// <inheritdoc cref="IBlockRepository.CloseAsync"/>
+        /// <inheritdoc />
         public async Task CloseAsync(ClaimsPrincipal user, IEnumerable<Guid> blocks)
         {
             string? userId = ServerHelpers.GetUserId(user);

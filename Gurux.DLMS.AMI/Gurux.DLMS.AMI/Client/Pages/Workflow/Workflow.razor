@@ -1,5 +1,4 @@
-﻿@page "/workflow"
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -14,29 +13,27 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@implements IDisposable
 
-@if (_active != null && triggers != null)
+@if (Active != null && triggers != null)
 {
-    <EditForm Model="@_active">
+    <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputNullableCheckbox @bind-Value="@_active.Active" />
-                    <label>@Properties.Resources.Active</label>
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
                     <br />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Name" />
+                           @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Description</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="_active.Description" />
+                           @bind-Value="Active.Description" />
                 </div>
                 <div class="form-group">
                     <label>Trigger</label>
@@ -68,31 +65,31 @@
                         </select>
                     </div>
                 }
-                @if (_active.CreationTime != null)
+                @if (Active.CreationTime != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.CreationTime" />
+                           @bind-Value="Active.CreationTime" />
                     </div>
                 }
-                @if (_active.Updated != null)
+                @if (Active.Updated != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="_active.Updated" />
+                           @bind-Value="Active.Updated" />
                     </div>
                 }
-                @if (_active.Removed != null)
+                @if (Active.Removed != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="_active.Removed" />
+                           @bind-Value="Active.Removed" />
                     </div>
                 }
-                @if (Notifier.Action == CrudAction.Delete)
+                @if (action == CrudAction.Delete)
                 {
                     <hr />
                     <p>
@@ -114,6 +111,36 @@
     </EditForm>
 }
 @code {
+    [CascadingParameter]
+    private WorkflowTab? Parent { get; set; }
+
+    private GXWorkflow? _active;
+
+    private GXWorkflow? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     private bool DeleteTarget;
     public string? IsDeleting
     {
@@ -153,20 +180,20 @@
     {
         get
         {
-            if (_active == null || _active.TriggerMethod == null)
+            if (Active?.TriggerMethod == null)
             {
                 return null;
             }
 
-            return _active.TriggerMethod.Name;
+            return Active.TriggerMethod.Name;
         }
         set
         {
-            if (_active != null && _scriptMethods != null)
+            if (Active != null && _scriptMethods != null)
             {
                 if (string.IsNullOrEmpty(value))
                 {
-                    _active.TriggerMethod = null;
+                    Active.TriggerMethod = null;
                 }
                 else
                 {
@@ -174,7 +201,7 @@
                     {
                         if (string.Compare(method.Name, value, true) == 0)
                         {
-                            _active.TriggerMethod = method;
+                            Active.TriggerMethod = method;
                             break;
                         }
                     }
@@ -188,11 +215,7 @@
     {
         get
         {
-            if (_active == null || _active.TriggerActivity == null)
-            {
-                return null;
-            }
-            return _active.TriggerActivity.Name;
+            return Active?.TriggerActivity?.Name;
         }
         set
         {
@@ -205,7 +228,7 @@
                         if (string.Compare(activity.Name, value, true) == 0)
                         {
                             activity.Trigger = trigger;
-                            _active.TriggerActivity = activity;
+                            Active.TriggerActivity = activity;
                             break;
                         }
                     }
@@ -232,44 +255,30 @@
     }
 
     GXTrigger[]? triggers = null;
-    private GXWorkflow? _active = null;
-    private string SubmitText = "";
     private GXScriptMethod[]? _scriptMethods = null;
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier == null)
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                //Get workflow data.
+                var tmp = (await Http.GetAsJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
             }
-            //Get selected item.
-            _active = (GXWorkflow?)Notifier.GetData(GXPages.Workflows);
-            if (_active == null)
+            if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    SubmitText = Properties.Resources.Add;
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    NavigationManager.NavigateTo(Notifier.GetLastPage());
-                    return;
-            }
-
-            Notifier.Clear();
-            if (Notifier.Action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }
@@ -284,7 +293,7 @@
             ListScripts req1 = new ListScripts();
             var ret1 = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req1);
             _scriptMethods = null;
-            if (ret1.Scripts.Any())
+            if (ret1.Scripts != null && ret1.Scripts.Any())
             {
                 List<GXScriptMethod> methods = new List<GXScriptMethod>();
                 //Add empty script method.
@@ -306,32 +315,17 @@
             ListTriggers req = new ListTriggers();
             var ret = await Http.PostAsJson<ListTriggersResponse>("api/Trigger/List", req);
             triggers = ret.Triggers;
-            if ((Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                if (!_active.Modified)
-                {
-                    //Get workflow data.
-                    _active = (await Http.GetAsJsonAsync<GetWorkflowResponse>(string.Format("api/Workflow?id={0}", _active.Id))).Item;
-                    Notifier.UpdateData(GXPages.Workflows, _active);
-                    _active.Modified = true;
-                }
-            }
-            else if (triggers.Any() && _active.TriggerActivity == null)
+            if (action == CrudAction.Create && triggers != null && triggers.Any() && Active.TriggerActivity == null)
             {
                 //Select first item if trigger is not selected.
-                _active.TriggerActivity = triggers[0].Activities[0];
-                _active.TriggerActivity.Trigger = triggers[0];
+                if (triggers[0].Activities != null && triggers[0].Activities.Any())
+                {
+                    Active.TriggerActivity = triggers[0].Activities[0];
+                    Active.TriggerActivity.Trigger = triggers[0];
+                }
             }
-            if (_active != null && _active.TriggerActivity != null && _active.TriggerActivity.Trigger != null)
-            {
-                SelectedTrigger = _active.TriggerActivity.Trigger.ClassName;
-            }
-            if (_active != null && _active.TriggerMethod != null &&
-                !string.IsNullOrEmpty(_active.TriggerMethod.Name))
-            {
-                SelectedCondition = _active.TriggerMethod.Name;
-            }
-            Notifier.ChangePage(GXPages.Workflow, _active);
+            SelectedTrigger = Active?.TriggerActivity?.Trigger?.ClassName;
+            SelectedCondition = Active?.TriggerMethod?.Name;
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -354,44 +348,51 @@
     {
         try
         {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Object cycle is removed.
-            if (_active.TriggerActivity != null)
+            if (Active.TriggerActivity != null)
             {
-                _active.TriggerActivity.Trigger = null;
+                Active.TriggerActivity.Trigger = null;
             }
-            if (_active.ScriptMethods != null)
+            if (Active.ScriptMethods != null)
             {
-                foreach (GXScriptMethod method in _active.ScriptMethods)
+                foreach (GXScriptMethod method in Active.ScriptMethods)
                 {
                     //Reset parent.
                     method.Script = null;
                 }
             }
-            if (Notifier.Action == CrudAction.Delete)
+            if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveWorkflowResponse>("api/Workflow/Delete", new RemoveWorkflow()
                     {
-                        Ids = new Guid[] { _active.Id },
+                        Ids = new Guid[] { Active.Id },
                         Delete = DeleteTarget
                     });
             }
             else
             {
                 string address;
-                if (Notifier.Action == CrudAction.Create)
+                if (action == CrudAction.Create)
                 {
                     address = "api/Workflow/Add";
                 }
-                else
+                else if (action == CrudAction.Update)
                 {
                     address = "api/Workflow/Update";
                 }
-                await Http.PostAsJson<UpdateWorkflowResponse>(address, new UpdateWorkflow() { Workflows = new GXWorkflow[] { _active } });
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateWorkflowResponse>(address, new UpdateWorkflow() { Workflows = new GXWorkflow[] { Active } });
             }
-            Notifier.RemoveLastPage();
-            NavigationManager.NavigateTo(Notifier.GetLastPage());
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -412,12 +413,6 @@
     /// </summary>
     private void OnCancel()
     {
-        Notifier.RemoveLastPage();
-        NavigationManager.NavigateTo(Notifier.GetLastPage());
-    }
-
-    public void Dispose()
-    {
-        Notifier.RemovePage(GXPages.Workflow);
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 }

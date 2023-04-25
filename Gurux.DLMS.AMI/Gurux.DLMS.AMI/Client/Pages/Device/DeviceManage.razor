@@ -1,4 +1,12 @@
-﻿@page "/devicemanage"
+﻿@page "/Device"
+@page "/DeviceGroup"
+@page "/DeviceLog/{Id:guid?}"
+@page "/DeviceLog/{Action}/{Id:guid?}"
+@page "/DeviceAction/{Id:guid?}"
+@page "/DeviceAction/{Action}/{Id:guid?}"
+@page "/DeviceTrace/{Id:guid?}"
+@page "/DeviceTrace/{Action}/{Id:guid?}"
+
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -12,65 +20,101 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-<TabControl SelectionChanged="SelectionChanged" InitialTab="ActiveTab">
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Device, GXRoles.DeviceManager)>
-            <TabPage Text=@Properties.Resources.Devices Icon="oi oi-tablet">
-                <div style="position: relative; width: 100%; ">
-                    <Devices></Devices>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroup, GXRoles.DeviceGroupManager)>
-            <TabPage Text=@Properties.Resources.DeviceGroups>
-                <div style="position: relative; width: 100%; ">
-                    <DeviceGroups></DeviceGroups>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceLog, GXRoles.DeviceLogManager)>
-            <TabPage Text=@Properties.Resources.DeviceErrors Icon="oi oi-warning">
-                <div style="position: relative; width: 100%; ">
-                    <DeviceLogs></DeviceLogs>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceAction, GXRoles.DeviceActionManager)>
-            <TabPage Text=@Properties.Resources.DeviceActions Icon="oi oi-info">
-                <div style="position: relative; width: 100%; ">
-                    <DeviceActions></DeviceActions>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTrace, GXRoles.DeviceTraceManager)>
-            <TabPage Text=@Properties.Resources.DeviceTraces Icon="oi oi-transfer">
-                <div style="position: relative; width: 100%; ">
-                    <DeviceTraces></DeviceTraces>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "Device", true) == 0)
+    {
+        <DeviceTab Action="@Action" Id="@Id"></DeviceTab>
+    }
+    else if (string.Compare(Path, "DeviceGroup", true) == 0)
+    {
+        <DeviceGroupTab Action="@Action" Id="@Id"></DeviceGroupTab>
+    }
+    else if (string.Compare(Path, "DeviceLog", true) == 0)
+    {
+        <DeviceLog Action="@Action" Id="@Id"></DeviceLog>
+    }
+    else if (string.Compare(Path, "DeviceAction", true) == 0)
+    {
+        <DeviceAction Action="@Action" Id="@Id"></DeviceAction>
+    }
+    else if (string.Compare(Path, "DeviceTrace", true) == 0)
+    {
+        <DeviceTrace Action="@Action" Id="@Id"></DeviceTrace>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Device, GXRoles.DeviceManager)>
+                <TabPage Path="Device" Text=@Properties.Resources.Devices Icon="oi oi-tablet">
+                    <div style="position: relative; width: 100%; ">
+                        <Devices Id="@Id"></Devices>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroup, GXRoles.DeviceGroupManager)>
+                <TabPage Path="DeviceGroup" Text=@Properties.Resources.DeviceGroups>
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceGroups Id="@Id"></DeviceGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceLog, GXRoles.DeviceLogManager)>
+                <TabPage Path="DeviceLog" Text=@Properties.Resources.DeviceErrors Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceLogs Id="@Id"></DeviceLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceAction, GXRoles.DeviceActionManager)>
+                <TabPage Path="DeviceAction" Text=@Properties.Resources.DeviceActions Icon="oi oi-info">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceActions Id="@Id"></DeviceActions>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTrace, GXRoles.DeviceTraceManager)>
+                <TabPage Path="DeviceTrace" Text=@Properties.Resources.DeviceTraces Icon="oi oi-transfer">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceTraces Id="@Id"></DeviceTraces>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
 <br />
 @code {
-    private int ActiveTab { get; set; } = 0;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
 
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    /// <param name="index">Tab index.</param>
-    void SelectionChanged(int index)
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
     {
-        Notifier.UpdateData(GXPages.DeviceManage, index);
+        Path = page.Path;
     }
 
     protected override void OnInitialized()
     {
-        object? data = Notifier.GetData(GXPages.DeviceManage);
-        if ((data is int value) && value != 0)
-        {
-            ActiveTab = value;
-        }
-        Notifier.ChangePage(GXPages.DeviceManage, data, true);
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
+
 }

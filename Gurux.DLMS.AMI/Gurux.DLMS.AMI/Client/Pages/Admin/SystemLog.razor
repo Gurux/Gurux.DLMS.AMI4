@@ -32,6 +32,7 @@
          ItemsProvider="@GetItems"
          Filter="@Filter"
          OnSearch="@Updated"
+         ShowAllUsers="false"
          ShowRemoved="false">
     <FilterContent>
         <th>
@@ -79,6 +80,18 @@
 </Confirm>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected system log ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
     /// <inheritdoc />
     public string Name
     {
@@ -97,7 +110,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc />
     public string? Icon
     {
         get
@@ -107,7 +120,7 @@
     }
 
     /// <summary>
-    /// Amount of the devices shown on the view.
+    /// Amount of the sytem logs shown on the view.
     /// </summary>
     [Parameter]
     public int Count { get; set; } = 0;
@@ -188,9 +201,13 @@
             {
                 await Updated();
             });
-            Notifier.ChangePage(GXPages.SystemLogs, null, true);
             Notifier.Clear();
             Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXSystemLog() { Id = Id.Value };
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -264,7 +281,6 @@
 
     public void Dispose()
     {
-        Notifier.RemoveLastPage(GXPages.SystemLogs);
         Notifier.RemoveListener(this);
     }
 
