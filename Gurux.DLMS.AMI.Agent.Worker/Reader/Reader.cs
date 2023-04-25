@@ -36,10 +36,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Text;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using System;
 using System.Globalization;
-using System.Reflection.PortableExecutable;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
@@ -202,7 +199,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     GXKeyValuePair<GXDLMSObject, GXDLMSCaptureObject> p = new GXKeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(new GXDLMSClock(), new GXDLMSCaptureObject(2, 0));
                     ((GXDLMSProfileGeneric)obj).CaptureObjects.Add(p);
                     var start = GetBufferReadTime(tmp);
-                    if (GetEntriesInUse(tmp) > 1 && IsSortedByDateTime(tmp))
+                    if (GetEntriesInUse(tmp) > 10 && IsSortedByDateTime(tmp))
                     {
                         if (start != null)
                         {

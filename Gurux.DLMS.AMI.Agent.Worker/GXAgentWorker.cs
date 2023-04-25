@@ -49,6 +49,7 @@ using Gurux.Terminal;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
@@ -165,8 +166,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GXAgentWorker.Options.Token);
             }
-            UpdateAgentResponse response = await client.PostAsJson<UpdateAgentResponse>("/api/Agent/Add", req);
-            if (response == null)
+            UpdateAgentResponse? response = await client.PostAsJson<UpdateAgentResponse>("/api/Agent/Add", req);
+            if (response == null || response.AgentIds == null || !response.AgentIds.Any())
             {
                 return Guid.Empty;
             }
@@ -190,7 +191,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             try
             {
                 GXAgent? agent;
-                GetAgentResponse res = await Helpers.GetAsync<GetAgentResponse>(string.Format("/api/Agent/?Id={0}", Options.Id));
+                GetAgentResponse? res = await Helpers.GetAsync<GetAgentResponse>(string.Format("/api/Agent/?Id={0}", Options.Id));
                 if (res == null)
                 {
                     //Read with old way.
@@ -235,9 +236,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             _logger?.LogInformation("Notify settings: " + tmp.ToString());
                         }
                     }
+                    Options.SerialPorts = agent.SerialPorts;
+                    await UpdateAgentSerialPorts();
                     _logger?.LogInformation("Agent '{0}' started.", agent.Name);
                 }
-                if (agent != null && !string.IsNullOrEmpty(agent.UpdateVersion))
+                if (!string.IsNullOrEmpty(agent?.UpdateVersion) &&
+                    //The current version will not be updated again.
+                    Options.Version != agent.UpdateVersion)
                 {
                     DownloadAgent request = new DownloadAgent();
                     request.Agent = new GXAgent() { Id = agent.Id, UpdateVersion = agent.UpdateVersion };
@@ -256,11 +261,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             agent.Version = agent.UpdateVersion;
                             agent.UpdateVersion = null;
                             agent.Status = AgentStatus.Restarting;
-                            agent.Tasks.Clear();
-                            agent.AgentGroups.Clear();
-                            agent.Logs.Clear();
-                            agent.Versions.Clear();
+                            agent.Tasks?.Clear();
+                            agent.AgentGroups?.Clear();
+                            agent.Logs?.Clear();
+                            agent.Versions?.Clear();
                             await UpdateAgentAsync(agent);
+                            _logger?.LogInformation("The new version installed and the agent is restarting.");
                             //Restart application.
                             _newVersion.Set();
                             break;
@@ -344,6 +350,24 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             req.Status = status;
             await client.PostAsJson("/api/Agent/UpdateStatus", req);
         }
+
+        /// <summary>
+        /// Serial ports are added or removed from the agent.
+        /// </summary>
+        /// <returns></returns>
+        private static async System.Threading.Tasks.Task UpdateAgentSerialPorts()
+        {
+            string ports = string.Join(";", GXSerial.GetPortNames());
+            if (ports != Options.SerialPorts)
+            {
+                UpdateAgentStatus req = new UpdateAgentStatus();
+                req.Id = Options.Id;
+                req.Status = AgentStatus.SerialPortChange;
+                req.Data = string.Join(";", ports);
+                await client.PostAsJson("/api/Agent/UpdateStatus", req);
+            }
+        }
+
 
         private static async System.Threading.Tasks.Task ExecuteTasks(GXDevice dev, GXDLMSReader reader, GXDLMSSecureClient cl, GXTask task)
         {
@@ -820,7 +844,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 _logger?.LogInformation("New task added.");
                 _newTask.Set();
             });
-            _hubConnection.On<IEnumerable<GXAgent>>("AgentUpdate", (agents) =>
+            _hubConnection.On<IEnumerable<GXAgent>>("AgentUpdate", async (agents) =>
             {
                 foreach (GXAgent agent in agents)
                 {
@@ -873,6 +897,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 Options.ListenerSettings = ls;
                             }
                         }
+                        //if the version is updated.
+                        if (!string.IsNullOrEmpty(agent.UpdateVersion))
+                        {
+                            _logger?.LogInformation(string.Format("Agent version {0} upgraded to version {1}.", Options.Version, agent.UpdateVersion));
+                            await InstallNewVersion();
+                        }
                     }
                 }
             });
@@ -909,7 +939,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                         //Wait minute before try to re-connect.
                         _logger?.LogError(ex.Message);
-                        Thread.Sleep(60000);
+                        await System.Threading.Tasks.Task.Delay(1000);
                     }
                 }
             }

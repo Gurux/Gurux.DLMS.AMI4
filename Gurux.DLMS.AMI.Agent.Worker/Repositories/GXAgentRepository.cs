@@ -65,12 +65,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 
         /// <inheritdoc/>
         public async Task<GXAgent[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListAgents? request, 
+            ClaimsPrincipal User,
+            ListAgents? request,
             ListAgentsResponse? response,
             CancellationToken cancellationToken)
         {
-            ListAgentsResponse? ret = await GXAgentWorker.client.PostAsJson<ListAgentsResponse>("/api/Agent/List", 
+            ListAgentsResponse? ret = await GXAgentWorker.client.PostAsJson<ListAgentsResponse>("/api/Agent/List",
                 request, cancellationToken);
             if (response != null && ret != null)
             {
@@ -80,7 +80,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return ret.Agents;
         }
 
-        public Task<GXAgent[]> ListInstallersAsync(ClaimsPrincipal? User, ListAgentInstallers? request, ListAgentInstallersResponse? response)
+        public Task<GXAgent[]> ListInstallersAsync(ClaimsPrincipal? User,
+                ListAgentInstallers? request,
+                bool includeRemoved,
+                ListAgentInstallersResponse? response)
         {
             throw new NotImplementedException();
         }
@@ -105,7 +108,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status)
+        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data)
         {
             throw new NotImplementedException();
         }
