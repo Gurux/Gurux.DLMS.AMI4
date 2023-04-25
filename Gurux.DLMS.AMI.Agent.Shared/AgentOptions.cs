@@ -102,6 +102,15 @@ namespace Gurux.DLMS.AMI.Agent.Shared
             set;
         }
 
+        /// <summary>
+        /// Available serial ports.
+        /// </summary>
+        public string? SerialPorts
+        {
+            get;
+            set;
+        }
+
         /// <inheritdoc/>
         public override string ToString()
         {

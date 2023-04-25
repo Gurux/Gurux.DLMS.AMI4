@@ -50,7 +50,7 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <summary>
         /// Add new agent.
         /// </summary>
-        /// <param name="agent">Agent name.</param>
+        /// <param name="name">Agent name.</param>
         /// <returns>Agent ID.</returns>
         Task<Guid> AddAgentAsync(string name);
 
