@@ -1,16 +1,15 @@
-﻿using System.ComponentModel.DataAnnotations;
-
+﻿
 namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// AMI error is used to send server errors.
+    /// Throws an exception when the Gurux DLMS AMI does not find item from the database.
     /// </summary>
-    public class GXAmiException : Exception
+    public class GXAmiNotFoundException : Exception
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXAmiException()
+        public GXAmiNotFoundException()
         {
             Message = "";
         }
@@ -26,7 +25,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Constructor.
         /// </summary>
         /// <param name="message">Error message.</param>
-        public GXAmiException(string message) : base(message)
+        public GXAmiNotFoundException(string message) : base(message)
         {
             Message = message;
         }

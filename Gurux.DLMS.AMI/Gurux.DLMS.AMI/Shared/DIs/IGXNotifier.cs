@@ -59,16 +59,21 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         }
 
         /// <summary>
+        /// Last Url.
+        /// </summary>
+        string? LastUrl { get;}
+
+        /// <summary>
+        /// Change page.
+        /// </summary>
+        /// <param name="page"></param>
+        void ChangePage(string page);
+
+        /// <summary>
         /// Add new menu item.
         /// </summary>
         /// <param name="menu"></param>
         void AddMenuItem(GXMenuItem menu);
-
-        /// <summary>
-        /// Return selection path.
-        /// </summary>
-        /// <returns>Selection path</returns>
-        ReadOnlyCollection<string> GetSelectionPath();
 
         /// <summary>
         /// Clear menu item.
@@ -111,41 +116,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         void ClearHistory();
 
         /// <summary>
-        /// Change page.
-        /// </summary>
-        /// <param name="page"></param>
-        /// <param name="data"></param>
-        void ChangePage(string page, object? data);
-
-        /// <summary>
-        /// Change page.
-        /// </summary>
-        /// <param name="page"></param>
-        /// <param name="data"></param>
-        /// <param name="isRoot"></param>
-        void ChangePage(string page, object? data, bool isRoot);
-
-        /// <summary>
         /// Update page data.
         /// </summary>
         /// <param name="data"></param>
         void UpdateData(string page, object? data);
-
-        /// <summary>
-        /// Remove page.
-        /// </summary>
-        /// <param name="page">Page to remove.</param>
-        void RemovePage(string page);
-
-        /// <summary>
-        /// Remove page if it's the last page.
-        /// </summary>
-        /// <param name="page">Page to remove.</param>
-        void RemoveLastPage(string page);
-        string? RemoveLastPage();
-
-        string? GetLastPage();
-
         object? GetData(string page);
 
         /// <summary>

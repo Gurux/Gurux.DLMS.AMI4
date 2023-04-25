@@ -50,7 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXAgent),
                 nameof(GXAgent.Template),
                 nameof(GXAgent.ScriptMethods),
-                nameof(GXAgent.Versions), nameof(GXAgent.Tasks), 
+                nameof(GXAgent.Versions), nameof(GXAgent.Tasks),
                 nameof(GXAgent.Logs))]
         [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id)
             , nameof(GXAgentGroup.Name)
@@ -176,7 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy 
+        public string? OrderBy
         {
             get;
             set;
@@ -361,6 +361,45 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Optional data.
+        /// </summary>
+        /// <remarks>
+        /// Serial ports are added to data field when ports are added or removed from the agent.
+        /// </remarks>
+        [DataMember]
+        public string? Data
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Install new agent version.
+    /// </summary>
+    [DataContract]
+    public class InstallAgent
+    {
+        /// <summary>
+        /// Agent IDs and updated version.
+        /// </summary>
+        [DataMember]
+        public List<GXAgent> Agents
+        {
+            get;
+            set;
+        } = new List<GXAgent>();
+    }
+
+    /// <summary>
+    /// Agent install reply.
+    /// </summary>
+    [DataContract]
+    public class InstallAgentResponse
+    {
+
     }
 
     /// <summary>

@@ -79,5 +79,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// </summary>
         [XmlEnum("7")]
         Restarting = 7,
+        /// <summary>
+        /// Serial ports are added or removed from the agent.
+        /// </summary>
+        [XmlEnum("8")]
+        SerialPortChange = 8,
     }
 }

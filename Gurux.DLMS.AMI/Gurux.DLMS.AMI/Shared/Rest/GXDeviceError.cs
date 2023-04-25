@@ -31,13 +31,29 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
+    /// <summary>
+    /// Get device error.
+    /// </summary>
+    public class GetDeviceErrorResponse
+    {
+        /// <summary>
+        /// Device error information.
+        /// </summary>
+        [IncludeSwagger(typeof(GXDevice),
+                nameof(GXDevice.Id),
+                nameof(GXDevice.Name))]
+        public GXDeviceError? Item
+        {
+            get;
+            set;
+        }
+    }
+
     /// <summary>
     /// Get list from device errors.
     /// </summary>

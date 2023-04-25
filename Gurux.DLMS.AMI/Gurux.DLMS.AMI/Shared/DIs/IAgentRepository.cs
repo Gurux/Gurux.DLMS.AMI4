@@ -103,7 +103,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">Current user.</param>
         /// <param name="agentId">Agent ID.</param>
         /// <param name="status">Agent status</param>
-        Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status);
+        /// <param name="data">Optional data. List of available serial ports.</param>
+        Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data);
 
         /// <summary>
         /// Upgrade agent version.
@@ -119,6 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXAgent[]> ListInstallersAsync(
             ClaimsPrincipal User,
             ListAgentInstallers? request,
+            bool includeRemoved,
             ListAgentInstallersResponse? response);
 
     }

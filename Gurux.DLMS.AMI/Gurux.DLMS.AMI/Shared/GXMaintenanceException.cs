@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Constructor.
         /// </summary>
         /// <param name="message"> The message that describes the error.</param>
-        public GXMaintenanceException(string message) : base(message)
+        public GXMaintenanceException(string? message) : base(message)
         {
 
         }

@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Error Id.
+        /// User Error Id.
         /// </summary>
         [DataMember]
         public Guid Id

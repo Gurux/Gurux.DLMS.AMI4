@@ -62,8 +62,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Name = name;
             UserGroups = new List<GXUserGroup>();
             ComponentViews = new List<GXComponentView>();
-            Name = string.Empty;
-            Description = string.Empty;
         }
 
         /// <summary>

@@ -48,6 +48,8 @@ namespace Gurux.DLMS.AMI.Shared
                 }
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
+                    response.EnsureSuccessStatusCode();
+
                     throw new Exception(response.ReasonPhrase);
                 }
                 if (response.StatusCode == HttpStatusCode.ServiceUnavailable)

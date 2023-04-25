@@ -330,7 +330,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Latest available module version.
+        /// Latest available agent version.
         /// </summary>
         [DefaultValue(null)]
         [StringLength(20)]
@@ -351,6 +351,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(20)]
         [Filter(FilterType.Contains)]
         public string? UpdateVersion
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// An array of available serial port names for the agent.
+        /// </summary>
+        [DefaultValue(null)]
+        public string? SerialPorts
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The serial port for the agent.
+        /// </summary>
+        [DefaultValue(null)]
+        public string? SerialPort
         {
             get;
             set;

@@ -42,6 +42,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXComponentView : IUnique<Guid>
     {
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXComponentView()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXComponentView(string? name)
+        {
+            Name = name;
+            ComponentViewGroups = new List<GXComponentViewGroup>();
+        }
+
+        /// <summary>
         /// Name of the component view class.
         /// </summary>
         public Guid Id

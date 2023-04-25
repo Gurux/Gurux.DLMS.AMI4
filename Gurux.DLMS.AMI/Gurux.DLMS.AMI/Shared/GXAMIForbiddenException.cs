@@ -1,16 +1,14 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace Gurux.DLMS.AMI.Shared
+﻿namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// AMI error is used to send server errors.
+    /// Forbidden exception is used to tell that resource access fails.
     /// </summary>
-    public class GXAmiException : Exception
+    public class GXAMIForbiddenException : Exception
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXAmiException()
+        public GXAMIForbiddenException()
         {
             Message = "";
         }
@@ -26,7 +24,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// Constructor.
         /// </summary>
         /// <param name="message">Error message.</param>
-        public GXAmiException(string message) : base(message)
+        public GXAMIForbiddenException(string message) : base(message)
         {
             Message = message;
         }

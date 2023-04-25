@@ -53,6 +53,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             CancellationToken cancellationToken);
 
         /// <summary>
+        /// Read component view.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="id">Component view ID.</param>
+        /// <returns></returns>
+        Task<GXComponentView> ReadAsync(ClaimsPrincipal user, Guid id);
+
+        /// <summary>
         /// Update component view(s).
         /// </summary>
         /// <param name="User">Current user.</param>
