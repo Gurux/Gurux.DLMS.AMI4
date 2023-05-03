@@ -2,8 +2,8 @@
 <ArrayOfGXDLMSDevice xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Gurux1">
   <GXDLMSDevice>
     <Authentication>Low</Authentication>
-    <AuthenticationName>Data Collection</AuthenticationName>
-    <Password>1DJIN0iGFTVwz9Uz6Q9NOQ==</Password>
+    <AuthenticationName>Management Access</AuthenticationName>
+    <Password>mR3Vs57qW5rOSoeFK50bdw==</Password>
     <KeyAgreementScheme>0</KeyAgreementScheme>
     <SystemTitle />
     <ServerSystemTitle />
@@ -12,7 +12,7 @@
     <AuthenticationKey />
     <Challenge />
     <Signing>0</Signing>
-    <ClientAddress>32</ClientAddress>
+    <ClientAddress>1</ClientAddress>
     <InterfaceType>1</InterfaceType>
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
