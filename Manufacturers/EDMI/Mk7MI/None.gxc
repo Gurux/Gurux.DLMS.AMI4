@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ArrayOfGXDLMSDevice xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Gurux1">
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
   <GXDLMSDevice>
     <Password />
     <KeyAgreementScheme>0</KeyAgreementScheme>
@@ -16,14 +16,14 @@
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>Edmi None</Name>
+    <Name>EDMI Mk7MI None</Name>
     <Conformance>12220486</Conformance>
     <Manufacturer>EDM</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>
     <MediaType>Gurux.Serial.GXSerial</MediaType>
-    <MediaSettings>&lt;Port&gt;COM8&lt;/Port&gt;&lt;Bps&gt;300&lt;/Bps&gt;&lt;Parity&gt;2&lt;/Parity&gt;&lt;ByteSize&gt;7&lt;/ByteSize&gt;</MediaSettings>
+    <MediaSettings />
     <UseLN>true</UseLN>
     <Objects2>
       <GXDLMSObject xsi:type="GXDLMSData">

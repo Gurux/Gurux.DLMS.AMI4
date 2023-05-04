@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ArrayOfGXDLMSDevice xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Gurux1">
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
   <GXDLMSDevice>
     <Authentication>Low</Authentication>
-    <Password>mN2fjHET3UPLWmQ2PF1F+w==</Password>
+    <Password />
     <KeyAgreementScheme>0</KeyAgreementScheme>
     <SystemTitle />
     <ServerSystemTitle />
@@ -20,14 +20,14 @@
     <PduSize>1007</PduSize>
     <InactivityTimeout>10</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>Kamstrup-Low</Name>
+    <Name>Kamstrup Omnipower low</Name>
     <Conformance>12089344</Conformance>
     <Manufacturer>KAM</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>
     <MediaType>Gurux.Serial.GXSerial</MediaType>
-    <MediaSettings>&lt;Port&gt;COM8&lt;/Port&gt;</MediaSettings>
+    <MediaSettings />
     <UseLN>true</UseLN>
     <Objects2>
       <GXDLMSObject xsi:type="GXDLMSRegister">

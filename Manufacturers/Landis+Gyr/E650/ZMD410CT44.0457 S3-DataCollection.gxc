@@ -1,0 +1,1941 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
+  <GXDLMSDevice>
+    <Authentication>Low</Authentication>
+    <AuthenticationName>Data Collection</AuthenticationName>
+    <Password />
+    <KeyAgreementScheme>0</KeyAgreementScheme>
+    <SystemTitle />
+    <ServerSystemTitle />
+    <DedicatedKey />
+    <BlockCipherKey />
+    <AuthenticationKey />
+    <Challenge />
+    <Signing>0</Signing>
+    <ClientAddress>32</ClientAddress>
+    <MacDestinationAddress>0</MacDestinationAddress>
+    <InactivityTimeout>110</InactivityTimeout>
+    <SignCipherOrder>0</SignCipherOrder>
+    <Name>Landis+Gyr E650 ZMD410CT44.0457 S3-DataCollection Data Collection</Name>
+    <Conformance>311352</Conformance>
+    <Manufacturer>LGZ</Manufacturer>
+    <HDLCAddressing>0</HDLCAddressing>
+    <UseProtectedRelease>false</UseProtectedRelease>
+    <SecurityChangeCheck>false</SecurityChangeCheck>
+    <MediaType>Gurux.Net.GXNet</MediaType>
+    <MediaSettings />
+    <UseLN>false</UseLN>
+    <Objects2>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>29200</ShortName>
+        <LogicalName>1.1.13.5.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Power factor Last avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>29000</ShortName>
+        <LogicalName>1.1.13.0.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Power factor Billing period avg. (since last reset) Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>12200</ShortName>
+        <LogicalName>0.0.97.97.0.255</LogicalName>
+        <Description>Ch. 0 Error object  #1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>24600</ShortName>
+        <LogicalName>0.0.96.240.12.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSClock">
+        <Version>0</Version>
+        <ShortName>11200</ShortName>
+        <LogicalName>0.0.1.0.0.255</LogicalName>
+        <Description>Ch. 0 Clock object  #1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActivityCalendar">
+        <Version>0</Version>
+        <ShortName>51000</ShortName>
+        <LogicalName>0.0.13.0.0.255</LogicalName>
+        <Description>Ch. 0 Activity calendar  #1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSSpecialDaysTable">
+        <Version>0</Version>
+        <ShortName>51200</ShortName>
+        <LogicalName>0.0.11.0.0.255</LogicalName>
+        <Description>Ch. 0 Special days table  #1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>15120</ShortName>
+        <LogicalName>1.0.0.2.7.255</LogicalName>
+        <Description>Ch. 0 Passive calendar name</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>15240</ShortName>
+        <LogicalName>0.0.96.2.7.255</LogicalName>
+        <Description>Ch. 0 Date of activation of the passive calendar</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>11000</ShortName>
+        <LogicalName>0.0.240.19.1.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSIECLocalPortSetup">
+        <Version>0</Version>
+        <ShortName>11800</ShortName>
+        <LogicalName>0.0.20.0.0.255</LogicalName>
+        <Description>Ch. 0 IEC optical port setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSIECLocalPortSetup">
+        <Version>0</Version>
+        <ShortName>11600</ShortName>
+        <LogicalName>0.0.20.0.1.255</LogicalName>
+        <Description>Ch. 0 IEC electrical port setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSHdlcSetup">
+        <Version>0</Version>
+        <ShortName>11440</ShortName>
+        <LogicalName>0.0.22.0.0.255</LogicalName>
+        <Description>Ch. 0 IEC HDLC setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSHdlcSetup">
+        <Version>0</Version>
+        <ShortName>11104</ShortName>
+        <LogicalName>0.1.22.0.0.255</LogicalName>
+        <Description>Ch. 1 IEC HDLC setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSAssociationShortName">
+        <Version>0</Version>
+        <ShortName>64000</ShortName>
+        <LogicalName>0.0.40.0.0.255</LogicalName>
+        <Description>Ch. 0 Current association</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSSapAssignment">
+        <Version>0</Version>
+        <ShortName>64512</ShortName>
+        <LogicalName>0.0.41.0.0.255</LogicalName>
+        <Description>Ch. 0 SAP Assignment</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <ShortName>50800</ShortName>
+        <LogicalName>0.0.15.0.0.255</LogicalName>
+        <Description>Ch. 0 End of billing period</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>10800</ShortName>
+        <LogicalName>0.0.96.90.2.255</LogicalName>
+        <Description>Ch. 0 Man. spec. abstract object</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>49000</ShortName>
+        <LogicalName>0.1.96.240.8.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>49400</ShortName>
+        <LogicalName>0.2.96.240.9.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>49600</ShortName>
+        <LogicalName>0.2.96.240.8.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>1</Version>
+        <ShortName>24800</ShortName>
+        <LogicalName>1.0.99.98.0.255</LogicalName>
+        <Description>Ch. 0 Event log  #1</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSClock">
+              <Version>0</Version>
+              <ShortName>11200</ShortName>
+              <LogicalName>0.0.1.0.0.255</LogicalName>
+              <Description>Ch. 0 Clock object  #1</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>24600</ShortName>
+              <LogicalName>0.0.96.240.12.255</LogicalName>
+              <Description>Manufacturer specific</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>19</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>24600</ShortName>
+              <LogicalName>0.0.96.240.12.255</LogicalName>
+              <Description>Manufacturer specific</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>12200</ShortName>
+              <LogicalName>0.0.97.97.0.255</LogicalName>
+              <Description>Ch. 0 Error object  #1</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6200</ShortName>
+              <LogicalName>1.1.2.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7200</ShortName>
+              <LogicalName>1.1.1.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>1</Version>
+        <ShortName>25200</ShortName>
+        <LogicalName>1.0.99.1.0.255</LogicalName>
+        <Description>Ch. 0 Load profile with recording period 1  #1</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSClock">
+              <Version>0</Version>
+              <ShortName>11200</ShortName>
+              <LogicalName>0.0.1.0.0.255</LogicalName>
+              <Description>Ch. 0 Clock object  #1</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>24600</ShortName>
+              <LogicalName>0.0.96.240.12.255</LogicalName>
+              <Description>Manufacturer specific</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>18</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7200</ShortName>
+              <LogicalName>1.1.1.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6200</ShortName>
+              <LogicalName>1.1.2.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6800</ShortName>
+              <LogicalName>1.1.3.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Reactive power+ (QI+QII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7000</ShortName>
+              <LogicalName>1.1.4.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Reactive power- (QIII+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>1</Version>
+        <ShortName>25600</ShortName>
+        <LogicalName>0.0.98.1.0.126</LogicalName>
+        <Description>Ch. 0 Data of billing period Scheme 1 #1 Unspecified number of most recent billing periods</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSClock">
+              <Version>0</Version>
+              <ShortName>11200</ShortName>
+              <LogicalName>0.0.1.0.0.255</LogicalName>
+              <Description>Ch. 0 Clock object  #1</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>50000</ShortName>
+              <LogicalName>1.0.0.1.0.255</LogicalName>
+              <Description>Ch. 0 Billing period counter (1)   #255</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54000</ShortName>
+              <LogicalName>1.1.1.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54000</ShortName>
+              <LogicalName>1.1.1.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54200</ShortName>
+              <LogicalName>1.1.2.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54200</ShortName>
+              <LogicalName>1.1.2.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54400</ShortName>
+              <LogicalName>1.1.9.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54400</ShortName>
+              <LogicalName>1.1.9.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54600</ShortName>
+              <LogicalName>1.1.10.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <ShortName>54600</ShortName>
+              <LogicalName>1.1.10.6.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7200</ShortName>
+              <LogicalName>1.1.1.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6200</ShortName>
+              <LogicalName>1.1.2.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Active power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6800</ShortName>
+              <LogicalName>1.1.3.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Reactive power+ (QI+QII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7000</ShortName>
+              <LogicalName>1.1.4.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Reactive power- (QIII+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>7400</ShortName>
+              <LogicalName>1.1.9.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <ShortName>6600</ShortName>
+              <LogicalName>1.1.10.8.0.255</LogicalName>
+              <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>5400</ShortName>
+        <LogicalName>1.1.1.9.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Time integral 2 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>5600</ShortName>
+        <LogicalName>1.1.9.9.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Time integral 2 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>6200</ShortName>
+        <LogicalName>1.1.2.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>6600</ShortName>
+        <LogicalName>1.1.10.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>6800</ShortName>
+        <LogicalName>1.1.3.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Reactive power+ (QI+QII) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>7000</ShortName>
+        <LogicalName>1.1.4.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Reactive power- (QIII+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>7200</ShortName>
+        <LogicalName>1.1.1.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>7400</ShortName>
+        <LogicalName>1.1.9.8.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Time integral 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>52400</ShortName>
+        <LogicalName>1.1.2.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power- (QII+QIII) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>52800</ShortName>
+        <LogicalName>1.1.10.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>53000</ShortName>
+        <LogicalName>1.1.3.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Reactive power+ (QI+QII) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>53200</ShortName>
+        <LogicalName>1.1.4.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Reactive power- (QIII+QIV) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>53400</ShortName>
+        <LogicalName>1.1.1.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDemandRegister">
+        <Version>0</Version>
+        <ShortName>53600</ShortName>
+        <LogicalName>1.1.9.4.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Current avg. 1 Rate 0 (0 is total)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSExtendedRegister">
+        <Version>0</Version>
+        <ShortName>54000</ShortName>
+        <LogicalName>1.1.1.6.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSExtendedRegister">
+        <Version>0</Version>
+        <ShortName>54200</ShortName>
+        <LogicalName>1.1.2.6.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSExtendedRegister">
+        <Version>0</Version>
+        <ShortName>54400</ShortName>
+        <LogicalName>1.1.9.6.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSExtendedRegister">
+        <Version>0</Version>
+        <ShortName>54600</ShortName>
+        <LogicalName>1.1.10.6.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>58800</ShortName>
+        <LogicalName>1.1.1.2.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power+ (QI+QIV) Cum. max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>59000</ShortName>
+        <LogicalName>1.1.2.2.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power- (QII+QIII) Cum. max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>59200</ShortName>
+        <LogicalName>1.1.9.2.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power+ (QI+QIV) Cum. max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>59400</ShortName>
+        <LogicalName>1.1.10.2.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Apparent power- (QII+QIII) Cum. max. 1 Rate 0 (0 is total)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>17600</ShortName>
+        <LogicalName>1.0.0.0.0.255</LogicalName>
+        <Description>Ch. 0 Electricity ID  #1</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>17400</ShortName>
+        <LogicalName>1.0.0.0.1.255</LogicalName>
+        <Description>Ch. 0 Electricity ID  #2</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>17200</ShortName>
+        <LogicalName>1.0.0.0.2.255</LogicalName>
+        <Description>Ch. 0 Electricity ID  #3</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>17000</ShortName>
+        <LogicalName>1.0.0.0.3.255</LogicalName>
+        <Description>Ch. 0 Electricity ID  #4</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>16600</ShortName>
+        <LogicalName>0.0.96.1.0.255</LogicalName>
+        <Description>Ch. 0 Device ID 1, manufacturing number</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>16400</ShortName>
+        <LogicalName>0.0.96.1.1.255</LogicalName>
+        <Description>Ch. 0 Device ID  #2</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>16200</ShortName>
+        <LogicalName>0.0.96.2.1.255</LogicalName>
+        <Description>Ch. 0 Date of last configuration program change</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>16000</ShortName>
+        <LogicalName>0.1.96.2.5.255</LogicalName>
+        <Description>Ch. 1 Date of last calibration</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>15000</ShortName>
+        <LogicalName>0.0.96.2.2.255</LogicalName>
+        <Description>Ch. 0 Date of last time switch program change</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>15800</ShortName>
+        <LogicalName>0.0.96.240.0.255</LogicalName>
+        <Description>Manufacturer specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>65280</ShortName>
+        <LogicalName>1.0.0.2.0.255</LogicalName>
+        <Description>Ch. 0 Active firmware identifier</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>14800</ShortName>
+        <LogicalName>1.0.0.2.1.255</LogicalName>
+        <Description>Ch. 0 Parameter record number</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>14400</ShortName>
+        <LogicalName>0.0.96.90.255.255</LogicalName>
+        <Description>Ch. 0 Man. spec. abstract object</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>64768</ShortName>
+        <LogicalName>0.0.42.0.0.255</LogicalName>
+        <Description>Ch. 0 COSEM Logical device name</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>18600</ShortName>
+        <LogicalName>0.0.96.99.8.255</LogicalName>
+        <Description>Ch. 0 Man. spec. abstract object</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>15400</ShortName>
+        <LogicalName>1.0.0.2.4.255</LogicalName>
+        <Description>Ch. 0 Meter connection diagram ID</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>18400</ShortName>
+        <LogicalName>0.0.96.90.1.255</LogicalName>
+        <Description>Ch. 0 Man. spec. abstract object</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <ShortName>32400</ShortName>
+        <LogicalName>1.0.0.1.2.255</LogicalName>
+        <Description>Ch. 0 Time stamp of the most recent billing period closed (1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>14000</ShortName>
+        <LogicalName>1.1.0.3.0.255</LogicalName>
+        <Description>Ch. 1 Meter constant Active energy, metrological LED</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>13800</ShortName>
+        <LogicalName>1.1.0.3.1.255</LogicalName>
+        <Description>Ch. 1 Meter constant Reactive energy, metrological LED</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>13600</ShortName>
+        <LogicalName>1.1.0.4.0.255</LogicalName>
+        <Description>Ch. 1 Reading factor for power</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>13400</ShortName>
+        <LogicalName>1.1.0.4.1.255</LogicalName>
+        <Description>Ch. 1 Reading factor for energy</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>13200</ShortName>
+        <LogicalName>1.1.0.4.2.255</LogicalName>
+        <Description>Ch. 1 Transformer ratio - current (numerator)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>13000</ShortName>
+        <LogicalName>1.1.0.4.3.255</LogicalName>
+        <Description>Ch. 1 Transformer ratio - voltage (numerator)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>42000</ShortName>
+        <LogicalName>1.1.32.35.0.255</LogicalName>
+        <Description>Ch. 1 L1 Voltage Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>42200</ShortName>
+        <LogicalName>1.1.52.35.0.255</LogicalName>
+        <Description>Ch. 1 L2 Voltage Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>42400</ShortName>
+        <LogicalName>1.1.72.35.0.255</LogicalName>
+        <Description>Ch. 1 L3 Voltage Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>42600</ShortName>
+        <LogicalName>1.1.32.31.0.255</LogicalName>
+        <Description>Ch. 1 L1 Voltage Inst. value, under limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>42800</ShortName>
+        <LogicalName>1.1.52.31.0.255</LogicalName>
+        <Description>Ch. 1 L2 Voltage Inst. value, under limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>43000</ShortName>
+        <LogicalName>1.1.72.31.0.255</LogicalName>
+        <Description>Ch. 1 L3 Voltage Inst. value, under limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>43200</ShortName>
+        <LogicalName>1.1.31.35.0.255</LogicalName>
+        <Description>Ch. 1 L1 Current Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>43400</ShortName>
+        <LogicalName>1.1.51.35.0.255</LogicalName>
+        <Description>Ch. 1 L2 Current Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>43600</ShortName>
+        <LogicalName>1.1.71.35.0.255</LogicalName>
+        <Description>Ch. 1 L3 Current Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <ShortName>43800</ShortName>
+        <LogicalName>1.1.91.35.0.255</LogicalName>
+        <Description>Ch. 1 Lo Current (neutral) Inst. value, over limit threshold Harmonic / Distortion factor 0</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>38000</ShortName>
+        <LogicalName>0.0.96.8.0.255</LogicalName>
+        <Description>Ch. 0 Time of operation, total</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>65024</ShortName>
+        <LogicalName>0.0.96.2.0.255</LogicalName>
+        <Description>Ch. 0 No. of configuration program changes</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>50000</ShortName>
+        <LogicalName>1.0.0.1.0.255</LogicalName>
+        <Description>Ch. 0 Billing period counter (1)   #255</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>36200</ShortName>
+        <LogicalName>0.0.96.6.0.255</LogicalName>
+        <Description>Ch. 0 Battery use time counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>35400</ShortName>
+        <LogicalName>0.0.96.7.1.255</LogicalName>
+        <Description>Ch. 0 No. of power failures in phase L1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>35600</ShortName>
+        <LogicalName>0.0.96.7.2.255</LogicalName>
+        <Description>Ch. 0 No. of power failures in phase L2</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>35800</ShortName>
+        <LogicalName>0.0.96.7.3.255</LogicalName>
+        <Description>Ch. 0 No. of power failures in phase L3</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>36000</ShortName>
+        <LogicalName>0.0.96.7.0.255</LogicalName>
+        <Description>Ch. 0 No. of power failures in all three phases</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>48600</ShortName>
+        <LogicalName>0.0.96.4.0.255</LogicalName>
+        <Description>Ch. 0 State of the internal control signals, global</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>48800</ShortName>
+        <LogicalName>0.0.96.5.0.255</LogicalName>
+        <Description>Ch. 0 Internal operating status, global</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>39000</ShortName>
+        <LogicalName>1.1.32.7.0.255</LogicalName>
+        <Description>Ch. 1 L1 Voltage Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>39200</ShortName>
+        <LogicalName>1.1.52.7.0.255</LogicalName>
+        <Description>Ch. 1 L2 Voltage Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>39400</ShortName>
+        <LogicalName>1.1.72.7.0.255</LogicalName>
+        <Description>Ch. 1 L3 Voltage Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>39600</ShortName>
+        <LogicalName>1.1.31.7.0.255</LogicalName>
+        <Description>Ch. 1 L1 Current Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>39800</ShortName>
+        <LogicalName>1.1.51.7.0.255</LogicalName>
+        <Description>Ch. 1 L2 Current Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>40000</ShortName>
+        <LogicalName>1.1.71.7.0.255</LogicalName>
+        <Description>Ch. 1 L3 Current Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>40200</ShortName>
+        <LogicalName>1.1.91.7.0.255</LogicalName>
+        <Description>Ch. 1 Lo Current (neutral) Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>40400</ShortName>
+        <LogicalName>1.1.14.7.0.255</LogicalName>
+        <Description>Ch. 1 Supply frequency Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>40600</ShortName>
+        <LogicalName>1.1.16.7.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Active power (abs(QI+QIV)-abs(QII+QIII)) Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>40800</ShortName>
+        <LogicalName>1.1.131.7.0.255</LogicalName>
+        <Description>Man. specific</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>41000</ShortName>
+        <LogicalName>1.1.81.7.0.255</LogicalName>
+        <Description>Ch. 1 Angle of U(L1) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>41200</ShortName>
+        <LogicalName>1.1.81.7.1.255</LogicalName>
+        <Description>Ch. 1 Angle of U(L2) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>41400</ShortName>
+        <LogicalName>1.1.81.7.2.255</LogicalName>
+        <Description>Ch. 1 Angle of U(L3) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>41600</ShortName>
+        <LogicalName>1.1.81.7.4.255</LogicalName>
+        <Description>Ch. 1 Angle of I(L1) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>41800</ShortName>
+        <LogicalName>1.1.81.7.5.255</LogicalName>
+        <Description>Ch. 1 Angle of I(L2) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>38800</ShortName>
+        <LogicalName>1.1.81.7.6.255</LogicalName>
+        <Description>Ch. 1 Angle of I(L3) - U(L1)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>38600</ShortName>
+        <LogicalName>1.1.13.7.0.255</LogicalName>
+        <Description>Ch. 1 Sum Li Power factor Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>38200</ShortName>
+        <LogicalName>1.1.33.7.0.255</LogicalName>
+        <Description>Ch. 1 L1 Power factor Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>35200</ShortName>
+        <LogicalName>1.1.53.7.0.255</LogicalName>
+        <Description>Ch. 1 L2 Power factor Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <ShortName>35000</ShortName>
+        <LogicalName>1.1.73.7.0.255</LogicalName>
+        <Description>Ch. 1 L3 Power factor Inst. value</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+    </Objects2>
+  </GXDLMSDevice>
+</ArrayOfGXDLMSDevice>

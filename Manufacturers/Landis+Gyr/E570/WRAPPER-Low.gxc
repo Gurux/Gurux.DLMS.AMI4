@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ArrayOfGXDLMSDevice xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="Gurux1">
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
   <GXDLMSDevice>
     <Authentication>Low</Authentication>
     <AuthenticationName>Data Collection</AuthenticationName>
-    <Password>1DJIN0iGFTVwz9Uz6Q9NOQ==</Password>
+    <Password />
     <KeyAgreementScheme>0</KeyAgreementScheme>
     <SystemTitle />
     <ServerSystemTitle />
@@ -17,16 +17,14 @@
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>DataCollection</Name>
+    <Name>Landis+Gyr E570 WRAPPER-Low Data Collection</Name>
     <Conformance>12220486</Conformance>
     <Manufacturer>LGZ</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>
     <MediaType>Gurux.Net.GXNet</MediaType>
-    <MediaSettings>&lt;IP&gt;localhost&lt;/IP&gt;
-&lt;Port&gt;1000&lt;/Port&gt;
-</MediaSettings>
+    <MediaSettings />
     <UseLN>true</UseLN>
     <Objects2>
       <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
@@ -35893,6 +35891,7 @@
       </GXDLMSObject>
       <GXDLMSObject xsi:type="GXDLMSAssociationShortName">
         <Version>3</Version>
+        <ShortName>64000</ShortName>
         <LogicalName>0.0.40.0.2.255</LogicalName>
         <Description>Ch. 0 Association  #2</Description>
         <Attributes>
