@@ -17,7 +17,7 @@
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>Landis+Gyr E570 WRAPPER-Low Data Collection</Name>
+    <Name>Data Collection</Name>
     <Conformance>12220486</Conformance>
     <Manufacturer>LGZ</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>

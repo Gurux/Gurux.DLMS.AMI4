@@ -16,7 +16,7 @@
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>EDMI Mk7MI None</Name>
+    <Name>None</Name>
     <Conformance>12220486</Conformance>
     <Manufacturer>EDM</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>

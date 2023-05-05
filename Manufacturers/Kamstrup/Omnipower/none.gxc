@@ -17,7 +17,7 @@
     <PduSize>1007</PduSize>
     <InactivityTimeout>10</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>Kamstrup Omnipower none</Name>
+    <Name>None</Name>
     <Conformance>2631680</Conformance>
     <Manufacturer>KAM</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>

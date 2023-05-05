@@ -17,7 +17,7 @@
     <MacDestinationAddress>0</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>Landis+Gyr E650 ZMD410CT41.0457 S4-DataCollection Data Collection</Name>
+    <Name>Data Collection</Name>
     <Conformance>311352</Conformance>
     <Manufacturer>LGZ</Manufacturer>
     <HDLCAddressing>1</HDLCAddressing>
