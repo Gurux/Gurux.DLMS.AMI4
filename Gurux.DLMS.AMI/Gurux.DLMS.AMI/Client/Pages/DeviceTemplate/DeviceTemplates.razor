@@ -3,6 +3,7 @@
 
 @using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -38,9 +39,31 @@
          OnSearch="@Updated">
     <FilterContent>
         <th>
-            <input class="form-control" placeholder="Filter by type..."
-                   type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Type = Convert.ToString(__e.Value))" />
+            <!--Manufacturer-->
+            @if (filter.Manufacturer != null)
+            {
+                <input class="form-control" placeholder="@Properties.Resources.Manufacturer"
+                       type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
+            }
+        </th>
+        <th>
+            <!--Model-->
+            @if (filter.Manufacturer?.Models?.FirstOrDefault() is GXDeviceModel mod)
+            {
+                <input class="form-control" placeholder="@Properties.Resources.Model"
+                       type="text"
+                   @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
+            }
+        </th>
+        <th>
+            <!--Version-->
+            @if (filter.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault() is GXDeviceVersion ver)
+            {
+                <input class="form-control" placeholder="@Properties.Resources.Version"
+                       type="text"
+                   @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
+            }
         </th>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -65,19 +88,29 @@
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
-        <Th Id="Type">@Properties.Resources.Type</Th>
+        <th>@Properties.Resources.Manufacturer</th>
+        <th>@Properties.Resources.Model</th>
+        <th>@Properties.Resources.Version</th>
         <Th Id="Name">@Properties.Resources.Name</Th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@template.Type</td>
-        <Td Path="@("/DeviceTemplate/Edit/" + template.Id)">@template.Name</Td>
+        <td>@template.Manufacturer?.Name</td>
+        <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Name</td>
+        <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault()?.Name</td>
+        <Td Link="@("DeviceTemplate/Edit/" + template.Id)">@template.Name</Td>
         <td>@template.CreationTime</td>
         <td>@template.Updated</td>
     </ItemContent>
 </GXTable>
 <br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 @code {
     /// <summary>
     /// Selected device template ID.
@@ -176,6 +209,11 @@
 
     protected override async Task OnInitializedAsync()
     {
+        GXDeviceVersion version = new GXDeviceVersion(null);
+        GXDeviceModel model = new GXDeviceModel(null);
+        model.Versions.Add(version);
+        filter.Manufacturer = new GXManufacturer(null);
+        filter.Manufacturer.Models.Add(model);
         //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
         await Task.Delay(1);
         try
@@ -186,6 +224,10 @@
             }
             Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateUpdate), async (deviceTemplate) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateDelete), async (deviceTemplate) =>
             {
                 await Updated();
             });
@@ -228,7 +270,9 @@
                     Filter = filter,
                     OrderBy = request.OrderBy,
                     Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData
+                    AllUsers = request.ShowAllUserData,
+                    //Get manufacturer settings.
+                    Select = TargetType.Manufacturer
                 };
             if (Count != 0)
             {

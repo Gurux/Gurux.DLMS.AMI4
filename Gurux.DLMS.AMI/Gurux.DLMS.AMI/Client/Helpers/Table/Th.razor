@@ -7,7 +7,7 @@
     <span class="@(GetSortIcon())"></span>
 </th>
 
-@code 
+@code
 {
     /// <summary>
     /// Parent table.
@@ -24,7 +24,7 @@
     /// <summary>
     /// Default Sort mode.
     /// </summary>
-    [Parameter] 
+    [Parameter]
     public SortMode SortMode { get; set; } = SortMode.None;
 
     [Parameter]
@@ -36,7 +36,7 @@
     [Parameter]
     public string? CssClass { get; set; } = "sort-th";
 
-    [Parameter(CaptureUnmatchedValues = true)] 
+    [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
     /// <summary>
@@ -62,21 +62,24 @@
     /// <param name="column"></param>
     public void SortTable()
     {
-        if (Id != Parent.OrderBy)
+        if (Parent != null)
         {
-            Parent.OrderBy = Id;
-            Parent.SortMode = SortMode.Ascending;
+            if (Id != Parent.OrderBy)
+            {
+                Parent.OrderBy = Id;
+                Parent.SortMode = SortMode.Ascending;
+            }
+            else
+            {
+                Parent.SortMode = (SortMode)(((int)++Parent.SortMode) % 3);
+            }
+            Parent.NotifyShortChange();
         }
-        else
-        {
-            Parent.SortMode = (SortMode)(((int)++Parent.SortMode) % 3);
-        }
-        Parent.NotifyShortChange();
     }
 
     public string GetSortIcon()
     {
-        if (Parent.OrderBy == Id)
+        if (Parent != null && Parent.OrderBy == Id)
         {
             switch (Parent.SortMode)
             {

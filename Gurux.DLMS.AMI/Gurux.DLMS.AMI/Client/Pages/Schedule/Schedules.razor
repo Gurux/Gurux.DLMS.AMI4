@@ -75,7 +75,7 @@
         <Th Id="ExecutionTime">@Properties.Resources.LastExecutionTime</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Schedule/Edit/" + schedule.Id)">@schedule.Name</Td>
+        <Td Link="@("Schedule/Edit/" + schedule.Id)">@schedule.Name</Td>
         <td>@schedule.Start</td>
         <td>@schedule.CreationTime</td>
         <td>@schedule.Updated</td>

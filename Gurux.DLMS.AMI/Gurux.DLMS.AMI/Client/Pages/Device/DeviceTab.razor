@@ -2,6 +2,7 @@
 @page "/Device/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 @using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -28,7 +29,7 @@
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
                 <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
-                        <Device Action="@Action"></Device>
+                        <Device @ref="_device" Action="@Action"></Device>
                     </div>
                 </TabPage>
             </AuthorizeView>
@@ -58,6 +59,11 @@
     public string? Action { get; set; }
 
     /// <summary>
+    /// Device UI reference.
+    /// </summary>
+    private Device? _device;
+
+    /// <summary>
     /// Active page.
     /// </summary>
     [Parameter]
@@ -78,6 +84,72 @@
     /// Active item.
     /// </summary>
     public GXDevice Active = new GXDevice(null);
+
+    /// <summary>
+    /// List of manufacturer templates.
+    /// </summary>
+    public List<GXDeviceTemplate>? ManufacturerTemplates;
+    /// <summary>
+    /// List of custom templates.
+    /// </summary>
+    public List<GXDeviceTemplate>? CustomTemplates;
+    /// <summary>
+    /// Installed manufacturers.
+    /// </summary>
+    public GXManufacturer[]? Manufacturers;
+    public GXDeviceTemplate[]? Templates;
+
+    /// <summary>
+    /// Separate custom templates the manufacturer templates.
+    /// </summary>
+    private void UpdateTemplates(IEnumerable<GXDeviceTemplate> templates)
+    {
+        Templates = templates.ToArray();
+        //Get Manufacturer templates.
+        List<Guid> manufacturerTemplates = new List<Guid>();
+        if (Manufacturers != null)
+        {
+            foreach (var manufacturer in Manufacturers)
+            {
+                if (manufacturer.Models != null)
+                {
+                    foreach (var model in manufacturer.Models)
+                    {
+                        if (model.Versions != null)
+                        {
+                            foreach (var version in model.Versions)
+                            {
+                                if (version.Settings != null)
+                                {
+                                    foreach (var settings in version.Settings)
+                                    {
+                                        if (settings.Template != null)
+                                        {
+                                            //If manufacturer template.
+                                            manufacturerTemplates.Add(settings.Template.Id);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ManufacturerTemplates = new List<GXDeviceTemplate>();
+            CustomTemplates = new List<GXDeviceTemplate>();
+            foreach (var it in templates)
+            {
+                if (manufacturerTemplates.Contains(it.Id))
+                {
+                    ManufacturerTemplates.Add(it);
+                }
+                else
+                {
+                    CustomTemplates.Add(it);
+                }
+            }
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -115,6 +187,51 @@
                     StateHasChanged();
                 }
             }
+            //Get installed manufacturer settings.
+            var filter2 = new Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXManufacturer(null);
+            filter2.Template = true;
+            GXDeviceModel model = new GXDeviceModel(null);
+            GXDeviceVersion version = new GXDeviceVersion(null);
+            GXDeviceSettings settings = new GXDeviceSettings();
+            settings.InstallationTime = DateTimeOffset.MinValue;
+            if (Action != "Add")
+            {
+                //Get only selected manufacturer.
+                settings.Template = Active.Template;
+            }
+            filter2.Models.Add(model);
+            model.Versions.Add(version);
+            version.Settings.Add(settings);
+            ListManufacturersResponse ret2 = await Http.PostAsJson<ListManufacturersResponse>("api/Manufacturer/List",
+            new ListManufacturers()
+                {
+                    Filter = filter2,
+                    //Get model and version info.
+                    Select = TargetType.Version
+                });
+            List<GXManufacturer> tmp2 = new List<GXManufacturer>(ret2.Manufacturers);
+            //Add custom manufacturer.
+            tmp2.Add(new GXManufacturer(Properties.Resources.Custom));
+            Manufacturers = tmp2.ToArray();
+
+            //Get device templates.
+            ListDeviceTemplates req = new ListDeviceTemplates()
+                {
+                    Filter = new GXDeviceTemplate()
+                };
+            if (Active?.Template != null && Action != "Add")
+            {
+                //Get only selected template.
+                var ret = await Http.GetAsJsonAsync<GetDeviceTemplateResponse>("api/DeviceTemplate?Id=" + Active.Template.Id);
+                UpdateTemplates(new GXDeviceTemplate[] { ret.Item });
+            }
+            else
+            {
+                //Get all templates when new device is added.
+                var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
+                UpdateTemplates(ret.Templates);
+            }
+            _device?.Update();
         }
         catch (AccessTokenNotAvailableException exception)
         {

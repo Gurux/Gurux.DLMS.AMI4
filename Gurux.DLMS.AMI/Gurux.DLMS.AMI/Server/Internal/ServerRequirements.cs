@@ -70,6 +70,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddWorkflowGroupRequirements(options, issuer);
             AddWorkflowLogRequirements(options, issuer);
             AddScriptRequirements(options, issuer);
+            AddManufacturerRequirements(options, issuer);
+            AddManufacturerGroupRequirements(options, issuer);
             AddUserSettingRequirements(options, issuer);
             AddScriptGroupRequirements(options, issuer);
             AddScriptLogRequirements(options, issuer);
@@ -537,6 +539,68 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXScriptPolicies.Delete, issuer)
                 { Roles = new string[] { GXRoles.Admin, GXRoles.ScriptManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add manufacturer requirements that are used for policy.
+        /// </summary>
+        private static void AddManufacturerRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXManufacturerPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.Manufacturer, GXRoles.ManufacturerManager } });
+            });
+            options.AddPolicy(GXManufacturerPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerManager } });
+            });
+            options.AddPolicy(GXManufacturerPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerManager } });
+            });
+            options.AddPolicy(GXManufacturerPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add manufacturer group requirements that are used for policy.
+        /// </summary>
+        private static void AddManufacturerGroupRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXManufacturerGroupPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerGroupPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerGroup, GXRoles.ManufacturerGroupManager } });
+            });
+            options.AddPolicy(GXManufacturerGroupPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerGroupPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerGroupManager } });
+            });
+            options.AddPolicy(GXManufacturerGroupPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerGroupPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerGroupManager } });
+            });
+            options.AddPolicy(GXManufacturerGroupPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXManufacturerGroupPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerGroupManager } });
             });
         }
 

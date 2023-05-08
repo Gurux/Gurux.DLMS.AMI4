@@ -1,0 +1,454 @@
+﻿@page "/favorites"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Favorites</PageTitle>
+}
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+    </ChildContent>
+</MenuControl>
+
+<GXTable @ref="table"
+         Context="favorite"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="@Filter"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by name..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by type..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Type = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by path..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Path = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnRemove"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name" SortMode="SortMode.Ascending">@Properties.Resources.Name</Th>
+        <Th Id="Type">@Properties.Resources.Type</Th>
+        <Th Id="Path">@Properties.Resources.Location</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@favorite.Path">@GetName(favorite)</Td>
+        <td>@favorite.Type</td>
+        <td>@favorite.Path</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         AllowDelete="false"
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected user action ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    string GetName(GXFavorite value)
+    {
+        if (!string.IsNullOrEmpty(value.Name))
+        {
+            return value.Name;
+        }
+        TargetType target;
+        string name = "";
+        if (string.Compare(value.Type, "logs", true) == 0)
+        {
+            name = "Logs";
+        }
+        else if (Enum.TryParse(value.Type, true, out target))
+        {
+            switch (target)
+            {
+                case TargetType.Device:
+                    name = Properties.Resources.Devices;
+                    break;
+                case TargetType.Object:
+                    name = Properties.Resources.Objects;
+                    break;
+                case TargetType.Attribute:
+                    name = Properties.Resources.Attributes;
+                    break;
+                case TargetType.Value:
+                    name = Properties.Resources.Values;
+                    break;
+                case TargetType.Task:
+                    name = Properties.Resources.Tasks;
+                    break;
+                case TargetType.DeviceError:
+                    name = Properties.Resources.DeviceErrors;
+                    break;
+                case TargetType.SystemLog:
+                    name = Properties.Resources.SystemLogs;
+                    break;
+                case TargetType.UserError:
+                    name = Properties.Resources.UserErrors;
+                    break;
+                case TargetType.ScheduleLog:
+                    name = Properties.Resources.ScheduleLogs;
+                    break;
+                case TargetType.WorkflowLog:
+                    name = Properties.Resources.WorkflowLogs;
+                    break;
+                case TargetType.AgentLog:
+                    name = Properties.Resources.AgentLogs;
+                    break;
+                case TargetType.ScriptLog:
+                    name = Properties.Resources.ScriptLogs;
+                    break;
+                case TargetType.ModuleLog:
+                    name = Properties.Resources.ModuleLogs;
+                    break;
+                case TargetType.DeviceAction:
+                    name = Properties.Resources.DeviceActions;
+                    break;
+                case TargetType.UserAction:
+                    name = Properties.Resources.UserActions;
+                    break;
+                case TargetType.DeviceLog:
+                    name = Properties.Resources.DeviceErrors;
+                    break;
+                case TargetType.Schedule:
+                    name = Properties.Resources.SchedulesTitle;
+                    break;
+                case TargetType.Agent:
+                    name = Properties.Resources.Agents;
+                    break;
+                case TargetType.DeviceTemplate:
+                    name = Properties.Resources.DeviceTemplates;
+                    break;
+                case TargetType.ObjectTemplate:
+                    name = Properties.Resources.ObjectTemplates;
+                    break;
+                case TargetType.UserGroup:
+                    name = Properties.Resources.UserGroupsTitle;
+                    break;
+                case TargetType.User:
+                    name = Properties.Resources.UsersTitle;
+                    break;
+                case TargetType.Configuration:
+                    name = Properties.Resources.Configuration;
+                    break;
+                case TargetType.Module:
+                    name = Properties.Resources.ModulesTitle;
+                    break;
+                case TargetType.Workflow:
+                    name = Properties.Resources.Workflows;
+                    break;
+                case TargetType.Script:
+                    name = Properties.Resources.Scripts;
+                    break;
+                case TargetType.Block:
+                    name = Properties.Resources.Blocks;
+                    break;
+                case TargetType.Trigger:
+                    name = Properties.Resources.Triggers;
+                    break;
+                case TargetType.TriggerGroup:
+                    name = Properties.Resources.TriggerGroups;
+                    break;
+                case TargetType.DeviceGroup:
+                    name = Properties.Resources.DeviceGroups;
+                    break;
+                case TargetType.ScheduleGroup:
+                    name = Properties.Resources.ScheduleGroups;
+                    break;
+                case TargetType.AgentGroup:
+                    name = Properties.Resources.AgentGroups;
+                    break;
+                case TargetType.ScriptGroup:
+                    name = Properties.Resources.ScriptGroups;
+                    break;
+                case TargetType.DeviceTemplateGroup:
+                    name = Properties.Resources.DeviceTemplateGroups;
+                    break;
+                case TargetType.ComponentView:
+                    name = Properties.Resources.ComponentViews;
+                    break;
+                case TargetType.ComponentViewGroup:
+                    name = Properties.Resources.ComponentViewGroups;
+                    break;
+                case TargetType.Role:
+                    name = Properties.Resources.Roles;
+                    break;
+                case TargetType.Manufacturer:
+                    name = Properties.Resources.Manufacturers;
+                    break;
+                case TargetType.ManufacturerGroup:
+                    name = Properties.Resources.ManufacturerGroups;
+                    break;
+                default:
+                    name = Properties.Resources.Unknown;
+                    break;
+            }
+        }
+        return name;
+    }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Favorites;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-info";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the user actions shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = false;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// User action log filter.
+    /// </summary>
+    private GXFavorite filter = new GXFavorite();
+
+    /// <summary>
+    /// User is verified before user is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    public string? SelectedUser
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXFavorite? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXFavorite>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXFavorite>>(this, nameof(IGXHubEvents.FavoriteUpdate), async (actions) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXFavorite>>(this, nameof(IGXHubEvents.FavoriteDelete), async (actions) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXFavorite() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXFavorite>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListFavorites req = new ListFavorites()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListFavoritesResponse>("api/Favorite/List", req, request.CancellationToken);
+            if (ret.Favorites != null)
+            {
+                return new ItemsProviderResult<GXFavorite>(ret.Favorites, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Remove selected favorites.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Path).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected favorites.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveFavorite req = new RemoveFavorite()
+                    {
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveFavoriteResponse>("api/Favorite/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

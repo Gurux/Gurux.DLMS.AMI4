@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -656,5 +657,41 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="settings">Deleted user settings.</param>
         Task UserSettingDelete(IEnumerable<GXUserSetting> settings);
+
+        /// <summary>
+        /// New manufacturer is added or modified.
+        /// </summary>
+        /// <param name="manufacturers">Updated manufacturers.</param>
+        Task ManufacturerUpdate(IEnumerable<GXManufacturer> manufacturers);
+
+        /// <summary>
+        /// Manufacturer is deleted.
+        /// </summary>
+        /// <param name="manufacturers">Deleted manufacturers.</param>
+        Task ManufacturerDelete(IEnumerable<GXManufacturer> manufacturers);
+
+        /// <summary>
+        /// New manufacturer group is added or modified.
+        /// </summary>
+        /// <param name="manufacturers">Updated manufacturer groups.</param>
+        Task ManufacturerGroupUpdate(IEnumerable<GXManufacturerGroup> groups);
+
+        /// <summary>
+        /// Manufacturer group is deleted.
+        /// </summary>
+        /// <param name="manufacturers">Deleted manufacturer groups.</param>
+        Task ManufacturerGroupDelete(IEnumerable<GXManufacturerGroup> groups);
+
+        /// <summary>
+        /// Favorite is added or modified.
+        /// </summary>
+        /// <param name="groups">Updated favorites.</param>
+        Task FavoriteUpdate(IEnumerable<GXFavorite> favorites);
+
+        /// <summary>
+        /// Favorite is deleted.
+        /// </summary>
+        /// <param name="favorites">Deleted favorites.</param>
+        Task FavoriteDelete(IEnumerable<GXFavorite> favorites);
     }
 }

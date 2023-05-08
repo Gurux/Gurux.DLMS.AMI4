@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Security.Claims;
@@ -1620,6 +1621,166 @@ namespace Gurux.DLMS.AMI.Server.Internal
             else
             {
                 args.Where.And<GXBlock>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get manufacturer groups that user can access.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="groupId">Manufacturer group id.</param>
+        /// <returns>List of manufacturer groups that user can access.</returns>
+        public static GXSelectArgs GetManufacturerGroupsByUser(string userId, Guid? groupId = null)
+        {
+            GXSelectArgs userGroups = GetUserGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXUserGroupManufacturerGroup>(s => s.ManufacturerGroupId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXManufacturerGroup>();
+            args.Joins.AddInnerJoin<GXUserGroupManufacturerGroup, GXManufacturerGroup>(j => j.ManufacturerGroupId, j => j.Id);
+            args.Where.And<GXUserGroupManufacturerGroup>(q => GXSql.Exists<GXUserGroupManufacturerGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
+            if (groupId != null)
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Id == groupId);
+            }
+            args.Where.And<GXManufacturerGroup>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the manufacturer group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupId">Manufacturer group id.</param>
+        /// <returns>List of users who can access the manufacturer group.</returns>
+        public static GXSelectArgs GetUsersByManufacturerGroup(string userId, Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupManufacturerGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupManufacturerGroup, GXManufacturerGroup>(a => a.ManufacturerGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupId != null)
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed == null && q.Id == groupId);
+            }
+            else
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the manufacturer group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupIds">Manufacturer group ids.</param>
+        /// <returns>List of users who can access the manufacturer group.</returns>
+        public static GXSelectArgs GetUsersByManufacturerGroups(string userId, IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupManufacturerGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupManufacturerGroup, GXManufacturerGroup>(a => a.ManufacturerGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupIds != null)
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXManufacturerGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get manufacturers that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="manufacturerId">Device Id</param>
+        /// <returns>List of manufacturers that user can access.</returns>
+        public static GXSelectArgs GetManufacturersByUser(string userId, Guid? manufacturerId = null)
+        {
+            GXSelectArgs manufacturerGroups = GetManufacturerGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXManufacturerGroupManufacturer>(s => s.ManufacturerId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXManufacturer>();
+            args.Joins.AddInnerJoin<GXManufacturerGroupManufacturer, GXManufacturer>(j => j.ManufacturerId, j => j.Id);
+            args.Where.And<GXManufacturerGroupManufacturer>(q => GXSql.Exists<GXManufacturerGroupManufacturer, GXManufacturerGroup>(j => j.ManufacturerGroupId, j => j.Id, manufacturerGroups));
+            if (manufacturerId != null)
+            {
+                args.Where.And<GXManufacturer>(q => q.Id == manufacturerId);
+            }
+            args.Where.And<GXManufacturer>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the manufacturer.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="manufacturerId">Manufacturer id.</param>
+        /// <returns>List of users who can access the manufacturer group.</returns>
+        public static GXSelectArgs GetUsersByManufacturer(string userId, Guid? manufacturerId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupManufacturerGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupManufacturerGroup, GXManufacturerGroup>(a => a.ManufacturerGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXManufacturerGroup, GXManufacturerGroupManufacturer>(a => a.Id, b => b.ManufacturerGroupId);
+            args.Joins.AddInnerJoin<GXManufacturerGroupManufacturer, GXManufacturer>(a => a.ManufacturerId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXManufacturerGroup>(where => where.Removed == null);
+            if (manufacturerId != null && manufacturerId != Guid.Empty)
+            {
+                args.Where.And<GXManufacturer>(where => where.Removed == null && where.Id == manufacturerId);
+            }
+            else
+            {
+                args.Where.And<GXManufacturer>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the manufacturer.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="manufacturerIds">Manufacturer ids.</param>
+        /// <returns>List of users who can access the manufacturer group.</returns>
+        public static GXSelectArgs GetUsersByManufacturers(string userId, IEnumerable<Guid>? manufacturerIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupManufacturerGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupManufacturerGroup, GXManufacturerGroup>(a => a.ManufacturerGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXManufacturerGroup, GXManufacturerGroupManufacturer>(a => a.Id, b => b.ManufacturerGroupId);
+            args.Joins.AddInnerJoin<GXManufacturerGroupManufacturer, GXManufacturer>(a => a.ManufacturerId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXManufacturerGroup>(where => where.Removed == null);
+            if (manufacturerIds != null && manufacturerIds.Any())
+            {
+                args.Where.And<GXManufacturer>(where => where.Removed == null && manufacturerIds.Contains(where.Id));
+            }
+            else
+            {
+                args.Where.And<GXManufacturer>(where => where.Removed == null);
             }
             return args;
         }

@@ -39,7 +39,7 @@ else
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
                 <TabPage Text=@Properties.Resources.ModulesTitle Icon="oi oi-puzzle-piece">
                     <div style="position: relative; width: 100%; ">
-                        <Modules></Modules>
+                        <Modules Title="false"></Modules>
                     </div>
                 </TabPage>
             </AuthorizeView>

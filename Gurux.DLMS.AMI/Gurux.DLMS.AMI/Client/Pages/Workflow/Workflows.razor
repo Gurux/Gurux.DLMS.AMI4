@@ -63,7 +63,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/Workflow/Edit/" + workflow.Id)"><span class=@(ClientHelpers.GetActiveDot(workflow.Active))></span>@workflow.Name</Td>
+        <Td Link="@("Config/Workflow/Edit/" + workflow.Id)"><span class=@(ClientHelpers.GetActiveDot(workflow.Active))></span>@workflow.Name</Td>
         <td>@workflow.CreationTime</td>
         <td>@workflow.Updated</td>
     </ItemContent>

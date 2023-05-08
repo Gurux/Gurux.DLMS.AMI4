@@ -21,6 +21,7 @@
 @using System.Text.Encodings.Web
 @using System.Text.Json.Serialization
 @using System.Diagnostics
+@using Gurux.DLMS.AMI.Client.Helpers.Validation
 
 @attribute [Authorize(Roles = "Admin, Device, DeviceManager")]
 @inject NavigationManager NavigationManager
@@ -31,7 +32,7 @@
 
     @if (_templateSettings != null && Active != null)
     {
-        @if (templates != null && templates.Any())
+        @if (Parent?.Templates != null && Parent.Templates.Any())
         {
             @if (Notifier.Action != CrudAction.Create)
             {
@@ -42,72 +43,178 @@
                 </MenuControl>
             }
             <EditForm Model="@Active">
-                <div class="row">
-                    <div style="width:100%">
-                        <div class="form-group">
-                            <label>Type:</label>
-                            <InputSelect id="type" class="form-control"
-                                 @bind-Value="SelectedTemplate" disabled="@IsCreate()">
-                                @foreach (var it in templates)
+                <DataAnnotationsValidator />
+                <GXValidator @ref="_deviceValidator" OnValidate="OnValidate" />
+                <ul>
+                    @foreach (var message in context.GetValidationMessages())
+                    {
+                        <li class="validation-message">@message</li>
+                    }
+                </ul>
+                <div class="row justify-content-center">
+                    <div>
+                        @if (Parent.Manufacturers != null && Parent.Manufacturers.Any())
+                        {
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Manufacturer</label>
+                                <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedManufacturer" disabled="@IsCreate()">
+                                    @foreach (var it in Parent.Manufacturers)
+                                    {
+                                        <option value="@it.Id">@it.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                        }
+                        @if (_manufacturer != null && _manufacturer.Id != Guid.Empty)
+                        {
+                            @if (_manufacturer?.Models != null)
+                            {
+                                <div class="form-group row">
+                                    <label>@Properties.Resources.Model</label>
+                                    <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedModel" disabled="@IsCreate()">
+                                        @foreach (var it in _manufacturer.Models)
+                                        {
+                                            <option value="@it.Id">@it.Name</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                @if (_model?.Versions != null)
                                 {
-                                    <option value="@it.Name">@it.Name</option>
-                                }
-                            </InputSelect>
-                        </div>
-                        <div class="form-group">
-                            <label>Manufacturer:</label>
-                            <InputText id="manuacturer" class="form-control" readonly="readonly"
-                               @bind-Value="_templateSettings.Manufacturer" />
-                        </div>
-                        <div class="form-group">
-                            <label>Name:</label>
-                            <InputText id="name" class="form-control"
+                                    <div class="form-group row">
+                                        <label>@Properties.Resources.Version</label>
+                                        <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedVersion" disabled="@IsCreate()">
+                                            @foreach (var it in _model.Versions)
+                                            {
+                                                <option value="@it.Id">
+                                                    @(string.IsNullOrEmpty(it.Name) ? Properties.Resources.Generic : it.Name)
+                                                </option>
+                                            }
+                                        </InputSelect>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label>@Properties.Resources.Name</label>
+                                        <InputText id="name" class="form-control"
                                @bind-Value="Active.Name" />
-                        </div>
-                        <div class="form-group">
-                            <label style="margin:auto">&nbsp;Interface:&nbsp;</label>
-                            <select class="form-control" @bind="@_settings.InterfaceType">
-                                @foreach (var it in InterfaceList)
-                                {
-                                    <option value="@Convert.ToInt32(it)">@it</option>
-                                }
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Authentication:</label>
-                            <InputText id="authentication" class="form-control" readonly="readonly"
-                               @bind-Value="Authentication" />
-                        </div>
-                        <div class="form-group">
-                            <label>Password:</label>
-                            <InputText id="password" class="form-control"
+                                        <ValidationMessage For="@(() => Active.Name)" />
+                                    </div>
+
+                                    @if (_version?.Settings != null)
+                                    {
+                                        <div class="form-group row">
+                                            <label>@Properties.Resources.InterfaceType</label>
+                                            <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                                @foreach (var it in GetInterfaceTypes())
+                                                {
+                                                    <option value="@it.Id">@GetInterfaceType(it)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label>@Properties.Resources.Authentication</label>
+                                            <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                                @foreach (var it in GetAuthenticationLevels())
+                                                {
+                                                    <option value="@it.Id">@GetAuthenticationLevel(it)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label>@Properties.Resources.Password</label>
+                                            <InputText id="password" class="form-control"
                                @bind-Value="Password" disabled="@IsAuthenticated()" />
+                                            <ValidationMessage For="@(() => Password)" />
+                                        </div>
+                                        <div class="form-group row">
+                                            <label>@Properties.Resources.Security</label>
+                                            <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                                @foreach (var it in GetSecurity())
+                                                {
+                                                    <option value="@it.Id">@GetSecurity(it)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Type</label>
+                                <InputSelect id="type" class="form-control"
+                                 @bind-Value="SelectedTemplate" disabled="@IsCreate()">
+                                    @foreach (var it in GetCustomTemplates())
+                                    {
+                                        <option value="@it.Name">@it.Name</option>
+                                    }
+                                </InputSelect>
+                            </div>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Manufacturer</label>
+                                <InputText id="manuacturer" class="form-control" readonly="readonly"
+                               @bind-Value="_templateSettings.Manufacturer" />
+                            </div>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Name</label>
+                                <InputText id="Name" class="form-control"
+                               @bind-Value="Active.Name" />
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            </div>
+                            <div class="form-group row">
+                                <label style="margin:auto">&nbsp;@Properties.Resources.InterfaceType&nbsp;</label>
+                                <select class="form-control" @bind="@_settings.InterfaceType">
+                                    @foreach (var it in InterfaceList)
+                                    {
+                                        <option value="@Convert.ToInt32(it)">@it</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Authentication</label>
+                                <InputText id="authentication" class="form-control" readonly="readonly"
+                               @bind-Value="Authentication" />
+                            </div>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Password</label>
+                                <InputText id="password" class="form-control"
+                               @bind-Value="Password" disabled="@IsAuthenticated()" />
+                                <ValidationMessage For="@(() => Password)" />
+                            </div>
+                        }
+                        @if (_settings != null && _settings.HDLCAddressing == (int)HDLCAddressType.SerialNumber)
+                        {
+                            <div class="form-group row">
+                                <label>@Properties.Resources.SerialNumber</label>
+                                <InputNumber id="resend" class="form-control"
+                                 @bind-Value="_settings.PhysicalAddress" />
+                                <ValidationMessage For="@(() => _settings.PhysicalAddress)" />
+                            </div>
+                        }
+
+                        <div class="form-group row">
+                            <label>@Properties.Resources.WaitTime</label>
+                            <InputNumber id="resend" class="form-control"
+                                 @bind-Value="Active.WaitTime" />
+                            <ValidationMessage For="@(() => Active.WaitTime)" />
                         </div>
-                        <div class="form-group">
-                            <label style="margin:auto">Media:</label>
+                        <div class="form-group row">
+                            <label>Resend count</label>
+                            <InputNumber id="resend" class="form-control"
+                                 @bind-Value="Active.ResendCount" />
+                            <ValidationMessage For="@(() => Active.ResendCount)" />
+                        </div>
+                        <div class="form-group row">
+                            <label style="margin:auto">@Properties.Resources.Media</label>
                             <select class="form-control" @bind="@Active.MediaType">
                                 @foreach (var it in MediaList)
                                 {
                                     <option value="@it.Key"> @it.Value </option>
-                                }
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Wait time:</label>
-                            <InputNumber id="resend" class="form-control"
-                                 @bind-Value="Active.WaitTime" />
-                        </div>
-                        <div class="form-group">
-                            <label>Resend count:</label>
-                            <InputNumber id="resend" class="form-control"
-                                 @bind-Value="Active.ResendCount" />
-                        </div>
-                        <div class="form-group">
-                            <label>@Properties.Resources.TraceLevels:</label>
-                            <select class="form-control" @bind="Active.TraceLevel">
-                                @foreach (var it in TraceLevels)
-                                {
-                                    <option value="@it">@it</option>
                                 }
                             </select>
                         </div>
@@ -120,10 +227,19 @@
                             <SerialSettings @ref=serialSettings></SerialSettings>
                         }
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
+                        <div class="form-group row">
+                            <label>@Properties.Resources.TraceLevels</label>
+                            <select class="form-control" @bind="Active.TraceLevel">
+                                @foreach (var it in TraceLevels)
+                                {
+                                    <option value="@it">@it</option>
+                                }
+                            </select>
+                        </div>
                     </div>
                     @if (Active.CreationTime != DateTime.MinValue)
                     {
-                        <div class="form-group">
+                        <div class="form-group row">
                             <label>@Properties.Resources.CreationTime</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
                            @bind-Value="Active.CreationTime" />
@@ -131,7 +247,7 @@
                     }
                     @if (Active.Updated != null)
                     {
-                        <div class="form-group">
+                        <div class="form-group row">
                             <label>@Properties.Resources.Updated</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
                            @bind-Value="Active.Updated" />
@@ -139,7 +255,7 @@
                     }
                     @if (Active.Removed != null)
                     {
-                        <div class="form-group">
+                        <div class="form-group row">
                             <label>@Properties.Resources.Removed</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
                            @bind-Value="Active.Removed" />
@@ -150,7 +266,7 @@
                         <hr />
                         <p>
                         </p>
-                        <div class="form-group">
+                        <div class="form-group row">
                             <InputRadioGroup @bind-Value="DeleteTarget">
                                 <InputRadio Value="false">
                                 </InputRadio>
@@ -163,9 +279,10 @@
                         </div>
                     }
                 </div>
+                <br />
             </EditForm>
         }
-        else if (templates != null)
+        else if (Parent?.Templates != null)
         {
             Notifier.ShowInformation(string.Format("{0}Device templates{1} must be added before devices can be added.", "<a href=DeviceTemplates>", "</a>"));
         }
@@ -187,6 +304,240 @@
             }
             return Parent?.Active;
         }
+    }
+
+    /// <summary>
+    /// Find only custom templates from the device templates and remove manufacturer templates.
+    /// </summary>
+    /// <returns>Collection of custom templates.</returns>
+    private IEnumerable<GXDeviceTemplate> GetCustomTemplates()
+    {
+        if (Parent?.CustomTemplates == null)
+        {
+            return new GXDeviceTemplate[0];
+        }
+        return Parent.CustomTemplates;
+    }
+
+    private GXValidator? _deviceValidator;
+
+
+    private void SelectFirstManufacturer()
+    {
+        if (Active != null && Parent?.Manufacturers != null && Parent.Manufacturers.Any())
+        {
+            SelectedManufacturer = Parent.Manufacturers[0].Id;
+            if (_deviceSettings?.Template != null && Parent?.Templates != null && Parent.Templates.Any())
+            {
+                Active.Template = Parent.Templates.Where(w => w.Id == _deviceSettings.Template.Id).SingleOrDefault();
+            }
+        }
+    }
+
+    private void SelectFirstCustomTemplate()
+    {
+        if (Active != null && Parent?.CustomTemplates != null && Parent.CustomTemplates.Any())
+        {
+            Active.Template = Parent.CustomTemplates[0];
+            Active.WaitTime = Active.Template.WaitTime;
+            Active.ResendCount = Active.Template.ResendCount;
+        }
+    }
+    /// <summary>
+    /// Device tab asks to update the UI.
+    /// </summary>
+    public void Update()
+    {
+        if (Active != null)
+        {
+            //New device is created.
+            if (Active.Template == null || Active.Template.Id == Guid.Empty)
+            {
+                //Select first manufacturer.
+                SelectFirstManufacturer();
+                //The first custom teplate is selected is manufacturer is not selected.
+                SelectFirstCustomTemplate();
+            }
+            else if (Parent?.Manufacturers != null && Parent.Manufacturers.Any())
+            {
+                //Find manufacturer.
+                bool found = false;
+                foreach (var manufacturer in Parent.Manufacturers)
+                {
+                    if (manufacturer.Models != null)
+                    {
+                        foreach (var model in manufacturer.Models)
+                        {
+                            if (model.Versions != null)
+                            {
+                                foreach (var version in model.Versions)
+                                {
+                                    if (version.Settings != null)
+                                    {
+                                        foreach (var settings in version.Settings)
+                                        {
+                                            if (settings?.Template?.Id == Active.Template.Id)
+                                            {
+                                                _manufacturer = manufacturer;
+                                                _model = model;
+                                                _version = version;
+                                                _deviceSettings = settings;
+                                                settings.Settings = Active.Settings;
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    if (found)
+                                    {
+                                        break;
+                                    }
+                                }
+                                if (found)
+                                {
+                                    break;
+                                }
+                            }
+                            if (found)
+                            {
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            break;
+                        }
+                    }
+                    if (found)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (Active.Template != null
+                && !string.IsNullOrEmpty(Active.Template.Settings))
+            {
+                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
+            }
+            if (!string.IsNullOrEmpty(Active.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            }
+            else
+            {
+                //Use template settings as default meter settings when the meter is created.
+                _settings = _templateSettings;
+            }
+            if (string.IsNullOrEmpty(Active.MediaType))
+            {
+                Active.MediaType = typeof(GXNet).FullName;
+            }
+            if (Active.Parameters != null)
+            {
+                Parameters.AddRange(Active.Parameters);
+            }
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Get available interface types.
+    /// </summary>
+    /// <returns>Available interface types.</returns>
+    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetInterfaceTypes()
+    {
+        Gurux.DLMS.Enums.InterfaceType current = Gurux.DLMS.Enums.InterfaceType.HDLC;
+        if (_deviceSettings != null)
+        {
+            current = GetInterfaceType(_deviceSettings);
+        }
+        List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
+        List<Gurux.DLMS.Enums.InterfaceType> items = new List<Enums.InterfaceType>();
+        if (_version?.Settings != null)
+        {
+            foreach (var it in _version.Settings)
+            {
+                var item = GetInterfaceType(it);
+                if (!items.Contains(item) && (_deviceSettings == null || it.Id == _deviceSettings.Id || item != current))
+                {
+                    settings.Add(it);
+                    items.Add(item);
+                }
+            }
+        }
+        return settings;
+    }
+
+    /// <summary>
+    /// Get available authentication levels.
+    /// </summary>
+    /// <returns>Available authentication levels.</returns>
+    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetAuthenticationLevels()
+    {
+        Gurux.DLMS.Enums.Authentication current = Gurux.DLMS.Enums.Authentication.None;
+        if (_deviceSettings != null)
+        {
+            current = GetAuthenticationLevel(_deviceSettings);
+        }
+        List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
+        List<Gurux.DLMS.Enums.Authentication> items = new List<Enums.Authentication>();
+        if (_version?.Settings != null)
+        {
+            foreach (var it in _version.Settings)
+            {
+                var item = GetAuthenticationLevel(it);
+                if (!items.Contains(item) && (_deviceSettings == null || it.Id == _deviceSettings.Id || item != current))
+                {
+                    settings.Add(it);
+                    items.Add(item);
+                }
+            }
+        }
+        return settings;
+    }
+
+    /// <summary>
+    /// Get available security levels.
+    /// </summary>
+    /// <returns>Available security levels.</returns>
+    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurity()
+    {
+        Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
+        if (_deviceSettings != null)
+        {
+            current = GetSecurity(_deviceSettings);
+        }
+        List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
+        List<Gurux.DLMS.Enums.Security> items = new List<Enums.Security>();
+        if (_version?.Settings != null)
+        {
+            foreach (var it in _version.Settings)
+            {
+                var item = GetSecurity(it);
+                if (!items.Contains(item) && (_deviceSettings == null || it.Id == _deviceSettings.Id || item != current))
+                {
+                    settings.Add(it);
+                    items.Add(item);
+                }
+            }
+        }
+        return settings;
+    }
+
+
+    Gurux.DLMS.Enums.InterfaceType GetInterfaceType(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
+    {
+        return (Gurux.DLMS.Enums.InterfaceType)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).InterfaceType;
+    }
+
+    Gurux.DLMS.Enums.Security GetSecurity(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
+    {
+        return (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Security;
+    }
+
+    Gurux.DLMS.Enums.Authentication GetAuthenticationLevel(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
+    {
+        return (Gurux.DLMS.Enums.Authentication)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Authentication;
     }
 
     /// <summary>
@@ -212,11 +563,6 @@
     Dictionary<string, string> MediaList = new Dictionary<string, string>();
     private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _settings;
     private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _templateSettings;
-
-    /// <summary>
-    /// List of templates.
-    /// </summary>
-    List<GXDeviceTemplate>? templates;
 
     TraceLevel[] TraceLevels = new TraceLevel[]
        {
@@ -265,11 +611,14 @@
         return "disabled";
     }
 
+    /// <summary>
+    /// Authentication level is read from the device template.
+    /// </summary>
     string? Authentication
     {
         get
         {
-            if (Active == null || Active.Template == null)
+            if (_templateSettings == null)
             {
                 return null;
             }
@@ -285,9 +634,8 @@
     {
         get
         {
-            if (_settings == null ||
-                _settings.HexPassword == null ||
-                _settings.HexPassword.Length == 0)
+            if (_settings?.HexPassword == null ||
+                !_settings.HexPassword.Any())
             {
                 return null;
             }
@@ -309,6 +657,190 @@
         }
     }
 
+    private Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXManufacturer? _manufacturer;
+    private Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceModel? _model;
+    private Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceVersion? _version;
+    private Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings? _deviceSettings;
+
+    /// <summary>
+    /// Selected manufacturer.
+    /// </summary>
+    private Guid? SelectedManufacturer
+    {
+        get
+        {
+            if (_manufacturer == null)
+            {
+                return null;
+            }
+            return _manufacturer.Id;
+        }
+        set
+        {
+            if (Parent?.Manufacturers != null && _manufacturer?.Id != value)
+            {
+                _manufacturer = null;
+                foreach (var manufacturer in Parent.Manufacturers)
+                {
+                    if (manufacturer.Id == value)
+                    {
+                        _manufacturer = manufacturer;
+                        if (manufacturer.Models != null && manufacturer.Models.Any())
+                        {
+                            SelectedModel = manufacturer.Models[0].Id;
+                        }
+                        else
+                        {
+                            _model = null;
+                            _version = null;
+                            _deviceSettings = null;
+                            StateHasChanged();
+                        }
+                        break;
+                    }
+                }
+                if (value == Guid.Empty)
+                {
+                    SelectFirstCustomTemplate();
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected model.
+    /// </summary>
+    private Guid? SelectedModel
+    {
+        get
+        {
+            if (_model == null)
+            {
+                return null;
+            }
+            return _model.Id;
+        }
+        set
+        {
+            if (_manufacturer?.Models != null && _model?.Id != value)
+            {
+                _model = null;
+                foreach (var model in _manufacturer.Models)
+                {
+                    if (model.Id == value)
+                    {
+                        _model = model;
+                        if (_model?.Versions != null && _model.Versions.Any())
+                        {
+                            SelectedVersion = _model.Versions[0].Id;
+                        }
+                        else
+                        {
+                            _version = null;
+                            StateHasChanged();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected version.
+    /// </summary>
+    private Guid? SelectedVersion
+    {
+        get
+        {
+            if (_version == null)
+            {
+                return null;
+            }
+            return _version.Id;
+        }
+        set
+        {
+            if (_model?.Versions != null && _model.Id != value)
+            {
+                _version = null;
+                foreach (var version in _model.Versions)
+                {
+                    if (version.Id == value)
+                    {
+                        _version = version;
+                        if (_version?.Settings != null && _version.Settings.Any())
+                        {
+                            SelectedSettings = _version.Settings[0].Id;
+                        }
+                        else
+                        {
+                            _deviceSettings = null;
+                            StateHasChanged();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected settings.
+    /// </summary>
+    private Guid? SelectedSettings
+    {
+        get
+        {
+            if (_deviceSettings == null)
+            {
+                return null;
+            }
+            return _deviceSettings.Id;
+        }
+        set
+        {
+            if (_version?.Settings != null && _deviceSettings?.Id != value)
+            {
+                _deviceSettings = null;
+                foreach (var settings in _version.Settings)
+                {
+                    if (settings.Id == value)
+                    {
+                        _deviceSettings = settings;
+                        if (Active != null && Parent?.Templates != null && _deviceSettings.Template != null)
+                        {
+                            Active.Template = null;
+                            foreach (var it in Parent.Templates)
+                            {
+                                if (it.Id == _deviceSettings.Template.Id)
+                                {
+                                    Active.Template = it;
+                                }
+                            }
+                            if (Active.Template != null)
+                            {
+                                Active.WaitTime = Active.Template.WaitTime;
+                                Active.ResendCount = Active.Template.ResendCount;
+                                Active.MediaType = Active.Template.MediaType;
+                                Active.MediaSettings = Active.Template.MediaSettings;
+                                Active.Settings = Active.Template.Settings;
+                                //Update template settings.
+                                if (_deviceSettings?.Settings != null)
+                                {
+                                    _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_deviceSettings.Settings);
+                                }
+                            }
+                        }
+                        StateHasChanged();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
     private string? SelectedTemplate
     {
         get
@@ -321,9 +853,9 @@
         }
         set
         {
-            if (Active != null && templates != null)
+            if (Active != null && Parent?.Templates != null)
             {
-                foreach (GXDeviceTemplate it in templates)
+                foreach (GXDeviceTemplate it in Parent.Templates)
                 {
                     if (it.Name == value)
                     {
@@ -360,7 +892,7 @@
     protected override async Task OnInitializedAsync()
     {
         MediaList.Add(typeof(GXNet).FullName, Properties.Resources.Network);
-        MediaList.Add(typeof(GXSerial).FullName, Properties.Resources.Serial);
+        MediaList.Add(typeof(GXSerial).FullName, Properties.Resources.SerialPort);
         HttpResponseMessage response;
         try
         {
@@ -429,44 +961,6 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            ListDeviceTemplates req = new ListDeviceTemplates()
-                {
-                    Filter = new GXDeviceTemplate()
-                };
-            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
-            templates = new List<GXDeviceTemplate>();
-            templates.AddRange(ret.Templates);
-            if (Active.Template == null)
-            {
-                if (templates.Count != 0)
-                {
-                    Active.Template = templates[0];
-                    Active.WaitTime = Active.Template.WaitTime;
-                    Active.ResendCount = Active.Template.ResendCount;
-                }
-            }
-            if (Active.Template != null
-                && !string.IsNullOrEmpty(Active.Template.Settings))
-            {
-                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
-            }
-            if (!string.IsNullOrEmpty(Active.Settings))
-            {
-                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
-            }
-            else
-            {
-                //Use template settings as default meter settings when the meter is created.
-                _settings = _templateSettings;
-            }
-            if (string.IsNullOrEmpty(Active.MediaType))
-            {
-                Active.MediaType = typeof(GXNet).FullName;
-            }
-            if (Active.Parameters != null)
-            {
-                Parameters.AddRange(Active.Parameters);
-            }
         }
         catch (Exception ex)
         {
@@ -479,31 +973,67 @@
     }
 
     /// <summary>
+    /// Validate the device content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            //Check password.
+            if (!string.IsNullOrEmpty(Active.Settings))
+            {
+                var settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+                if (settings != null && settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.None &&
+                settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC &&
+                settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighECDSA)
+                {
+                    if (string.IsNullOrEmpty(Password))
+                    {
+                        sender.AddError(() => Password, "Invalid password.");
+                    }
+                }
+            }
+            if (networkSettings != null && Active.MediaType == "Gurux.Net.GXNet")
+            {
+                networkSettings.Validate(sender);
+            }
+            else if (serialSettings != null && Active.MediaType == "Gurux.Serial.GXSerial")
+            {
+                serialSettings.Validate(sender);
+            }
+        }
+    }
+
+    /// <summary>
     /// Save device.
     /// </summary>
     public async void OnSave()
     {
         try
         {
+            _deviceValidator?.ClearErrors();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (networkSettings != null && Active.MediaType == "Gurux.Net.GXNet")
+            if (_deviceValidator != null && !_deviceValidator.Validate())
             {
-                networkSettings.Validate();
-            }
-            else if (serialSettings != null && Active.MediaType == "Gurux.Serial.GXSerial")
-            {
-                serialSettings.Validate();
+                return;
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Update device parameters.
             ParametersView?.UpdateSettings<GXDeviceParameter>(Active.Parameters);
-            Active.Settings = JsonSerializer.Serialize(_settings);
+            var options = new JsonSerializerOptions
+                {
+                    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+                };
+            Active.Settings = JsonSerializer.Serialize(_settings, options);
             if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", new RemoveDevice()

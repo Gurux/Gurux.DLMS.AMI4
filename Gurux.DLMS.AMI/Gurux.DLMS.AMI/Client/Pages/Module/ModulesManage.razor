@@ -59,7 +59,7 @@
     </FilterContent>
     <MenuContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Install" Icon="oi oi-plus" OnClick="async () => OnInstall()"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Install" Icon="oi oi-plus" OnClick="@OnInstall"></ContextMenuItem>
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>

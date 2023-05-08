@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -761,5 +762,53 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="settings">Deleted user settings.</param>
         Task UserSettingDelete(IReadOnlyList<string> users, IEnumerable<GXUserSetting> settings);
+
+        /// <summary>
+        /// New manufacturer is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="manufacturers">Updated manufacturers.</param>
+        /// <remarks>
+        /// Only the Id and the name of the manufacturer are sent to keep message short.
+        /// </remarks>
+        Task ManufacturerUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers);
+
+        /// <summary>
+        /// Manufacturer is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="manufacturers">Deleted manufacturers.</param>
+        /// <remarks>
+        /// Only the Id and the name of the manufacturer are sent to keep message short.
+        /// </remarks>
+        Task ManufacturerDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers);
+
+        /// <summary>
+        /// New manufacturer group is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated manufacturer groups.</param>
+        Task ManufacturerGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups);
+
+        /// <summary>
+        /// Manufacturer group is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Deleted manufacturer groups.</param>
+        Task ManufacturerGroupDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups);
+
+        /// <summary>
+        /// Favorite is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated favorites.</param>
+        Task FavoriteUpdate(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites);
+
+        /// <summary>
+        /// Favorite is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="favorites">Deleted favorites.</param>
+        Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites);
     }
 }

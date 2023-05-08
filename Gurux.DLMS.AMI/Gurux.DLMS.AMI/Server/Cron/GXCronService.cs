@@ -185,7 +185,13 @@ namespace Gurux.DLMS.AMI.Server.Cron
                     using (IServiceScope scope = _serviceProvider.CreateScope())
                     {
                         IConfigurationRepository configurationRepository = scope.ServiceProvider.GetRequiredService<IConfigurationRepository>();
-                        ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = "Cron" } };
+                        ListConfiguration req = new ListConfiguration()
+                        {
+                            Filter = new GXConfiguration()
+                            {
+                                Name = GXConfigurations.Cron
+                            }
+                        };
                         GXConfiguration[] confs = configurationRepository.ListAsync(user, req, null, CancellationToken.None).Result;
                         foreach (GXConfiguration conf in confs)
                         {

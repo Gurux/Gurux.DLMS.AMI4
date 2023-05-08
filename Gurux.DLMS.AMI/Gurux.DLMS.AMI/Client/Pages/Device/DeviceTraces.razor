@@ -67,7 +67,7 @@
     </HeaderContent>
     <ItemContent>
         <td>@trace.Device?.Name</td>
-        <Td Path="@("/DeviceTrace/Edit/" + trace.Id)">@trace.CreationTime</Td>
+        <Td Link="@("DeviceTrace/Edit/" + trace.Id)">@trace.CreationTime</Td>
         <td>@GetDirection(trace)</td>
         <td>@trace.Frame</td>
     </ItemContent>

@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Server.Cron;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -53,6 +54,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly CancellationToken _cancellationToken;
         private readonly IGXModuleService _moduleService;
         private readonly IModuleRepository _moduleRepository;
+        private readonly IGXCronTask _cron;
 
         /// <summary>
         /// Constructor.
@@ -60,12 +62,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public ModuleController(IGXHost value,
             IHostApplicationLifetime applicationLifetime,
              IGXModuleService moduleService,
-             IModuleRepository moduleRepository)
+             IModuleRepository moduleRepository,
+             IGXCronTask cron)
         {
             host = value;
             _moduleRepository = moduleRepository;
             _cancellationToken = applicationLifetime.ApplicationStopping;
             _moduleService = moduleService;
+            _cron = cron;
         }
 
         /// <summary>
@@ -78,8 +82,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<GetModuleResponse>> Get(string id)
         {
             return new GetModuleResponse()
-            { 
-                Item = await _moduleRepository.ReadAsync(User, id) 
+            {
+                Item = await _moduleRepository.ReadAsync(User, id)
             };
         }
 
@@ -288,6 +292,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 return BadRequest(ex.Message);
             }
             return ret;
+        }
+
+        /// <summary>
+        /// Check are there new module version available.
+        /// </summary>
+        [HttpPost("Check")]
+        [Authorize(Policy = GXModulePolicies.Edit)]
+        public async Task<ActionResult<CheckModuleResponse>> Post(
+            CheckModule request)
+        {
+            await _cron.CheckModulesAsync(User);
+            return new CheckModuleResponse();
         }
     }
 }

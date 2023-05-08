@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Collections;
@@ -43,6 +44,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
@@ -1133,6 +1135,54 @@ namespace Gurux.DLMS.AMI.Server.Internal
             public Task UserSettingDelete(IReadOnlyList<string> users, IEnumerable<GXUserSetting> settings)
             {
                 return _hostedService.UserSettingDelete(users, settings);
+            }
+
+            /// <summary>
+            /// New manufacturer is added or modified.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="manufacturers">Updated manufacturers.</param>
+            public Task ManufacturerUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
+            {
+                return _hostedService.ManufacturerUpdate(users, manufacturers);
+            }
+
+            /// <summary>
+            /// Manufacturer is deleted.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="manufacturers">Deleted manufacturers.</param>
+            public Task ManufacturerDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
+            {
+                return _hostedService.ManufacturerDelete(users, manufacturers);
+            }
+            /// <summary>
+            /// New manufacturer group is added or modified.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="groups">Updated manufacturer groups.</param>
+            public Task ManufacturerGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
+            {
+                return _hostedService.ManufacturerGroupUpdate(users, groups);
+            }
+            /// <summary>
+            /// Manufacturer group is deleted.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="groups">Deleted manufacturer groups.</param>
+            public Task ManufacturerGroupDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
+            {
+                return _hostedService.ManufacturerGroupDelete(users, groups);
+            }
+
+            public Task FavoriteUpdate(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
+            {
+                return _hostedService.FavoriteUpdate(users, favorites);
+            }
+
+            public Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
+            {
+                return _hostedService.FavoriteDelete(users, favorites);
             }
         }
 

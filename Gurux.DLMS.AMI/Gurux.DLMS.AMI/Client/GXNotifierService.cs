@@ -36,6 +36,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Models;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -170,7 +171,7 @@ namespace Gurux.DLMS.AMI.Client
         {
             LastUrl = null;
         }
-      
+
         /// <inheritdoc />
         public void UpdateData(string page, object? data)
         {
@@ -905,7 +906,7 @@ namespace Gurux.DLMS.AMI.Client
                     });
                     hubConnection.On<IEnumerable<GXWorkflow>>(nameof(IGXHubEvents.WorkflowUpdate), async (groups) =>
                     {
-                        if ((IgnoreNotification & TargetType.WorkFlow) == 0)
+                        if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
                             _toasterService.Add(new GXToast("Agent group updeted", ToString(groups), Color.Info, 15));
                         }
@@ -913,7 +914,7 @@ namespace Gurux.DLMS.AMI.Client
                     });
                     hubConnection.On<IEnumerable<GXWorkflow>>(nameof(IGXHubEvents.WorkflowDelete), async (items) =>
                     {
-                        if ((IgnoreNotification & TargetType.WorkFlow) == 0)
+                        if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
                             _toasterService.Add(new GXToast("Workflow deleted", ToString(items), Color.Info, 15));
                         }
@@ -921,7 +922,7 @@ namespace Gurux.DLMS.AMI.Client
                     });
                     hubConnection.On<IEnumerable<GXWorkflowGroup>>(nameof(IGXHubEvents.WorkflowGroupUpdate), async (groups) =>
                     {
-                        if ((IgnoreNotification & TargetType.WorkFlow) == 0)
+                        if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
                             _toasterService.Add(new GXToast("Workflow group updated", ToString(groups), Color.Info, 15));
                         }
@@ -929,7 +930,7 @@ namespace Gurux.DLMS.AMI.Client
                     });
                     hubConnection.On<IEnumerable<GXWorkflowGroup>>(nameof(IGXHubEvents.WorkflowGroupDelete), async (groups) =>
                     {
-                        if ((IgnoreNotification & TargetType.WorkFlow) == 0)
+                        if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
                             _toasterService.Add(new GXToast("Workflow group deleted", ToString(groups), Color.Success, 15));
                         }
@@ -1353,7 +1354,55 @@ namespace Gurux.DLMS.AMI.Client
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ObjectTemplateDelete), templates);
                     });
+                    hubConnection.On<IEnumerable<GXManufacturer>>(nameof(IGXHubEvents.ManufacturerUpdate), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Manufacturer) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Manufacturer updated", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ManufacturerUpdate), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXManufacturer>>(nameof(IGXHubEvents.ManufacturerDelete), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Manufacturer) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Manufacturer deleted", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ManufacturerDelete), manufacturers);
+                    });
 
+                    hubConnection.On<IEnumerable<GXManufacturerGroup>>(nameof(IGXHubEvents.ManufacturerGroupUpdate), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.ManufacturerGroup) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Manufacturer group updated", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ManufacturerGroupUpdate), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXManufacturerGroup>>(nameof(IGXHubEvents.ManufacturerGroupDelete), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.ManufacturerGroup) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Manufacturer group deleted", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.ManufacturerGroupDelete), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXFavorite>>(nameof(IGXHubEvents.FavoriteUpdate), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Favorite) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Favorite updated", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.FavoriteUpdate), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXFavorite>>(nameof(IGXHubEvents.FavoriteDelete), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Favorite) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Favorite deleted", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.FavoriteDelete), manufacturers);
+                    });
                     await hubConnection.StartAsync();
                 }
             }

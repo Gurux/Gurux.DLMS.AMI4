@@ -39,13 +39,13 @@ namespace Gurux.DLMS.AMI.Server.Triggers
     /// </summary>
     public class ServiceTrigger : ITriggerAction
     {
-        /// <inheritdoc cref="ITriggerAction.Name"/>
+        /// <inheritdoc />
         public string Name => "Service";
 
-        /// <inheritdoc cref="ITriggerAction.ConfigurationUI"/>
+        /// <inheritdoc />
         public Type? ConfigurationUI => null;
 
-        /// <inheritdoc cref="ITriggerAction.Icon"/>
+        /// <inheritdoc />
         public string? Icon => "oi oi-cog";
 
         /// <summary>

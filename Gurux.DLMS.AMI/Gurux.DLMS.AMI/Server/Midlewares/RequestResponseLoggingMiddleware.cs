@@ -158,11 +158,16 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         private async Task<string> LogRequest(HttpContext context)
         {
             context.Request.EnableBuffering();
-            await using var requestStream = _recyclableMemoryStreamManager.GetStream();
-            await context.Request.Body.CopyToAsync(requestStream);
-            string text = ReadStreamInChunks(requestStream);
-            context.Request.Body.Position = 0;
-            return text;
+            try
+            {
+                await using var requestStream = _recyclableMemoryStreamManager.GetStream();
+                await context.Request.Body.CopyToAsync(requestStream);
+                return ReadStreamInChunks(requestStream);
+            }
+            finally
+            {
+                context.Request.Body.Position = 0;
+            }
         }
 
         private string ReadStreamInChunks(Stream stream)

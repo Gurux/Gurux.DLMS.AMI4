@@ -1,6 +1,6 @@
 @namespace Gurux.DLMS.AMI.Client.Helpers
 
-<div data-toggle="tooltip" title="@Title">
+<div data-toggle="tooltip" title="@Title" style="@Style">
     @ChildContent
 </div>
 @code
@@ -8,7 +8,16 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    //Tool tip title.
+    /// <summary>
+    /// Tooltip title.
+    /// </summary>
     [Parameter]
     public string Title { get; set; } = "";
+
+
+    /// <summary>
+    /// Tooltip style.
+    /// </summary>
+    [Parameter]
+    public string? Style { get; set; }
 }

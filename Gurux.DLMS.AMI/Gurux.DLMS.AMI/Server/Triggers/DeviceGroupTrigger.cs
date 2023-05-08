@@ -39,13 +39,13 @@ namespace Gurux.DLMS.AMI.Server.Triggers
     /// </summary>
     public class DeviceGroupTrigger : ITriggerAction
     {
-        /// <inheritdoc cref="ITriggerAction.Name"/>
+        /// <inheritdoc />
         public string Name => "Device Group";
 
-        /// <inheritdoc cref="ITriggerAction.ConfigurationUI"/>
+        /// <inheritdoc />
         public Type? ConfigurationUI => null;
 
-        /// <inheritdoc cref="ITriggerAction.Icon"/>
+        /// <inheritdoc />
         public string? Icon => null;
 
         /// <summary>

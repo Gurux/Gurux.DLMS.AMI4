@@ -78,7 +78,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/AgentLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <Td Link="@("AgentLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@(error.Agent != null ? error.Agent.Name : "")</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
@@ -332,7 +332,7 @@
     /// <summary>
     /// Show agent error details.
     /// </summary>
-    public void OnShow()
+    void OnShow()
     {
         try
         {

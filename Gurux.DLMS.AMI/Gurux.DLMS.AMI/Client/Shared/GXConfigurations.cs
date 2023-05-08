@@ -29,6 +29,7 @@
         public static string Maintenance = "Maintenance";
         public static string Scripts = "Scripts";
         public static string Roles = "Roles";
-        public static string Performance = "Performance";        
+        public static string Performance = "Performance";
+        public static string Manufacturers = "Manufacturers";
     }
 }

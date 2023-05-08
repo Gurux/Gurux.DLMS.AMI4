@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -18,18 +19,20 @@
             <label>@Properties.Resources.HostName</label>
             <InputText id="name" class="form-control"
                        @bind-Value="HostName" />
+            <ValidationMessage For="@(() => HostName)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.Port:</label>
             <InputNumber id="port" class="form-control"
                          @bind-Value="Port" />
+            <ValidationMessage For="@(() => Port)" />
         </div>
         <div class="form-group">
             <label>@Properties.Resources.Protocol:</label>
-            <select class="form-control" @bind="Protocol">
+            <select class="form-select" @bind="Protocol">
                 @foreach (var it in NetworkTypeList)
                 {
-                    <option value="@it"> @it </option>
+                    <option value="@it">@it</option>
                 }
             </select>
         </div>
@@ -125,9 +128,18 @@
         }
     }
 
-    //Validate network settings.
-    public void Validate()
+    /// <summary>
+    /// Validate network settings.
+    /// </summary>
+    public void Validate(GXValidator sender)
     {
-        _net.Validate();
+        if (Port == 0)
+        {
+            sender.AddError(() => Port, "Invalid port.");
+        }
+        if (string.IsNullOrEmpty(HostName))
+        {
+            sender.AddError(() => HostName, "Invalid host name.");
+        }
     }
 }

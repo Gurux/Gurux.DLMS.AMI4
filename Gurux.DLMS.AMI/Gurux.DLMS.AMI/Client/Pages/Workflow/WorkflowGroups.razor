@@ -57,7 +57,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/WorkflowGroup/Edit/" + group.Id)">@group.Name</Td>
+        <Td Link="@("Config/WorkflowGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>

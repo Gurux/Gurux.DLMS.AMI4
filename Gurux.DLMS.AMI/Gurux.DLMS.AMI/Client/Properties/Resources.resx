@@ -56,7 +56,7 @@
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
     value   : The object must be serialized into a byte array 
-            : using a System.ComponentModel.TypeConverter
+            : using a System.ComponentVersion.TypeConverter
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
@@ -591,9 +591,6 @@
   <data name="Network" xml:space="preserve">
     <value>Network</value>
   </data>
-  <data name="Serial" xml:space="preserve">
-    <value>Serial</value>
-  </data>
   <data name="RESTStatistic" xml:space="preserve">
     <value>REST statistic</value>
   </data>
@@ -706,7 +703,7 @@
     <value>Path</value>
   </data>
   <data name="MaintenanceModeEnds" xml:space="preserve">
-    <value> Maintenance mode is expected to end at</value>
+    <value>Maintenance mode is expected to end at</value>
   </data>
   <data name="Removed" xml:space="preserve">
     <value>Removed</value>
@@ -851,5 +848,98 @@
   </data>
   <data name="SerialPort" xml:space="preserve">
     <value>Serial port</value>
+  </data>
+  <data name="ManufacturerGroups" xml:space="preserve">
+    <value>Manufacturer groups</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Manufacturers</value>
+  </data>
+  <data name="Manufacturer" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="ManufacturerGroup" xml:space="preserve">
+    <value>Manufacturer group</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Favorite</value>
+  </data>
+  <data name="Versions" xml:space="preserve">
+    <value>Versions</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Models</value>
+  </data>
+  <data name="Model" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="InterfaceType" xml:space="preserve">
+    <value>Interface type</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Authentication</value>
+  </data>
+  <data name="LastChecked" xml:space="preserve">
+    <value>Last checked: {0} ago.</value>
+  </data>
+  <data name="CheckManually" xml:space="preserve">
+    <value>Check manually</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>days</value>
+  </data>
+  <data name="Hours" xml:space="preserve">
+    <value>hours</value>
+  </data>
+  <data name="Minutes" xml:space="preserve">
+    <value>minutes</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>seconds</value>
+  </data>
+  <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
+    <value>Are you sure you want to install selected items?</value>
+  </data>
+  <data name="Media" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="WaitTime" xml:space="preserve">
+    <value>Wait time</value>
+  </data>
+  <data name="Generic" xml:space="preserve">
+    <value>Generic</value>
+  </data>
+  <data name="Custom" xml:space="preserve">
+    <value>Custom</value>
+  </data>
+  <data name="Baudrate" xml:space="preserve">
+    <value>Baud rate</value>
+  </data>
+  <data name="DataBits" xml:space="preserve">
+    <value>Data Bits</value>
+  </data>
+  <data name="Parity" xml:space="preserve">
+    <value>Parity</value>
+  </data>
+  <data name="StopBits" xml:space="preserve">
+    <value>StopBits</value>
+  </data>
+  <data name="SerialNumber" xml:space="preserve">
+    <value>Serial number</value>
+  </data>
+  <data name="InstallMetersVerify" xml:space="preserve">
+    <value>Are you sure you want to install support for the following meters?</value>
+  </data>
+  <data name="InstallVersions" xml:space="preserve">
+    <value>All {0} versions.</value>
+  </data>
+  <data name="InstallAllSettings" xml:space="preserve">
+    <value>All {0} {1} settings.</value>
   </data>
 </root>

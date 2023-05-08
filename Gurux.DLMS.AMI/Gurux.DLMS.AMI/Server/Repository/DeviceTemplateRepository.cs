@@ -40,6 +40,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -129,6 +130,78 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
+        /// <summary>
+        /// Update manufacturers.
+        /// </summary>
+        /// <param name="templates"></param>
+        /// <returns></returns>
+        private async Task UpdateManufacturers(GXDeviceTemplate[] templates)
+        {
+            if (templates.Any())
+            {
+                //Client wants to know the device settings of the manufacturer.
+                Guid[] ids = templates.Select(s => s.Id).ToArray();
+                GXSelectArgs arg = GXSelectArgs.SelectAll<GXManufacturer>();
+                arg.Columns.Add<GXDeviceModel>();
+                arg.Columns.Add<GXDeviceVersion>();
+                arg.Columns.Add<GXDeviceSettings>();
+                arg.Columns.Add<GXDeviceTemplate>(s => s.Id);
+                arg.Joins.AddInnerJoin<GXManufacturer, GXDeviceModel>(j => j.Id, j => j.Manufacturer);
+                arg.Joins.AddInnerJoin<GXDeviceModel, GXDeviceVersion>(j => j.Id, j => j.Model);
+                arg.Joins.AddInnerJoin<GXDeviceVersion, GXDeviceSettings>(j => j.Id, j => j.Version);
+                arg.Joins.AddInnerJoin<GXDeviceSettings, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                arg.Where.And<GXDeviceTemplate>(w => GXSql.In(w.Id, ids));
+                GXManufacturer[] manufacturers = (await _host.Connection.SelectAsync<GXManufacturer>(arg)).ToArray();
+                foreach (var manufacturer in manufacturers)
+                {
+                    if (manufacturer.Models != null)
+                    {
+                        foreach (var model in manufacturer.Models)
+                        {
+                            if (model.Versions != null)
+                            {
+                                foreach (var version in model.Versions)
+                                {
+                                    if (version.Settings != null)
+                                    {
+                                        foreach (var settings in version.Settings)
+                                        {
+                                            if (settings.Template != null)
+                                            {
+                                                var target = templates.Where(w => w.Id == settings.Template.Id).SingleOrDefault();
+                                                if (target != null)
+                                                {
+                                                    GXDeviceVersion ver = new GXDeviceVersion()
+                                                    {
+                                                        Id = version.Id,
+                                                        Name = version.Name
+                                                    };
+                                                    GXDeviceModel model2 = new GXDeviceModel()
+                                                    {
+                                                        Id = model.Id,
+                                                        Name = model.Name,
+                                                        Versions = new List<GXDeviceVersion>()
+                                                    };
+                                                    model2.Versions.Add(ver);
+                                                    target.Manufacturer = new GXManufacturer()
+                                                    {
+                                                        Id = manufacturer.Id,
+                                                        Name = manufacturer.Name,
+                                                        Models = new List<GXDeviceModel>()
+                                                    };
+                                                    target.Manufacturer.Models.Add(model2);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         /// <inheritdoc />
         public async Task<GXDeviceTemplate[]> ListAsync(
             ClaimsPrincipal user,
@@ -149,7 +222,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
                 arg.Descending = request.Descending;
-                arg.OrderBy.Add<GXDeviceTemplate>(request.OrderBy);
+                if (string.Compare(request.OrderBy, "Version", true) == 0)
+                {
+                    arg.OrderBy.Add<GXDeviceVersion>(o => o.Name);
+                }
+                else if (string.Compare(request.OrderBy, "Model", true) == 0)
+                {
+                    arg.OrderBy.Add<GXDeviceModel>(o => o.Name);
+                }
+                else
+                {
+                    arg.OrderBy.Add<GXDeviceTemplate>(request.OrderBy);
+                }
             }
             else
             {
@@ -158,6 +242,41 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null && request.Filter != null)
             {
+                bool addJoin = false;
+                if ((request.Filter.Manufacturer is GXManufacturer man))
+                {
+                    if (!string.IsNullOrEmpty(man.Name))
+                    {
+                        addJoin = true;
+                        arg.Where.And<GXManufacturer>(w => w.Name.Contains(man.Name));
+                    }
+                    if ((man.Models?.FirstOrDefault() is GXDeviceModel mod))
+                    {
+                        if (!string.IsNullOrEmpty(mod.Name))
+                        {
+                            addJoin = true;
+                            arg.Where.And<GXDeviceModel>(w => w.Name.Contains(mod.Name));
+                        }
+                        if ((mod.Versions?.FirstOrDefault() is GXDeviceVersion version))
+                        {
+                            if (!string.IsNullOrEmpty(version.Name))
+                            {
+                                addJoin = true;
+                                arg.Where.And<GXDeviceVersion>(w => w.Name.Contains(version.Name));
+                            }
+                        }
+                    }
+                }
+                if (addJoin)
+                {
+                    arg.Joins.AddInnerJoin<GXDeviceTemplate, GXDeviceSettings>(j => j.Id, j => j.Template);
+                    arg.Joins.AddInnerJoin<GXDeviceSettings, GXDeviceVersion>(j => j.Version, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXDeviceVersion, GXDeviceModel>(j => j.Model, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXDeviceModel, GXManufacturer>(j => j.Manufacturer, j => j.Id);
+                }
+
+                //Reset manufacturer filter.
+                request.Filter.Manufacturer = null;
                 arg.Where.FilterBy(request.Filter);
             }
             if (request != null && request.Count != 0)
@@ -174,6 +293,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             GXDeviceTemplate[] templates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
+            if (request != null && (request.Select & TargetType.Manufacturer) != 0)
+            {
+                await UpdateManufacturers(templates);
+            }
             if (response != null)
             {
                 response.Templates = templates;

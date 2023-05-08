@@ -57,7 +57,7 @@
         <th>@Properties.Resources.Updated</th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/ModuleGroup/Edit/" + group.Id)">@group.Name</Td>
+        <Td Link="@("Config/ModuleGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>

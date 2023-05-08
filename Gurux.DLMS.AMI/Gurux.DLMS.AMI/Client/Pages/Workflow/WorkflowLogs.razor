@@ -70,7 +70,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/WorkflowLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <Td Link="@("Config/WorkflowLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>

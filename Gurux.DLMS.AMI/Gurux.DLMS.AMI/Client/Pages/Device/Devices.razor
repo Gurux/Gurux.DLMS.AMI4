@@ -73,7 +73,7 @@
         <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path=@("Objects/" + device.Id)>@device.Name</Td>
+        <Td Link=@("Objects/" + device.Id)>@device.Name</Td>
         <td>@device.CreationTime</td>
         <td>@device.Updated</td>
         <td>@device.LastRead</td>

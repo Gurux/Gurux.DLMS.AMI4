@@ -40,6 +40,10 @@ using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.ManufacturerSettings;
+using Gurux.DLMS.Objects;
+using System.Xml.Serialization;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
@@ -361,6 +365,273 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             return ret;
+        }
+
+        /// <summary>
+        /// Convert GXDLMSDirector device file to Gurux.DLMS.AMI device templates.
+        /// </summary>
+        /// <param name="xml">XML string.</param>
+        public static List<GXDeviceTemplate> ConvertToTemplates(string xml)
+        {
+            List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
+            GXDLMSDevice[] devices;
+            using (var tr = new StringReader(xml))
+            {
+                List<Type> types = new List<Type>(Gurux.DLMS.GXDLMSClient.GetObjectTypes());
+                types.Add(typeof(GXDLMSAttributeSettings));
+                types.Add(typeof(GXDLMSAttribute));
+                XmlSerializer serializer = new XmlSerializer(typeof(GXDLMSDevice[]), null, types.ToArray(), null, "Gurux1");
+                devices = (GXDLMSDevice[])serializer.Deserialize(tr);
+            }
+            GXDeviceTemplate m = new GXDeviceTemplate();
+            foreach (GXDLMSDevice it in devices)
+            {
+                int AssociationViewVersion = 1;
+                GXDeviceTemplate t = new GXDeviceTemplate();
+                Copy(t, it);
+                List<GXObjectTemplate> list = new List<GXObjectTemplate>();
+                if (it.Objects.Count == 0)
+                {
+                    throw new Exception("There are no objects. Read the association view first.");
+                }
+
+                if (it.UseLogicalNameReferencing)
+                {
+                    GXDLMSObjectCollection objs = it.Objects.GetObjects(Enums.ObjectType.AssociationLogicalName);
+                    if (objs.Any())
+                    {
+                        GXDLMSAssociationLogicalName? ln = objs[0] as GXDLMSAssociationLogicalName;
+                        if (ln != null)
+                        {
+                            AssociationViewVersion = ln.Version;
+                        }
+                    }
+                }
+
+                foreach (GXDLMSObject value in it.Objects)
+                {
+                    string[] names = ((IGXDLMSBase)value).GetNames();
+                    GXObjectTemplate obj = new GXObjectTemplate(null)
+                    {
+                        LogicalName = value.LogicalName,
+                        ObjectType = (int)value.ObjectType,
+                        Name = value.Description,
+                        Version = value.Version,
+                        ShortName = value.ShortName,
+                        Attributes = new List<GXAttributeTemplate>()
+                    };
+                    list.Add(obj);
+                    for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
+                    {
+                        GXAttributeTemplate a = new GXAttributeTemplate(null);
+                        a.Name = names[pos - 1];
+                        a.Index = pos;
+                        a.Weight = pos - 1;
+                        if (AssociationViewVersion < 3)
+                        {
+                            a.AccessLevel = (int)value.GetAccess(pos);
+                        }
+                        else
+                        {
+                            a.AccessLevel = (int)value.GetAccess3(pos);
+                        }
+                        a.DataType = (int)((IGXDLMSBase)value).GetDataType(pos);
+                        a.UIDataType = (int)((GXDLMSObject)value).GetUIDataType(pos);
+                        if (value.GetStatic(pos))
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        if (value is GXDLMSProfileGeneric)
+                        {
+                            //Capture objects.
+                            if (pos == 3 ||
+                                //Capture Period
+                                pos == 4 ||
+                                //Sort Method
+                                pos == 5 ||
+                                //Sort Object
+                                pos == 6 ||
+                                //Profile Entries
+                                pos == 8)
+                            {
+                                a.ExpirationTime = DateTime.MaxValue;
+                            }
+                        }
+                        if (value is GXDLMSAssociationLogicalName)
+                        {
+                            //Object List.
+                            if (pos == 2 ||
+                                //Associated partners Id
+                                pos == 3 ||
+                                //Application Context Name.
+                                pos == 4 ||
+                                // xDLMS Context Info.
+                                pos == 5 ||
+                                //Authentication Mechanism Name.
+                                pos == 6 ||
+                                //Secret.
+                                pos == 7)
+                            {
+                                a.ExpirationTime = DateTime.MaxValue;
+                            }
+                        }
+                        if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
+                        {
+                            //Add enum values as list items.
+                            try
+                            {
+                                object tmp = value.GetValues()[pos - 1];
+                                if (tmp != null)
+                                {
+                                    foreach (var v in Enum.GetValues(tmp.GetType()))
+                                    {
+                                        GXAttributeListItem li = new()
+                                        {
+                                            UIValue = v.ToString(),
+                                            Value = Convert.ToInt32(v)
+                                        };
+                                        a.ListItems.Add(li);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                //It's OK if this fails.
+                                Console.WriteLine(ex.Message);
+                            }
+                        }
+                        //Profile generic capture objects are not read as default.
+                        if (value is GXDLMSProfileGeneric && pos == 3)
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        //Scaler and unit are read only once.
+                        if (value is GXDLMSRegister && pos == 3)
+                        {
+                            a.ExpirationTime = DateTime.MaxValue;
+                        }
+                        obj.Attributes.Add(a);
+                    }
+                    string sb = "";
+                    if (AssociationViewVersion < 3)
+                    {
+                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
+                        {
+                            sb += ((int)value.GetMethodAccess(pos)).ToString();
+                        }
+                    }
+                    else
+                    {
+                        sb = "0x";
+                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
+                        {
+                            sb += ((int)value.GetMethodAccess3(pos)).ToString("X");
+                        }
+                    }
+                    obj.ActionAccessLevels = sb;
+                    t.Objects = list;
+                }
+                templates.Add(t);
+            }
+            return templates;
+        }
+
+        internal static string GetLastChecked(DateTimeOffset? offset)
+        {
+            if (offset == null)
+            {
+                return Properties.Resources.Never;
+            }
+            TimeSpan value = DateTime.Now - offset.Value;
+            string? str = "";
+            if ((int)value.TotalDays != 0)
+            {
+                str = (int)value.TotalDays + " " + Properties.Resources.Days;
+            }
+            if (value.Hours != 0)
+            {
+                if (str != "")
+                {
+                    str += " ";
+                }
+                str += value.Hours + " " + Properties.Resources.Hours;
+            }
+            if (value.Minutes != 0)
+            {
+                if (str != "")
+                {
+                    str += " ";
+                }
+                str += value.Minutes + " " + Properties.Resources.Minutes;
+            }
+            if (value.Seconds != 0)
+            {
+                if (str != "")
+                {
+                    str += " ";
+                }
+                str += value.Seconds + " " + Properties.Resources.Seconds;
+            }
+            else if (str == "")
+            {
+                //Append seconds always.
+                str = value.Seconds + " " + Properties.Resources.Seconds;
+            }
+            return str;
+        }
+
+        /// <summary>
+        /// Copy meter settings.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="source"></param>
+        public static void Copy(GXDeviceTemplate target, GXDLMSDevice source)
+        {
+            target.WaitTime = source.WaitTime;
+            target.ResendCount = source.ResendCount;
+            target.Type = source.Name;
+            target.MediaType = source.MediaType;
+            target.MediaSettings = source.MediaSettings;
+            var settings = new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings();
+            settings.MaximumBaudRate = source.MaximumBaudRate;
+            settings.Authentication = (byte)source.Authentication;
+            settings.AuthenticationName = source.AuthenticationName;
+            settings.Standard = (byte)source.Standard;
+            settings.Password = source.Password;
+            settings.HexPassword = source.HexPassword;
+            settings.Security = (byte)source.Security;
+            settings.ClientSystemTitle = source.SystemTitle;
+            settings.DeviceSystemTitle = source.ServerSystemTitle;
+            settings.DedicatedKey = source.DedicatedKey;
+            settings.PreEstablished = source.PreEstablished;
+            settings.BlockCipherKey = source.BlockCipherKey;
+            settings.AuthenticationKey = source.AuthenticationKey;
+            settings.InvocationCounter = source.InvocationCounter;
+            settings.FrameCounter = source.FrameCounter;
+            settings.Challenge = source.Challenge;
+            settings.PhysicalAddress = source.PhysicalAddress;
+            settings.LogicalAddress = source.LogicalAddress;
+            settings.UtcTimeZone = source.UtcTimeZone;
+            settings.ClientAddress = source.ClientAddress;
+            settings.UseRemoteSerial = source.UseRemoteSerial;
+            settings.InterfaceType = (int)source.InterfaceType;
+            settings.MaxInfoTX = source.MaxInfoTX;
+            settings.MaxInfoRX = source.MaxInfoRX;
+            settings.WindowSizeTX = source.WindowSizeTX;
+            settings.WindowSizeRX = source.WindowSizeRX;
+            settings.PduSize = source.PduSize;
+            settings.UserId = source.UserId;
+            settings.NetworkId = source.NetworkId;
+            settings.InactivityTimeout = source.InactivityTimeout;
+            settings.ServiceClass = (byte)source.ServiceClass;
+            settings.Priority = (byte)source.Priority;
+            settings.ServerAddressSize = source.ServerAddressSize;
+            settings.Conformance = source.Conformance;
+            settings.Manufacturer = source.Manufacturer;
+            settings.HDLCAddressing = (int)source.HDLCAddressing;
+            settings.UseLogicalNameReferencing = source.UseLogicalNameReferencing;
+            settings.UseProtectedRelease = source.UseProtectedRelease;
+            target.Settings = JsonSerializer.Serialize(settings);
         }
     }
 }

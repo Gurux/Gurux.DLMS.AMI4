@@ -1,0 +1,111 @@
+﻿@page "/config/Manufacturer/{Id:guid?}"
+@page "/config/Manufacturer/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Objects
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ManufacturerManager + "," + GXRoles.ManufacturerGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ManufacturerManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-share-boxed">
+                    <div style="position: relative; width: 100%; ">
+                        <Manufacturer Action="@Action"></Manufacturer>
+                    </div>
+                </TabPage>
+            </AuthorizeView>           
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXManufacturer? Active;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Manufacturer;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get manufacturer data.
+            var tmp = (await Http.GetAsJsonAsync<GetManufacturerResponse>(string.Format("api/Manufacturer?id={0}", Id)));
+            if (tmp?.Item != null)
+            {
+                Active = tmp.Item;
+                StateHasChanged();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

@@ -57,6 +57,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared;
 using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -108,6 +109,7 @@ namespace Gurux.DLMS.AMI.Server
                 AddWorkflowConfiguration(configurations);
                 AddScriptConfiguration(configurations);
                 AddCronConfiguration(configurations);
+                AddManufacturerConfiguration(configurations);
                 AddPerformanceConfiguration(configurations);
                 AddStatisticsConfiguration(configurations);
                 AddMaintenanceConfiguration(configurations);
@@ -260,7 +262,8 @@ namespace Gurux.DLMS.AMI.Server
                 Icon = "oi oi-puzzle-piece",
                 Description = "With modules enabled, new custom functionality can be offered for the users.",
                 Path = "config/Module",
-                Order = 4
+                Order = 4,
+                Settings = JsonSerializer.Serialize(new ModuleSettings())
             };
             configurations.Add(conf);
         }
@@ -276,7 +279,8 @@ namespace Gurux.DLMS.AMI.Server
                 Icon = "oi oi-wifi",
                 Description = "Installable agent versions.",
                 Path = "config/agentinstallers",
-                Order = 4
+                Order = 4,
+                Settings = JsonSerializer.Serialize(new AgentSettings())
             };
             configurations.Add(conf);
         }
@@ -341,6 +345,23 @@ namespace Gurux.DLMS.AMI.Server
                 Description = "With Workflows enabled, new custom workflows funtionality can be offered for the users.",
                 Path = "config/Workflow",
                 Order = 7
+            };
+            configurations.Add(conf);
+        }
+
+        /// <summary>
+        /// Add manufacturer configuration.
+        /// </summary>
+        internal static void AddManufacturerConfiguration(List<GXConfiguration> configurations)
+        {
+            GXConfiguration conf = new GXConfiguration()
+            {
+                Name = GXConfigurations.Manufacturers,
+                Icon = "oi oi-share-boxed",
+                Description = "Using manufacturers new device templates can be offered for the users.",
+                Path = "config/Manufacturer",
+                Order = 8,
+                Settings = JsonSerializer.Serialize(new Client.Shared.ManufacturerSettings())
             };
             configurations.Add(conf);
         }
@@ -521,6 +542,9 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IDeviceTraceRepository, DeviceTraceRepository>();
             services.AddTransient<IRoleRepository, RoleRepository>();
             services.AddTransient<IUserSettingRepository, UserSettingRepository>();
+            services.AddTransient<IManufacturerRepository, ManufacturerRepository>();
+            services.AddTransient<IManufacturerGroupRepository, ManufacturerGroupRepository>();
+            services.AddTransient<IFavoriteRepository, FavoriteRepository>();
         }
 
         /// <summary>
@@ -572,7 +596,8 @@ namespace Gurux.DLMS.AMI.Server
             {
                 return 10;
             }
-            GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(GXSelectArgs.SelectAll<GXConfiguration>(w => w.Name == GXConfigurations.System));
+            var args = GXSelectArgs.Select<GXConfiguration>(s => s.Settings, w => w.Name == GXConfigurations.System);
+            GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(args);
             if (conf == null || string.IsNullOrEmpty(conf.Settings))
             {
                 return 10;
@@ -712,6 +737,31 @@ namespace Gurux.DLMS.AMI.Server
                     host.Connection.UpdateTable<GXAttributeTemplate>();
                     //Available serial ports for the agent.
                     host.Connection.UpdateTable<GXAgent>();
+                    //Manufacturers added.
+                    if (!host.Connection.TableExist<GXManufacturerGroup>())
+                    {
+                        host.Connection.CreateTable<GXManufacturerGroup>(false, false);
+                        host.Connection.CreateTable<GXManufacturer>(false, false);
+                        host.Connection.CreateTable<GXManufacturerGroupManufacturer>(false, false);
+                        host.Connection.CreateTable<GXUserGroupManufacturerGroup>(false, false);
+                        host.Connection.CreateTable<GXDeviceModel>(false, false);
+                        host.Connection.CreateTable<GXDeviceVersion>(false, false);
+                        host.Connection.CreateTable<GXDeviceSettings>(false, false);
+                        List<GXConfiguration> configurations = new List<GXConfiguration>();
+                        //All values are saved using invariant culture.
+                        CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
+                        try
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+                            AddManufacturerConfiguration(configurations);
+                        }
+                        finally
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = culture;
+                        }
+                        host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
+                        host.Connection.CreateTable<GXFavorite>(false, false);
+                    }
                 }
             }
             else

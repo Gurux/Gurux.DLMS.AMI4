@@ -11,6 +11,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Module
+@using System.Text.Json;
 
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
@@ -25,6 +26,22 @@
     <h1>@Properties.Resources.ModulesTitle</h1>
 }
 
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    @if (_settings?.Checked != null)
+                    {
+                        <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings?.Checked))</label>
+                    }
+                    <button type="button" class="btn btn-link" @onclick="OnCheck">(@Properties.Resources.CheckManually)</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
 <GXTable @ref="table"
          Context="module"
          ItemsProvider="@GetItems"
@@ -66,7 +83,7 @@
         <th>@Properties.Resources.Updated</th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/Module/Edit/" + module.Id)">
+        <Td Link="@("Config/Module/Edit/" + module.Id)">
             <span class=@(ClientHelpers.GetActiveDot(module.Active))>
             </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
         </Td>
@@ -79,7 +96,7 @@
          ConfirmationChanged="OnDeleteConfirmation"
          OkTitle="@Properties.Resources.Remove"
          ConfirmationMessage=""
-         AllowDelete = "false"
+         AllowDelete="false"
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 <br />
@@ -155,6 +172,11 @@
     protected GXTable<GXModule>? table;
 
     /// <summary>
+    /// Module settings.
+    /// </summary>
+    private ModuleSettings? _settings;
+
+    /// <summary>
     /// Update table.
     /// </summary>
     protected async Task Updated()
@@ -184,6 +206,34 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
+            //Get selected item.
+            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+           {
+               try
+               {
+                   if (configurations != null)
+                   {
+                       foreach (var it in configurations)
+                       {
+                           if (it.Name == GXConfigurations.Modules && !string.IsNullOrEmpty(it.Settings))
+                           {
+                               _settings = JsonSerializer.Deserialize<ModuleSettings>(it.Settings);
+                               StateHasChanged();
+                               break;
+                           }
+                       }
+                   }
+               }
+               catch (Exception ex)
+               {
+                   Notifier?.ProcessError(ex);
+               }
+           });
             Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
             {
                 await Updated();
@@ -198,6 +248,16 @@
             {
                 //Get last selected item.
                 table.Active = new GXModule() { Id = Id };
+            }
+            //Get configuration data.
+            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
+            if (!string.IsNullOrEmpty(active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<ModuleSettings>(active.Settings);
+            }
+            else
+            {
+                _settings = new ModuleSettings();
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -319,6 +379,28 @@
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Check module versions manually.
+    /// </summary>
+    public async void OnCheck()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            CheckManufacturer req = new CheckManufacturer();
+            await Http.PostAsJson<CheckManufacturerResponse>("api/Module/Check", req);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
         }
     }
 

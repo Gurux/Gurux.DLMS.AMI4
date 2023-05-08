@@ -84,7 +84,7 @@
         <Th Id="Version">@Properties.Resources.Version</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Agent/Edit/" + agent.Id)"><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</Td>
+        <Td Link="@("Agent/Edit/" + agent.Id)"><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</Td>
         <td>@agent.CreationTime</td>
         <td>@agent.Detected</td>
         <td>@agent.Status</td>
@@ -303,7 +303,6 @@
                 //Get last selected item.
                 table.Active = new GXAgent() { Id = Id.Value };
             }
-
         }
         catch (AccessTokenNotAvailableException exception)
         {

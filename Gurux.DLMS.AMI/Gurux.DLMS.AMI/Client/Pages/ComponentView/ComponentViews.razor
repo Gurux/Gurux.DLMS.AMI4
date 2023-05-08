@@ -51,7 +51,7 @@
         <th>@Properties.Resources.Type</th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/Component/Edit/" + componentView.Id)">
+        <Td Link="@("Config/Component/Edit/" + componentView.Id)">
             <span class="@componentView.Icon" aria-hidden="true"></span>@componentView.Name
             </Td>
         <td>@componentView.ClassName</td>

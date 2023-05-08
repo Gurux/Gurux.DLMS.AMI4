@@ -1,0 +1,340 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Manufacturer)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="disabled" @bind-Value="Active.Name" class="form-control"
+                               placeholder=@Properties.Resources.Name />
+                </div>
+                <table style="width:100%;">
+                    <thead>
+                        <tr>
+                            <td style="width:49%">
+                                Models
+                            </td>
+                            <td style="width:49%">
+                                Versions
+                            </td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="vertical-align:top">
+                                <CascadingValue Value="this">
+                                    <Models @ref="_models"></Models>
+                                </CascadingValue>
+                            </td>
+                            <td style="vertical-align:top">
+                                <CascadingValue Value="this">
+                                    <Versions @ref="_versions"></Versions>
+                                </CascadingValue>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <CascadingValue Value="this">
+                    <Settings @ref="_settings"></Settings>
+                </CascadingValue>
+                @if (Active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="Active.Removed" />
+                    </div>
+                }
+                @if (action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+
+    <Confirm @ref="InstallConfirmation"
+         ConfirmationChanged="OnInstallConfirmation"
+         OkTitle="@Properties.Resources.Install"
+         AllowDelete="false"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.InstallMetersVerify">
+    </Confirm>
+}
+@code {
+    private bool DeleteTarget;
+    [CascadingParameter]
+    private ManufacturerTab? Parent { get; set; }
+
+    private Models? _models;
+    private Versions? _versions;
+    private Settings? _settings;
+
+    internal GXManufacturer? Active
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    internal GXDeviceModel? Model;
+    internal GXDeviceVersion? Version;
+
+    /// <summary>
+    /// User is verified before manufacturer is installed.
+    /// </summary>
+    protected ConfirmBase? InstallConfirmation;
+
+
+    public async Task ModelChanged(GXDeviceModel value)
+    {
+        Model = value;
+        if (_versions != null)
+        {
+            await _versions.Updated();
+        }
+    }
+
+    public async Task VersionChanged(GXDeviceVersion value)
+    {
+        Version = value;
+        if (_settings != null)
+        {
+            await _settings.Updated();
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = @OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = @OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save manufacture settings.
+    /// </summary>
+    public void OnSave()
+    {
+        try
+        {
+            if (Active == null || _settings == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ClearStatus();
+            var items = GetInstalledMeters();
+            if (items.Any())
+            {
+                InstallConfirmation?.Show(items);
+            }
+            else
+            {
+                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private string[] GetInstalledMeters()
+    {
+        List<string> list = new List<string>();
+        bool installed = false;
+        if (_models != null)
+        {
+            foreach (var model in _models.GetInstalledItems())
+            {
+                //Check that model is not already installed.
+                if (model.Versions != null)
+                {
+                    list.Add(string.Format(Properties.Resources.InstallVersions, model.ToString()));
+                    foreach (var version in model.Versions)
+                    {
+                        if (version.Settings != null)
+                        {
+                            foreach (var setting in version.Settings)
+                            {
+                                if (setting.Template != null)
+                                {
+                                    installed = true;
+                                    list.Clear();
+                                    break;
+                                }
+                            }
+                            if (installed)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!list.Any() && _versions != null)
+        {
+            installed = false;
+            foreach (var version in _versions.GetInstalledItems())
+            {
+                if (version.Settings != null)
+                {
+                    list.Add(string.Format(Properties.Resources.InstallAllSettings, Model?.ToString(), version.ToString()));
+                    foreach (var setting in version.Settings)
+                    {
+                        if (setting.Template != null)
+                        {
+                            installed = true;
+                            list.Clear();
+                            break;
+                        }
+                    }
+                    if (installed)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (!list.Any() && _settings != null)
+            {
+                foreach (var setting in _settings.GetInstalledItems())
+                {
+                    if (setting.Template == null)
+                    {
+                        list.Add(Model?.ToString() + " " + Version?.ToString() + " " + setting?.ToString());
+                    }
+                }
+            }
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>
+    /// Install the selected manufacturers.
+    /// </summary>
+    public async Task OnInstallConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                Notifier.ProgressStart();
+                var models = _models?.GetInstalledItems();
+                var versions = _versions?.GetInstalledItems();
+                var settings = _settings?.GetInstalledItems();
+                await Http.PostAsJson<InstallManufacturersResponse>("api/Manufacturer/Install",
+          new InstallManufacturers()
+              {
+                  Models = models,
+                  Versions = versions,
+                  Settings = settings
+              });
+                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            if (args.Confirm)
+            {
+                Notifier.ProgressEnd();
+            }
+        }
+
+    }
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

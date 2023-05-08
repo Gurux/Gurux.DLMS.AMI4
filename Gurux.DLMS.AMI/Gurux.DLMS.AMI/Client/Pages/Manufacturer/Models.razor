@@ -1,0 +1,191 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<GXTable @ref="table"
+         Context="model"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         OnCheckboxDisabled="@OnCheckboxDisabled"
+         OnSelectionChanged="@OnSelectionChanged"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@model.Name</td>
+    </ItemContent>
+</GXTable>
+<br />
+@code {
+    [CascadingParameter]
+    private Manufacturer? Parent { get; set; }
+
+    private GXManufacturer? Manufacturer
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User has selected a new model.
+    /// </summary>
+    /// <param name="value">Selected model.</param>
+    private void OnSelectionChanged(GXDeviceModel value)
+    {
+        Parent?.ModelChanged(value);
+    }
+
+    /// <summary>
+    /// Manufacturer filter.
+    /// </summary>
+    private GXManufacturer filter = new GXManufacturer();
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXDeviceModel>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Checkbox is disabled if all templates are already installed.
+    /// </summary>
+    public void OnCheckboxDisabled(GXDeviceModel value, out bool disabled, out bool check)
+    {
+        disabled = true;
+        check = true;
+        if (value.Versions != null)
+        {
+            foreach (var version in value.Versions)
+            {
+                if (version.Settings != null)
+                {
+                    foreach (var it in version.Settings)
+                    {
+                        if (it.Template == null)
+                        {
+                            check = disabled = false;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update installed items.
+    /// </summary>
+    public GXDeviceModel[] GetInstalledItems()
+    {
+        List<GXDeviceModel> list = new List<GXDeviceModel>();
+        if (table != null)
+        {
+            foreach (var it in table.SelectedItems)
+            {
+                list.Add(it);
+            }
+        }
+        return list.ToArray();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            //Select first model.
+            GXDeviceModel? first = Manufacturer?.Models?.FirstOrDefault();
+            if (first != null)
+            {
+                Parent?.ModelChanged(first);
+                if (table != null)
+                {
+                    //Get last selected item.
+                    table.Active = first;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceModel>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (Manufacturer?.Models != null)
+            {
+                return new ItemsProviderResult<GXDeviceModel>(Manufacturer.Models, Manufacturer.Models.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

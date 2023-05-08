@@ -55,7 +55,7 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/ScriptGroup/Edit/" + group.Id)">@group.Name</Td>
+        <Td Link="@("Config/ScriptGroup/Edit/" + group.Id)">@group.Name</Td>
         <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>

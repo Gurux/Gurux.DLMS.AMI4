@@ -67,7 +67,9 @@
                     @if (SelectionMode == SelectionMode.Multiple)
                     {
                         <th width="1%">
-                            <input type="checkbox" checked="@IsAllSelected()" @onchange="@((ChangeEventArgs __e) => ToggleAllRow(Convert.ToBoolean(__e.Value)))" />
+                            <input class="form-check-input" type="checkbox"
+                                   checked="@IsAllSelected()"
+                           @onchange="@((ChangeEventArgs __e) => ToggleAllRow(Convert.ToBoolean(__e.Value)))" />
                         </th>
                     }
                     @HeaderContent
@@ -87,7 +89,10 @@
                         @if (SelectionMode == SelectionMode.Multiple)
                         {
                             <td>
-                                <input type="checkbox" class="table-striped" checked="@IsSelected(it)" @onchange="@((ChangeEventArgs __e) => ToggleRow(it, Convert.ToBoolean(__e.Value)))" />
+                                <input class="form-check-input" type="checkbox"
+                                       disabled="@IsCheckboxDisabled(it)"
+                                       checked="@IsSelected(it)"
+                           @onchange="@((ChangeEventArgs __e) => ToggleRow(it, Convert.ToBoolean(__e.Value)))" />
                             </td>
                         }
                         @ItemContent(it)
@@ -158,6 +163,20 @@
     public delegate void SortChangedEventHandler(SortMode sort, string column);
 
     /// <summary>
+    /// User has select the item.
+    /// </summary>
+    /// <param name="item">Selected item.</param>
+    public delegate void SelectionChangedEventHandler(TItem item);
+
+    /// <summary>
+    /// Notify client to ask is checkbox enabled.
+    /// </summary>
+    /// <param name="item">Item</param>
+    /// <param name="disabled">True, if checkbox is disabled.</param>
+    /// <param name="check"></param>
+    public delegate void CheckboxDisabledEventHandler(TItem item, out bool disabled, out bool check);
+
+    /// <summary>
     /// Are removed items shown for the admin.
     /// </summary>
     [Parameter]
@@ -208,6 +227,18 @@
     /// </summary>
     [Parameter]
     public SortChangedEventHandler? SortChanged { get; set; }
+
+    /// <summary>
+    /// User has select the new item.
+    /// </summary>
+    [Parameter]
+    public SelectionChangedEventHandler? OnSelectionChanged { get; set; }
+
+    /// <summary>
+    /// Notify client to ask is checkbox enabled.
+    /// </summary>
+    [Parameter]
+    public CheckboxDisabledEventHandler? OnCheckboxDisabled { get; set; }
 
     /// <summary>
     /// User has modify the sorting.
@@ -392,7 +423,7 @@
     /// Gets or sets the function providing items to the list.
     /// </summary>
     [Parameter]
-    public GXItemsProviderDelegate<TItem> ItemsProvider { get; set; }
+    public GXItemsProviderDelegate<TItem>? ItemsProvider { get; set; }
 
     [Parameter]
     public string? Style { get; set; }
@@ -450,14 +481,17 @@
             Items = result.Items;
             //Update selected items.
             List<TItem> list = new List<TItem>();
-            foreach (var it in _selectedItems)
+            if (Items != null)
             {
-                foreach (var it2 in Items)
+                foreach (var it in _selectedItems)
                 {
-                    if (Compare(it.Value, it2))
+                    foreach (var it2 in Items)
                     {
-                        list.Add(it2);
-                        break;
+                        if (Compare(it.Value, it2))
+                        {
+                            list.Add(it2);
+                            break;
+                        }
                     }
                 }
             }
@@ -475,12 +509,15 @@
             {
                 TItem active = Active;
                 Active = default;
-                foreach (var it in Items)
+                if (Items != null)
                 {
-                    if (Compare(active, it))
+                    foreach (var it in Items)
                     {
-                        Active = it;
-                        break;
+                        if (Compare(active, it))
+                        {
+                            Active = it;
+                            break;
+                        }
                     }
                 }
             }
@@ -550,9 +587,10 @@
     /// User has selected the row.
     /// </summary>
     /// <param name="selected">Selected row.</param>
-    protected void SelectRow(TItem selected)
+    public void SelectRow(object selected)
     {
-        Active = selected;
+        Active = (TItem)selected;
+        OnSelectionChanged?.Invoke((TItem)selected);
     }
 
     /// <summary>
@@ -566,6 +604,25 @@
             return "checked";
         }
         return null;
+    }
+
+    private string? IsCheckboxDisabled(TItem target)
+    {
+        bool disabled = false;
+        bool check = false;
+        if (OnCheckboxDisabled != null)
+        {
+            OnCheckboxDisabled.Invoke(target, out disabled, out check);
+        }
+        if (check)
+        {
+            ToggleRow(target, check);
+        }
+        if (!disabled)
+        {
+            return null;
+        }
+        return "disabled";
     }
 
     /// <summary>

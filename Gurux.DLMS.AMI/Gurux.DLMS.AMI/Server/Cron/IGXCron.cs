@@ -30,6 +30,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.Rest;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Cron
@@ -48,8 +51,26 @@ namespace Gurux.DLMS.AMI.Server.Cron
     /// <summary>
     /// Cron service uses this interface to find executed cron tasks.
     /// </summary>
-    interface IGXCronTask
+    public interface IGXCronTask
     {
+        /// <summary>
+        /// Check new agent versions.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        Task CheckAgentsAsync(ClaimsPrincipal user);
+
+        /// <summary>
+        /// Check new modules.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        Task CheckModulesAsync(ClaimsPrincipal user);
+
+        /// <summary>
+        /// Check manufacturer settings.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        Task CheckManufacturersAsync(ClaimsPrincipal user);
+
         /// <summary>
         /// Cron calls to execute the task.
         /// </summary>

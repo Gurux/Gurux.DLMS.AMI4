@@ -375,7 +375,7 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// </summary>
         public const string Delete = "agent.delete";
     }
-
+   
     /// <summary>
     /// Agent group policies.
     /// </summary>
@@ -690,6 +690,52 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// User can delete script(s).
         /// </summary>
         public const string Delete = "script.delete";
+    }
+
+    /// <summary>
+    /// Manufacturer policies.
+    /// </summary>
+    public static class GXManufacturerPolicies
+    {
+        /// <summary>
+        /// User can view the manufacturer(s).
+        /// </summary>
+        public const string View = "manufacturer.view";
+        /// <summary>
+        /// User can add new manufacturer(s).
+        /// </summary>
+        public const string Add = "manufacturer.add";
+        /// <summary>
+        /// User can edit manufacturer(s).
+        /// </summary>
+        public const string Edit = "manufacturer.edit";
+        /// <summary>
+        /// User can delete manufacturer(s).
+        /// </summary>
+        public const string Delete = "manufacturer.delete";
+    }
+
+    /// <summary>
+    /// Manufacturer group policies.
+    /// </summary>
+    public static class GXManufacturerGroupPolicies
+    {
+        /// <summary>
+        /// User can view the manufacturer group(s).
+        /// </summary>
+        public const string View = "manufacturer-group.view";
+        /// <summary>
+        /// User can add new manufacturer group(s).
+        /// </summary>
+        public const string Add = "manufacturer-group.add";
+        /// <summary>
+        /// User can edit manufacturer group(s).
+        /// </summary>
+        public const string Edit = "manufacturer-group.edit";
+        /// <summary>
+        /// User can delete manufacturer group(s).
+        /// </summary>
+        public const string Delete = "manufacturer-group.delete";
     }
 
     /// <summary>

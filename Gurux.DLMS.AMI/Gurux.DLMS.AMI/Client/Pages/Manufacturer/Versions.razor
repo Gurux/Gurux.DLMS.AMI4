@@ -1,0 +1,199 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<GXTable @ref="table"
+         Context="version"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         OnSearch="@Updated"
+         OnCheckboxDisabled="@OnCheckboxDisabled"
+         OnSelectionChanged="@OnSelectionChanged">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>
+            @(string.IsNullOrEmpty(version.Name) ? "Generic" : version.Name)
+        </td>
+    </ItemContent>
+</GXTable>
+<br />
+
+@code {
+    [CascadingParameter]
+    private Manufacturer? Parent { get; set; }
+
+    private GXDeviceModel? Model
+    {
+        get
+        {
+            return Parent?.Model;
+        }
+    }
+
+    /// <summary>
+    /// Checkbox is disabled if all templates are already installed.
+    /// </summary>
+    public void OnCheckboxDisabled(GXDeviceVersion value, out bool disabled, out bool check)
+    {
+        disabled = true;
+        check = true;
+        if (value.Settings != null)
+        {
+            foreach (var it in value.Settings)
+            {
+                if (it.Template == null)
+                {
+                    check = disabled = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// User has selected a new version.
+    /// </summary>
+    /// <param name="value">Selected version.</param>
+    private void OnSelectionChanged(GXDeviceVersion value)
+    {
+        Parent?.VersionChanged(value);
+    }
+
+    /// <summary>
+    /// Version filter.
+    /// </summary>
+    private GXDeviceVersion filter = new GXDeviceVersion();
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXDeviceVersion>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    public async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+                //Select first version.
+                GXDeviceVersion? first = Model?.Versions?.FirstOrDefault();
+                if (first != null)
+                {
+                    Parent?.VersionChanged(first);
+                    if (table != null)
+                    {
+                        //Get last selected item.
+                        table.Active = first;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Update installed items.
+    /// </summary>
+    public GXDeviceVersion[] GetInstalledItems()
+    {
+        List<GXDeviceVersion> list = new List<GXDeviceVersion>();
+        if (table != null)
+        {
+            foreach (var it in table.SelectedItems)
+            {
+                list.Add(it);
+            }
+        }
+        return list.ToArray();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            //Select first version.
+            GXDeviceVersion? first = Model?.Versions?.FirstOrDefault();
+            if (first != null)
+            {
+                Parent?.VersionChanged(first);
+                if (table != null)
+                {
+                    //Get last selected item.
+                    table.Active = first;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceVersion>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (Model?.Versions != null)
+            {
+                return new ItemsProviderResult<GXDeviceVersion>(Model.Versions, Model.Versions.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

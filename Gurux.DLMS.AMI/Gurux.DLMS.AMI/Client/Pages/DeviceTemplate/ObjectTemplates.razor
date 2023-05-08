@@ -75,7 +75,7 @@ else
         </HeaderContent>
         <ItemContent>
             <td>@GetObjectType(template.ObjectType)</td>
-            <Td Path=@("/ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
+            <Td Link=@("ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
             <td>@template.LogicalName</td>
             <td>@GetAccessRights(template)</td>
             <td>@GetExpirationTimes(template)</td>

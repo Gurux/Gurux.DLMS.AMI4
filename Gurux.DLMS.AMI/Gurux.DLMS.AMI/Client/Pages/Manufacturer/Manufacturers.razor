@@ -1,0 +1,462 @@
+﻿@page "/config/manufacturers"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json;
+
+@attribute [Authorize(Roles = "Admin, ManufacturerManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Manufacturers</PageTitle>
+}
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Install" Icon="oi oi-plus" OnClick="@OnInstall"></MenuItem>
+    </ChildContent>
+</MenuControl>
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    @if (_settings?.Checked != null)
+                    {
+                        <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings?.Checked))</label>
+                    }
+                    <button type="button" class="btn btn-link" @onclick="@OnCheck">(@Properties.Resources.CheckManually)</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+<GXTable @ref="table"
+         Context="manufacturer"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         OnCheckboxDisabled="@OnCheckboxDisabled"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue :Convert.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ManufacturerManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Install" Icon="oi oi oi-plus" OnClick="@OnInstall"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("config/Manufacturer/Edit/" + manufacturer.Id)">@manufacturer.Name</Td>
+        <td>@manufacturer.CreationTime</td>
+        <td>@manufacturer.Updated</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="InstallConfirmation"
+         ConfirmationChanged="OnInstallConfirmation"
+         OkTitle="@Properties.Resources.Install"
+         ConfirmationMessage=""
+         AllowDelete="false"
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToInstallSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected manufacturer ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Manufacturers;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-timer";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the manufacturers shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Manufacturer filter.
+    /// </summary>
+    private GXManufacturer filter = new GXManufacturer();
+    /// <summary>
+    /// User is verified before manufacturer is removed.
+    /// </summary>
+    protected ConfirmBase? InstallConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXManufacturer>? table;
+
+    /// <summary>
+    /// Manufacturer settings.
+    /// </summary>
+    private ManufacturerSettings? _settings;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Checkbox is disabled if all templates are already installed.
+    /// </summary>
+    public void OnCheckboxDisabled(GXManufacturer value, out bool disabled, out bool check)
+    {
+        disabled = true;
+        check = true;
+        if (value.Models != null)
+        {
+            foreach (var model in value.Models)
+            {
+                if (model.Versions != null)
+                {
+                    foreach (var version in model.Versions)
+                    {
+                        if (version.Settings != null)
+                        {
+                            foreach (var it in version.Settings)
+                            {
+                                if (it.InstallationTime == null)
+                                {
+                                    check = disabled = false;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+           {
+               try
+               {
+                   if (configurations != null)
+                   {
+                       foreach (var it in configurations)
+                       {
+                           if (it.Name == GXConfigurations.Manufacturers && !string.IsNullOrEmpty(it.Settings))
+                           {
+                               _settings = JsonSerializer.Deserialize<ManufacturerSettings>(it.Settings);
+                               StateHasChanged();
+                               break;
+                           }
+                       }
+                   }
+               }
+               catch (Exception ex)
+               {
+                   Notifier?.ProcessError(ex);
+               }
+           });
+            Notifier.On<IEnumerable<GXManufacturer>>(this, nameof(IGXHubEvents.ManufacturerUpdate), async (manufacturer) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXManufacturer>>(this, nameof(IGXHubEvents.ManufacturerDelete), async (manufacturer) =>
+            {
+                await Updated();
+            });
+            //Clear buttons.
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            //Get configuration data.
+            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
+            if (!string.IsNullOrEmpty(active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<ManufacturerSettings>(active.Settings);
+            }
+            else
+            {
+                _settings = new ManufacturerSettings();
+            }
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXManufacturer() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXManufacturer>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            filter.Template = true;
+            ListManufacturers req = new ListManufacturers()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = true,
+                    //Get manufacturer template information.
+                    Select = TargetType.Version
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            ListManufacturersResponse ret = await Http.PostAsJson<ListManufacturersResponse>("api/Manufacturer/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXManufacturer>(ret.Manufacturers, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Edit manufacturer.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "config/Manufacturer/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Install selected manufacturers.
+    /// </summary>
+    void OnInstall()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            InstallConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Install the selected manufacturers.
+    /// </summary>
+    public async Task OnInstallConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                Notifier?.ProgressStart();
+                List<GXManufacturer> manufacturers = new List<GXManufacturer>();
+                foreach (var manufacturer in table.SingleOrDefault())
+                {
+                    manufacturers.Add(new GXManufacturer() { Id = manufacturer.Id });
+                }
+                InstallManufacturers req = new InstallManufacturers()
+                    {
+                        Manufacturers = manufacturers.ToArray()
+                    };
+                var ret = await Http.PostAsJson<InstallManufacturersResponse>("api/Manufacturer/Install", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Check manufacturers manually.
+    /// </summary>
+    public async void OnCheck()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            CheckManufacturer req = new CheckManufacturer();
+            await Http.PostAsJson<CheckManufacturerResponse>("api/Manufacturer/Check", req);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -8,16 +9,47 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Client.Pages.Device
+@using System.IO.Ports;
 
-@attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
 @inject IGXNotifier Notifier
 
 <div class="row">
     <div style="width:100%">
+        <div class="col-auto">
+            <label>@Properties.Resources.Baudrate</label>
+            <select class="form-select" @bind="BaudRateList">
+                @foreach (var it in BaudRateList)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <label>@Properties.Resources.DataBits</label>
+            <select class="form-select" @bind="DataBits">
+                @foreach (var it in DataBitsList)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
+        </div>
+        <div class="col-auto">
+            <label>@Properties.Resources.Parity</label>
+            <select class="form-select" @bind="Parity">
+                @foreach (var it in ParityList)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
+        </div>
         <div class="form-group">
-            <label>Serial port</label>
-            <InputText id="name" class="form-control"
-                       @bind-Value="PortName" />
+            <label>@Properties.Resources.StopBits</label>
+            <select class="form-select" @bind="StopBits">
+                @foreach (var it in StopBitList)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
         </div>
     </div>
 </div>
@@ -25,21 +57,103 @@
     [CascadingParameter]
     private Device? Parent { get; set; }
 
+    /// <summary>
+    /// Available baud rates.
+    /// </summary>
+    private int[] BaudRateList = new[] { 300, 600, 1200, 1800, 2400, 4800, 7200, 9600, 14400, 19200, 38400, 56000, 57600, 115200, 128000 };
+
+    /// <summary>
+    /// Available parities.
+    /// </summary>
+    private Parity[] ParityList = new[] { Parity.None, Parity.Odd, Parity.Even, Parity.Mark, Parity.Space };
+
+    /// <summary>
+    /// Available stop bits.
+    /// </summary>
+    private StopBits[] StopBitList = new[] { StopBits.None, StopBits.One, StopBits.Two };
+
+    /// <summary>
+    /// Available data bits.
+    /// </summary>
+    private int[] DataBitsList = new[] { 7, 8 };
+
+    private Parity _parity;
+
     private GXSerialTemplate _serial = new GXSerialTemplate();
 
-    public string? PortName
+    private int BaudRate
     {
         get
         {
             if (_serial == null)
             {
-                return null;
+                return 9600;
             }
-            return _serial.PortName;
+            return _serial.BaudRate;
         }
         set
         {
-            _serial.PortName = value;
+            _serial.BaudRate = value;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _serial.Settings;
+            }
+        }
+    }
+
+    private int DataBits
+    {
+        get
+        {
+            if (_serial == null)
+            {
+                return 8;
+            }
+            return _serial.DataBits;
+        }
+        set
+        {
+            _serial.DataBits = value;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _serial.Settings;
+            }
+        }
+    }
+
+    private Parity Parity
+    {
+        get
+        {
+            if (_serial == null)
+            {
+                return Parity.None;
+            }
+            return (Parity)_serial.Parity;
+        }
+        set
+        {
+            _serial.Parity = (int)value;
+            if (Parent?.Active != null)
+            {
+                Parent.Active.MediaSettings = _serial.Settings;
+            }
+        }
+    }
+
+    private StopBits StopBits
+    {
+        get
+        {
+            if (_serial == null)
+            {
+                return StopBits.None;
+            }
+            return (StopBits)_serial.StopBits;
+        }
+        set
+        {
+            _serial.StopBits = (int)value;
             if (Parent?.Active != null)
             {
                 Parent.Active.MediaSettings = _serial.Settings;
@@ -63,12 +177,10 @@
         }
     }
 
-    //Validate serial port settings.
-    public void Validate()
+    /// <summary>
+    /// Validate serial port settings.
+    /// </summary>
+    public void Validate(GXValidator sender)
     {
-        if (string.IsNullOrEmpty(PortName))
-        {
-            throw new ArgumentException("Invalid serial port.");
-        }
     }
 }

@@ -78,7 +78,7 @@
         <Th Id="Closed">@Properties.Resources.CloseTime</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/ScheduleLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <Td Link="@("ScheduleLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Schedule?.Name</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>

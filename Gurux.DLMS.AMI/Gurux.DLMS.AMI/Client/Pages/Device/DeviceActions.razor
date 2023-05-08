@@ -71,7 +71,7 @@
     </HeaderContent>
     <ItemContent>
         <td>@action.Device.Name</td>
-        <Td Path="@("/DeviceAction/Edit/" + action.Id)">@action.CreationTime</Td>
+        <Td Link="@("DeviceAction/Edit/" + action.Id)">@action.CreationTime</Td>
         <td>@((DeviceActionType?)@action.Type)</td>
         <td>@action.Data</td>
         <td>@action.Reply</td>

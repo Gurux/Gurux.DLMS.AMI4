@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gurux.DLMS.AMI.Services
@@ -260,9 +261,21 @@ namespace Gurux.DLMS.AMI.Services
         /// <inheritdoc/>
         public event Action<IEnumerable<string>>? OnRoleDelete;
         /// <inheritdoc/>
-        public event Action OnCronStart;
+        public event Action? OnCronStart;
         /// <inheritdoc/>
-        public event Action OnCronCompleate;
+        public event Action? OnCronCompleate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXManufacturer>>? OnManufacturerUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXManufacturer>>? OnManufacturerDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXManufacturerGroup>>? OnManufacturerGroupUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXManufacturerGroup>>? OnManufacturerGroupDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXFavorite>>? OnFavoriteUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXFavorite>>? OnFavoriteDelete;
 
         /// <inheritdoc/>
         public async Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
@@ -399,6 +412,7 @@ namespace Gurux.DLMS.AMI.Services
             await _hubContext.Clients.Users(users).BlockGroupDelete(groups);
         }
 
+        /// <inheritdoc/>
         public async Task BlockGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXBlockGroup> groups)
         {
             OnBlockGroupUpdate?.Invoke(groups);
@@ -1022,7 +1036,7 @@ namespace Gurux.DLMS.AMI.Services
         /// <inheritdoc/>
         public async Task UserSettingDelete(IReadOnlyList<string> users, IEnumerable<GXUserSetting> settings)
         {
-            _workflowHandler.Execute(typeof(UserTrigger), UserTrigger.Modify, null);
+            _workflowHandler.Execute(typeof(UserTrigger), UserTrigger.Delete, null);
             List<GXUser> list = new List<GXUser>();
             foreach (var it in settings)
             {
@@ -1033,6 +1047,47 @@ namespace Gurux.DLMS.AMI.Services
             }
             OnUserUpdate?.Invoke(list);
             await _hubContext.Clients.Users(users).UserSettingDelete(settings);
+        }
+        /// <inheritdoc/>
+        public async Task ManufacturerUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
+        {
+            OnManufacturerUpdate?.Invoke(manufacturers);
+            await _hubContext.Clients.Users(users).ManufacturerUpdate(manufacturers);
+        }
+
+        /// <inheritdoc/>
+        public async Task ManufacturerDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturer> manufacturers)
+        {
+            OnManufacturerDelete?.Invoke(manufacturers);
+            await _hubContext.Clients.Users(users).ManufacturerDelete(manufacturers);
+        }
+
+        /// <inheritdoc/>
+        public async Task ManufacturerGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
+        {
+            OnManufacturerGroupUpdate?.Invoke(groups);
+            await _hubContext.Clients.Users(users).ManufacturerGroupUpdate(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task ManufacturerGroupDelete(IReadOnlyList<string> users, IEnumerable<GXManufacturerGroup> groups)
+        {
+            OnManufacturerGroupDelete?.Invoke(groups);
+            await _hubContext.Clients.Users(users).ManufacturerGroupDelete(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task FavoriteUpdate(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
+        {
+            OnFavoriteUpdate?.Invoke(favorites);
+            await _hubContext.Clients.Users(users).FavoriteUpdate(favorites);
+        }
+
+        /// <inheritdoc/>
+        public async Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
+        {
+            OnFavoriteDelete?.Invoke(favorites);
+            await _hubContext.Clients.Users(users).FavoriteDelete(favorites);
         }
     }
 }

@@ -1,0 +1,259 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<GXTable @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         OnCheckboxDisabled="@OnCheckboxDisabled"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <th>@Properties.Resources.Authentication</th>
+        <th>@Properties.Resources.InterfaceType</th>
+        <th>@Properties.Resources.Security</th>
+        <th>@Properties.Resources.Installed</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@GetAuthenticationLevel(item)</td>
+        <td>@GetInterfaceType(item)</td>
+        <td>@GetSecurity(item)</td>
+        <td>@item.InstallationTime</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+@code {
+    [CascadingParameter]
+    private Manufacturer? Parent { get; set; }
+
+    private GXDeviceVersion? Version
+    {
+        get
+        {
+            return Parent?.Version;
+        }
+    }
+
+    string GetInterfaceType(GXDeviceSettings value)
+    {
+        return ((Gurux.DLMS.Enums.InterfaceType)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).InterfaceType).ToString();
+    }
+
+    string GetSecurity(GXDeviceSettings value)
+    {
+        return ((Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).Security).ToString();
+    }
+
+    string GetAuthenticationLevel(GXDeviceSettings value)
+    {
+        return ((Gurux.DLMS.Enums.Authentication)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).Authentication).ToString();
+    }
+
+    /// <summary>
+    /// Settings filter.
+    /// </summary>
+    private GXDeviceSettings filter = new GXDeviceSettings();
+    /// <summary>
+    /// User is verified before manufacturer is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXDeviceSettings>? table;
+
+    /// <summary>
+    /// Update installed items.
+    /// </summary>
+    public GXDeviceSettings[] GetInstalledItems()
+    {
+        List<GXDeviceSettings> list = new List<GXDeviceSettings>();
+        if (table != null)
+        {
+            foreach (var it in table.SelectedItems)
+            {
+                if (it.Template == null)
+                {
+                    list.Add(it);
+                }
+            }
+        }
+        return list.ToArray();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            //Select first setting.
+            GXDeviceSettings? first = Version?.Settings?.FirstOrDefault();
+            if (first != null)
+            {
+                if (table != null)
+                {
+                    //Get last selected item.
+                    table.Active = first;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Checkbox is disabled if template is already installed.
+    /// </summary>
+    public void OnCheckboxDisabled(GXDeviceSettings value, out bool disabled, out bool check)
+    {
+        check = disabled = value.Template != null;
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    public async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+                //Select first setting.
+                GXDeviceSettings? first = Version?.Settings?.FirstOrDefault();
+                if (first != null)
+                {
+                    if (table != null)
+                    {
+                        //Get last selected item.
+                        table.Active = first;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceSettings>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (Version?.Settings != null)
+            {
+                return new ItemsProviderResult<GXDeviceSettings>(Version.Settings, Version.Settings.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Remove selected models.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected models.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveManufacturer req = new RemoveManufacturer()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveManufacturerResponse>("api/Manufacturer/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

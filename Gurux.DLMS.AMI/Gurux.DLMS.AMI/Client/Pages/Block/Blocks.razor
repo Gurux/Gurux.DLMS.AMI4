@@ -54,7 +54,7 @@
         <Th Id="EndTime">@Properties.Resources.EndTime</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/Block/Edit/" + block.Id)"><span class=@(ClientHelpers.GetActiveDot(block.Active))></span>@block.Name</Td>
+        <Td Link="@("Config/Block/Edit/" + block.Id)"><span class=@(ClientHelpers.GetActiveDot(block.Active))></span>@block.Name</Td>
         <td>@block.BlockType</td>
         <td>@block.Title</td>
         <td>@block.Location</td>

@@ -12,6 +12,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Text.Json;
 
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
@@ -31,6 +32,24 @@
     </MenuControl>
 </AuthorizeView>
 
+
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    @if (_settings?.Checked != null)
+                    {
+                        <label>@string.Format(Properties.Resources.LastChecked, ClientHelpers.GetLastChecked(_settings?.Checked))</label>
+                    }
+                    <button type="button" class="btn btn-link" @onclick="OnCheck">(@Properties.Resources.CheckManually)</button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
 <GXTable @ref="table"
          Context="version" ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple" Filter="@Filter"
@@ -128,6 +147,11 @@
     /// </summary>
     protected GXTable<GXAgentVersion>? table;
 
+    /// <summary>
+    /// Agent settings.
+    /// </summary>
+    private AgentSettings? _settings;
+
     private GXAgent? _active;
 
     /// <summary>
@@ -154,10 +178,38 @@
         await Task.Delay(1);
         try
         {
-            if (Notifier == null || filter.Versions == null)
+            if (Notifier == null || filter?.Versions == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
+            //Get selected item.
+            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
+            if (active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+           {
+               try
+               {
+                   if (configurations != null)
+                   {
+                       foreach (var it in configurations)
+                       {
+                           if (it.Name == GXConfigurations.Agents && !string.IsNullOrEmpty(it.Settings))
+                           {
+                               _settings = JsonSerializer.Deserialize<AgentSettings>(it.Settings);
+                               StateHasChanged();
+                               break;
+                           }
+                       }
+                   }
+               }
+               catch (Exception ex)
+               {
+                   Notifier?.ProcessError(ex);
+               }
+           });
             filter.Versions.Add(new GXAgentVersion() { Active = null });
             Notifier.On<IEnumerable<GXAgent>>(this, nameof(IGXHubEvents.AgentUpdate), async (agents) =>
             {
@@ -169,6 +221,16 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
+            //Get configuration data.
+            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
+            if (!string.IsNullOrEmpty(active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<AgentSettings>(active.Settings);
+            }
+            else
+            {
+                _settings = new AgentSettings();
+            }
         }
         catch (Exception ex)
         {
@@ -281,6 +343,28 @@
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Check agent versions manually.
+    /// </summary>
+    public async void OnCheck()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            CheckManufacturer req = new CheckManufacturer();
+            await Http.PostAsJson<CheckManufacturerResponse>("api/Agent/Check", req);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
         }
     }
 

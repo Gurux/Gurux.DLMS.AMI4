@@ -18,5 +18,11 @@
         /// Notify that sort has been updated.
         /// </summary>
         void NotifyShortChange();
+
+        /// <summary>
+        /// User has selected the row.
+        /// </summary>
+        /// <param name="selected">Selected row.</param>
+        public void SelectRow(object selected);
     }
 }

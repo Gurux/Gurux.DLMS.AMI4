@@ -103,7 +103,7 @@
     <ItemContent>
         <td>@user.GivenName</td>
         <td>@user.Surname</td>
-        <Td Path="@("/User/Edit/" + user.Id)">@user.Email</Td>
+        <Td Link="@("User/Edit/" + user.Id)">@user.Email</Td>
         <td>@user.EmailConfirmed</td>
         <td>@RolesToString(user.Roles)</td>
         <td>@user.CreationTime</td>

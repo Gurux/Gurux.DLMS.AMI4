@@ -7,7 +7,7 @@
 @inject IGXNotifier Notifier
 
 <td style="@CssStyle" class="@CssClass" @attributes="@AdditionalAttributes">
-    <a href="@Path" @onclick="() => OnSelect()">
+    <a href="@Link" @onclick="() => OnSelect()">
         @ChildContent
     </a>
 </td>
@@ -20,8 +20,14 @@
     [CascadingParameter]
     private IGXTable? Parent { get; set; }
 
+    /// <summary>
+    /// href link.
+    /// </summary>
     [Parameter]
-    public string? Path { get; set; }
+    public string? Link { get; set; }
+
+    [Parameter]
+    public object? Target { get; set; }
 
     /// <summary>
     /// Gets or sets the item template for the list.
@@ -41,13 +47,17 @@
     //New target is selected.
     private void OnSelect()
     {
+        if (Target != null)
+        {
+            Parent?.SelectRow(Target);
+        }
         if (Notifier != null)
         {
             Notifier.ChangePage(NavigationManager.Uri);
         }
-        if (!string.IsNullOrEmpty(Path))
+        if (!string.IsNullOrEmpty(Link))
         {
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, Path);
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, Link);
         }
     }
 

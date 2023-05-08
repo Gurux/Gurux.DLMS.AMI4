@@ -56,7 +56,7 @@
 
     mimetype: application/x-microsoft.net.object.bytearray.base64
     value   : The object must be serialized into a byte array 
-            : using a System.ComponentModel.TypeConverter
+            : using a System.ComponentVersion.TypeConverter
             : and then encoded with base64 encoding.
     -->
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
@@ -615,9 +615,6 @@
   <data name="Network" xml:space="preserve">
     <value>Verkko</value>
   </data>
-  <data name="Serial" xml:space="preserve">
-    <value>Sarjanumero</value>
-  </data>
   <data name="ExecutionTime" xml:space="preserve">
     <value>Maks. suoritusaika</value>
   </data>
@@ -634,7 +631,7 @@
     <value>Päivitetään</value>
   </data>
   <data name="TaskWaitTime" xml:space="preserve">
-    <value>odotusaika</value>
+    <value>Tehtävän odotusaika</value>
   </data>
   <data name="AliveTime" xml:space="preserve">
     <value>Elossa aika</value>
@@ -851,5 +848,98 @@
   </data>
   <data name="SerialPort" xml:space="preserve">
     <value>Sarjaportti</value>
+  </data>
+  <data name="ManufacturerGroups" xml:space="preserve">
+    <value>Valmistajaryhmät</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Valmistajat</value>
+  </data>
+  <data name="Manufacturer" xml:space="preserve">
+    <value>Valmista</value>
+  </data>
+  <data name="ManufacturerGroup" xml:space="preserve">
+    <value>Valmistajaryhmä</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Suosikki</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Suosikit</value>
+  </data>
+  <data name="Versions" xml:space="preserve">
+    <value>Versiot</value>
+  </data>
+  <data name="Model" xml:space="preserve">
+    <value>Malli</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Mallit</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Tuntematon</value>
+  </data>
+  <data name="InterfaceType" xml:space="preserve">
+    <value>Liittymän tyyppi</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Todentaminen</value>
+  </data>
+  <data name="LastChecked" xml:space="preserve">
+    <value>Viimeksi tarkistettu: {0} sitten.</value>
+  </data>
+  <data name="CheckManually" xml:space="preserve">
+    <value>tarkista manuaalisesti</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>päivää</value>
+  </data>
+  <data name="Hours" xml:space="preserve">
+    <value>tuntia</value>
+  </data>
+  <data name="Minutes" xml:space="preserve">
+    <value>minuutia</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>sekuntia</value>
+  </data>
+  <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
+    <value>Oletko varma, että haluat asentaa valitut kohteet?</value>
+  </data>
+  <data name="Media" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="WaitTime" xml:space="preserve">
+    <value>odotusaika</value>
+  </data>
+  <data name="Generic" xml:space="preserve">
+    <value>Yleinen</value>
+  </data>
+  <data name="Custom" xml:space="preserve">
+    <value>Mukautettu</value>
+  </data>
+  <data name="Baudrate" xml:space="preserve">
+    <value>Siirtonopeus</value>
+  </data>
+  <data name="DataBits" xml:space="preserve">
+    <value>Databitit</value>
+  </data>
+  <data name="StopBits" xml:space="preserve">
+    <value>Stopbitit</value>
+  </data>
+  <data name="SerialNumber" xml:space="preserve">
+    <value>Sarjanumero</value>
+  </data>
+  <data name="Parity" xml:space="preserve">
+    <value>Pariteetti</value>
+  </data>
+  <data name="InstallMetersVerify" xml:space="preserve">
+    <value>Haluatko varmasti asentaa tuen seuraaville mittareille?</value>
+  </data>
+  <data name="InstallVersions" xml:space="preserve">
+    <value>Kaikki {0} versiot.</value>
+  </data>
+  <data name="InstallAllSettings" xml:space="preserve">
+    <value>Kaikki {0} {1} asetukset.</value>
   </data>
 </root>

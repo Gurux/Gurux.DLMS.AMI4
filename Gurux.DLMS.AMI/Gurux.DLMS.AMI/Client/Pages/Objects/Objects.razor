@@ -80,7 +80,7 @@ else
             <Th Id="ObjectType">@Properties.Resources.LastWrite</Th>
         </HeaderContent>
         <ItemContent>
-            <Td Path=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
+            <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
             <td>@item.Template?.LogicalName</td>
             <td>@GetObjectType(item.Template?.ObjectType)</td>
             <td>@item.LastError</td>

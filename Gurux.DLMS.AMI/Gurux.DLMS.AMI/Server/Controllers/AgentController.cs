@@ -35,6 +35,7 @@ using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Server.Cron;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {
@@ -46,13 +47,17 @@ namespace Gurux.DLMS.AMI.Server.Controllers
     public class AgentController : ControllerBase
     {
         private readonly IAgentRepository _agentRepository;
+        private readonly IGXCronTask _cron;
+
         /// <summary>
         /// Constructor.
         /// </summary>
         /// <param name="agentRepository">Agent repository interface.</param>
-        public AgentController(IAgentRepository agentRepository)
+        /// <param name="cron">Cron task interface.</param>
+        public AgentController(IAgentRepository agentRepository, IGXCronTask cron)
         {
             _agentRepository = agentRepository;
+            _cron = cron;
         }
 
         /// <summary>
@@ -203,6 +208,18 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             }
             await _agentRepository.UpdateAsync(User, request.Agents, c => c.UpdateVersion);
             return new InstallAgentResponse();
+        }
+
+        /// <summary>
+        /// Check are there new agent versions available.
+        /// </summary>
+        [HttpPost("Check")]
+        [Authorize(Policy = GXAgentPolicies.Edit)]
+        public async Task<ActionResult<CheckModuleResponse>> Post(
+            CheckModule request)
+        {
+            await _cron.CheckAgentsAsync(User);
+            return new CheckModuleResponse();
         }
     }
 }

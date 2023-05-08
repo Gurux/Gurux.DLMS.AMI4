@@ -74,7 +74,7 @@
         <th>@Properties.Resources.CloseTime</th>
     </HeaderContent>
     <ItemContent>
-        <Td Path="@("/Config/ModuleLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <Td Link="@("Config/ModuleLog/Edit/" + error.Id)">@error.CreationTime</Td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>

@@ -187,7 +187,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task UpdateAsync(ClaimsPrincipal User, IEnumerable<GXConfiguration> configurations, bool notify)
+        public async Task UpdateAsync(
+            ClaimsPrincipal User, 
+            IEnumerable<GXConfiguration> configurations, 
+            bool notify)
         {
             GXUpdateArgs update = GXUpdateArgs.UpdateRange(configurations);
             update.Exclude<GXConfiguration>(q => new { q.Name, q.Description, q.CreationTime, q.Path, q.Resources });

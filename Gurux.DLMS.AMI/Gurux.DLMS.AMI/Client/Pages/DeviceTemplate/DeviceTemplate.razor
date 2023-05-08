@@ -234,6 +234,7 @@
         var settings = new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings();
         settings.MaximumBaudRate = source.MaximumBaudRate;
         settings.Authentication = (byte)source.Authentication;
+        settings.AuthenticationName = source.AuthenticationName;
         settings.Standard = (byte)source.Standard;
         settings.Password = source.Password;
         settings.HexPassword = source.HexPassword;
@@ -272,7 +273,11 @@
         target.Settings = JsonSerializer.Serialize(settings);
     }
 
-    private async void UpdateDeviceTemplates(string xml)
+    /// <summary>
+    /// Get device templates from the XML.
+    /// </summary>
+    /// <param name="xml"></param>
+    private void UpdateDeviceTemplates(string xml)
     {
         try
         {
@@ -280,165 +285,7 @@
             Notifier.ProgressStart();
             isLoading = true;
             StateHasChanged();
-            GXDLMSDevice[] devices;
-            using (var tr = new StringReader(xml))
-            {
-                List<Type> types = new List<Type>(Gurux.DLMS.GXDLMSClient.GetObjectTypes());
-                types.Add(typeof(GXDLMSAttributeSettings));
-                types.Add(typeof(GXDLMSAttribute));
-                XmlSerializer serializer = new XmlSerializer(typeof(GXDLMSDevice[]), null, types.ToArray(), null, "Gurux1");
-                devices = (GXDLMSDevice[])serializer.Deserialize(tr);
-            }
-            GXDeviceTemplate m = new GXDeviceTemplate();
-            foreach (GXDLMSDevice it in devices)
-            {
-                int AssociationViewVersion = 1;
-                GXDeviceTemplate t = new GXDeviceTemplate();
-                Copy(t, it);
-                List<GXObjectTemplate> list = new List<GXObjectTemplate>();
-                if (it.Objects.Count == 0)
-                {
-                    throw new Exception("There are no objects. Read the association view first.");
-                }
-
-                if (it.UseLogicalNameReferencing)
-                {
-                    GXDLMSObjectCollection objs = it.Objects.GetObjects(Enums.ObjectType.AssociationLogicalName);
-                    if (objs.Any())
-                    {
-                        GXDLMSAssociationLogicalName? ln = objs[0] as GXDLMSAssociationLogicalName;
-                        if (ln != null)
-                        {
-                            AssociationViewVersion = ln.Version;
-                        }
-                    }
-                }
-
-                foreach (GXDLMSObject value in it.Objects)
-                {
-                    string[] names = ((IGXDLMSBase)value).GetNames();
-                    GXObjectTemplate obj = new GXObjectTemplate()
-                        {
-                            LogicalName = value.LogicalName,
-                            ObjectType = (int)value.ObjectType,
-                            Name = value.Description,
-                            Version = value.Version,
-                            ShortName = value.ShortName,
-                            Attributes = new List<GXAttributeTemplate>()
-                        };
-                    list.Add(obj);
-                    for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
-                    {
-                        GXAttributeTemplate a = new GXAttributeTemplate();
-                        a.Name = names[pos - 1];
-                        a.Index = pos;
-                        a.Weight = pos - 1;
-                        if (AssociationViewVersion < 3)
-                        {
-                            a.AccessLevel = (int)value.GetAccess(pos);
-                        }
-                        else
-                        {
-                            a.AccessLevel = (int)value.GetAccess3(pos);
-                        }
-                        a.DataType = (int)((IGXDLMSBase)value).GetDataType(pos);
-                        a.UIDataType = (int)((GXDLMSObject)value).GetUIDataType(pos);
-                        if (value.GetStatic(pos))
-                        {
-                            a.ExpirationTime = DateTime.MaxValue;
-                        }
-                        if (value is GXDLMSProfileGeneric)
-                        {
-                            //Capture objects.
-                            if (pos == 3 ||
-                                //Capture Period
-                                pos == 4 ||
-                                //Sort Method
-                                pos == 5 ||
-                                //Sort Object
-                                pos == 6 ||
-                                //Profile Entries
-                                pos == 8)
-                            {
-                                a.ExpirationTime = DateTime.MaxValue;
-                            }
-                        }
-                        if (value is GXDLMSAssociationLogicalName)
-                        {
-                            //Object List.
-                            if (pos == 2 ||
-                                //Associated partners Id
-                                pos == 3 ||
-                                //Application Context Name.
-                                pos == 4 ||
-                                // xDLMS Context Info.
-                                pos == 5 ||
-                                //Authentication Mechanism Name.
-                                pos == 6 ||
-                                //Secret.
-                                pos == 7)
-                            {
-                                a.ExpirationTime = DateTime.MaxValue;
-                            }
-                        }
-                        if (a.DataType == (int)Gurux.DLMS.Enums.DataType.Enum)
-                        {
-                            //Add enum values as list items.
-                            try
-                            {
-                                object tmp = value.GetValues()[pos - 1];
-                                if (tmp != null)
-                                {
-                                    foreach (var v in Enum.GetValues(tmp.GetType()))
-                                    {
-                                        GXAttributeListItem li = new()
-                                            {
-                                                UIValue = v.ToString(),
-                                                Value = Convert.ToInt32(v)
-                                            };
-                                        a.ListItems.Add(li);
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                //It's OK if this fails.
-                                Logger.LogError(ex.Message);
-                            }
-                        }
-                        //Profile generic capture objects are not read as default.
-                        if (value is GXDLMSProfileGeneric && pos == 3)
-                        {
-                            a.ExpirationTime = DateTime.MaxValue;
-                        }
-                        //Scaler and unit are read only once.
-                        if (value is GXDLMSRegister && pos == 3)
-                        {
-                            a.ExpirationTime = DateTime.MaxValue;
-                        }
-                        obj.Attributes.Add(a);
-                    }
-                    string sb = "";
-                    if (AssociationViewVersion < 3)
-                    {
-                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
-                        {
-                            sb += ((int)value.GetMethodAccess(pos)).ToString();
-                        }
-                    }
-                    else
-                    {
-                        sb = "0x";
-                        for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
-                        {
-                            sb += ((int)value.GetMethodAccess3(pos)).ToString("X");
-                        }
-                    }
-                    obj.ActionAccessLevels = sb;
-                    t.Objects = list;
-                }
-                templates.Add(t);
-            }
+            List<GXDeviceTemplate> templates = ClientHelpers.ConvertToTemplates(xml);
             if (Parent != null && templates.Any())
             {
                 _active = templates[0];

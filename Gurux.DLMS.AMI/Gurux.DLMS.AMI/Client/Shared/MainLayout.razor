@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
@@ -24,6 +25,7 @@
             <LoginDisplay @ref="LoginDisplay" />
             <AuthorizeView>
                 <Authorized>
+                    <FavoriteTile />
                     <a href=about/1>@Properties.Resources.About</a>
                     <a href="authentication/profile"><span class="oi oi-person blue-color" aria-hidden="true"></span></a>
                 </Authorized>

@@ -39,13 +39,13 @@ namespace Gurux.DLMS.AMI.Server.Triggers
     /// </summary>
     public class DeviceTemplateTrigger : ITriggerAction
     {
-        /// <inheritdoc cref="ITriggerAction.Name"/>
+        /// <inheritdoc />
         public string Name => "Device template";
 
-        /// <inheritdoc cref="ITriggerAction.ConfigurationUI"/>
+        /// <inheritdoc />
         public Type? ConfigurationUI => null;
 
-        /// <inheritdoc cref="ITriggerAction.Icon"/>
+        /// <inheritdoc />
         public string? Icon => "oi oi-file";
 
         /// <summary>

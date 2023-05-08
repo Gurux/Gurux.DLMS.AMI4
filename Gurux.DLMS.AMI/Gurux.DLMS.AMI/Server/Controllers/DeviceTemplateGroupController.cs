@@ -64,7 +64,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXDeviceTemplateGroupPolicies.View)]
         public async Task<ActionResult<GetDeviceTemplateGroupResponse>> Get(Guid id)
         {
-            return new GetDeviceTemplateGroupResponse() { Item = await _deviceTemplateGroupRepository.ReadAsync(User, id) };
+            return new GetDeviceTemplateGroupResponse()
+            {
+                Item = await _deviceTemplateGroupRepository.ReadAsync(User, id)
+            };
         }
 
         /// <summary>
