@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -437,5 +436,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+    }
+
+    /// <summary>
+    /// Check if there are new agent versions available.
+    /// </summary>
+    [DataContract]
+    public class CheckAgent : IGXRequest<CheckAgentResponse>
+    {
+    }
+
+    /// <summary>
+    /// Check agent versions reply.
+    /// </summary>
+    [DataContract]
+    public class CheckAgentResponse
+    {
     }
 }

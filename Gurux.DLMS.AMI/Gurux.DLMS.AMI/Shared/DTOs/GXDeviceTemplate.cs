@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -111,7 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }        
+        }
 
         /// <summary>
         /// Define how long reply is waited in seconds.
@@ -131,7 +132,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }              
+        }
 
         /// <summary>
         /// Device settings.
@@ -151,7 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public virtual string ?MediaType
+        public virtual string? MediaType
         {
             get;
             set;
@@ -168,7 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-        
+
         /// <summary>
         /// Creation time.
         /// </summary>
@@ -203,6 +204,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
+        /// <summary>
+        /// Manufacturer of the device settings.
+        /// </summary>
+        /// <remarks>
+        /// This is null if device template is a custom template.
+        /// This information is not saved for the DB.
+        /// </remarks>
+        [Ignore]
+        public GXManufacturer? Manufacturer
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Concurrency stamp.
@@ -233,7 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Objects.
+        /// Object templates.
         /// </summary>
         [Description("Object templates.")]
         [ForeignKey(typeof(GXObjectTemplate))]

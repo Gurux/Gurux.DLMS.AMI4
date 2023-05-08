@@ -33,93 +33,71 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>
-    /// Object template.
+    /// Device model table is used to save manufacturer device models.
     /// </summary>
-    [Description("COSEM object template.")]
-    public class GXObjectTemplate : GXTableBase, IUnique<Guid>
+    public class GXDeviceModel : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXObjectTemplate() 
-        { 
+        public GXDeviceModel()
+        {
+
         }
 
         /// <summary>
-        /// Constructor.
+        /// Constructor
         /// </summary>
-        public GXObjectTemplate(string? name)
+        /// <param name="name">Model name.</param>
+        public GXDeviceModel(string? name)
         {
             Name = name;
-            Attributes = new List<GXAttributeTemplate>();
+            Versions = new List<GXDeviceVersion>();
         }
 
         /// <summary>
-        /// Object template identifier.
+        /// Device type ID.
         /// </summary>
-        [Description("Object template identifier.")]
-        //Filter uses default value.
-        [DefaultValue(null)]
-        [DataMember]
+        [DataMember(Name = "ID")]
         public Guid Id
         {
             get;
             set;
         }
 
-
         /// <summary>
-        /// Device template identifier.
+        /// Manufacturer who owns this model.
         /// </summary>
-        [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Description("Device template identifier.")]
-        [Index(false)]
-        public GXDeviceTemplate? DeviceTemplate
+        [DefaultValue(null)]
+        [ForeignKey(typeof(GXManufacturer), OnDelete = ForeignKeyDelete.Cascade)]
+        public GXManufacturer? Manufacturer
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Object type.
+        /// List of device versions.
         /// </summary>
         [DataMember]
-        [Description("Object type.")]
-        [DefaultValue(0)]
-        public int ObjectType
+        [ForeignKey(typeof(GXDeviceVersion))]
+        [Filter(FilterType.Contains)]
+        public List<GXDeviceVersion>? Versions
         {
             get;
             set;
         }
 
-
         /// <summary>
-        /// Object version.
+        /// Device model name.
         /// </summary>
-        [DataMember]
-        [Description("Object version.")]
-        [DefaultValue(0)]
-        public int Version
-        {
-            get;
-            set;
-        }
-
-
-        /// <summary>
-        /// Object description.
-        /// </summary>
-        [DataMember]
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        [IsRequired]
         public string? Name
         {
             get;
@@ -127,29 +105,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Logical name of the object.
+        /// Optional url where is more information from this model.
         /// </summary>
-        [DataMember]
-        [StringLength(25)]
-        [Filter(FilterType.Contains)]
+        [StringLength(128)]
         [DefaultValue(null)]
-        [IsRequired]
-        public string? LogicalName
+        public string? Url
         {
-            get;
-            set;
+            get; set;
         }
 
         /// <summary>
-        /// Short name of the object.
+        /// Device picture.
         /// </summary>
-        [DataMember]
-        [Filter(FilterType.Exact)]
-        [DefaultValue(0)]
-        public UInt16? ShortName
+        [DefaultValue(null)]
+        public string? Picture
         {
-            get;
-            set;
+            get; set;
         }
 
         /// <summary>
@@ -159,38 +130,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// When object is last updated.
-        /// </summary>
-        [DataMember]
-        [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// User has modified the item.
-        /// </summary>
-        [IgnoreDataMember]
-        [Ignore]
-        [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
-
-
-        /// <summary>
-        /// Remove time.
+        /// Time when device type was removed.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
@@ -203,36 +150,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
+        /// When the device type is updated for the last time.
         /// </summary>
-        [DataMember]
-        [Description("Expiration time.")]
-        [DefaultValue(null)]
-        public DateTimeOffset? ExpirationTime
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Attribute templates.
-        /// </summary>
-        [DataMember]
-        [Description("Attribute templates")]
-        [ForeignKey(typeof(GXAttributeTemplate))]
-        public List<GXAttributeTemplate>? Attributes
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Action access levels.
-        /// </summary>
-        [DataMember]
-        [DefaultValue(null)]
-        [StringLength(20)]
-        public string? ActionAccessLevels
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? Updated
         {
             get;
             set;
@@ -243,7 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }
@@ -264,7 +185,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             {
                 return Name;
             }
-            return nameof(GXObjectTemplate);
+            return typeof(GXDeviceModel).Name;
         }
     }
 }

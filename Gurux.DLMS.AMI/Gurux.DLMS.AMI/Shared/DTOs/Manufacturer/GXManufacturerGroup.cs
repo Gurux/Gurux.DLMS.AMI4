@@ -31,39 +31,44 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using System.Xml.Linq;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>
-    /// Attribute template table.
+    /// Manufacturer group.
     /// </summary>
-    public class GXAttributeTemplate : GXTableBase, IUnique<Guid>
+    public class GXManufacturerGroup : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXAttributeTemplate()
+        public GXManufacturerGroup()
         {
         }
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXAttributeTemplate(string? name)
+        /// <remarks>
+        /// This constuctor is called when a new manufacturer group is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="name">Manufacturer group name.</param>
+        public GXManufacturerGroup(string? name)
         {
             Name = name;
-            ListItems = new List<GXAttributeListItem>();
+            Default = true;
+            UserGroups = new List<GXUserGroup>();
+            Manufacturers = new List<GXManufacturer>();
         }
 
         /// <summary>
-        /// Attribute template Id.
+        /// Manufacturer group identifier.
         /// </summary>
+        [Description("Manufacturer group identifier.")]
         [DataMember]
-        [Description("Attribute template Id.")]
         public Guid Id
         {
             get;
@@ -71,36 +76,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Object template.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Index(false)]
-        [IsRequired]
-        public GXObjectTemplate? ObjectTemplate
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Attribute index.
-        /// </summary>
-        [DataMember]
-        public int Index
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Object attribute name.
+        /// Manufacturer group name.
         /// </summary>
         [DataMember]
         [StringLength(64)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        [DefaultValue(null)]
         [IsRequired]
         public string? Name
         {
@@ -109,22 +90,52 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Attribute enumerated values.
+        /// Description.
         /// </summary>
         [DataMember]
-        [ForeignKey]
-        public List<GXAttributeListItem>? ListItems
+        [StringLength(256)]
+        [Description("Description.")]
+        //Filter uses default value.
+        [DefaultValue(null)]
+        public string? Description
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
+        /// List of manufacturers that this manufacturer group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXManufacturer), typeof(GXManufacturerGroupManufacturer))]
+        public List<GXManufacturer>? Manufacturers
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// This manufacturer group is public.
+        /// </summary>
+        /// <remarks>
+        /// If manufacturer group is public all the users can see the manufacturers on it.
+        /// </remarks>
+        [DataMember]
+        //Filter uses default value.
+        [DefaultValue(true)]
+        [Filter(FilterType.Equals)]
+        [IsRequired]
+        public bool? Public
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User groups that can access this manufacturer group. 
         /// </summary>
         [DataMember]
-        [DefaultValue(null)]
-        public DateTimeOffset? ExpirationTime
+        [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupManufacturerGroup))]
+        public List<GXUserGroup>? UserGroups
         {
             get;
             set;
@@ -134,17 +145,32 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Creation time.
         /// </summary>
         [DataMember]
+        //Filter uses default value.
+        [DefaultValue(null)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// When value is last updated.
+        /// Remove time.
+        /// </summary>
+        [DataMember]
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When manufacturer group is updated last time.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
@@ -175,7 +201,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// modify the target at the same time.
         /// </remarks>
         [DataMember]
-        [DefaultValue(null)]
         [StringLength(36)]
         public string? ConcurrencyStamp
         {
@@ -184,75 +209,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Remove time.
+        /// This is default manufacturer group where new manufacturers are added automatically when user creates them.
         /// </summary>
         [DataMember]
-        [Index(false, Descend = true)]
-        [DefaultValue(null)]
-        [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Access level.
-        /// </summary>
-        [DataMember]
-        [Description("Access level.")]
-        [DefaultValue(0)]
-        public int AccessLevel
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Data type.
-        /// </summary>
-        [DataMember]
-        [Description("Data type.")]
-        [DefaultValue(0)]
-        public int DataType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// UI Data type.
-        /// </summary>
-        [DataMember]
-        [Description("UI Data type.")]
-        [DefaultValue(0)]
-        public int UIDataType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Attribute weight.
-        /// </summary>
-        /// <remarks>
-        /// Attribute weight can be used to ask to execute tasks in given order.
-        /// </remarks>
-        [DataMember]
-        [DefaultValue(0)]
-        public int Weight
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Default value.
-        /// </summary>
-        [DataMember]
-        [Description("Default value")]
-        [Filter(FilterType.Contains)]
-        public string? DefaultValue
+        [DefaultValue(false)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? Default
         {
             get;
             set;
@@ -275,6 +238,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            if (!string.IsNullOrEmpty(Name))
+            {
+                return Name;
+            }
+            return nameof(GXManufacturerGroup);
         }
     }
 }

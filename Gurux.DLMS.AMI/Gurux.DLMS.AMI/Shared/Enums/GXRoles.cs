@@ -51,7 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// <summary>
         /// User is user action .
         /// </summary>
-        public const string UserAction= "UserAction";
+        public const string UserAction = "UserAction";
         /// <summary>
         /// User is user action manager.
         /// </summary>
@@ -321,6 +321,27 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User is script group manager.
         /// </summary>
         public const string ScriptGroupManager = "ScriptGroupManager";
+
+        /// <summary>
+        /// User can access manufacturers.
+        /// </summary>
+        public const string Manufacturer = "Manufacturer";
+
+        /// <summary>
+        /// User is manufacturer manager.
+        /// </summary>
+        public const string ManufacturerManager = "ManufacturerManager";
+
+        /// <summary>
+        /// User can access manufacturer groups.
+        /// </summary>
+        public const string ManufacturerGroup = "ManufacturerGroup";
+
+        /// <summary>
+        /// User is manufacturer group manager.
+        /// </summary>
+        public const string ManufacturerGroupManager = "ManufacturerGroupManager";
+
         public static string ToString(string param1)
         {
             return param1;

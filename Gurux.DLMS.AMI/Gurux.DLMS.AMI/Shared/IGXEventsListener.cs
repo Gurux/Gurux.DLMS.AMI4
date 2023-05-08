@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Shared
 {
@@ -524,7 +525,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXRole>> OnRoleUpdate;
 
         /// <summary>
-        /// Component view is deleted.
+        /// Role is deleted.
         /// </summary>
         event Action<IEnumerable<string>> OnRoleDelete;
 
@@ -537,5 +538,23 @@ namespace Gurux.DLMS.AMI.Shared
         /// Cron is compleated.
         /// </summary>
         event Action OnCronCompleate;
+
+        /// <summary>
+        /// New manufacturer is added or modified.
+        /// </summary>
+        event Action<IEnumerable<GXManufacturer>>? OnManufacturerUpdate;
+        /// <summary>
+        /// Manufacturer is deleted.
+        /// </summary>
+        event Action<IEnumerable<GXManufacturer>>? OnManufacturerDelete;
+        /// <summary>
+        /// New manufacturer group is added or modified.
+        /// </summary>
+        event Action<IEnumerable<GXManufacturerGroup>>? OnManufacturerGroupUpdate;
+        /// <summary>
+        /// Manufacturer group is deleted.
+        /// </summary>
+        event Action<IEnumerable<GXManufacturerGroup>>? OnManufacturerGroupDelete;
+
     }
 }

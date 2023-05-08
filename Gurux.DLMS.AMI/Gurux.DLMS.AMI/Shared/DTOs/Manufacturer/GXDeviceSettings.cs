@@ -33,37 +33,35 @@ using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-using System.Xml.Linq;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>
-    /// Attribute template table.
+    /// Settings table is used to save device settings information.
     /// </summary>
-    public class GXAttributeTemplate : GXTableBase, IUnique<Guid>
+    public class GXDeviceSettings : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXAttributeTemplate()
+        public GXDeviceSettings()
         {
+
         }
 
         /// <summary>
-        /// Constructor.
+        /// Constructor
         /// </summary>
-        public GXAttributeTemplate(string? name)
+        /// <param name="name">Settings name.</param>
+        public GXDeviceSettings(string? name)
         {
             Name = name;
-            ListItems = new List<GXAttributeListItem>();
         }
 
         /// <summary>
-        /// Attribute template Id.
+        /// Device settings ID.
         /// </summary>
-        [DataMember]
-        [Description("Attribute template Id.")]
+        [DataMember(Name = "ID")]
         public Guid Id
         {
             get;
@@ -71,37 +69,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Object template.
+        /// Settings version.
         /// </summary>
-        [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Index(false)]
-        [IsRequired]
-        public GXObjectTemplate? ObjectTemplate
+        [DefaultValue(null)]
+        [ForeignKey(typeof(GXDeviceVersion), OnDelete = ForeignKeyDelete.Cascade)]
+        public GXDeviceVersion? Version
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Attribute index.
+        /// Name of the model version settings.
         /// </summary>
-        [DataMember]
-        public int Index
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Object attribute name.
-        /// </summary>
-        [DataMember]
-        [StringLength(64)]
+        [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        [DefaultValue(null)]
-        [IsRequired]
         public string? Name
         {
             get;
@@ -109,22 +92,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Attribute enumerated values.
-        /// </summary>
-        [DataMember]
-        [ForeignKey]
-        public List<GXAttributeListItem>? ListItems
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
+        /// Device settings as JSON.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public DateTimeOffset? ExpirationTime
+        public string? Settings
         {
             get;
             set;
@@ -137,54 +109,47 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// When value is last updated.
+        /// Installation time.
         /// </summary>
         [DataMember]
-        [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
+        public DateTimeOffset? InstallationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// Device Template location.
         /// </summary>
-        [IgnoreDataMember]
-        [Ignore]
-        [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Concurrency stamp.
-        /// </summary>
-        /// <remarks>
-        /// Concurrency stamp is used to verify that several user's can't 
-        /// modify the target at the same time.
-        /// </remarks>
         [DataMember]
-        [DefaultValue(null)]
-        [StringLength(36)]
-        public string? ConcurrencyStamp
+        public string? Location
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Remove time.
+        /// Installed device template.
+        /// </summary>
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DataMember]
+        public GXDeviceTemplate? Template
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Time when device type was removed.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
@@ -197,62 +162,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Access level.
+        /// When the device type is updated for the last time.
         /// </summary>
-        [DataMember]
-        [Description("Access level.")]
-        [DefaultValue(0)]
-        public int AccessLevel
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Data type.
-        /// </summary>
-        [DataMember]
-        [Description("Data type.")]
-        [DefaultValue(0)]
-        public int DataType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// UI Data type.
-        /// </summary>
-        [DataMember]
-        [Description("UI Data type.")]
-        [DefaultValue(0)]
-        public int UIDataType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Attribute weight.
-        /// </summary>
-        /// <remarks>
-        /// Attribute weight can be used to ask to execute tasks in given order.
-        /// </remarks>
-        [DataMember]
-        [DefaultValue(0)]
-        public int Weight
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Default value.
-        /// </summary>
-        [DataMember]
-        [Description("Default value")]
-        [Filter(FilterType.Contains)]
-        public string? DefaultValue
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? Updated
         {
             get;
             set;
@@ -263,7 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }
@@ -275,6 +188,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public override void BeforeUpdate()
         {
             Updated = DateTime.Now;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            if (!string.IsNullOrEmpty(Name))
+            {
+                return Name;
+            }
+            return nameof(GXDeviceSettings);
         }
     }
 }

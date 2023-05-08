@@ -68,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             Errors = new List<GXUserError>();
             RestStatistics = new List<GXRestStatistic>();
             Settings = new List<GXUserSetting>();
+            Favorites = new List<GXFavorite>();
         }
 
         /// <summary>
@@ -441,13 +442,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// User favorites.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXFavorite))]
+        [Filter(FilterType.Contains)]
+        public List<GXFavorite>? Favorites
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// User language.
         /// </summary>
         [DataMember]
         [Filter(FilterType.Contains)]
         public string? Language { get; set; }
-
-
 
         /// <summary>
         /// Given name.

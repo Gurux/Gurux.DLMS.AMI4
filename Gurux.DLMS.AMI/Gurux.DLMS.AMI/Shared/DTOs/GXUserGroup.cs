@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -56,7 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         /// <param name="name">User group name.</param>
         public GXUserGroup(string? name)
-        {            
+        {
             Name = name;
             Description = "";
             Users = new List<GXUser>();
@@ -70,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             BlockGroups = new List<GXBlockGroup>();
             ComponentViewGroups = new List<GXComponentViewGroup>();
             ScriptGroups = new List<GXScriptGroup>();
+            ManufacturerGroups = new List<GXManufacturerGroup>();
         }
 
         /// <summary>
@@ -188,7 +190,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// List of device groups that this user group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXDeviceGroup), typeof(GXUserGroupDeviceGroup))]     
+        [DataMember, ForeignKey(typeof(GXDeviceGroup), typeof(GXUserGroupDeviceGroup))]
         [DefaultValue(null)]
         public List<GXDeviceGroup>? DeviceGroups
         {
@@ -290,6 +292,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember, ForeignKey(typeof(GXScriptGroup), typeof(GXUserGroupScriptGroup))]
         [DefaultValue(null)]
         public List<GXScriptGroup>? ScriptGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of manufacturer groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXManufacturerGroup), typeof(GXUserGroupManufacturerGroup))]
+        [DefaultValue(null)]
+        public List<GXManufacturerGroup>? ManufacturerGroups
         {
             get;
             set;

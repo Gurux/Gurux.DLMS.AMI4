@@ -144,7 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// WorkFlow is changed.
         /// </summary>
         [XmlEnum("524288")]
-        WorkFlow = 0x80000,
+        Workflow = 0x80000,
         /// <summary>
         /// Device action is changed.
         /// </summary>
@@ -246,9 +246,34 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         [XmlEnum("549755813888")]
         Cron = 0x8000000000,
         /// <summary>
-        /// Cron is changed.
+        /// Role is changed.
         /// </summary>
         [XmlEnum("1099511627776")]
         Role = 0x10000000000,
+        /// <summary>
+        /// Manufacturer is changed.
+        /// </summary>
+        [XmlEnum("2199023255552")]
+        Manufacturer = 0x20000000000,
+        /// <summary>
+        /// Manufacturer group is changed.
+        /// </summary>
+        [XmlEnum("4398046511104")]
+        ManufacturerGroup = 0x40000000000,
+        /// <summary>
+        /// Favorite is changed.
+        /// </summary>
+        [XmlEnum("8796093022208")]
+        Favorite = 0x80000000000,
+        /// <summary>
+        /// Manufacturer model is changed.
+        /// </summary>
+        [XmlEnum("17592186044416")]
+        Model = 0x100000000000,
+        /// <summary>
+        /// Manufacturer version is changed.
+        /// </summary>
+        [XmlEnum("35184372088832")]
+        Version = 0x200000000000,
     }
 }

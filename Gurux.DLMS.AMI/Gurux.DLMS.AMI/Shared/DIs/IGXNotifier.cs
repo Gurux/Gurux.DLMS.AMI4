@@ -32,7 +32,6 @@
 
 using Gurux.DLMS.AMI.Shared.Models;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.Collections.ObjectModel;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {

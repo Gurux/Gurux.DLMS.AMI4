@@ -460,7 +460,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// In default user id is not used.
         /// </remarks>
-        [DefaultValue(-1)]
         public short UserId
         {
             get;
@@ -470,7 +469,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Network ID.
         /// </summary>
-        [DefaultValue(0)]
         public byte NetworkId
         {
             get;
@@ -615,12 +613,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
         /// <summary>
         /// Constructor.
         /// </summary>
         public GXDLMSSettings()
         {
-            ServerAddress = 1;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXDLMSSettings(int serverAddress)
+        {
+            ServerAddress = serverAddress;
             PduSize = 0xFFFF;
             UserId = -1;
             MaxInfoRX = MaxInfoTX = 128;
@@ -629,6 +635,59 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             ClientAddress = 0x10;
             PhysicalAddress = 1;
             ChallengeSize = 16;
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj)
+        {
+            if (obj is GXDLMSSettings source)
+            {
+                return MaximumBaudRate == source.MaximumBaudRate &&
+                Authentication == source.Authentication &&
+                AuthenticationName == source.AuthenticationName &&
+                Standard == source.Standard &&
+                Password == source.Password &&
+                HexPassword == source.HexPassword &&
+                Security == source.Security &&
+                ClientSystemTitle == source.ClientSystemTitle &&
+                DeviceSystemTitle == source.DeviceSystemTitle &&
+                DedicatedKey == source.DedicatedKey &&
+                PreEstablished == source.PreEstablished &&
+                BlockCipherKey == source.BlockCipherKey &&
+                AuthenticationKey == source.AuthenticationKey &&
+                InvocationCounter == source.InvocationCounter &&
+                FrameCounter == source.FrameCounter &&
+                Challenge == source.Challenge &&
+                PhysicalAddress == source.PhysicalAddress &&
+                LogicalAddress == source.LogicalAddress &&
+                UtcTimeZone == source.UtcTimeZone &&
+                ClientAddress == source.ClientAddress &&
+                UseRemoteSerial == source.UseRemoteSerial &&
+                InterfaceType == source.InterfaceType &&
+                MaxInfoTX == source.MaxInfoTX &&
+                MaxInfoRX == source.MaxInfoRX &&
+                WindowSizeTX == source.WindowSizeTX &&
+                WindowSizeRX == source.WindowSizeRX &&
+                PduSize == source.PduSize &&
+                UserId == source.UserId &&
+                NetworkId == source.NetworkId &&
+                InactivityTimeout == source.InactivityTimeout &&
+                ServiceClass == source.ServiceClass &&
+                Priority == source.Priority &&
+                ServerAddressSize == source.ServerAddressSize &&
+                Conformance == source.Conformance &&
+                Manufacturer == source.Manufacturer &&
+                HDLCAddressing == source.HDLCAddressing &&
+                UseLogicalNameReferencing == source.UseLogicalNameReferencing &&
+                UseProtectedRelease == source.UseProtectedRelease;
+            }
+            return base.Equals(obj);
+        }
+
+        /// <inheritdoc/>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

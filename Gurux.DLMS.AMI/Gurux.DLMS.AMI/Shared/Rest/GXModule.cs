@@ -170,13 +170,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter modules.
         /// </summary>
-        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups), 
-            nameof(GXModule.ModuleGroups), nameof(GXModule.Logs), 
-            nameof(GXModule.Versions), nameof(GXModule.Scripts), 
-            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters), 
-            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters), 
+        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+            nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
+            nameof(GXModule.Versions), nameof(GXModule.Scripts),
+            nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
+            nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
-            nameof(GXModule.Creator), nameof(GXModule.Resources), 
+            nameof(GXModule.Creator), nameof(GXModule.Resources),
             nameof(GXModule.Languages))]
         public GXModule? Filter
         {
@@ -293,7 +293,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// </summary>
     [DataContract]
     [Description("Delete module.")]
-    public class RemoveModule 
+    public class RemoveModule
     {
         /// <summary>
         /// Removed modules.
@@ -359,4 +359,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
     }
 
+    /// <summary>
+    /// Check if there are new module versions available.
+    /// </summary>
+    [DataContract]
+    public class CheckModule : IGXRequest<CheckModuleResponse>
+    {
+    }
+
+    /// <summary>
+    /// Check module versions reply.
+    /// </summary>
+    [DataContract]
+    public class CheckModuleResponse
+    {
+    }
 }
