@@ -17,7 +17,7 @@
     <MacDestinationAddress>8</MacDestinationAddress>
     <InactivityTimeout>110</InactivityTimeout>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>LLS Management</Name>
+    <Name>Public</Name>
     <Conformance>12220416</Conformance>
     <Manufacturer>ELE</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>

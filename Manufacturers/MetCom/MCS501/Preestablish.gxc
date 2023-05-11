@@ -21,7 +21,7 @@
     <InactivityTimeout>110</InactivityTimeout>
     <ServiceClass>UnConfirmed</ServiceClass>
     <SignCipherOrder>0</SignCipherOrder>
-    <Name>LLS Management</Name>
+    <Name>Pre-establish</Name>
     <Conformance>9961472</Conformance>
     <Manufacturer>grx</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
