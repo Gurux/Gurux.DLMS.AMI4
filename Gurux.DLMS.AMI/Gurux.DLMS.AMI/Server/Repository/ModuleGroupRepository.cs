@@ -331,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveModuleGroupFromUserGroups(it.Id, removed);
                     }
                     //Map modules to Module group.
-                    if (it.Modules != null && it.Modules.Any())
+                    if (it.Modules != null)
                     {
                         List<GXModule> list3 = await GetJoinedModules(it.Id);
                         List<string> groups2 = list3.Select(s => s.Id).ToList();

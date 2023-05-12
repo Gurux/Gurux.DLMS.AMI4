@@ -10,48 +10,56 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics;
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.DeviceManager + "," + GXRoles.DeviceGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<h1>
-    @Title
-</h1>
-<CascadingValue Value="this">
-    <TabControl Active="@Action">
-        <TabTextTemplate>
-            <span class=@context.Icon aria-hidden="true"></span>
-            @context.Text
-        </TabTextTemplate>
-        <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <Device @ref="_device" Action="@Action"></Device>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
-                <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <DeviceGroupsSelector></DeviceGroupsSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <Objects></Objects>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-        </ChildContent>
-    </TabControl>
-</CascadingValue>
+@if (!NotInitialized)
+{
+    <h1>
+        @Title
+    </h1>
+    <CascadingValue Value="this">
+        <TabControl Active="@Action">
+            <TabTextTemplate>
+                <span class=@context.Icon aria-hidden="true"></span>
+                @context.Text
+            </TabTextTemplate>
+            <ChildContent>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                    <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                        <div style="position: relative; width: 100%; ">
+                            <Device @ref="_device" Action="@Action"></Device>
+                        </div>
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                    <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
+                        <div style="position: relative; width: 100%; ">
+                            <DeviceGroupsSelector></DeviceGroupsSelector>
+                        </div>
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                    <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
+                        <div style="position: relative; width: 100%; ">
+                            <Objects></Objects>
+                        </div>
+                    </TabPage>
+                </AuthorizeView>
+            </ChildContent>
+        </TabControl>
+    </CascadingValue>
+}
 <br />
 @code {
+    /// <summary>
+    /// If manufacturers or device templates are not installed.
+    /// </summary>
+    bool NotInitialized;
     /// <summary>
     /// Action.
     /// </summary>
@@ -83,7 +91,10 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXDevice Active = new GXDevice(null);
+    public GXDevice Active = new GXDevice(null)
+        {
+            TraceLevel = TraceLevel.Off
+        };
 
     /// <summary>
     /// List of manufacturer templates.
@@ -230,6 +241,42 @@
                 //Get all templates when new device is added.
                 var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
                 UpdateTemplates(ret.Templates);
+            }
+            //Check are manufacturers empty.
+            bool empty = true;
+            foreach (var manufacturer in Manufacturers)
+            {
+                if (manufacturer.Models != null)
+                {
+                    foreach (var model2 in manufacturer.Models)
+                    {
+                        if (model2.Versions != null)
+                        {
+                            foreach (var version2 in model2.Versions)
+                            {
+                                empty = version2.Settings == null || !version2.Settings.Any();
+                                if (!empty)
+                                {
+                                    break;
+                                }
+                            }
+                            if (!empty)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    if (!empty)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (empty && (Templates == null || !Templates.Any()))
+            {
+                NotInitialized = true;
+                //Ask user to install manufacturers or device templates if they are not installed yet.
+                Notifier.ShowInformation(string.Format(Properties.Resources.DeviceTemplatesNotInstalled, "<a href=/config/Manufacturer>", "</a>", "<a href=/DeviceTemplate>", "</a>"));
             }
             _device?.Update();
         }

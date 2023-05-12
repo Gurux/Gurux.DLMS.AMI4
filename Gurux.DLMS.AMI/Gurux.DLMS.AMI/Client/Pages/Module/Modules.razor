@@ -101,6 +101,9 @@
 </Confirm>
 <br />
 @code {
+    [Parameter]
+    public ModuleManage? Parent { get; set; }
+
     /// <summary>
     /// Selected module ID.
     /// </summary>
@@ -195,10 +198,8 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
-        await Task.Delay(1);
         try
         {
             if (Notifier == null)
@@ -206,12 +207,6 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            //Get selected item.
-            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
            {
                try
@@ -250,10 +245,9 @@
                 table.Active = new GXModule() { Id = Id };
             }
             //Get configuration data.
-            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
-            if (!string.IsNullOrEmpty(active?.Settings))
+            if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<ModuleSettings>(active.Settings);
+                _settings = JsonSerializer.Deserialize<ModuleSettings>(Parent.Parent.Active.Settings);
             }
             else
             {

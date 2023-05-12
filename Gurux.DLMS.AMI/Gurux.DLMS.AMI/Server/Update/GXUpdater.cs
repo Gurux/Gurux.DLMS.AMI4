@@ -221,39 +221,45 @@ namespace Gurux.DLMS.AMI.Scheduler
             List<Shared.DTOs.GXModule> newModules = new List<Shared.DTOs.GXModule>();
             if (availableModules != null)
             {
-                foreach (var module in availableModules)
+                foreach (var aModule in availableModules)
                 {
-                    Shared.DTOs.GXModule? mod = inatalledModules.Where(w => w.Id == module.Name).SingleOrDefault();
-                    if (mod != null)
+                    Shared.DTOs.GXModule? iModule = inatalledModules.Where(w => w.Id == aModule.Name).SingleOrDefault();
+                    if (iModule != null)
                     {
                         //Installed module.
                         bool updated = false;
-                        foreach (var version in module.Versions)
+                        foreach (var aVersion in aModule.Versions)
                         {
-                            var installedVersion = mod.Versions.Where(q => q.Number == version.Number).SingleOrDefault();
-                            if (installedVersion == null)
+                            var iVersion = iModule.Versions?.Where(q => q.Number == aVersion.Number).SingleOrDefault();
+                            if (iVersion == null)
                             {
                                 updated = true;
-                                AddModuleVersion(user, mod, version);
+                                AddModuleVersion(user, iModule, aVersion);
+                            }
+                            if (string.IsNullOrEmpty(iModule.AvailableVersion) ||
+                                new Version(iModule.AvailableVersion) < new Version(aVersion.Number))
+                            {
+                                iModule.AvailableVersion = aVersion.Number;
+                                updated = true;
                             }
                         }
                         if (updated)
                         {
-                            await _moduleRepository.UpdateAsync(user, mod);
+                            await _moduleRepository.UpdateAsync(user, iModule);
                         }
                     }
                     else
                     {
                         //If new module.
-                        mod = new Shared.DTOs.GXModule(module.Name);
-                        mod.CreationTime = now;
-                        mod.Active = false;
-                        mod.Status = ModuleStatus.Installable;
-                        foreach (var version in module.Versions)
+                        iModule = new Shared.DTOs.GXModule(aModule.Name);
+                        iModule.CreationTime = now;
+                        iModule.Active = false;
+                        iModule.Status = ModuleStatus.Installable;
+                        foreach (var version in aModule.Versions)
                         {
-                            AddModuleVersion(user, mod, version);
+                            AddModuleVersion(user, iModule, version);
                         }
-                        newModules.Add(mod);
+                        newModules.Add(iModule);
                     }
                 }
             }

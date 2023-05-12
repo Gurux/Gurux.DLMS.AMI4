@@ -113,7 +113,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 foreach (var it in Workflows)
                 {
-                    if (source is GXScript script)
+                    if (source is GXScript script && it.ScriptMethods != null && script.Methods != null)
                     {
                         var comparer2 = new GXScriptMethodComparer();
                         List<GXScriptMethod> removedScriptMethods = it.ScriptMethods.Except(script.Methods, comparer2).ToList();

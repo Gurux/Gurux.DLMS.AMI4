@@ -98,7 +98,7 @@
     <ItemContent>
         <td>@template.Manufacturer?.Name</td>
         <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Name</td>
-        <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault()?.Name</td>
+        <td>@GetVersionName(template)</td>
         <Td Link="@("DeviceTemplate/Edit/" + template.Id)">@template.Name</Td>
         <td>@template.CreationTime</td>
         <td>@template.Updated</td>
@@ -112,6 +112,17 @@
          ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
 </Confirm>
 @code {
+
+    private string GetVersionName(GXDeviceTemplate template)
+    {
+        var ver = template.Manufacturer?.Models?.FirstOrDefault()?.Versions?.FirstOrDefault();
+        if (string.IsNullOrEmpty(ver?.Name))
+        {
+            return Properties.Resources.Generic;
+        }
+        return ver.Name;
+    }
+
     /// <summary>
     /// Selected device template ID.
     /// </summary>

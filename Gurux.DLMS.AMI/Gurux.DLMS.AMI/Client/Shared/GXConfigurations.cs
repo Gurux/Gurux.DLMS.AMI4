@@ -18,7 +18,7 @@
         public static string Language = "Language";
         public static string Modules = "Modules";
         public static string Agents = "Agents";
-        public static string ComponentViews = "ComponentViews";
+        public static string Components = "Components";
         public static string Blocks = "Blocks";
 
         public static string Triggers = "Triggers";

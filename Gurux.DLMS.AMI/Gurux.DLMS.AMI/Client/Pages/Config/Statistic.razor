@@ -1,5 +1,4 @@
-﻿@page "/config/statistic"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -21,6 +20,7 @@
 @implements IDisposable
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@implements IGXConfigUpdate
 
 @if (_settings != null)
 {
@@ -60,13 +60,25 @@
 }
 
 @code {
-    private GXConfiguration? _active;
-    private string SubmitText = "";
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
 
     StatisticSettings? _settings;
 
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<StatisticSettings>(Parent.Active.Settings);
+        }
+        StateHasChanged();
+    }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Notifier?.ProgressStart();
         Notifier?.ClearStatus();
@@ -76,19 +88,13 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
-            //Get selected item.
-            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
             {
                 if (configurations != null)
                 {
                     foreach (var it in configurations)
                     {
-                        if (it.Name == "Statistic")
+                        if (it.Name == "Statistic" && !String.IsNullOrEmpty(it.Settings))
                         {
                             _settings = JsonSerializer.Deserialize<StatisticSettings>(it.Settings);
                             StateHasChanged();
@@ -101,17 +107,10 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
-                    return;
+                _settings = JsonSerializer.Deserialize<StatisticSettings>(Parent.Active.Settings);
             }
-            //Get configuration data.
-            _active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
-            _settings = JsonSerializer.Deserialize<StatisticSettings>(_active.Settings);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -132,15 +131,19 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            _active.Settings = JsonSerializer.Serialize(_settings);
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Parent.Active.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
-            arg.Configurations = new GXConfiguration[] { _active };
+            arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -157,7 +160,7 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

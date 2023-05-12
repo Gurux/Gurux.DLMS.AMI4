@@ -73,7 +73,7 @@
             }
             else
             {
-                throw new Exception(Properties.Resources.InvalidTarget);
+                //It's ok if block doesn't belong to any group.
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !blockGroups.Any();
             var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);

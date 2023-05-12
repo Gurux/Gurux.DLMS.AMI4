@@ -85,7 +85,10 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXAgentGroup Active = new GXAgentGroup(null);
+    public GXAgentGroup Active = new GXAgentGroup(null)
+        {
+            Active = false
+        };
 
     protected override async Task OnInitializedAsync()
     {

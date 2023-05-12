@@ -38,7 +38,6 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository

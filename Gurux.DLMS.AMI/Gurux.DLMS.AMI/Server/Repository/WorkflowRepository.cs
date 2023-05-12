@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using System.Diagnostics;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -107,7 +109,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<Guid> workflows,
             bool delete)
         {
-            if (User != null && !User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.WorkflowManager))
+            if (User == null ||
+                (!User.IsInRole(GXRoles.Admin) && !User.IsInRole(GXRoles.WorkflowManager)))
             {
                 throw new UnauthorizedAccessException();
             }
@@ -133,6 +136,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 GXWorkflow tmp = new GXWorkflow() { Id = it.Key.Id };
                 await _eventsNotifier.WorkflowDelete(it.Value, new GXWorkflow[] { tmp });
+            }
+            if (!delete)
+            {
+                List<GXWorkflowLog> logs = new List<GXWorkflowLog>();
+                foreach (var it in updates.Keys)
+                {
+                    logs.Add(new GXWorkflowLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Workflow = it,
+                        Message = Properties.Resources.WorkflowRemoved
+                    });
+                }
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    var workfloLogRepository = scope.ServiceProvider.GetRequiredService<IWorkflowLogRepository>();
+                    await workfloLogRepository.AddAsync(User, logs);
+                }
             }
         }
 
@@ -301,7 +322,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     workflow.Updated = now;
                     workflow.ConcurrencyStamp = Guid.NewGuid().ToString();
-                    List<string> users = await GetUsersAsync(User, workflow.Id);
                     GXUpdateArgs args = GXUpdateArgs.Update(workflow, columns);
                     args.Exclude<GXWorkflow>(q => new { q.CreationTime, q.WorkflowGroups, q.ScriptMethods, q.Creator });
                     _host.Connection.Update(args);
@@ -323,8 +343,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         AddWorkflowToWorkflowGroups(workflow.Id, addedWorkflowGroups);
                     }
-                    updates[workflow] = users;
-
                     List<GXScriptMethod> methods = GetScriptMethods(workflow, false);
                     var comparer2 = new UniqueComparer<GXScriptMethod, Guid>();
                     List<GXScriptMethod> removedScripts = methods.Except(workflow.ScriptMethods, comparer2).ToList();
@@ -338,10 +356,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         AddScriptMethodsToWorkflow(workflow, addedScripts);
                     }
                 }
+                updates[workflow] = await GetUsersAsync(User, workflow.Id);
             }
             foreach (var it in updates)
             {
-                await _eventsNotifier.WorkflowUpdate(it.Value, new GXWorkflow[] { it.Key });
+                GXWorkflow tmp = new GXWorkflow() { Id = it.Key.Id };
+                await _eventsNotifier.WorkflowUpdate(it.Value, new GXWorkflow[] { tmp });
+            }
+            List<GXWorkflowLog> logs = new List<GXWorkflowLog>();
+            foreach (var it in updates.Keys)
+            {
+                logs.Add(new GXWorkflowLog(TraceLevel.Info)
+                {
+                    CreationTime = DateTime.Now,
+                    Workflow = it,
+                    Message = it.CreationTime == now ?
+                    Properties.Resources.WorkflowInstalled :
+                    Properties.Resources.WorkflowUpdated
+                });
+            }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                var workfloLogRepository = scope.ServiceProvider.GetRequiredService<IWorkflowLogRepository>();
+                await workfloLogRepository.AddAsync(User, logs);
             }
             return list.ToArray();
         }

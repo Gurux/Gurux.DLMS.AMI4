@@ -21,22 +21,18 @@
                     <br />
                 </div>
                 <div class="form-group">
-                    <label>@Properties.Resources.Threads:</label>
+                    <label>@Properties.Resources.Threads</label>
                     <InputNumber id="threads" class="form-control"
                              @bind-Value="Settings.Threads" />
                 </div>
                 <div class="form-group">
-                    <label>@Properties.Resources.TaskWaitTime:</label>
-                    <InputNumber id="taskWaitTime" class="form-control"
-                             @bind-Value="Settings.TaskWaitTime" />
+                    <label>@Properties.Resources.AliveTime</label>
+                    <InputIntegerTimeSpan id="aliveTime" class="form-control"
+                                      TimeSpanUnit="TimeSpanUnit.Minute"
+                                      @bind-Value="Settings.AliveTime" />
                 </div>
                 <div class="form-group">
-                    <label>@Properties.Resources.AliveTime:</label>
-                    <InputNumber id="aliveTime" class="form-control"
-                             @bind-Value="Settings.AliveTime" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.TraceLevels:</label>
+                    <label>@Properties.Resources.TraceLevels</label>
                     <select class="form-select" @bind="Settings.TraceLevel">
                         @foreach (var it in TraceLevels)
                         {

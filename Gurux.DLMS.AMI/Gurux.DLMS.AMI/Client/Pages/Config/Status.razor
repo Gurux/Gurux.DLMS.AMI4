@@ -1,5 +1,4 @@
-﻿@page "/config/status"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -16,9 +15,10 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @implements IDisposable
+@implements IGXConfigUpdate
+
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
@@ -35,12 +35,12 @@
                 <div class="form-group">
                     <label>Start time</label>
                     <input type="text" id="startTime" class="form-control" readonly="readonly"
-                       Value="@Convert.ToString(_settings.StartTime)" />
+                           Value="@Convert.ToString(_settings.StartTime)" />
                 </div>
                 <div class="form-group">
                     <label>System Up Time</label>
                     <input type="text" id="upTime" class="form-control" readonly="readonly"
-                       Value="@Convert.ToString(DateTime.Now - _settings.StartTime)" />
+                           Value="@Convert.ToString(DateTime.Now - _settings.StartTime)" />
                 </div>
             </div>
         </div>
@@ -88,9 +88,23 @@
     </table>
 }
 @code {
-    private GXConfiguration? _active;
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
 
     StatusSettings? _settings;
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
+        }
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Script log filter.
@@ -119,7 +133,6 @@
     protected void RowSelected(GXAssembly selected)
     {
         _selected = selected;
-        Notifier.UpdateData(GXPages.ScriptLogs, _selected);
     }
 
     GXAssembly[]? _assemblies;
@@ -156,20 +169,10 @@
 
     protected override async Task OnInitializedAsync()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            //Get selected item.
-            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
             {
                 if (configurations != null)
@@ -188,17 +191,10 @@
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
-                    return;
+                _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
             }
-            //Get configuration data.
-            _active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
-            _settings = JsonSerializer.Deserialize<StatusSettings>(_active.Settings);
             await Updated();
         }
         catch (AccessTokenNotAvailableException exception)
@@ -220,7 +216,7 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

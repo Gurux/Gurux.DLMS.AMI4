@@ -1,7 +1,4 @@
-﻿@page "/config/modulemanage"
-@page "/config/module"
-@page "/config/modulegroup"
-
+﻿@using Gurux.DLMS.AMI.Client.Pages.Config;
 @using Gurux.DLMS.AMI.Client.Pages.Module
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
@@ -11,7 +8,6 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ModuleManager + "," + GXRoles.ModuleGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -19,13 +15,17 @@
 <!--If user adds a new item or modifies the existing one.-->
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
-    @if (string.Compare(Path, "/config/module", true) == 0)
+    @if (string.Compare(Path, "config/module", true) == 0)
     {
         <ModuleTab Action="@Action" Id="@Id"></ModuleTab>
     }
-    else if (string.Compare(Path, "/config/moduleGroup", true) == 0)
+    else if (string.Compare(Path, "config/moduleGroup", true) == 0)
     {
         <ModuleGroupTab Action="@Action" Id="@GetId()"></ModuleGroupTab>
+    }
+    else if (string.Compare(Path, "config/modulelog", true) == 0)
+    {
+        <ModuleLog Id="@GetId()"></ModuleLog>
     }
 }
 else
@@ -37,35 +37,35 @@ else
         </TabTextTemplate>
         <ChildContent>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleManager)>
-                <TabPage Text=@Properties.Resources.ModulesTitle Icon="oi oi-puzzle-piece">
+                <TabPage Path="config/Module" Text=@Properties.Resources.ModulesTitle Icon="oi oi-puzzle-piece">
                     <div style="position: relative; width: 100%; ">
-                        <Modules Title="false"></Modules>
+                        <Modules Parent="this" Title="false"></Modules>
                     </div>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleGroupManager)>
-                <TabPage Text=@Properties.Resources.ModuleGroups Icon="oi oi-timer">
+                <TabPage Path="config/ModuleGroup" Text=@Properties.Resources.ModuleGroups Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
                         <ModuleGroups></ModuleGroups>
                     </div>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                <TabPage Text="Manage" Icon="oi oi-cog">
+                <TabPage Path="config/ModuleManage" Text="Manage" Icon="oi oi-cog">
                     <div style="position: relative; width: 100%; ">
                         <ModulesManage></ModulesManage>
                     </div>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
-                <TabPage Text="Updates">
+                <TabPage Path="config/ModuleUpdate" Text="Updates">
                     <div style="position: relative; width: 100%; ">
                         <ModulesUpdates></ModulesUpdates>
                     </div>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ModuleLog)>
-                <TabPage Text=@Properties.Resources.ModuleLogs Icon="oi oi-warning">
+                <TabPage Path="config/ModuleLog" Text=@Properties.Resources.ModuleLogs Icon="oi oi-warning">
                     <div style="position: relative; width: 100%; ">
                         <ModuleLogs></ModuleLogs>
                     </div>
@@ -76,6 +76,13 @@ else
     <br />
 }
 @code {
+
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
+
     /// <summary>
     /// User action.
     /// </summary>
@@ -96,7 +103,8 @@ else
     [Parameter]
     public string? Id { get; set; }
 
-    private string? Path { get; set; }
+    [Parameter]
+    public string? Path { get; set; }
 
     /// <summary>
     /// User has selected a new tab.
@@ -105,12 +113,6 @@ else
     void SelectionChanged(TabPage page)
     {
         Path = page.Path;
-    }
-
-    protected override void OnInitialized()
-    {
-        //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
     }
 }
 

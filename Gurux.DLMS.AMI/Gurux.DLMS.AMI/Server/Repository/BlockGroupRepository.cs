@@ -252,7 +252,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             ////////////////////////////////////////////////////
             //Get blocks that belong for this block group.
-            arg = GXSelectArgs.Select<GXBlock>(s => new {s.Id, s.Name }, w => w.Removed == null);
+            arg = GXSelectArgs.Select<GXBlock>(s => new { s.Id, s.Name }, w => w.Removed == null);
             arg.Distinct = true;
             //It might be that there are no blocks in the group. For that reason left join is used.
             arg.Joins.AddLeftJoin<GXBlockGroupBlock, GXBlock>(j => j.BlockId, j => j.Id);
@@ -276,6 +276,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXBlockGroup> BlockGroups,
             Expression<Func<GXBlockGroup, object?>>? columns)
         {
+            bool isAdmin = user.IsInRole(GXRoles.Admin);
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXBlockGroup, List<string>> updates = new Dictionary<GXBlockGroup, List<string>>();
@@ -287,8 +288,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
-                    //Get default script groups if not admin.
-                    if (user != null)
+                    //Get default block groups if not admin.
+                    if (!isAdmin)
                     {
                         it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,
                                                    ServerHelpers.GetUserId(user));
@@ -336,7 +337,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveBlockGroupFromUserGroups(it.Id, removed);
                     }
                     //Map blocks to Block group.
-                    if (it.Blocks != null && it.Blocks.Count != 0)
+                    //Only adming can add blocks that are visible to all users.
+                    if (it.Blocks != null && (isAdmin || it.Blocks.Any()))
                     {
                         List<GXBlock> list3 = await GetJoinedBlocks(user, it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

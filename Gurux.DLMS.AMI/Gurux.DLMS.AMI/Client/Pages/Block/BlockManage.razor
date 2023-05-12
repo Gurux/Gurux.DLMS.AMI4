@@ -37,14 +37,14 @@ else
     </TabTextTemplate>
     <ChildContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockManager)>
-                <TabPage Path="/config/Block" Text=@Properties.Resources.Blocks Icon="oi oi-browser">
+                <TabPage Path="config/Block" Text=@Properties.Resources.Blocks Icon="oi oi-browser">
                 <div style="position: relative; width: 100%; ">
                         <Blocks Id="@Id"></Blocks>
                 </div>
             </TabPage>
         </AuthorizeView>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockGroupManager)>
-                <TabPage Path="/config/BlockGroup" Text=@Properties.Resources.BlockGroups Icon="oi oi-timer">
+                <TabPage Path="config/BlockGroup" Text=@Properties.Resources.BlockGroups Icon="oi oi-timer">
                 <div style="position: relative; width: 100%; ">
                         <BlockGroups Id="@Id"></BlockGroups>
                 </div>

@@ -942,4 +942,13 @@
   <data name="InstallAllSettings" xml:space="preserve">
     <value>Kaikki {0} {1} asetukset.</value>
   </data>
+  <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
+    <value>{0}Valmistajat {1} tai {2}laitemallit {3} on lisättävä, ennen kuin laitteita voidaan lisätä.</value>
+  </data>
+  <data name="ConfirmRestart" xml:space="preserve">
+    <value>Vahvista uudelleenkäynnistys</value>
+  </data>
+  <data name="ModuleNeedsRestart" xml:space="preserve">
+    <value>Palvelin on käynnistettävä uudelleen, jotta moduulimuutokset voidaan ottaa käyttöön. Haluatko käynnistää palvelimen uudelleen nyt?</value>
+  </data>
 </root>

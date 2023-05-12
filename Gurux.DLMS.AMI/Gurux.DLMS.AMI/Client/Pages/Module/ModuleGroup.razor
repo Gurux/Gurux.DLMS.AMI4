@@ -9,7 +9,6 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 
-@attribute [Authorize(Roles = "Admin, ModuleGroupManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -27,8 +26,8 @@
                            @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
-                    <InputNullableCheckbox @bind-Value="Active.Default" />
-                    <label>@Properties.Resources.DefaultGroup</label>
+                    <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
+                                     @bind-Value="Active.Default" />
                     <br />
                 </div>
                 <div class="form-group">
@@ -146,7 +145,8 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(Action); if (action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }

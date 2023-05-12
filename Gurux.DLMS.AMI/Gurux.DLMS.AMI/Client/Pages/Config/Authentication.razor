@@ -1,5 +1,4 @@
-﻿@page "/config/authentication"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -16,7 +15,6 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @implements IDisposable
 @inject HttpClient Http
@@ -29,7 +27,9 @@
             <div style="width:100%">
                 <div class="form-group">
                     <label>Authentication service</label>
-                    <select class="form-control" @bind="@_active.Name">
+                    <select class="form-control"
+                            disabled="@IsCreating"
+                        @bind="@_active.Name">
                         @foreach (var it in _services)
                         {
                             <option value="@it">@it</option>
@@ -39,11 +39,13 @@
                 <div class="form-group">
                     <label>Client ID</label>
                     <InputText id="name" class="form-control"
+                               disabled="@IsDeleting"
                            @bind-Value="_active.ClientId" />
                 </div>
                 <div class="form-group">
                     <label>Client Secret</label>
                     <InputText id="name" class="form-control"
+                               disabled="@IsDeleting"
                            @bind-Value="_active.ClientSecret" />
                 </div>
             </div>
@@ -53,46 +55,103 @@
 
 @code {
     private AuthenticationSettings? _active;
-    private List<AuthenticationSettings>? _authentications;
+
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Authentications? Parent { get; set; }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
 
     private string SubmitText = "";
+
+    /// <summary>
+    /// Return disabled if user is not creating a new item.
+    /// </summary>
+    public string? IsCreating
+    {
+        get
+        {
+            if (action == CrudAction.Create)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    /// <summary>
+    /// Return disabled when user is deleting the item.
+    /// </summary>
+    public string? IsDeleting
+    {
+        get
+        {
+            if (action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
     private List<string> _services = new();
-    protected override async Task OnInitializedAsync()
+
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+
+    protected override void OnInitialized()
     {
         try
         {
             _services.Add("GitHub");
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ClearStatus();
-            //Get selected item.
-            _active = (AuthenticationSettings?)Notifier.GetData(GXPages.Authentication);
-            if (_active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }       
-            _authentications = (List<AuthenticationSettings>?)Notifier.GetData(GXPages.Authentications);
-            if (_authentications == null)
+            action = ClientHelpers.GetAction(Action);
+            if (Parent?.GetAuthentications() == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-
+            if (action == CrudAction.Create)
+            {
+                _active = new AuthenticationSettings();
+            }
+            else
+            {
+                foreach (var it in Parent.GetAuthentications())
+                {
+                    if (string.Compare(it.Name, Id) == 0)
+                    {
+                        _active = it;
+                        break;
+                    }
+                }
+                if (_active == null)
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+            }
             Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
-            {
-                case CrudAction.Update:
-                case CrudAction.Create:
-                case CrudAction.Delete:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
-                    return;
-            }
         }
         catch (Exception ex)
         {
@@ -109,22 +168,22 @@
         Notifier.ClearStatus();
         try
         {
-            if (_authentications != null && _active != null)
+            if (Parent?.GetAuthentications() != null && _active != null)
             {
-                switch (Notifier.Action)
+                switch (action)
                 {
                     case CrudAction.Create:
-                        foreach (var it in _authentications)
+                        foreach (var it in Parent.GetAuthentications())
                         {
                             if (it.Name == _active.Name)
                             {
                                 throw new ArgumentException("The external authentication service has already been added.");
                             }
                         }
-                        _authentications.Add(_active);
+                        Parent.GetAuthentications().Add(_active);
                         break;
                     case CrudAction.Delete:
-                        _authentications.Remove(_active);
+                        Parent.GetAuthentications().Remove(_active);
                         break;
                     case CrudAction.Update:
                         //Do nothing.
@@ -135,12 +194,12 @@
                 }
             }
             //Get selected item.
-            GXConfiguration? conf = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            conf.Settings = JsonSerializer.Serialize(_authentications);
+            GXConfiguration? conf = Parent.Parent?.Active;
+            conf.Settings = JsonSerializer.Serialize(Parent.GetAuthentications());
             ConfigurationUpdate arg = new ConfigurationUpdate();
             arg.Configurations = new GXConfiguration[] { conf };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -157,11 +216,13 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()
     {
+        Notifier.Clear();
+        Notifier.UpdateButtons();
         Notifier.RemoveListener(this);
     }
 }

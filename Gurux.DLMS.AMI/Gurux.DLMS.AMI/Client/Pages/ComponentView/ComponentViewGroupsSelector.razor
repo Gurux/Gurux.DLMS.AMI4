@@ -12,7 +12,6 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@attribute [Authorize(Roles = "Admin, ComponentViewGroup, ComponentViewGroupManager, UserGroup")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -72,7 +71,7 @@
             }
             else
             {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
+                //It's OK if component doesn't belong any group.
             }
             bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !componentViewGroups.Any();
             var ret = await Http.PostAsJson<ListComponentViewGroupsResponse>("api/ComponentViewGroup/List", req);

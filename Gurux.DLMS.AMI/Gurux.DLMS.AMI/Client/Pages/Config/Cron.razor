@@ -1,5 +1,4 @@
-﻿@page "/config/cron"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -21,6 +20,7 @@
 @implements IDisposable
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@implements IGXConfigUpdate
 
 @if (_settings != null)
 {
@@ -74,13 +74,27 @@
 }
 
 @code {
-    private GXConfiguration? _active;
-    private string SubmitText = "";
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<CronSettings>(Parent.Active.Settings);
+        }
+        StateHasChanged();
+    }
+
     Dictionary<int, string> Intervals = new Dictionary<int, string>();
 
     CronSettings? _settings;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         Intervals.Add(0, "Never");
         Intervals.Add(1, "1 hours");
@@ -98,12 +112,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
             {
                 try
@@ -112,7 +120,7 @@
                     {
                         foreach (var it in configurations)
                         {
-                            if (it.Name == GXConfigurations.Cron)
+                            if (it.Name == GXConfigurations.Cron && !string.IsNullOrEmpty(it.Settings))
                             {
                                 _settings = JsonSerializer.Deserialize<CronSettings>(it.Settings);
                                 StateHasChanged();
@@ -131,12 +139,10 @@
                 try
                 {
                     //Get configuration data.
-                    GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
-                    if (tmp != null)
+                    GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", Parent?.Active.Id))).Item;
+                    if (!string.IsNullOrEmpty(tmp?.Settings))
                     {
-                        _active = tmp;
-                        _settings = JsonSerializer.Deserialize<CronSettings>(_active.Settings);
-                        Notifier.UpdateData(GXPages.Configuration, _active);
+                        _settings = JsonSerializer.Deserialize<CronSettings>(tmp.Settings);
                         StateHasChanged();
                     }
                 }
@@ -149,17 +155,10 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
-                    return;
+                _settings = JsonSerializer.Deserialize<CronSettings>(Parent.Active.Settings);
             }
-            //Get configuration data.
-            _active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
-            _settings = JsonSerializer.Deserialize<CronSettings>(_active.Settings);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -184,11 +183,15 @@
         Notifier?.ClearStatus();
         try
         {
-            _active.Settings = JsonSerializer.Serialize(_settings);
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent.Active.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
-            arg.Configurations = new GXConfiguration[] { _active };
+            arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -227,7 +230,7 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

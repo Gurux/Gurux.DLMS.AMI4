@@ -1,5 +1,6 @@
 ﻿@page "/config/scriptmanage"
 @page "/config/Script"
+@page "/script"
 @page "/config/ScriptGroup"
 @page "/config/ScriptLog/{Id:guid?}"
 @page "/config/ScriptLog/{Action}/{Id:guid?}"
@@ -21,7 +22,8 @@
 <!--If user adds a new item or modifies the existing one.-->
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
-    @if (string.Compare(Path, "config/Script", true) == 0)
+    @if (string.Compare(Path, "config/Script", true) == 0 ||
+   string.Compare(Path, "Script", true) == 0)
     {
         <ScriptTab Action="@Action" Id="@Id"></ScriptTab>
     }

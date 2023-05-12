@@ -50,6 +50,7 @@ using Microsoft.CodeAnalysis;
 using Gurux.DLMS.AMI.Client.Pages.Block;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Linq.Expressions;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -150,6 +151,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     GXScript tmp = new GXScript() { Id = it.Key.Id };
                     await _eventsNotifier.ScriptDelete(it.Value, new GXScript[] { tmp });
+                }
+                if (!delete)
+                {
+                    List<GXScriptLog> logs = new List<GXScriptLog>();
+                    foreach (var it in updates.Keys)
+                    {
+                        logs.Add(new GXScriptLog(TraceLevel.Info)
+                        {
+                            CreationTime = DateTime.Now,
+                            Script = it,
+                            Message = Properties.Resources.ScriptRemoved
+                        });
+                    }
+                    using (IServiceScope scope = _serviceProvider.CreateScope())
+                    {
+                        var scriptLogRepository = scope.ServiceProvider.GetRequiredService<IScriptLogRepository>();
+                        await scriptLogRepository.AddAsync(User, logs);
+                    }
                 }
             }
         }
@@ -439,6 +458,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in updates)
             {
                 await _eventsNotifier.ScriptUpdate(it.Value, new GXScript[] { it.Key });
+            }
+            List<GXScriptLog> logs = new List<GXScriptLog>();
+            foreach (var it in updates.Keys)
+            {
+                logs.Add(new GXScriptLog(TraceLevel.Info)
+                {
+                    CreationTime = DateTime.Now,
+                    Script = it,
+                    Message = it.CreationTime == now ? Properties.Resources.ScriptInstalled :
+                    Properties.Resources.ScriptUpdated
+                });
+            }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                var scriptLogRepository = scope.ServiceProvider.GetRequiredService<IScriptLogRepository>();
+                await scriptLogRepository.AddAsync(User, logs);
             }
             return list.ToArray();
         }

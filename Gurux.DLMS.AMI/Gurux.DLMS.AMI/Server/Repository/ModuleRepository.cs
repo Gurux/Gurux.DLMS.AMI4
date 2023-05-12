@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -51,7 +53,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
         private readonly IModuleGroupRepository _moduleGroupRepository;
-
+        private readonly IServiceProvider _serviceProvider;
 
         /// <summary>
         /// Constructor.
@@ -59,12 +61,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public ModuleRepository(IGXHost host,
             IUserRepository userRepository,
             IGXEventsNotifier eventsNotifier,
-            IModuleGroupRepository moduleGroupRepository)
+            IModuleGroupRepository moduleGroupRepository,
+            IServiceProvider serviceProvider)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
             _moduleGroupRepository = moduleGroupRepository;
+            _serviceProvider = serviceProvider;
         }
 
         /// <inheritdoc />
@@ -138,6 +142,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 GXModule tmp = new GXModule() { Id = it.Key.Id };
                 await _eventsNotifier.ModuleDelete(it.Value, new GXModule[] { tmp });
+            }
+
+
+            List<GXModuleLog> list = new List<GXModuleLog>();
+            foreach (var it in updates.Keys)
+            {
+                list.Add(new GXModuleLog(TraceLevel.Info)
+                {
+                    CreationTime = DateTime.Now,
+                    Module = it,
+                    Message = Properties.Resources.ModuleRemoved
+                });
+            }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                IModuleLogRepository moduleLogRepository = scope.ServiceProvider.GetRequiredService<IModuleLogRepository>();
+                await moduleLogRepository.AddAsync(User, list);
             }
         }
 
@@ -253,7 +274,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             //Get script and methods.
-            arg = GXSelectArgs.Select<GXScript>(s => new {s.Id, s.Name }, w => w.Module == module);
+            arg = GXSelectArgs.Select<GXScript>(s => new { s.Id, s.Name }, w => w.Module == module);
             arg.Columns.Add<GXScriptMethod>();
             arg.Columns.Exclude<GXScriptMethod>(e => e.Script);
             arg.Joins.AddLeftJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
@@ -275,12 +296,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task UpdateAsync(ClaimsPrincipal user, GXModule module,
             Expression<Func<GXModule, object?>>? columns)
         {
+            //Verify that module exists and check if active is changed.
+            GXSelectArgs arg = GXSelectArgs.Select<GXModule>(s => s.Active,
+                w => w.Id == module.Id);
+            var mod = await _host.Connection.SingleOrDefaultAsync<GXModule>(arg);
+            if (mod == null)
+            {
+                throw new GXAmiNotFoundException(Properties.Resources.Module + " " + Properties.Resources.Id + " " + module.Id);
+            }
+            bool activityChange = mod.Active != module.Active;
             GXUpdateArgs args = GXUpdateArgs.Update(module, columns);
             module.Updated = DateTime.Now;
             args.Exclude<GXModule>(e => new { e.Versions, e.ModuleGroups });
             await _host.Connection.UpdateAsync(args);
             //Add new versions.
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXModuleVersion>(where => where.Module == module);
+            arg = GXSelectArgs.SelectAll<GXModuleVersion>(where => where.Module == module);
             List<GXModuleVersion> versions = _host.Connection.Select<GXModuleVersion>(arg);
             var comparer = new UniqueComparer<GXModuleVersion, Guid>();
             List<GXModuleVersion> addedVersions = module.Versions.Except(versions, comparer).ToList();
@@ -315,6 +345,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     await _eventsNotifier.ModuleUpdate(it.Value, new GXModule[] { it.Key });
                 }
             }
+            if (activityChange)
+            {
+                string msg;
+                if (module.Active.GetValueOrDefault())
+                {
+                    msg = Properties.Resources.ModuleEnabled;
+                }
+                else
+                {
+                    msg = Properties.Resources.ModuleDisabled;
+                }
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    IModuleLogRepository moduleLogRepository = scope.ServiceProvider.GetRequiredService<IModuleLogRepository>();
+                    await moduleLogRepository.AddAsync(user, new GXModuleLog[]
+                    {
+                    new GXModuleLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Module = module,
+                        Message = msg
+                    }
+                });
+                }
+            }
         }
 
         /// <inheritdoc />
@@ -338,6 +393,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             GXInsertArgs args = GXInsertArgs.InsertRange(modules);
             await _host.Connection.InsertAsync(args);
+            List<GXModuleLog> list = new List<GXModuleLog>();
+            foreach (var it in modules)
+            {
+                list.Add(new GXModuleLog(TraceLevel.Info)
+                {
+                    CreationTime = DateTime.Now,
+                    Module = it,
+                    Message = Properties.Resources.ModuleRemoved
+                });
+            }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                IModuleLogRepository moduleLogRepository = scope.ServiceProvider.GetRequiredService<IModuleLogRepository>();
+                await moduleLogRepository.AddAsync(User, list);
+            }
         }
 
         /// <inheritdoc />

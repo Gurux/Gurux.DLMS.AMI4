@@ -1,5 +1,4 @@
-﻿@page "/config/manufacturers"
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 @using Gurux.DLMS.AMI.Shared.Models
@@ -15,16 +14,13 @@
 @using System.Globalization
 @using System.Text.Json;
 
-@attribute [Authorize(Roles = "Admin, ManufacturerManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @implements IDisposable
-@implements IGXComponentView
-@if (Title)
-{
-    <PageTitle>@Properties.Resources.Manufacturers</PageTitle>
-}
+@implements IGXConfigUpdate
+
+<PageTitle>@Properties.Resources.Manufacturers</PageTitle>
 
 <MenuControl RightCorner="true">
     <ChildContent>
@@ -52,7 +48,6 @@
          Context="manufacturer"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
          ShowRemoved="false"
          ShowAllUsers="false"
          OnCheckboxDisabled="@OnCheckboxDisabled"
@@ -101,55 +96,10 @@
 
 @code {
     /// <summary>
-    /// Selected manufacturer ID.
+    /// Parent component.
     /// </summary>
     [Parameter]
-    public Guid? Id { get; set; }
-
-    /// <inheritdoc />
-    public string Name
-    {
-        get
-        {
-            return Gurux.DLMS.AMI.Client.Properties.Resources.Manufacturers;
-        }
-    }
-
-    /// <inheritdoc />
-    public Type? ConfigurationUI
-    {
-        get
-        {
-            return null;
-        }
-    }
-
-    /// <inheritdoc />
-    public string? Icon
-    {
-        get
-        {
-            return "oi oi-timer";
-        }
-    }
-
-    /// <summary>
-    /// Amount of the manufacturers shown on the view.
-    /// </summary>
-    [Parameter]
-    public int Count { get; set; } = 0;
-
-    /// <summary>
-    /// Is filter shown.
-    /// </summary>
-    [Parameter]
-    public bool Filter { get; set; } = true;
-
-    /// <summary>
-    /// Is title shown.
-    /// </summary>
-    [Parameter]
-    public bool Title { get; set; } = true;
+    public ManufacturerManage? Parent { get; set; }
 
     /// <summary>
     /// Manufacturer filter.
@@ -169,6 +119,17 @@
     /// Manufacturer settings.
     /// </summary>
     private ManufacturerSettings? _settings;
+
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<ManufacturerSettings>(Parent.Parent.Active.Settings);
+        }
+        StateHasChanged();
+    }
 
     /// <summary>
     /// Update table.
@@ -221,7 +182,7 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -231,12 +192,6 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
            {
                try
@@ -270,20 +225,13 @@
             //Clear buttons.
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get configuration data.
-            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
-            if (!string.IsNullOrEmpty(active?.Settings))
+            if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<ManufacturerSettings>(active.Settings);
+                _settings = JsonSerializer.Deserialize<ManufacturerSettings>(Parent.Parent.Active.Settings);
             }
             else
             {
                 _settings = new ManufacturerSettings();
-            }
-            if (table != null && Id != null)
-            {
-                //Get last selected item.
-                table.Active = new GXManufacturer() { Id = Id.Value };
             }
         }
         catch (AccessTokenNotAvailableException exception)
@@ -326,10 +274,6 @@
                     //Get manufacturer template information.
                     Select = TargetType.Version
                 };
-            if (Count != 0)
-            {
-                req.Count = Count;
-            }
             ListManufacturersResponse ret = await Http.PostAsJson<ListManufacturersResponse>("api/Manufacturer/List", req, request.CancellationToken);
             return new ItemsProviderResult<GXManufacturer>(ret.Manufacturers, ret.Count);
         }

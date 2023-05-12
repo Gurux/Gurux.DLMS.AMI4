@@ -339,7 +339,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveScriptGroupFromUserGroups(it.Id, removed);
                     }
                     //Map scripts to Script group.
-                    if (it.Scripts != null && it.Scripts.Any())
+                    if (it.Scripts != null)
                     {
                         List<GXScript> list3 = await GetJoinedScripts(it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

@@ -354,7 +354,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         RemoveScheduleGroupFromUserGroups(it.Id, removed);
                     }
                     //Map schedules to Schedule group.
-                    if (it.Schedules != null && it.Schedules.Any())
+                    if (it.Schedules != null)
                     {
                         List<GXSchedule> list3 = await GetJoinedSchedules(user, it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

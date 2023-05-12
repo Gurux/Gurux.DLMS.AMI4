@@ -331,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Map agents to Agent group.
-                    if (it.Agents != null && it.Agents.Any())
+                    if (it.Agents != null)
                     {
                         List<GXAgent> agents = GetAgentsByAgentGroupId(it.Id);
                         var comparer = new UniqueComparer<GXAgent, Guid>();

@@ -278,7 +278,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Agents,
                 Icon = "oi oi-wifi",
                 Description = "Installable agent versions.",
-                Path = "config/agentinstallers",
+                Path = "config/agent",
                 Order = 4,
                 Settings = JsonSerializer.Serialize(new AgentSettings())
             };
@@ -292,7 +292,7 @@ namespace Gurux.DLMS.AMI.Server
         {
             GXConfiguration conf = new GXConfiguration()
             {
-                Name = GXConfigurations.ComponentViews,
+                Name = GXConfigurations.Components,
                 Icon = "oi oi-layers",
                 Description = "With component views enabled, new custom user interfaces can be offered for the users.",
                 Path = "config/Component",
@@ -478,7 +478,7 @@ namespace Gurux.DLMS.AMI.Server
                 Name = GXConfigurations.Scripts,
                 Icon = "oi oi-script",
                 Description = "With Scripts enabled, workflows funtionality can be expand with scripts.",
-                Path = "Script",
+                Path = "config/script",
                 Order = 7
             };
             configurations.Add(conf);

@@ -9,7 +9,6 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Globalization
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Manufacturer)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -101,7 +100,7 @@
     <Confirm @ref="InstallConfirmation"
          ConfirmationChanged="OnInstallConfirmation"
          OkTitle="@Properties.Resources.Install"
-         AllowDelete="false"
+             AllowDelete="false"
          ConfirmationMessage=""
          ConfirmationTitle="@Properties.Resources.InstallMetersVerify">
     </Confirm>
@@ -157,11 +156,6 @@
     public string? Action { get; set; }
 
     private CrudAction action;
-    /// <summary>
-    /// Selected item.
-    /// </summary>
-    [Parameter]
-    public Guid? Id { get; set; }
 
     protected override void OnInitialized()
     {
@@ -221,8 +215,9 @@
 
     private string[] GetInstalledMeters()
     {
-        List<string> list = new List<string>();
-        bool installed = false;
+        List<string> models = new List<string>();
+        List<string> versions = new List<string>();
+        List<string> settings = new List<string>();
         if (_models != null)
         {
             foreach (var model in _models.GetInstalledItems())
@@ -230,7 +225,7 @@
                 //Check that model is not already installed.
                 if (model.Versions != null)
                 {
-                    list.Add(string.Format(Properties.Resources.InstallVersions, model.ToString()));
+                    models.Add(string.Format(Properties.Resources.InstallVersions, model.ToString()));
                     foreach (var version in model.Versions)
                     {
                         if (version.Settings != null)
@@ -239,55 +234,46 @@
                             {
                                 if (setting.Template != null)
                                 {
-                                    installed = true;
-                                    list.Clear();
+                                    models.RemoveAt(models.Count - 1);
                                     break;
                                 }
-                            }
-                            if (installed)
-                            {
-                                break;
                             }
                         }
                     }
                 }
             }
         }
-        if (!list.Any() && _versions != null)
+        if (!models.Any() && _versions != null)
         {
-            installed = false;
             foreach (var version in _versions.GetInstalledItems())
             {
                 if (version.Settings != null)
                 {
-                    list.Add(string.Format(Properties.Resources.InstallAllSettings, Model?.ToString(), version.ToString()));
+                    versions.Add(string.Format(Properties.Resources.InstallAllSettings, Model?.ToString(), version.ToString()));
                     foreach (var setting in version.Settings)
                     {
                         if (setting.Template != null)
                         {
-                            installed = true;
-                            list.Clear();
+                            versions.RemoveAt(versions.Count - 1);
                             break;
                         }
                     }
-                    if (installed)
-                    {
-                        break;
-                    }
                 }
             }
-            if (!list.Any() && _settings != null)
+            if (!models.Any() && !versions.Any() && _settings != null)
             {
                 foreach (var setting in _settings.GetInstalledItems())
                 {
                     if (setting.Template == null)
                     {
-                        list.Add(Model?.ToString() + " " + Version?.ToString() + " " + setting?.ToString());
+                        settings.Add(Model?.ToString() + " " + Version?.ToString() + " " + setting?.ToString());
                     }
                 }
             }
         }
-        return list.ToArray();
+        models.AddRange(versions);
+        models.AddRange(settings);
+        return models.ToArray();
     }
 
     /// <summary>

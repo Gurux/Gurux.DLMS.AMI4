@@ -77,7 +77,10 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXWorkflow Active = new GXWorkflow(null);
+    public GXWorkflow Active = new GXWorkflow(null)
+        {
+            Active = true
+        };
 
     protected override async Task OnInitializedAsync()
     {

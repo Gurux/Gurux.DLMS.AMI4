@@ -1,6 +1,4 @@
-﻿@page "/config/Manufacturer"
-@page "/config/ManufacturerGroup"
-
+﻿@using Gurux.DLMS.AMI.Client.Pages.Config;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -9,10 +7,10 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ManufacturerManager + "," + GXRoles.ManufacturerGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@implements IGXConfigUpdate
 
 <!--If user adds a new item or modifies the existing one.-->
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
@@ -20,7 +18,7 @@
     if (string.Compare(Path, "config/Manufacturer", true) == 0)
     {
         <ManufacturerTab Action="@Action" Id="@Id"></ManufacturerTab>
-    }   
+    }
 }
 else
 {
@@ -33,7 +31,7 @@ else
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ManufacturerManager)>
                 <TabPage Path="config/Manufacturer" Text=@Properties.Resources.Manufacturers Icon="oi oi-share-boxed">
                     <div style="position: relative; width: 100%; ">
-                        <Manufacturers Id="@Id"></Manufacturers>
+                        <Manufacturers Parent="this" @ref="_updater"></Manufacturers>
                     </div>
                 </TabPage>
             </AuthorizeView>
@@ -42,6 +40,20 @@ else
 }
 <br />
 @code {
+
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
+
+    IGXConfigUpdate? _updater;
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        _updater?.Update();
+    }
 
     /// <summary>
     /// User action.
@@ -54,7 +66,8 @@ else
     [Parameter]
     public Guid? Id { get; set; }
 
-    private string? Path { get; set; }
+    [Parameter]
+    public string? Path { get; set; }
 
     /// <summary>
     /// User has selected a new tab.
@@ -63,12 +76,6 @@ else
     void SelectionChanged(TabPage page)
     {
         Path = page.Path;
-    }
-
-    protected override void OnInitialized()
-    {
-        //Get selected tab from the url.
-        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
-    }
+    }  
 }
 

@@ -125,14 +125,6 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
-            {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
-                    return;
-            }
             ListRoles req = new ListRoles() { Filter = filter };
             _roles = (await Http.PostAsJson<ListRolesResponse>("api/Role/List", req)).Roles;
         }
@@ -157,7 +149,7 @@
             Notifier?.ClearStatus();
             UpdateRole req = new UpdateRole() { Roles = _roles };
             await Http.PostAsJson<UpdateRoleResponse>("api/Role/Update", req);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -174,7 +166,7 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

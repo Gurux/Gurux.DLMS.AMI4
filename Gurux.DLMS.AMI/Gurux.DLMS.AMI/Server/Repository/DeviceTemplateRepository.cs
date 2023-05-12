@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
+using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -313,12 +315,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
            ClaimsPrincipal user,
            Guid id)
         {
-            string userId = ServerHelpers.GetUserId(user);
-            GXSelectArgs arg = GXQuery.GetDeviceTemplatesByUser(userId, id);
+            GXSelectArgs arg;
+            if (user.IsInRole(GXRoles.Admin))
+            {
+                arg = GXSelectArgs.SelectAll<GXDeviceTemplate>();
+            }
+            else
+            {
+                string userId = ServerHelpers.GetUserId(user);
+                arg = GXQuery.GetDeviceTemplatesByUser(userId, id);
+            }
             GXDeviceTemplate ret = await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplate>(arg);
             if (ret == null)
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                throw new GXAmiNotFoundException(Properties.Resources.DeviceTemplate + " " + Properties.Resources.Id + " " + id.ToString());
             }
             //Objects and attributes are faster to retrieve with own query.
             arg = GXSelectArgs.SelectAll<GXObjectTemplate>(where => where.DeviceTemplate == ret && where.Removed == null);
@@ -356,17 +366,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
+                if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
+                {
+                    ListDeviceTemplateGroups request = new ListDeviceTemplateGroups()
+                    {
+                        Filter = new GXDeviceTemplateGroup() { Default = true }
+                    };
+                    it.DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
+                    it.DeviceTemplateGroups.AddRange(await _deviceTemplateGroupRepository.ListAsync(user, request, null, CancellationToken.None));
+                }
                 if (it.Id == Guid.Empty)
                 {
-                    if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
-                    {
-                        ListDeviceTemplateGroups request = new ListDeviceTemplateGroups()
-                        {
-                            Filter = new GXDeviceTemplateGroup() { Default = true }
-                        };
-                        it.DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
-                        it.DeviceTemplateGroups.AddRange(await _deviceTemplateGroupRepository.ListAsync(user, request, null, CancellationToken.None));
-                    }
                     if (!it.DeviceTemplateGroups.Any())
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
@@ -384,7 +394,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else
                 {
-                    if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
+                    if (it.DeviceTemplateGroups == null)
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }

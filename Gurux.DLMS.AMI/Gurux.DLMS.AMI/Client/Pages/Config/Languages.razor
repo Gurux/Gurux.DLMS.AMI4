@@ -1,5 +1,4 @@
-﻿@page "/config/languages"
-@using Gurux.DLMS.AMI.Shared
+﻿@using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
@@ -108,15 +107,8 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
-            {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
-                    return;
-            }
-            _languages = (await Http.PostAsJson<ListLanguagesResponse>("api/Localization/List", new ListLanguages())).Languages;
+            //Read languages as a default.
+            await Updated();
         }
         catch (Exception ex)
         {
@@ -202,7 +194,7 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

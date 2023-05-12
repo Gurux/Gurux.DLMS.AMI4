@@ -47,6 +47,10 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Client.Pages.Config;
 using Gurux.DLMS.AMI.Client.Pages.Workflow;
 using Gurux.DLMS.AMI.Client.Pages.Script;
+using Gurux.DLMS.AMI.Client.Pages.Module;
+using System.Configuration;
+using Gurux.DLMS.AMI.Client.Pages.Block;
+using Gurux.DLMS.AMI.Client.Pages.Trigger;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -170,12 +174,61 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
+                GXSelectArgs? args = null;
                 string[] tmp = it.Path.Split('/');
                 string? action = null;
                 string? id = null;
                 if (tmp.Length == 1)
                 {
                     it.Type = it.Path;
+                }
+                else if (tmp.Length == 2)
+                {
+                    if (string.Compare(tmp[0], "Config", true) == 0)
+                    {
+                        it.Type = "Configuration";
+                        it.Name = tmp[1];
+                    }
+                }
+                else if (tmp.Length == 4)
+                {
+                    if (string.Compare(tmp[0], "Config", true) == 0)
+                    {
+                        it.Type = tmp[1];
+                        action = tmp[2];
+                        id = tmp[3];
+                        if (string.Compare(it.Type, "Module") != 0)
+                        {
+                            Guid Id = Guid.Parse(id);
+                            switch (it.Type.ToLower())
+                            {
+                                case "modulegroup":
+                                    args = GXSelectArgs.Select<GXModuleGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "blockgroup":
+                                    args = GXSelectArgs.Select<GXBlockGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "component":
+                                    args = GXSelectArgs.Select<GXComponentView>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "componentgroup":
+                                    args = GXSelectArgs.Select<GXComponentViewGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "workflowgroup":
+                                    args = GXSelectArgs.Select<GXWorkflowGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "scriptgroup":
+                                    args = GXSelectArgs.Select<GXScriptGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "triggergroup":
+                                    args = GXSelectArgs.Select<GXTriggerGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "manufacturergroup":
+                                    args = GXSelectArgs.Select<GXManufacturerGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                            }
+                        }
+                    }
                 }
                 else if (tmp.Length > 2)
                 {
@@ -184,11 +237,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     id = tmp[2];
                 }
                 TargetType target;
-                GXSelectArgs? args = null;
                 if (id != null && Enum.TryParse(it.Type, true, out target))
                 {
                     Guid? Id = null;
-                    if (target != TargetType.User)
+                    if (target != TargetType.User &&
+                        target != TargetType.Module)
                     {
                         Id = Guid.Parse(id);
                     }
@@ -307,9 +360,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             args = GXSelectArgs.Select<GXManufacturerGroup>(s => s.Name, w => w.Id == Id);
                             break;
                     }
-                    if (args != null)
+                }
+                if (args != null)
+                {
+                    it.Name = await _host.Connection.SingleOrDefaultAsync<string>(args);
+                    if (it.Name == null)
                     {
-                        it.Name = await _host.Connection.SingleOrDefaultAsync<string>(args);
+                        throw new Exception(Properties.Resources.InvalidName);
                     }
                 }
                 if (it.Id == Guid.Empty)

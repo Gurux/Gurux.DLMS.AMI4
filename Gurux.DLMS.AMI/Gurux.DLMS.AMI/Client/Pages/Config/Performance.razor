@@ -1,5 +1,4 @@
-﻿@page "/config/performance"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -16,11 +15,11 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @implements IDisposable
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@implements IGXConfigUpdate
 
 @if (_settings != null)
 {
@@ -34,7 +33,7 @@
                     <th>
                         <Tooltip Title="@ToolTip">
                             <input type="checkbox" @onchange="@((ChangeEventArgs __e) => ToggleAll(Convert.ToBoolean(__e.Value)))" />
-                            </Tooltip>
+                        </Tooltip>
                     </th>
                     <th>@Properties.Resources.Name</th>
                 </tr>
@@ -58,6 +57,24 @@
 
 @code {
 
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<PerformanceSettings>(Parent.Active.Settings);
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
+
+    PerformanceSettings? _settings;
+
     protected string ToolTip
     {
         get
@@ -77,10 +94,8 @@
         _active = selected;
     }
     private TargetType _active = TargetType.None;
-    private GXConfiguration? _configuration;
     private string SubmitText = "";
     private string SearchText = "";
-    PerformanceSettings? _settings;
     private bool _allSelected = false;
 
     IEnumerable<TargetType> Notifications = ClientHelpers.GetNotifications();
@@ -150,7 +165,7 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         try
         {
@@ -160,19 +175,13 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            //Get selected item.
-            _configuration = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_configuration == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
             {
                 if (configurations != null)
                 {
                     foreach (var it in configurations)
                     {
-                        if (it.Name == GXConfigurations.Performance)
+                        if (it.Name == GXConfigurations.Performance && !string.IsNullOrEmpty(it.Settings))
                         {
                             _settings = JsonSerializer.Deserialize<PerformanceSettings>(it.Settings);
                             StateHasChanged();
@@ -185,17 +194,10 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
-                    return;
+                _settings = JsonSerializer.Deserialize<PerformanceSettings>(Parent.Active.Settings);
             }
-            //Get configuration data.
-            _configuration = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
-            _settings = JsonSerializer.Deserialize<PerformanceSettings>(_configuration.Settings);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -216,15 +218,19 @@
     /// </summary>
     private async void OnSave()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
-            _configuration.Settings = JsonSerializer.Serialize(_settings);
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent.Active.Settings = JsonSerializer.Serialize(_settings);
             ConfigurationUpdate arg = new ConfigurationUpdate();
-            arg.Configurations = new GXConfiguration[] { _configuration };
+            arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -241,7 +247,7 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

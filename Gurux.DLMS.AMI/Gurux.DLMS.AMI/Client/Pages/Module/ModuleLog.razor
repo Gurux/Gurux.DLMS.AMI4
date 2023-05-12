@@ -12,49 +12,49 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@if (Parent?.Active != null)
+@if (_active != null)
 {
-    <EditForm Model="@Parent.Active">
+    <EditForm Model="@_active">
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <label>@Properties.Resources.Message</label>
-                    <InputText id="name" disabled="disabled" @bind-Value="Parent.Active.Message" class="form-control" />
+                    <InputText id="name" disabled="disabled" @bind-Value="_active.Message" class="form-control" />
                 </div>
-                @if (!string.IsNullOrEmpty(Parent.Active.StackTrace))
+                @if (!string.IsNullOrEmpty(_active.StackTrace))
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.StackTrace</label>
-                        <textarea id="Reply" @bind="Parent.Active.StackTrace" rows="10"
-                          readonly="readonly" class="form-control" />
+                        <textarea id="Reply" @bind="_active.StackTrace" rows="10"
+                                  readonly="readonly" class="form-control" />
                     </div>
                 }
-               <div class="form-group">
+                <div class="form-group">
                     <label>@Properties.Resources.ErrorSeverityLevel</label>
                     <input type="text" id="level" disabled="disabled"
-                       value="@ClientHelpers.LevelToString(Parent.Active.Level)" class="form-control" />
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
                 </div>
-                @if (Parent.Active.Module != null)
+                @if (_active.Module != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Module</label>
-                        <InputText id="module" disabled="disabled" @bind-Value="Parent.Active.Module.Id" class="form-control" />
+                        <InputText id="module" disabled="disabled" @bind-Value="_active.Module.Id" class="form-control" />
                     </div>
                 }
-                @if (Parent.Active.CreationTime != DateTime.MinValue)
+                @if (_active.CreationTime != DateTime.MinValue)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Parent.Active.CreationTime" />
+                           @bind-Value="_active.CreationTime" />
                     </div>
                 }
-                @if (Parent.Active.Closed != null)
+                @if (_active.Closed != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Closed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Parent.Active.Closed" />
+                           @bind-Value="_active.Closed" />
                     </div>
                 }
             </div>
@@ -62,22 +62,42 @@
     </EditForm>
 }
 @code {
-    [CascadingParameter]
-    private ModuleLogs? Parent { get; set; }
+    [Parameter]
+    public Guid? Id { get; set; }
 
-    protected override void OnInitialized()
+    private GXModuleLog? _active;
+
+
+    protected override async Task OnInitializedAsync()
     {
         try
         {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (Parent?.Active == null)
+            //Get selected item.
+            if (Id == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             Notifier.Clear();
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
+            //Get module log data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/ModuleLog?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            var tmp = await response.Content.ReadFromJsonAsync<GetModuleLog>();
+            if (tmp != null)
+            {
+                _active = tmp.Item;
+            }
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

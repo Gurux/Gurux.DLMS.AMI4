@@ -339,7 +339,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXAgent agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(arg);
             if (agent == null)
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                throw new GXAmiNotFoundException(Properties.Resources.Agent + " " + Properties.Resources.Id + " " + id.ToString());
             }
             agent.Versions = await GetAgentVersionsByAgentIdAsync(User, agent);
             return agent;
@@ -437,7 +437,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Update agent versions.
-                    if (agent.Versions != null && agent.Versions.Any())
+                    if (agent.Versions != null)
                     {
                         List<GXAgentVersion> agentVersions = await GetAgentVersionsByAgentIdAsync(user, agent);
                         var comparer1 = new UniqueComparer<GXAgentVersion, Guid>();
@@ -620,7 +620,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXAgent agent = await ReadAsync(User, it.Id);
                 if (agent == null)
                 {
-                    throw new GXAmiNotFoundException(it.Id.ToString());
+                    throw new GXAmiNotFoundException(Properties.Resources.Agent + " " + Properties.Resources.Id + " " + it.Id.ToString());
                 }
                 if (string.IsNullOrEmpty(it.UpdateVersion))
                 {

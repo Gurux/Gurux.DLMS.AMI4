@@ -1,4 +1,6 @@
 ﻿@page "/logs"
+@page "/logs/{Action}"
+
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Client.Pages.Schedule
 @using Gurux.DLMS.AMI.Client.Pages.User
@@ -21,21 +23,21 @@
     </TabTextTemplate>
     <ChildContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SystemLogManager)>
-            <TabPage Text=@Properties.Resources.SystemLogs Icon="oi oi-warning">
+            <TabPage Path="Logs/SystemLog"  Text=@Properties.Resources.SystemLogs Icon="oi oi-warning">
                 <div style="position: relative; width: 100%; ">
                     <SystemLog></SystemLog>
                 </div>
             </TabPage>
         </AuthorizeView>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TaskManager)>
-            <TabPage Text=@Properties.Resources.Tasks Icon="oi oi-pulse">
+            <TabPage Path="Logs/Task" Text=@Properties.Resources.Tasks Icon="oi oi-pulse">
                 <div style="position: relative; width: 100%; ">
                     <Tasks></Tasks>
                 </div>
             </TabPage>
         </AuthorizeView>
         <AuthorizeView Roles="Admin">
-            <TabPage Text=@Properties.Resources.RESTStatistic Icon="oi oi-transfer">
+            <TabPage Path="Logs/RestStatistic" Text=@Properties.Resources.RESTStatistic Icon="oi oi-transfer">
                 <div style="position: relative; width: 100%; ">
                     <RestStatistic></RestStatistic>
                 </div>
@@ -45,6 +47,27 @@
 </TabControl>
 <br />
 @code {
-    
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
 }
 

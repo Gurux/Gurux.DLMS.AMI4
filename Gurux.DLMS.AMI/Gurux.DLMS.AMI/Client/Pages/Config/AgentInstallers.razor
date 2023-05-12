@@ -1,5 +1,4 @@
-﻿@page "/config/agentinstallers"
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -21,8 +20,7 @@
 @inject ConfirmBase Confirm
 @inject IAccessTokenProvider AccessTokenProvider
 @implements IDisposable
-@implements IGXComponentView
-
+@implements IGXConfigUpdate
 
 <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
     <MenuControl RightCorner="true">
@@ -31,8 +29,6 @@
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
-
-
 
 @if (_settings != null)
 {
@@ -50,9 +46,10 @@
         </div>
     </EditForm>
 }
+
 <GXTable @ref="table"
          Context="version" ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple" Filter="@Filter"
+         SelectionMode="SelectionMode.Multiple"
          ShowAllUsers="false"
          OnSearch="@Updated">
     <FilterContent>
@@ -80,50 +77,22 @@
 </Confirm>
 
 @code {
-    /// <inheritdoc />
-    public string Name
-    {
-        get
-        {
-            return "Agent Installers";
-        }
-    }
 
-    /// <inheritdoc />
-    public Type? ConfigurationUI
+    /// <inheritdoc/>
+    public void Update()
     {
-        get
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
         {
-            return null;
+            _settings = JsonSerializer.Deserialize<AgentSettings>(Parent.Active.Settings);
         }
-    }
-
-    /// <inheritdoc />
-    public string? Icon
-    {
-        get
-        {
-            return "oi oi-wifi";
-        }
+        StateHasChanged();
     }
 
     /// <summary>
-    /// Amount of the agents shown on the view.
+    /// Parent component.
     /// </summary>
     [Parameter]
-    public int Count { get; set; } = 0;
-
-    /// <summary>
-    /// Is filter shown.
-    /// </summary>
-    [Parameter]
-    public bool Filter { get; set; } = true;
-
-    /// <summary>
-    /// Is title shown.
-    /// </summary>
-    [Parameter]
-    public bool Title { get; set; } = true;
+    public Configurations? Parent { get; set; }
 
     private string? GetVersion(string? version)
     {
@@ -172,21 +141,13 @@
             Notifier?.ProcessError(ex);
         }
     }
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
-        await Task.Delay(1);
         try
         {
             if (Notifier == null || filter?.Versions == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            //Get selected item.
-            GXConfiguration? active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
            {
@@ -221,11 +182,9 @@
             });
             Notifier.Clear();
             Notifier.UpdateButtons();
-            //Get configuration data.
-            active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", active.Id))).Item;
-            if (!string.IsNullOrEmpty(active?.Settings))
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<AgentSettings>(active.Settings);
+                _settings = JsonSerializer.Deserialize<AgentSettings>(Parent.Active.Settings);
             }
             else
             {
@@ -263,10 +222,6 @@
                     OrderBy = request.OrderBy,
                     Descending = request.Descending,
                 };
-            if (Count != 0)
-            {
-                req.Count = Count;
-            }
             var ret = await Http.PostAsJson<ListAgentsResponse>("api/Agent/Installers", req, request.CancellationToken);
             if (ret.Agents == null || ret.Agents.Length != 1)
             {

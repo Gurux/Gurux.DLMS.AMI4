@@ -33,19 +33,24 @@
 using System.Net;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Server.Repository;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Server.Internal;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
     internal sealed class GXErrorHandlerMidleware
     {
+        private readonly IUserErrorRepository _userErrorRepository;
         private readonly RequestDelegate _next;
 
-        public GXErrorHandlerMidleware(RequestDelegate next)
+        public GXErrorHandlerMidleware(RequestDelegate next,
+            IUserErrorRepository userErrorRepository)
         {
             _next = next;
+            _userErrorRepository = userErrorRepository;
         }
 
         public async Task Invoke(HttpContext context,
@@ -79,6 +84,24 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (GXAmiNotFoundException ex)
             {
+                try
+                {
+                    //Add error to user errors.
+                    GXUserError error = new GXUserError()
+                    {
+                        User = new GXUser()
+                        {
+                            Id = ServerHelpers.GetUserId(context.User)
+                        },
+                        CreationTime = DateTime.Now,
+                        Message = ex.Message,
+                    };
+                    await _userErrorRepository.AddAsync(context.User, new GXUserError[] { error });
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine(ex.ToString());
+                }
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -94,7 +117,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     await context.Response.WriteAsync(ex.Message);
                 }
             }
-            
+
             catch (UnauthorizedAccessException ex)
             {
                 context.Response.ContentType = "text/plain";
@@ -111,7 +134,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 {
                     await context.Response.WriteAsync(ex.Message);
                 }
-            }            
+            }
             catch (ArgumentException ex)
             {
                 context.Response.ContentType = "text/plain";
@@ -163,6 +186,6 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 var result = JsonSerializer.Serialize(error);
                 await context.Response.WriteAsync(result);
             }
-        }     
+        }
     }
 }

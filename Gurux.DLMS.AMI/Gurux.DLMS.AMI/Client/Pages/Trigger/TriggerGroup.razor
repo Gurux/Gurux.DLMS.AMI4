@@ -27,8 +27,8 @@
                            @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
-                    <InputCheckbox @bind-Value="Active.Default" />
-                    <label>@Properties.Resources.DefaultGroup</label>
+                    <InputSwitch Text="@Properties.Resources.DefaultGroup"
+                             @bind-Value="Active.Default" />
                     <br />
                 </div>
                 <div class="form-group">

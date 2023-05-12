@@ -11,55 +11,14 @@
 @using System.Text.Json
 @using Microsoft.Extensions.Logging
 
-
-@attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @inject ILogger<ModuleConfig> Logger
 
 <GXModuleLayout></GXModuleLayout>
-@code {
-    private string? fileName = null;
-    private bool isAdding = false;
-    private GXModule module;
-    private string SubmitText;
-
-    protected override void OnInitialized()
-    {
-        Notifier?.ClearStatus();
-        try
-        {
-            object data = Notifier.GetData("moduleconfig");
-            if (data is GXModule m)
-            {
-                module = m;
-            }
-            switch (Notifier.Action)
-            {
-                case CrudAction.Create:
-                    isAdding = true;
-                    SubmitText = Properties.Resources.Add;
-                    //Note! Update data or notifier doesn't know what data is added.
-                    Notifier.UpdateData("moduleconfig", module);
-                    break;
-                case CrudAction.Update:
-                    SubmitText = Properties.Resources.Edit;
-                    break;
-                case CrudAction.Delete:
-                    SubmitText = Properties.Resources.Remove;
-                    break;
-                default:
-                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
-                    return;
-            }
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-    }
-
+@code {  
+    //TODO: This can be remove after a while.
     private void HandleValidSubmit()
     {
         try

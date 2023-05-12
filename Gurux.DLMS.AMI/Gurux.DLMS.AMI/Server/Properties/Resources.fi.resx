@@ -528,4 +528,52 @@
   <data name="Id" xml:space="preserve">
     <value>Id:</value>
   </data>
+  <data name="ModuleDisabled" xml:space="preserve">
+    <value>Moduulit otettu käytöstä.</value>
+  </data>
+  <data name="ModuleEnabled" xml:space="preserve">
+    <value>Moduuli otettu käyttöön.</value>
+  </data>
+  <data name="ModuleRemoved" xml:space="preserve">
+    <value>Moduuli poistettu.</value>
+  </data>
+  <data name="ModuleInstalled" xml:space="preserve">
+    <value>Moduuli asennettu.</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Laite</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Laitepohja</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Laitepohja ryhmä</value>
+  </data>
+  <data name="WorkflowInstalled" xml:space="preserve">
+    <value>Työnkulku asennettu.</value>
+  </data>
+  <data name="WorkflowRemoved" xml:space="preserve">
+    <value>Työnkulku poistettu.</value>
+  </data>
+  <data name="ScriptInstalled" xml:space="preserve">
+    <value>Komentosarja asennettu.</value>
+  </data>
+  <data name="ScriptRemoved" xml:space="preserve">
+    <value>Komentosarja poistettu.</value>
+  </data>
+  <data name="ScheduleInstalled" xml:space="preserve">
+    <value>Aikataulu asennettu.</value>
+  </data>
+  <data name="ScheduleRemoved" xml:space="preserve">
+    <value>Aikataulu poistettu.</value>
+  </data>
+  <data name="ScriptUpdated" xml:space="preserve">
+    <value>Komentosarja päivitetty.</value>
+  </data>
+  <data name="WorkflowUpdated" xml:space="preserve">
+    <value>Työnkulku päivitetty.</value>
+  </data>
+  <data name="ScheduleUpdated" xml:space="preserve">
+    <value>Aikataulu päivitetty.</value>
+  </data>
 </root>

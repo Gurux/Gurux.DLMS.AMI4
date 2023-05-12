@@ -80,7 +80,21 @@
 
     string GetAuthenticationLevel(GXDeviceSettings value)
     {
-        return ((Gurux.DLMS.Enums.Authentication)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).Authentication).ToString();
+        GXDLMSSettings settings = new();
+        if (!string.IsNullOrEmpty(value.Settings))
+        {
+            var tmp = JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings);
+            if (tmp != null)
+            {
+                settings = tmp;
+            }
+        }
+        if (!string.IsNullOrEmpty(settings.AuthenticationName))
+        {
+            //Return authentication name if used.
+            return settings.AuthenticationName;
+        }
+        return ((Gurux.DLMS.Enums.Authentication)settings.Authentication).ToString();
     }
 
     /// <summary>

@@ -27,8 +27,8 @@
                            @bind-Value="Active.Name" />
                 </div>
                 <div class="form-group">
-                    <InputNullableCheckbox @bind-Value="Active.Default" />
-                    <label>@Properties.Resources.DefaultGroup</label>
+                    <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
+                                     @bind-Value="Active.Default" />
                     <br />
                 </div>            <div class="form-group">
                     <label>@Properties.Resources.Description</label>

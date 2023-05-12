@@ -199,8 +199,8 @@
 
                         <div class="form-group row">
                             <label>@Properties.Resources.WaitTime</label>
-                            <InputNumber id="resend" class="form-control"
-                                 @bind-Value="Active.WaitTime" />
+                            <InputIntegerTimeSpan id="resend" class="form-control"
+                                          @bind-Value="Active.WaitTime" />
                             <ValidationMessage For="@(() => Active.WaitTime)" />
                         </div>
                         <div class="form-group row">
@@ -281,10 +281,6 @@
                 </div>
                 <br />
             </EditForm>
-        }
-        else if (Parent?.Templates != null)
-        {
-            Notifier.ShowInformation(string.Format("{0}Device templates{1} must be added before devices can be added.", "<a href=DeviceTemplates>", "</a>"));
         }
     }
 </CascadingValue>
@@ -567,8 +563,6 @@
     TraceLevel[] TraceLevels = new TraceLevel[]
        {
         TraceLevel.Off,
-        TraceLevel.Error,
-        TraceLevel.Warning,
         TraceLevel.Info,
         TraceLevel.Verbose
        };
@@ -825,10 +819,11 @@
                                 Active.MediaType = Active.Template.MediaType;
                                 Active.MediaSettings = Active.Template.MediaSettings;
                                 Active.Settings = Active.Template.Settings;
-                                //Update template settings.
-                                if (_deviceSettings?.Settings != null)
+                                //Update template settings when settings are selected for the first time.
+                                if (!string.IsNullOrEmpty(Active.Settings))
                                 {
-                                    _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(_deviceSettings.Settings);
+                                    //Get device template settings when device is selected for the first time.
+                                    _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
                                 }
                             }
                         }

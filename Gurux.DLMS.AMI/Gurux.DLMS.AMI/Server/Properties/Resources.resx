@@ -528,4 +528,52 @@
   <data name="Id" xml:space="preserve">
     <value>Id:</value>
   </data>
+  <data name="ModuleEnabled" xml:space="preserve">
+    <value>Module enabled.</value>
+  </data>
+  <data name="ModuleDisabled" xml:space="preserve">
+    <value>Module disabled.</value>
+  </data>
+  <data name="ModuleRemoved" xml:space="preserve">
+    <value>Module removed.</value>
+  </data>
+  <data name="ModuleInstalled" xml:space="preserve">
+    <value>Module installed.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Device template</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Device template group</value>
+  </data>
+  <data name="WorkflowInstalled" xml:space="preserve">
+    <value>Workflow installed.</value>
+  </data>
+  <data name="WorkflowRemoved" xml:space="preserve">
+    <value>Workflow removed.</value>
+  </data>
+  <data name="ScriptInstalled" xml:space="preserve">
+    <value>Script installed.</value>
+  </data>
+  <data name="ScriptRemoved" xml:space="preserve">
+    <value>Script removed.</value>
+  </data>
+  <data name="ScheduleInstalled" xml:space="preserve">
+    <value>Schedule installed.</value>
+  </data>
+  <data name="ScheduleRemoved" xml:space="preserve">
+    <value>Schedule removed.</value>
+  </data>
+  <data name="ScheduleUpdated" xml:space="preserve">
+    <value>Schedule updated.</value>
+  </data>
+  <data name="WorkflowUpdated" xml:space="preserve">
+    <value>Workflow updated.</value>
+  </data>
+  <data name="ScriptUpdated" xml:space="preserve">
+    <value>Script updated.</value>
+  </data>
 </root>

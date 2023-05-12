@@ -5,8 +5,6 @@
 
 @inherits InputBase<DateTimeOffset?>
 
-@inject ILogger<InputNullableDateTimeOffsetTimeSpan> Logger
-
 <input class="@CssClass" disabled="@IsDisabled()"
        @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
 <InputCheckbox @bind-Value="Static" />

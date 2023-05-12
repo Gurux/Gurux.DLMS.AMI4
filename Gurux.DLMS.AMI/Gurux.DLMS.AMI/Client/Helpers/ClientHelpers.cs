@@ -154,7 +154,12 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             {
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    throw new Exception(response.ReasonPhrase);
+                    string? error = response.Content.ReadAsStringAsync().Result;
+                    if (string.IsNullOrEmpty(error))
+                    {
+                        error = response.ReasonPhrase;
+                    }
+                    throw new GXAmiNotFoundException(error);
                 }
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {

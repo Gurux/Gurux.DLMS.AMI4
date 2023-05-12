@@ -431,7 +431,7 @@ namespace Gurux.DLMS.AMI.Client
                     //Load performance settings from the server.
                     ListConfiguration req = new ListConfiguration()
                     {
-                        Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
+                        Filter = new GXConfiguration()
                         {
                             Name = GXConfigurations.Performance
                         }
@@ -444,6 +444,11 @@ namespace Gurux.DLMS.AMI.Client
                         if (s != null)
                         {
                             IgnoreNotification = s.IgnoreNotification;
+                        }
+                        else
+                        {
+                            //All notifications are ignored as a default.
+                            IgnoreNotification = (TargetType)UInt64.MaxValue;
                         }
                     }
                     settings = ret.Item.Settings.Where(w => w.Name == GXConfigurations.System).SingleOrDefault();
@@ -812,7 +817,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Device) == 0)
                         {
-                            _toasterService.Add(new GXToast("Device deleted", ToString(devices), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Device deleted", ToString(devices), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.DeviceDelete), devices);
                     });
@@ -828,7 +833,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.DeviceGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Device group deleted", ToString(groups), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Device group deleted", ToString(groups), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.DeviceGroupDelete), groups);
                     });
@@ -844,7 +849,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.DeviceTemplateGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Device template group deleted", ToString(groups), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Device template group deleted", ToString(groups), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.DeviceTemplateGroupDelete), groups);
                     });
@@ -860,7 +865,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.DeviceTemplate) == 0)
                         {
-                            _toasterService.Add(new GXToast("Device template deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Device template deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.DeviceTemplateDelete), items);
                     });
@@ -876,7 +881,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Agent) == 0)
                         {
-                            _toasterService.Add(new GXToast("Agent deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Agent deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.AgentDelete), items);
                     });
@@ -900,7 +905,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.AgentGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Agent group deleted", ToString(groups), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Agent group deleted", ToString(groups), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.AgentGroupDelete), groups);
                     });
@@ -908,7 +913,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
-                            _toasterService.Add(new GXToast("Agent group updeted", ToString(groups), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Workflow updeted", ToString(groups), Color.Info, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.WorkflowUpdate), groups);
                     });
@@ -916,7 +921,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
-                            _toasterService.Add(new GXToast("Workflow deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Workflow deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.WorkflowDelete), items);
                     });
@@ -932,7 +937,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Workflow) == 0)
                         {
-                            _toasterService.Add(new GXToast("Workflow group deleted", ToString(groups), Color.Success, 15));
+                            _toasterService.Add(new GXToast("Workflow group deleted", ToString(groups), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.WorkflowGroupDelete), groups);
                     });
@@ -948,7 +953,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Trigger) == 0)
                         {
-                            _toasterService.Add(new GXToast("Trigger deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Trigger deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.TriggerDelete), items);
                     });
@@ -964,7 +969,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.TriggerGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Trigger group deleted", ToString(groups), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Trigger group deleted", ToString(groups), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.TriggerGroupDelete), groups);
                     });
@@ -980,7 +985,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Module) == 0)
                         {
-                            _toasterService.Add(new GXToast("Module deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Module deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ModuleDelete), items);
                     });
@@ -996,7 +1001,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Module) == 0)
                         {
-                            _toasterService.Add(new GXToast("Module group deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Module group deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ModuleGroupDelete), items);
                     });
@@ -1012,7 +1017,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Object) == 0)
                         {
-                            _toasterService.Add(new GXToast("Object deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Object deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ObjectDelete), items);
                     });
@@ -1028,7 +1033,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Attribute) == 0)
                         {
-                            _toasterService.Add(new GXToast("Attribute deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Attribute deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.AttributeDelete), items);
                     });
@@ -1061,7 +1066,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Task) == 0)
                         {
-                            _toasterService.Add(new GXToast("Task deleted", ToString(tasks), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Task deleted", ToString(tasks), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.TaskDelete), tasks);
                     });
@@ -1092,7 +1097,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Block) == 0)
                         {
-                            _toasterService.Add(new GXToast("Block deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Block deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.BlockDelete), items);
                     });
@@ -1116,7 +1121,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Block) == 0)
                         {
-                            _toasterService.Add(new GXToast("Block group deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Block group deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.BlockGroupDelete), items);
                     });
@@ -1184,7 +1189,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.ComponentView) == 0)
                         {
-                            _toasterService.Add(new GXToast("Component view deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Component view deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ComponentViewDelete), items);
                     });
@@ -1200,7 +1205,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.ComponentViewGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Component view group deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Component view group deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ComponentViewGroupDelete), items);
                     });
@@ -1216,7 +1221,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.Script) == 0)
                         {
-                            _toasterService.Add(new GXToast("Script deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Script deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ScriptDelete), items);
                     });
@@ -1232,7 +1237,7 @@ namespace Gurux.DLMS.AMI.Client
                     {
                         if ((IgnoreNotification & TargetType.ScriptGroup) == 0)
                         {
-                            _toasterService.Add(new GXToast("Script group deleted", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Script group deleted", ToString(items), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ScriptGroupDelete), items);
                     });

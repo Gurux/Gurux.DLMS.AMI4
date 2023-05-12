@@ -268,6 +268,39 @@ namespace Gurux.DLMS.AMI.Server.Properties
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to Device Id is zero..
+        /// </summary>
+        internal static string Device
+        {
+            get
+            {
+                return ResourceManager.GetString("Device", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Device Id is zero..
+        /// </summary>
+        internal static string DeviceTemplate
+        {
+            get
+            {
+                return ResourceManager.GetString("DeviceTemplate", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Device Id is zero..
+        /// </summary>
+        internal static string DeviceTemplateGroup
+        {
+            get
+            {
+                return ResourceManager.GetString("DeviceTemplateGroup", resourceCulture);
+            }
+        }
+
+        /// <summary>
         ///   Looks up a localized string similar to Edit.
         /// </summary>
         internal static string Edit
@@ -1543,6 +1576,149 @@ namespace Gurux.DLMS.AMI.Server.Properties
             }
         }
 
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ModuleEnabled
+        {
+            get
+            {
+                return ResourceManager.GetString("ModuleEnabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ModuleDisabled
+        {
+            get
+            {
+                return ResourceManager.GetString("ModuleDisabled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ModuleInstalled
+        {
+            get
+            {
+                return ResourceManager.GetString("ModuleInstalled", resourceCulture);
+            }
+        }
+
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ModuleRemoved
+        {
+            get
+            {
+                return ResourceManager.GetString("ModuleRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string WorkflowInstalled
+        {
+            get
+            {
+                return ResourceManager.GetString("WorkflowInstalled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string WorkflowUpdated
+        {
+            get
+            {
+                return ResourceManager.GetString("WorkflowUpdated", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string WorkflowRemoved
+        {
+            get
+            {
+                return ResourceManager.GetString("WorkflowRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScheduleInstalled
+        {
+            get
+            {
+                return ResourceManager.GetString("ScheduleInstalled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScheduleUpdated
+        {
+            get
+            {
+                return ResourceManager.GetString("ScheduleUpdated", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScheduleRemoved
+        {
+            get
+            {
+                return ResourceManager.GetString("ScheduleRemoved", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScriptInstalled
+        {
+            get
+            {
+                return ResourceManager.GetString("ScriptInstalled", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScriptUpdated
+        {
+            get
+            {
+                return ResourceManager.GetString("ScriptUpdated", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Your profile has been updated.
+        /// </summary>
+        internal static string ScriptRemoved
+        {
+            get
+            {
+                return ResourceManager.GetString("ScriptRemoved", resourceCulture);
+            }
+        }
         /// <summary>
         ///   Looks up a localized string similar to Your profile has been updated.
         /// </summary>

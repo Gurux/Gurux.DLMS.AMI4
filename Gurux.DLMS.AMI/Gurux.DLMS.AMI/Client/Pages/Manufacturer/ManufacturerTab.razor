@@ -1,7 +1,4 @@
-﻿@page "/config/Manufacturer/{Id:guid?}"
-@page "/config/Manufacturer/{Action}/{Id:guid?}"
-
-@using Gurux.DLMS.AMI.Client.Pages.Device
+﻿@using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
@@ -13,7 +10,6 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
-@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ManufacturerManager + "," + GXRoles.ManufacturerGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier

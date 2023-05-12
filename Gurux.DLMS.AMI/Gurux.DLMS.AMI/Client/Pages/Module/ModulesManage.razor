@@ -59,7 +59,9 @@
     </FilterContent>
     <MenuContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Install" Icon="oi oi-plus" OnClick="@OnInstall"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Install"
+                             Icon="oi oi-plus"
+                             OnClick="@OnInstall"></ContextMenuItem>
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
@@ -81,7 +83,9 @@
 <Confirm @ref="RestartConfirmation"
          ConfirmationChanged="OnRestartConfirmation"
          OkTitle="@Properties.Resources.Restart"
-         ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
+         ConfirmationTitle="Confirm restart"
+         AllowDelete="false"
+         ConfirmationMessage="@Properties.Resources.ModuleNeedsRestart">
 </Confirm>
 
 @code {
@@ -187,10 +191,18 @@
     /// </summary>
     public async void OnInstall()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
         try
         {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            @if ((table.Active.Status & AMI.Shared.DTOs.Enums.ModuleStatus.Installed) != 0)
+            {
+                throw new Exception(string.Format("Module {0} is already installed.", table.Active.Id));
+            }
             UpdateModule req = new UpdateModule() { Module = table.Active };
             var ret = await Http.PostAsJson<UpdateModuleResponse>("api/Module/Install", req);
             if (RestartConfirmation != null && ret.Restart)

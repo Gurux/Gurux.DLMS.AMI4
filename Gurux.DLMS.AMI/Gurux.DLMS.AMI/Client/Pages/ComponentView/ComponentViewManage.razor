@@ -38,14 +38,14 @@ else
         </TabTextTemplate>
         <ChildContent>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewManager)>
-                <TabPage Path="/config/Component" Text=@Properties.Resources.ComponentViews Icon="oi oi-layers">
+                <TabPage Path="config/Component" Text=@Properties.Resources.ComponentViews Icon="oi oi-layers">
                     <div style="position: relative; width: 100%; ">
                         <ComponentViews Id="@Id"></ComponentViews>
                     </div>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewGroupManager)>
-                <TabPage Path="/config/ComponentGroup" Text=@Properties.Resources.ComponentViewGroups Icon="oi oi-timer">
+                <TabPage Path="config/ComponentGroup" Text=@Properties.Resources.ComponentViewGroups Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
                         <ComponentViewGroups Id="@Id"></ComponentViewGroups>
                     </div>

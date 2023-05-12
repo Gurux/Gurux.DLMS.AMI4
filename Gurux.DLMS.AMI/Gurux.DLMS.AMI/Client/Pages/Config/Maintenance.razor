@@ -1,5 +1,4 @@
-﻿@page "/config/maintenance"
-@using Gurux.DLMS.AMI.Script
+﻿@using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -23,6 +22,7 @@
 @implements IDisposable
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@implements IGXConfigUpdate
 
 @if (_settings != null)
 {
@@ -30,17 +30,16 @@
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputCheckbox id="maintenanceMode" @bind-Value="_settings.MaintenanceMode" />
-                    <label>Site is in maintenance mode</label>
+                    <InputSwitch Text="Site is in maintenance mode" id="maintenanceMode" @bind-Value="_settings.MaintenanceMode" />
                     <p>
                         When enabled, only admin users are able to access site to perform maintenance;<br />
                         all other visitors see the maintenance mode message configured below.<br />
                         Authorized users can log in directly via the user login page.
                     </p>
                 </div>
-                @if (_settings != null)
+                @if (_settings != null && Parent?.Active != null)
                 {
-                    <MaintenanceLocalizer @ref="MaintenanceLocalizer" Configuration="_configuration" Settings="_settings"></MaintenanceLocalizer>
+                    <MaintenanceLocalizer @ref="MaintenanceLocalizer" Configuration="Parent.Active" Settings="_settings"></MaintenanceLocalizer>
                 }
             </div>
         </div>
@@ -48,12 +47,31 @@
 }
 
 @code {
-    private GXConfiguration? _configuration;
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
 
     MaintenanceSettings? _settings;
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<MaintenanceSettings>(Parent.Active.Settings);
+            if (!string.IsNullOrEmpty(_settings?.Message))
+            {
+                _settings.Message = ((MarkupString)_settings.Message).ToString();
+            }
+        }
+        StateHasChanged();
+    }
+
     MaintenanceLocalizer? MaintenanceLocalizer;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
         if (Notifier == null)
         {
@@ -63,12 +81,6 @@
         Notifier.ClearStatus();
         try
         {
-            //Get selected item.
-            _configuration = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_configuration == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
             {
                 if (configurations != null)
@@ -88,30 +100,14 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
-            {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
-                    return;
-            }
-            if (!_configuration.Modified &&
-            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get configuration data.
-                _configuration = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _configuration.Id))).Item;
-                Notifier.UpdateData(GXPages.Configuration, _configuration);
-                _configuration.Modified = true;
-            }
-            if (string.IsNullOrEmpty(_configuration.Settings))
+            if (string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
                 _settings = new MaintenanceSettings();
             }
             else
             {
-                _settings = JsonSerializer.Deserialize<MaintenanceSettings>(_configuration.Settings);
-                if (!string.IsNullOrEmpty(_settings.Message))
+                _settings = JsonSerializer.Deserialize<MaintenanceSettings>(Parent.Active.Settings);
+                if (!string.IsNullOrEmpty(_settings?.Message))
                 {
                     _settings.Message = ((MarkupString)_settings.Message).ToString();
                 }
@@ -140,18 +136,22 @@
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
             //This is needed to serialize special chars.
             var options = new JsonSerializerOptions
                 {
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
                     WriteIndented = true
                 };
-            _configuration.Languages = MaintenanceLocalizer.GetLocalizedTexts();
-            _configuration.Settings = JsonSerializer.Serialize(_settings, options);
+            Parent.Active.Languages = MaintenanceLocalizer.GetLocalizedTexts();
+            Parent.Active.Settings = JsonSerializer.Serialize(_settings, options);
             ConfigurationUpdate arg = new ConfigurationUpdate();
-            arg.Configurations = new GXConfiguration[] { _configuration };
+            arg.Configurations = new GXConfiguration[] { Parent.Active };
             await Http.PostAsJson("api/Configuration/Update", arg);
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
         catch (Exception ex)
         {
@@ -191,7 +191,7 @@
     ///</summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config");
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
     }
 
     public void Dispose()

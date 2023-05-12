@@ -13,7 +13,6 @@
 @using Microsoft.Extensions.Logging
 @using Microsoft.Extensions.Options
 
-@attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -41,7 +40,8 @@
             <div class="row">
                 <div style="width:100%">
                     <div class="form-group">
-                        <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                        <InputNullableSwitch Text="@Properties.Resources.Active"
+                                     @bind-Value="Active.Active" />
                         <br />
                     </div>
                     <div class="form-group">
@@ -97,7 +97,7 @@
     <Confirm @ref="RestartConfirmation"
          ConfirmationChanged="OnRestartConfirmation"
          ConfirmationTitle="Confirm restart"
-         AllowDelete="false"
+             AllowDelete="false"
          OkTitle="@Properties.Resources.Restart"
          ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
     </Confirm>
@@ -224,6 +224,7 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.Clear();
+            action = ClientHelpers.GetAction(Action);
             if (action != CrudAction.Create || ((Active == null || Active.Id == null) && Id != null))
             {
                 //Get module data.

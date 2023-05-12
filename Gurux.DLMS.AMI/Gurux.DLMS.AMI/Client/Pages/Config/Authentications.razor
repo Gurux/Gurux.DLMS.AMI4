@@ -1,5 +1,4 @@
-﻿@page "/config/authentications"
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -15,14 +14,22 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Text.Json
 
-@attribute [Authorize(Roles = "Admin")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 @inject ConfirmBase Confirm
 @implements IDisposable
+@implements IGXConfigUpdate
 
-@if (_authentications != null)
+@if (string.Compare(Action, "Add", true) == 0 ||
+string.Compare(Action, "Edit", true) == 0 ||
+string.Compare(Action, "Remove", true) == 0)
+{
+    <Authentication Parent="this"
+                Id="@Id"
+                Action="@Action"></Authentication>
+}
+else @if (_authentications != null)
 {
     <MenuControl RightCorner="true">
         <ChildContent>
@@ -30,98 +37,105 @@
         </ChildContent>
     </MenuControl>
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>@Properties.Resources.Name</th>
-                <th>Client ID.</th>
-                <th width="1%"></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var it in _authentications)
-            {
-                <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
-                    <td>@it.Name</td>
-                    <td>@it.ClientId</td>
-                    @if (_selected == it)
-                    {
-                        <td>
-                            <ContextMenuController>
-                                <ChildContent>
-                                    <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
-                                    <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
-                                </ChildContent>
-                            </ContextMenuController>
-                        </td>
-                    }
-                    else
-                    {
-                        <td>&nbsp;</td>
-                    }
-                </tr>
-            }
-        </tbody>
-    </table>
+    <GXTable @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         Filter="@false">
+        <FilterContent>
+        </FilterContent>
+        <MenuContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.BlockGroupManager)>
+                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            </AuthorizeView>
+        </MenuContent>
+        <HeaderContent>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="ClientId">Client ID</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Config/Authentication/Edit/" + item.Name)">@item.Name</Td>
+            <td>@item.ClientId</td>
+        </ItemContent>
+    </GXTable>
+    <br />
 }
 @code {
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Configurations? Parent { get; set; }
 
-    private string? GetVersion(string? version)
-    {
-        if (version == null)
-        {
-            return Properties.Resources.CustomBuild;
-        }
-        return version;
-    }
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
 
-    private GXConfiguration? _active;
-    private AuthenticationSettings? _selected;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<AuthenticationSettings>? table;
+
     private List<AuthenticationSettings> _authentications = new List<AuthenticationSettings>();
 
-    protected string GetSelectedClass(AuthenticationSettings selected)
+    /// <summary>
+    /// Get available authentications.
+    /// </summary>
+    /// <returns></returns>
+    public List<AuthenticationSettings> GetAuthentications()
     {
-        return selected == _selected ? "table-info" : "table-striped";
+        return _authentications;
     }
 
-    protected override async Task OnInitializedAsync()
+    /// <inheritdoc/>
+    public void Update()
     {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            var items = JsonSerializer.Deserialize<AuthenticationSettings[]>(Parent.Active.Settings);
+            if (items != null)
+            {
+                _authentications.AddRange(items);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async ValueTask<ItemsProviderResult<AuthenticationSettings>> GetItems(GXItemsProviderRequest request)
+    {
+        return new ItemsProviderResult<AuthenticationSettings>(_authentications, _authentications.Count);
+    }
+
+    protected override void OnInitialized()
+    {
+        if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("Authentication/"))
+        {
+            //If authentication is shown or edit.
+            return;
+        }
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            _active = (GXConfiguration?)Notifier.GetData(GXPages.Configurations);
-            if (_active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             Notifier.Clear();
             Notifier.UpdateButtons();
-            switch (Notifier.Action)
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                case CrudAction.Update:
-                    break;
-                default:
-                    ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
-                    return;
+                var items = JsonSerializer.Deserialize<AuthenticationSettings[]>(Parent.Active.Settings);
+                if (items != null)
+                {
+                    _authentications.AddRange(items);
+                }
             }
-            if (!_active.Modified &&
-            (Notifier.Action == CrudAction.Update || Notifier.Action == CrudAction.Delete))
-            {
-                //Get configuration data.
-                _active = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", _active.Id))).Item;
-                Notifier.UpdateData(GXPages.Configuration, _active);
-                _active.Modified = true;
-            }
-            if (!string.IsNullOrEmpty(_active.Settings))
-            {
-                _authentications.AddRange(JsonSerializer.Deserialize<AuthenticationSettings[]>(_active.Settings));
-            }
-            Notifier.UpdateData(GXPages.Authentications, _authentications);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -138,7 +152,7 @@
     }
 
     /// <summary>
-    /// Delete selected authentication.
+    /// Delete selected authentications.
     /// </summary>
 
     public void OnRemove()
@@ -146,14 +160,11 @@
         try
         {
             Notifier.ClearStatus();
-            if (_selected == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.UpdateData(GXPages.Authentication, _selected);
-            Notifier.Title = "Remove authentication";
-            Notifier.Action = CrudAction.Delete;
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Authentication/Remove/" + table.Active.Name);
         }
         catch (Exception ex)
         {
@@ -169,10 +180,7 @@
         try
         {
             Notifier.ClearStatus();
-            Notifier.Title = "New authentication";
-            Notifier.Action = CrudAction.Create;
-            Notifier.UpdateData(GXPages.Authentication, new AuthenticationSettings());
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "Config/Authentication/Add");
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -192,25 +200,16 @@
         try
         {
             Notifier.ClearStatus();
-            if (_selected == null)
+            if (table?.Active == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            Notifier.Title = "Edit authentication";
-            Notifier.UpdateData(GXPages.Authentication, _selected);
-            Notifier.Action = CrudAction.Update;
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/authentication");
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Config/Authentication/Edit/" + table.Active.Name);
         }
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
         }
-    }
-
-    public void RowSelected(AuthenticationSettings selected)
-    {
-        _selected = selected;
-        Notifier.UpdateData(GXPages.Authentication, _active);
     }
 
     public void Dispose()

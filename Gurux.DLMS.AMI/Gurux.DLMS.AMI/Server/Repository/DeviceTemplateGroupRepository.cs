@@ -42,6 +42,8 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared;
+using Org.BouncyCastle.Ocsp;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -286,7 +288,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var group = (await _host.Connection.SingleOrDefaultAsync<GXDeviceTemplateGroup>(arg));
             if (group == null)
             {
-                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                throw new GXAmiNotFoundException(Properties.Resources.DeviceTemplateGroup + " " + Properties.Resources.Id + " " + id.ToString());
             }
             ////////////////////////////////////////////////////
             //Get device templates that belongs for this device template group.
@@ -385,7 +387,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Map device templates to device template group.
-                    if (it.DeviceTemplates != null && it.DeviceTemplates.Any())
+                    if (it.DeviceTemplates != null)
                     {
                         List<GXDeviceTemplate> list2 = await GetJoinedDeviceTemplate(User, it.Id);
                         List<Guid> groups = list2.Select(s => s.Id).ToList();

@@ -942,4 +942,13 @@
   <data name="InstallAllSettings" xml:space="preserve">
     <value>All {0} {1} settings.</value>
   </data>
+  <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
+    <value>{0}Manufacturers {1} or {2}device templates{3} must be added before devices can be added.</value>
+  </data>
+  <data name="ModuleNeedsRestart" xml:space="preserve">
+    <value>Server needs restart to apply the module changes. Do you want to restart the server now?</value>
+  </data>
+  <data name="ConfirmRestart" xml:space="preserve">
+    <value>Confirm restart</value>
+  </data>
 </root>

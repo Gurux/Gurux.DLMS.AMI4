@@ -210,7 +210,9 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     Action = action,
                     Status = context.Response.StatusCode,
                     Data = data,
-                    Reply = text
+                    //Reply text is reset if user selects user action
+                    //or reply increases too big over the time.
+                    Reply = target == TargetType.UserAction ? null : text
                 };
                 GXInsertArgs arg = GXInsertArgs.Insert<GXUserAction>(log);
                 await _host.Connection.InsertAsync(arg);

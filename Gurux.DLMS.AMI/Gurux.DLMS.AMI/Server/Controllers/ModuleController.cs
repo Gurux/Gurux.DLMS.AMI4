@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Server.Cron;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -55,6 +56,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IGXModuleService _moduleService;
         private readonly IModuleRepository _moduleRepository;
         private readonly IGXCronTask _cron;
+        private readonly IModuleLogRepository _moduleLogRepository;
 
         /// <summary>
         /// Constructor.
@@ -63,13 +65,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IHostApplicationLifetime applicationLifetime,
              IGXModuleService moduleService,
              IModuleRepository moduleRepository,
-             IGXCronTask cron)
+             IGXCronTask cron,
+             IModuleLogRepository moduleLogRepository)
         {
             host = value;
             _moduleRepository = moduleRepository;
             _cancellationToken = applicationLifetime.ApplicationStopping;
             _moduleService = moduleService;
             _cron = cron;
+            _moduleLogRepository = moduleLogRepository;
         }
 
         /// <summary>
@@ -108,7 +112,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXModulePolicies.View)]
         public async Task<ActionResult<ModuleConfigurationUIResponse>> Post(ModuleConfigurationUI request)
         {
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXModule>(where => where.Active == true && where.Id.Equals(request.Name));
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXModule>(where => where.Id.Equals(request.Name));
             arg.Columns.Add<GXModuleAssembly>();
             arg.Joins.AddInnerJoin<GXModule, GXModuleAssembly>(j => j.Id, j => j.Module);
             GXModule module = (await host.Connection.SingleOrDefaultAsync<GXModule>(arg));
@@ -188,7 +192,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         await file.CopyToAsync(fileStream);
                     }
                     GXModule module = await _moduleService.AddModuleAsync(User, zip, file.FileName);
-                    modules.Add(module);
+                    modules.Add(module);                   
                     //Enable module.
                     res.Restart |= _moduleService.EnableModule(module);
                 }
@@ -285,6 +289,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXModule? module2 = await _moduleService.AddModuleAsync(User, zip, version.FileName);
                 module2.AvailableVersion = module.AvailableVersion;
                 await _moduleRepository.UpdateAsync(User, module2);
+                //Add log.
+                await _moduleLogRepository.AddAsync(User, new GXModuleLog[]
+                {
+                    new GXModuleLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Module = module,
+                        Message = Properties.Resources.ModuleInstalled
+                    }
+                });
                 ret.Restart |= _moduleService.EnableModule(module2);
             }
             catch (Exception ex)

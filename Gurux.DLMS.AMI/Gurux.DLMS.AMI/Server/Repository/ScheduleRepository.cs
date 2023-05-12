@@ -44,6 +44,8 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Scheduler;
 using Gurux.DLMS.AMI.Client.Pages.Schedule;
 using System.Linq.Expressions;
+using System.Diagnostics;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -184,6 +186,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 GXSchedule tmp = new GXSchedule() { Id = it.Key.Id };
                 await _eventsNotifier.ScheduleDelete(it.Value, new GXSchedule[] { tmp });
+            }
+            if (!delete)
+            {
+                List<GXScheduleLog> logs = new List<GXScheduleLog>();
+                foreach (var it in updates.Keys)
+                {
+                    logs.Add(new GXScheduleLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Schedule = it,
+                        Message = Properties.Resources.ScheduleRemoved
+                    });
+                }
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    var scheduleLogRepository = scope.ServiceProvider.GetRequiredService<IScheduleLogRepository>();
+                    await scheduleLogRepository.AddAsync(User, logs);
+                }
             }
         }
 
@@ -529,6 +549,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in updates)
             {
                 await _eventsNotifier.ScheduleUpdate(it.Value, new GXSchedule[] { it.Key });
+            }
+            List<GXScheduleLog> logs = new List<GXScheduleLog>();
+            foreach (var it in updates.Keys)
+            {
+                logs.Add(new GXScheduleLog(TraceLevel.Info)
+                {
+                    CreationTime = DateTime.Now,
+                    Schedule = it,
+                    Message = it.CreationTime == now ?
+                    Properties.Resources.ScheduleInstalled :
+                    Properties.Resources.ScheduleUpdated
+                });
+            }
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                var scheduleLogRepository = scope.ServiceProvider.GetRequiredService<IScheduleLogRepository>();
+                await scheduleLogRepository.AddAsync(user, logs);
             }
             return list.ToArray();
         }

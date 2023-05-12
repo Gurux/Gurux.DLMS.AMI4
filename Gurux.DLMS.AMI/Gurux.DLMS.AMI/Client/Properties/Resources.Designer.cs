@@ -565,6 +565,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Confirm restart.
+        /// </summary>
+        internal static string ConfirmRestart {
+            get {
+                return ResourceManager.GetString("ConfirmRestart", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Confirm update.
         /// </summary>
         internal static string ConfirmUpdate {
@@ -786,6 +795,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string DeviceTemplates {
             get {
                 return ResourceManager.GetString("DeviceTemplates", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}Manufacturers {1} or {2}device templates{3} must be added before devices can be added..
+        /// </summary>
+        internal static string DeviceTemplatesNotInstalled {
+            get {
+                return ResourceManager.GetString("DeviceTemplatesNotInstalled", resourceCulture);
             }
         }
         
@@ -1434,6 +1452,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string ModuleLogs {
             get {
                 return ResourceManager.GetString("ModuleLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Server needs restart to apply the module changes. Do you want to restart the server now?.
+        /// </summary>
+        internal static string ModuleNeedsRestart {
+            get {
+                return ResourceManager.GetString("ModuleNeedsRestart", resourceCulture);
             }
         }
         

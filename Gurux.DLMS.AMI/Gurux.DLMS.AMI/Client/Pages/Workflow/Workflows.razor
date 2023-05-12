@@ -69,6 +69,12 @@
     </ItemContent>
 </GXTable>
 <br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 @code {
     /// <summary>
     /// Selected workflow ID.

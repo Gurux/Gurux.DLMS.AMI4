@@ -46,7 +46,6 @@
             StateHasChanged();
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.Clear();
             //Add favorite.
             UpdateFavorite req = new UpdateFavorite();
             req.Favorites = new GXFavorite[]
@@ -83,11 +82,10 @@
             StateHasChanged();
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            Notifier.Clear();
-
+            string path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
             foreach (var it in _favorites)
             {
-                if (it.Path == NavigationManager.Uri)
+                if (it.Path == path)
                 {
                     //Remove favorite.
                     _favorites.Remove(it);
@@ -123,9 +121,7 @@
         string path = NavigationManager.ToBaseRelativePath(e.Location);
         //Favorite title is not shown on the main page or favorites page.
         bool oldHide = _hide;
-        _hide = string.IsNullOrEmpty(path) || string.Compare(path, "Favorites", true) == 0 ||
-        //Favorite is not shown for config pages.
-        (path != null && (path.ToLower() == "config" || path.ToLower().StartsWith("config/")));
+        _hide = string.IsNullOrEmpty(path) || string.Compare(path, "Favorites", true) == 0;
         if (!_hide)
         {
             foreach (var it in _favorites)

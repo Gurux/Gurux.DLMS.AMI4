@@ -1,0 +1,347 @@
+﻿@page "/config"
+@page "/config/{Target}"
+@page "/config/{Target}/{Id}"
+@page "/config/{Target}/{Action}/{Id}"
+
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Pages.Manufacturer
+@using Gurux.DLMS.AMI.Client.Pages.Module
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@inject ILogger<Configurations> Logger
+
+@if (string.Compare(Target, "System", true) == 0)
+{
+    <SystemConfig Parent="this" @ref="@_updater"></SystemConfig>
+}
+else if (string.Compare(Target, "Status", true) == 0)
+{
+    <Status Parent="this" @ref="@_updater"></Status>
+}
+else if (string.Compare(Target, "Security", true) == 0)
+{
+    <Security Parent="this" @ref="@_updater"></Security>
+}
+else if (string.Compare(Target, "Language", true) == 0)
+{
+    <Languages></Languages>
+}
+else if (string.Compare(Target, "authentications", true) == 0 ||
+            string.Compare(Target, "authentication", true) == 0)
+{
+    <Authentications Action="@GetAction()"
+                 Id="@Id"
+                 Parent="this"
+                 @ref="@_updater"></Authentications>
+}
+else if (string.Compare(Target, "agent", true) == 0 ||
+         string.Compare(Target, "AgentInstallers", true) == 0)
+{
+    <AgentInstallers Parent="this" @ref="@_updater"></AgentInstallers>
+}
+else if (string.Compare(Target, "Module", true) == 0 ||
+        string.Compare(Target, "ModuleGroup", true) == 0 ||
+        string.Compare(Target, "ModuleUpdate", true) == 0 ||
+        string.Compare(Target, "ModuleManage", true) == 0 ||
+        string.Compare(Target, "ModuleUpdate", true) == 0 ||
+        string.Compare(Target, "ModuleLog", true) == 0)
+{
+    <ModuleManage Action="@GetAction()"
+              Path="@("config/" + Target)"
+              Id="@Id"
+              Parent="this"></ModuleManage>
+}
+else if (string.Compare(Target, "Manufacturer", true) == 0)
+{
+    <ManufacturerManage Path="@("config/" + Target)"
+                    Action="@Action"
+                    Id="@GetId()"
+                    Parent="this"
+                    @ref="@_updater"></ManufacturerManage>
+}
+else if (string.Compare(Target, "Cron", true) == 0)
+{
+    <Cron Parent="this" @ref="@_updater"></Cron>
+}
+else if (string.Compare(Target, "Performance", true) == 0)
+{
+    <Performance Parent="this" @ref="@_updater"></Performance>
+}
+else if (string.Compare(Target, "Statistic", true) == 0)
+{
+    <Statistic Parent="this" @ref="@_updater"></Statistic>
+}
+else if (string.Compare(Target, "Maintenance", true) == 0)
+{
+    <Maintenance Parent="this" @ref="@_updater"></Maintenance>
+}
+else
+{
+    <h1>@Properties.Resources.SettingsTitle</h1>
+    <hr />
+    <GXTable @ref="table"
+         Context="conf"
+         ItemsProvider="@GetItems"
+         OnSearch="@Updated"
+         ShowAllUsers="false"
+         ShowRemoved="false"
+         ShowAllData="true">
+        <FilterContent>
+            <th>
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+            </th>
+        </FilterContent>
+        <MenuContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            </AuthorizeView>
+        </MenuContent>
+        <HeaderContent>
+            <th width="1%"></th>
+            <th width="1%" style="white-space: nowrap;">@Properties.Resources.Name</th>
+            <th style="display:table-cell; width:100%">@Properties.Resources.Description</th>
+        </HeaderContent>
+        <ItemContent>
+            <td><span class="@conf.Icon" aria-hidden="true"></span></td>
+            <td><a href="@GetPath(conf)">@conf.Name</a></td>
+            <td>
+                @conf.Description
+            </td>
+        </ItemContent>
+    </GXTable>
+}
+@code {
+    IGXConfigUpdate? _updater;
+    GXConfiguration? _active;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    public GXConfiguration? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Configuration target.
+    /// </summary>
+    [Parameter]
+    public string? Target { get; set; }
+
+    /// <summary>
+    /// Configuration action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Configuration target ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    private Guid? GetId()
+    {
+        if (string.IsNullOrEmpty(Id))
+        {
+            return null;
+        }
+        return Guid.Parse(Id);
+    }
+
+    /// <summary>
+    /// Optional string is causing problems with route constraints and it must handle as a special case.
+    /// </summary>
+    /// <returns>Action.</returns>
+    private string? GetAction()
+    {
+        if (string.Compare(Id, "Add", true) == 0)
+        {
+            Action = Id;
+            Id = null;
+        }
+        return Action;
+    }
+
+    private string GetPath(GXConfiguration target)
+    {
+        //If custom UI is used.
+        if (!string.IsNullOrEmpty(target.Path))
+        {
+            return target.Path;
+        }
+        return "/Config";
+    }
+
+    /// <summary>
+    /// Configuration filter.
+    /// </summary>
+    /// <remarks>
+    /// Don't localize the name.
+    /// </remarks>
+    private GXConfiguration filter = new GXConfiguration();
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXConfiguration>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(GXItemsProviderRequest request)
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            ListConfiguration req = new ListConfiguration()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
+            var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXConfiguration>(ret.Configurations, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Configuration target:{0}, action:{1}", Target, Action);
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Target != null)
+            {
+                filter.Name = Target;
+                ListConfiguration req = new ListConfiguration()
+                    {
+                        Filter = filter,
+                    };
+                var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
+                if (ret.Configurations != null && ret.Configurations.Length == 1)
+                {
+                    _active = ret.Configurations[0];
+                }
+                _updater?.Update();
+                return;
+            }
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Edit configuration.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, GetPath(table.Active));
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

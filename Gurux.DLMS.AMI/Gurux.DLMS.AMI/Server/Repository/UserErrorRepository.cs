@@ -199,7 +199,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Filter != null && request.Filter.User != null)
+                if (request.Filter != null && !string.IsNullOrEmpty(request?.Filter?.User?.UserName))
                 {
                     arg.Where.And<GXUser>(w => w.UserName.Contains(request.Filter.User.UserName));
                 }

@@ -40,33 +40,7 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             {
                 return _allSelected ? "Disable all notifications" : "Enable all notifications.";
             }
-        }
-
-        /// <summary>
-        /// Search from notifications.
-        /// </summary>
-        public void Search()
-        {
-          //  String? value = Convert.ToString(args.Value);
-            /*
-            Notifications = ClientHelpers.GetNotifications();
-            if (!string.IsNullOrEmpty(value))
-            {
-                value = value.ToLower();
-                List<TargetType> tmp = new List<TargetType>();
-                foreach (var it in Notifications)
-                {
-                    if (it.ToString().ToLower().Contains(value))
-                    {
-                        tmp.Add(it);
-                    }
-                }
-                Notifications = tmp;
-            }
-            StateHasChanged();
-            */
-        }
-
+        }     
 
         /// <summary>
         /// Notification items.
@@ -85,7 +59,8 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             {
                 return NotFound($"Unable to load user with ID '{User}'.");
             }
-            UInt64 ignored = 0;
+            //All notifications are ignored as a default.
+            UInt64 ignored = UInt64.MaxValue;
             //Get ignored notifications.
             GXUserSetting? settings = user.Settings.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
             if (settings != null && !string.IsNullOrEmpty(settings.Value))

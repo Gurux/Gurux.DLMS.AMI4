@@ -18,6 +18,7 @@
 @inject ConfirmBase Confirm
 @inject IGXNotifier Notifier
 @implements IDisposable
+
 @if (Title)
 {
     <PageTitle>@Properties.Resources.ModuleLogs</PageTitle>
@@ -34,7 +35,7 @@
 
 
 <GXTable @ref="table"
-         Context="error"
+         Context="item"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
@@ -74,10 +75,10 @@
         <th>@Properties.Resources.CloseTime</th>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("Config/ModuleLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@error.Message</td>
-        <td>@ClientHelpers.LevelToString(error.Level)</td>
-        <td>@error.Closed</td>
+        <Td Link="@("Config/ModuleLog/Edit/" + item.Id)">@item.CreationTime</Td>
+        <td>@item.Message</td>
+        <td>@ClientHelpers.LevelToString(item.Level)</td>
+        <td>@item.Closed</td>
     </ItemContent>
 </GXTable>
 <br />
@@ -95,12 +96,19 @@
          OkTitle="@Properties.Resources.Close"
          ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
 </Confirm>
+
 @code {
-     /// <summary>
+    /// <summary>
     /// Selected module log ID.
     /// </summary>
     [Parameter]
     public Guid? Id { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
 
     /// <inheritdoc />
     public string Name
@@ -208,6 +216,11 @@
     {
         try
         {
+            if (string.Compare(Action, "Edit", true) == 0)
+            {
+                //If user edist the module log.
+                return;
+            }
             if (Notifier == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
@@ -308,7 +321,7 @@
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
-            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ModuleLog/Edit/" + table.Active.Id);
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "Config/ModuleLog/Edit/" + table.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {
