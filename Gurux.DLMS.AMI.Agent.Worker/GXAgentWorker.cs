@@ -653,7 +653,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     int deviceAddress;
                     if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
                     {
-                        deviceAddress = GXDLMSClient.GetServerAddressFromSerialNumber(settings.PhysicalAddress, settings.LogicalAddress);
+                        deviceAddress = GXDLMSClient.GetServerAddressFromSerialNumber(settings.PhysicalAddress,
+                            settings.LogicalAddress,
+                            settings.SerialNumberFormula);
                     }
                     else
                     {
