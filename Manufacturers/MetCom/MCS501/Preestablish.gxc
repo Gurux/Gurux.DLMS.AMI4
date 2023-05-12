@@ -23,7 +23,7 @@
     <SignCipherOrder>0</SignCipherOrder>
     <Name>Pre-establish</Name>
     <Conformance>9961472</Conformance>
-    <Manufacturer>grx</Manufacturer>
+    <Manufacturer>MCS</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>

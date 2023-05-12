@@ -19,7 +19,7 @@
     <SignCipherOrder>0</SignCipherOrder>
     <Name>Public</Name>
     <Conformance>12220416</Conformance>
-    <Manufacturer>ELE</Manufacturer>
+    <Manufacturer>MCS</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>

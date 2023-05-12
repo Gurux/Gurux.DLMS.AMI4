@@ -22,7 +22,7 @@
     <SignCipherOrder>0</SignCipherOrder>
     <Name>Management</Name>
     <Conformance>12220416</Conformance>
-    <Manufacturer>grx</Manufacturer>
+    <Manufacturer>MCS</Manufacturer>
     <HDLCAddressing>0</HDLCAddressing>
     <UseProtectedRelease>false</UseProtectedRelease>
     <SecurityChangeCheck>false</SecurityChangeCheck>
