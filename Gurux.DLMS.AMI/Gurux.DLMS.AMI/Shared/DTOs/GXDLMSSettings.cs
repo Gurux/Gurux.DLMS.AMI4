@@ -588,6 +588,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Serial number formula.
+        /// </summary>
+        public string? SerialNumberFormula
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// If protected release is used release is including a ciphered xDLMS Initiate request.
         /// </summary>
         public bool UseProtectedRelease
