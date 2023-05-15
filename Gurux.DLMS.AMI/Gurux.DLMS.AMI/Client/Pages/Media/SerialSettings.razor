@@ -11,8 +11,6 @@
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using System.IO.Ports;
 
-@inject IGXNotifier Notifier
-
 <div class="row">
     <div style="width:100%">
         <div class="col-auto">
@@ -54,8 +52,27 @@
     </div>
 </div>
 @code {
-    [CascadingParameter]
-    private Device? Parent { get; set; }
+    private string? _settings;
+
+    [Parameter]
+    public string? Settings
+    {
+        get => _settings;
+        set
+        {
+            if (_settings != value)
+            {
+                _settings = value;
+                SettingsChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notified when settings are updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> SettingsChanged { get; set; }
 
     /// <summary>
     /// Available baud rates.
@@ -94,10 +111,7 @@
         set
         {
             _serial.BaudRate = value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _serial.Settings;
-            }
+            Settings = _serial.Settings;
         }
     }
 
@@ -114,10 +128,7 @@
         set
         {
             _serial.DataBits = value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _serial.Settings;
-            }
+            Settings = _serial.Settings;
         }
     }
 
@@ -134,10 +145,7 @@
         set
         {
             _serial.Parity = (int)value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _serial.Settings;
-            }
+            Settings = _serial.Settings;
         }
     }
 
@@ -154,27 +162,13 @@
         set
         {
             _serial.StopBits = (int)value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _serial.Settings;
-            }
+            Settings = _serial.Settings;
         }
     }
 
     protected override void OnInitialized()
     {
-        try
-        {
-            if (Parent?.Active == null)
-            {
-                throw new Exception("Unknown device.");
-            }
-            _serial.Settings = Parent.Active.MediaSettings;
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
+        _serial.Settings = _settings;
     }
 
     /// <summary>
@@ -182,5 +176,6 @@
     /// </summary>
     public void Validate(GXValidator sender)
     {
+
     }
 }

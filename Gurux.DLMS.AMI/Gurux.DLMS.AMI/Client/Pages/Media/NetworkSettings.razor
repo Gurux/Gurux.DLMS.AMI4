@@ -10,11 +10,17 @@
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Client.Pages.Device
 
-@attribute [Authorize(Roles = "Admin, ScheduleGroupManager")]
-@inject IGXNotifier Notifier
-
 <div class="row">
     <div style="width:100%">
+        <div class="form-group">
+            <label>@Properties.Resources.Protocol:</label>
+            <select class="form-select" @bind="Protocol">
+                @foreach (var it in NetworkTypeList)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
+        </div>
         <div class="form-group">
             <label>@Properties.Resources.HostName</label>
             <InputText id="name" class="form-control"
@@ -27,43 +33,45 @@
                          @bind-Value="Port" />
             <ValidationMessage For="@(() => Port)" />
         </div>
-        <div class="form-group">
-            <label>@Properties.Resources.Protocol:</label>
-            <select class="form-select" @bind="Protocol">
-                @foreach (var it in NetworkTypeList)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
-        </div>
     </div>
 </div>
 @code {
     Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] { Gurux.Net.NetworkType.Tcp, Gurux.Net.NetworkType.Udp };
 
-    [CascadingParameter]
-    private Device? Parent { get; set; }
-
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
+
+    private string? _settings;
+
+    [Parameter]
+    public string? Settings
+    {
+        get => _settings;
+        set
+        {
+            if (_settings != value)
+            {
+                _settings = value;
+                SettingsChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notified when settings are updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> SettingsChanged { get; set; }
 
     public string? HostName
     {
         get
         {
-            if (_net == null)
-            {
-                return null;
-            }
-
-            return _net.HostName;
+            return _net?.HostName;
         }
         set
         {
             _net.HostName = value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _net.Settings;
-            }
+            Settings = _net.Settings;
         }
     }
 
@@ -71,19 +79,12 @@
     {
         get
         {
-            if (_net == null)
-            {
-                return 0;
-            }
             return _net.Port;
         }
         set
         {
             _net.Port = value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _net.Settings;
-            }
+            Settings = _net.Settings;
         }
     }
 
@@ -91,40 +92,12 @@
     {
         get
         {
-            if (_net == null)
-            {
-                return Gurux.Net.NetworkType.Tcp;
-            }
             return _net.Protocol;
         }
         set
         {
             _net.Protocol = value;
-            if (Parent?.Active != null)
-            {
-                Parent.Active.MediaSettings = _net.Settings;
-            }
-        }
-    }
-
-    protected override void OnInitialized()
-    {
-        try
-        {
-            if (Parent?.Active == null)
-            {
-                throw new Exception("Unknown device.");
-            }
-            _net = new Gurux.Net.GXNet();
-            _net.Settings = Parent.Active.MediaSettings;
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
+            Settings = _net.Settings;
         }
     }
 
@@ -133,13 +106,13 @@
     /// </summary>
     public void Validate(GXValidator sender)
     {
-        if (Port == 0)
-        {
-            sender.AddError(() => Port, "Invalid port.");
-        }
         if (string.IsNullOrEmpty(HostName))
         {
             sender.AddError(() => HostName, "Invalid host name.");
+        }
+        if (Port == 0)
+        {
+            sender.AddError(() => Port, "Invalid port.");
         }
     }
 }

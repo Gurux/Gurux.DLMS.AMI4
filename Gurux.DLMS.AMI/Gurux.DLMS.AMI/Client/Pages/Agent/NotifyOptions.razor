@@ -1,7 +1,11 @@
-﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Client.Pages.Media;
 @using Gurux.DLMS.AMI.Client.Pages.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
+@using Gurux.Net;
+@using Gurux.Serial;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -12,31 +16,28 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
 
-@attribute [Authorize(Roles = "Admin, AgentManager")]
-
 @if (Settings != null)
 {
     <EditForm Model="@Settings">
+        <DataAnnotationsValidator />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
+                    <InputSwitch Text="@Properties.Resources.Active" 
+                    @bind-Value="Settings.Active" />
                     <br />
                 </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Protocol</label>
-                    <select class="form-select" @bind="Settings.NetworkType">
-                        @foreach (var it in NetworkTypeList)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Port</label>
-                    <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.Port" />
-                </div>
+                @if (!IsSerialPort())
+                {
+                    <NetworkSettings @bind-Settings="@Settings.MediaSettings"
+                             @ref=networkSettings></NetworkSettings>
+                }
+                else
+                {
+                    <SerialSettings @bind-Settings="@Settings.MediaSettings"
+                            @ref=serialSettings></SerialSettings>
+                }
                 <div class="form-group">
                     <label style="margin:auto">Interface</label>
                     <select class="form-select" @bind="@Settings.Interface">
@@ -55,21 +56,25 @@
                     <label>@Properties.Resources.System</label>
                     <InputText id="name" class="form-control"
                            @bind-Value="Settings.SystemTitle" />
+                    <ValidationMessage For="@(() => Settings.SystemTitle)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.BlockCipherKey</label>
                     <InputText id="name" class="form-control"
                            @bind-Value="Settings.BlockCipherKey" />
+                    <ValidationMessage For="@(() => Settings.BlockCipherKey)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.AuthenticationKey</label>
                     <InputText id="name" class="form-control"
                            @bind-Value="Settings.AuthenticationKey" />
+                    <ValidationMessage For="@(() => Settings.AuthenticationKey)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ExpirationTime</label>
                     <InputNumber id="threads" class="form-control"
                              @bind-Value="Settings.ExpirationTime" />
+                    <ValidationMessage For="@(() => Settings.ExpirationTime)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Script</label>
@@ -90,6 +95,9 @@
     [Parameter]
     public NotifySettings? Settings { get; set; }
 
+    Dictionary<string, string> MediaList = new Dictionary<string, string>();
+    private GXValidator? _validator;
+
     InterfaceType[] InterfaceList = new InterfaceType[] {
         InterfaceType.HDLC,
         InterfaceType.WRAPPER
@@ -108,10 +116,6 @@
         Enums.Security.Authentication,
         Enums.Security.AuthenticationEncryption
     };
-    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] {
-        Gurux.Net.NetworkType.Tcp,
-        Gurux.Net.NetworkType.Udp
-    };
 
     TraceLevel[] TraceLevels = new TraceLevel[] {
         TraceLevel.Off,
@@ -119,6 +123,84 @@
         TraceLevel.Warning,
         TraceLevel.Info,
         TraceLevel.Verbose };
+
+    private GXSerialTemplate _serial = new GXSerialTemplate();
+    private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
+
+    private string? _serialPort;
+
+    /// <summary>
+    /// The serial port of the agent.
+    /// </summary>
+    [Parameter]
+    public string? SerialPort
+    {
+        get => _serialPort;
+        set
+        {
+            if (_serialPort != value)
+            {
+                _serialPort = value;
+                SerialPortChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Is serail port used.
+    /// </summary>
+    /// <returns></returns>
+    private bool IsSerialPort()
+    {
+        return !string.IsNullOrEmpty(_serialPort);
+    }
+
+    /// <summary>
+    /// Notified when settings are updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> SerialPortChanged { get; set; }
+
+
+    NetworkSettings? networkSettings { get; set; }
+    SerialSettings? serialSettings { get; set; }
+
+    public void Validate(GXValidator sender)
+    {
+        OnValidate(sender);
+        _validator?.Validate();
+    }
+
+    public void OnValidate(GXValidator sender)
+    {
+        @if (Settings != null && Settings.Active)
+        {
+            if (Settings.SystemTitle != null && Settings.SystemTitle.Length != 8)
+            {
+                sender.AddError(() => Settings.SystemTitle, "Invalid system title.");
+            }
+            if (Settings.BlockCipherKey != null && Settings.BlockCipherKey.Length != 8)
+            {
+                sender.AddError(() => Settings.BlockCipherKey, "Invalid block cipher key.");
+            }
+            if (Settings.AuthenticationKey != null && Settings.AuthenticationKey.Length != 8)
+            {
+                sender.AddError(() => Settings.AuthenticationKey, "Invalid authentication key.");
+            }
+            if (Settings.ExpirationTime < 0)
+            {
+                sender.AddError(() => Settings.ExpirationTime, "Invalid expiration time.");
+            }
+            if (Settings?.MediaType == typeof(GXNet).FullName)
+            {
+                networkSettings?.Validate(sender);
+            }
+            else if (Settings?.MediaType == typeof(GXSerial).FullName)
+            {
+                serialSettings?.Validate(sender);
+            }
+        }
+    }
 
     ///<summary>
     ///Script method has been changed.
@@ -128,6 +210,16 @@
         if (Settings != null)
         {
             Settings.ScriptMethod = guid;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        MediaList.Add(typeof(GXNet).FullName, Properties.Resources.Network);
+        MediaList.Add(typeof(GXSerial).FullName, Properties.Resources.SerialPort);
+        if (string.IsNullOrEmpty(Settings.MediaType))
+        {
+            Settings.MediaType = typeof(GXNet).FullName;
         }
     }
 }

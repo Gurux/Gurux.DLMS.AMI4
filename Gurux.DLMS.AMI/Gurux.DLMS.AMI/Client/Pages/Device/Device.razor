@@ -220,11 +220,11 @@
                         </div>
                         @if (Active.MediaType == typeof(GXNet).FullName)
                         {
-                            <NetworkSettings @ref=networkSettings></NetworkSettings>
+                            <NetworkSettings @bind-Settings="@Active.MediaSettings" @ref=networkSettings></NetworkSettings>
                         }
                         @if (Active.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(Active.MediaType))
                         {
-                            <SerialSettings @ref=serialSettings></SerialSettings>
+                            <SerialSettings @bind-Settings="@Active.MediaSettings" @ref=serialSettings></SerialSettings>
                         }
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                         <div class="form-group row">

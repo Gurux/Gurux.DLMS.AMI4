@@ -25,11 +25,11 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Port</label>
                     <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.Port" />
+                             @bind-Value="Port" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Protocol</label>
-                    <select class="form-select" @bind="Settings.NetworkType">
+                    <select class="form-select" @bind="NetworkType">
                         @foreach (var it in NetworkTypeList)
                         {
                             <option value="@Convert.ToInt32(it)">@it</option>
@@ -116,17 +116,17 @@
     [Parameter]
     public ListenerSettings? Settings { get; set; }
 
-    InterfaceType[] InterfaceList = new InterfaceType[] 
-    { 
-        InterfaceType.HDLC, 
-        InterfaceType.WRAPPER 
+    InterfaceType[] InterfaceList = new InterfaceType[]
+    {
+        InterfaceType.HDLC,
+        InterfaceType.WRAPPER
     };
 
     Enums.Authentication[] Authentications = new Enums.Authentication[]
-    { 
-        Enums.Authentication.None, 
-        Enums.Authentication.Low, 
-        Enums.Authentication.High, 
+    {
+        Enums.Authentication.None,
+        Enums.Authentication.Low,
+        Enums.Authentication.High,
         Enums.Authentication.HighGMAC
     };
 
@@ -138,20 +138,30 @@
         Enums.Security.AuthenticationEncryption
     };
 
-    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[] 
-    { 
-        Gurux.Net.NetworkType.Tcp, 
-        Gurux.Net.NetworkType.Udp 
+    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[]
+    {
+        Gurux.Net.NetworkType.Tcp,
+        Gurux.Net.NetworkType.Udp
     };
 
-    TraceLevel[] TraceLevels = new TraceLevel[] 
-    { 
-        TraceLevel.Off, 
-        TraceLevel.Error, 
-        TraceLevel.Warning, 
-        TraceLevel.Info, 
-        TraceLevel.Verbose 
+    TraceLevel[] TraceLevels = new TraceLevel[]
+    {
+        TraceLevel.Off,
+        TraceLevel.Error,
+        TraceLevel.Warning,
+        TraceLevel.Info,
+        TraceLevel.Verbose
     };
+
+    /// <summary>
+    /// Network type
+    /// </summary>
+    int NetworkType { get; set; }
+
+    /// <summary>
+    /// Network type
+    /// </summary>
+    int Port { get; set; }
 
     ///<summary>
     ///Script method has been changed.

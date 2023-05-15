@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Module
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
@@ -21,12 +22,14 @@
     <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <ValidationSummary />
+        <GXValidator @ref="_agentValidator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                            @bind-Value="Active.Name" />
+                    <ValidationMessage For="@(() => Active.Name)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Version</label>
@@ -62,12 +65,17 @@
         <ChildContent>
             <TabPage Text="Reader" Icon="oi oi-transfer">
                 <div style="position: relative; width: 100%; ">
-                    <ReaderOptions Settings="@ReaderSettings"></ReaderOptions>
+                    <ReaderOptions Settings="@ReaderSettings"
+                               @ref="_readerOptions"
+                               @bind-SerialPort="@Active.SerialPort"></ReaderOptions>
                 </div>
             </TabPage>
             <TabPage Text="Push events" Icon="oi oi-flash">
                 <div style="position: relative; width: 100%; ">
-                    <NotifyOptions Settings="@NotifySettings" Scripts="@scripts"></NotifyOptions>
+                    <NotifyOptions Settings="@NotifySettings"
+                               Scripts="@scripts"
+                               @ref="_notifyOptions"
+                               @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
                 </div>
             </TabPage>
             <!--
@@ -188,15 +196,33 @@
             return "disabled";
         }
     }
+    private GXValidator? _agentValidator;
+    /// <summary>
+    /// Validate the agent content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null && string.IsNullOrEmpty(Active.Name))
+        {
+            sender.AddError(() => Active.Name, "Invalid name.");
+        }
+        _readerOptions?.Validate(sender);
+        _notifyOptions?.Validate(sender);
+    }
 
     ReaderSettings? ReaderSettings { get; set; }
     NotifySettings? NotifySettings { get; set; }
     ListenerSettings? ListenerSettings { get; set; }
 
+    ReaderOptions? _readerOptions;
+    NotifyOptions? _notifyOptions;
+
     //Available scripts.
     private GXScript[]? scripts;
 
-    private List<GXScript> Scripts = new();
+    private List<GXScript>
+        Scripts = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -208,7 +234,8 @@
             if (Active == null && Id != null)
             {
                 //Get agent data.
-                var tmp = (await Http.GetAsJsonAsync<GetAgentResponse>(string.Format("api/Agent?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetAgentResponse>
+                    (string.Format("api/Agent?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
@@ -230,12 +257,14 @@
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
             ListScripts req = new ListScripts();
-            var ret = await Http.PostAsJson<ListScriptsResponse>("api/Script/List", req);
+            var ret = await Http.PostAsJson<ListScriptsResponse>
+                ("api/Script/List", req);
             scripts = ret.Scripts;
 
             if (!string.IsNullOrEmpty(Active?.ReaderSettings))
             {
-                ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>(Active.ReaderSettings);
+                ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
+                    (Active.ReaderSettings);
             }
             else
             {
@@ -243,7 +272,8 @@
             }
             if (!string.IsNullOrEmpty(Active?.NotifySettings))
             {
-                NotifySettings = JsonSerializer.Deserialize<NotifySettings>(Active.NotifySettings);
+                NotifySettings = JsonSerializer.Deserialize<NotifySettings>
+                    (Active.NotifySettings);
             }
             else
             {
@@ -251,7 +281,8 @@
             }
             if (!string.IsNullOrEmpty(Active?.ListenerSettings))
             {
-                ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>(Active.ListenerSettings);
+                ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
+                    (Active.ListenerSettings);
             }
             else
             {
@@ -274,24 +305,30 @@
 
     /// <summary>
     /// Save agent.
-    /// </summary>
+    ///</summary>
     public async void OnSave()
     {
         try
         {
+            _agentValidator?.ClearErrors();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_agentValidator != null && !_agentValidator.Validate())
+            {
+                return;
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             if (action == CrudAction.Delete)
             {
-                await Http.PostAsJson<RemoveAgentResponse>("api/Agent/Delete", new RemoveAgent()
-                    {
-                        Ids = new Guid[] { Active.Id },
-                        Delete = DeleteTarget
-                    });
+                await Http.PostAsJson<RemoveAgentResponse>
+                    ("api/Agent/Delete", new RemoveAgent()
+                        {
+                            Ids = new Guid[] { Active.Id },
+                            Delete = DeleteTarget
+                        });
             }
             else
             {
@@ -311,11 +348,12 @@
                 {
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
-                await Http.PostAsJson<UpdateAgentResponse>(address, new UpdateAgent()
-                    {
-                        Agents = new GXAgent[] { Active }
-                    }
-                );
+                await Http.PostAsJson<UpdateAgentResponse>
+                    (address, new UpdateAgent()
+                        {
+                            Agents = new GXAgent[] { Active }
+                        }
+                    );
             }
             ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }
@@ -335,7 +373,7 @@
 
     /// <summary>
     /// Cancel update.
-    /// </summary>
+    ///</summary>
     private void OnCancel()
     {
         ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);

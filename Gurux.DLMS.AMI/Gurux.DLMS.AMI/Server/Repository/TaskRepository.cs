@@ -597,8 +597,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             foreach (GXTask it in tasks)
             {
-                it.Ready = DateTime.Now;
-                _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Ready, q.Result, q.Data }));
+                try
+                {
+                    it.Ready = DateTime.Now;
+                    //TODO: MySQL must handle this.
+                    if (!string.IsNullOrEmpty(it.Result))
+                    {
+                        it.Result = it.Result.Replace("'", "");
+                    }
+                    if (!string.IsNullOrEmpty(it.Data))
+                    {
+                        it.Data = it.Data.Replace("'", "");
+                    }
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Ready, q.Result, q.Data }));
+                }
+                catch (Exception ex)
+                {
+                    it.Result = it.Data = ex.Message;
+                    _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Ready, q.Result, q.Data }));
+                }
             }
             //Update attribute exceptions.
             foreach (GXTask it in tasks)

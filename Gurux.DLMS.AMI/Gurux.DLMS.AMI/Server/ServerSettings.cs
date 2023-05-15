@@ -774,7 +774,7 @@ namespace Gurux.DLMS.AMI.Server
         }
 
         /// <summary>
-        /// Get default adming user.
+        /// Get the default admin user.
         /// </summary>
         /// <param name="host">DB Connection.</param>
         /// <returns>Default admin user.</returns>
