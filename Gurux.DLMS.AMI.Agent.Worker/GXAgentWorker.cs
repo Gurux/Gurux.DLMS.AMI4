@@ -865,7 +865,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         if (!string.IsNullOrEmpty(agent.ReaderSettings) &&
                             JsonSerializer.Serialize(Options.ReaderSettings) != agent.ReaderSettings)
                         {
-                            //MIKKO agent.SerialPort
+                            Options.SerialPort = agent.SerialPort;
                             int threadCount = Options.ReaderSettings.Threads;
                             ReaderSettings? rs = JsonSerializer.Deserialize<ReaderSettings>(agent.ReaderSettings);
                             if (rs != null)
