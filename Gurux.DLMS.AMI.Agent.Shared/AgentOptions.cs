@@ -57,7 +57,7 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <remarks>
         /// Agent can access meters that belongs for token owner.
         /// </remarks>
-        public string Token { get; set; }
+        public string Token { get; set; } = "";
 
         /// <summary>
         /// Trace level.
@@ -106,6 +106,15 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// Available serial ports.
         /// </summary>
         public string? SerialPorts
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Selected serial port.
+        /// </summary>
+        public string? SerialPort
         {
             get;
             set;
