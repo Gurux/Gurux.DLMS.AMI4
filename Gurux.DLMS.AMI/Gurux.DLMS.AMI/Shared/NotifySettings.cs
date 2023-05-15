@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Shared.DTOs;
 using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Shared
@@ -44,17 +43,30 @@ namespace Gurux.DLMS.AMI.Shared
         /// </summary>
         public NotifySettings()
         {
-            NetworkType = 1;
         }
 
         /// <summary>
         /// Is notify active.
         /// </summary>
-        public bool Active { get; set; } = true;
+        public bool Active { get; set; }
+
         /// <summary>
-        /// Network type. UDP = 0 and TCP = 1.
+        /// Media type.
         /// </summary>
-        public int NetworkType { get; set; } = 1;
+        public string MediaType
+        {
+            get;
+            set;
+        } = string.Empty;
+
+        /// <summary>
+        /// Media settings as a string.
+        /// </summary>
+        public string? MediaSettings
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Interface type.
@@ -80,11 +92,6 @@ namespace Gurux.DLMS.AMI.Shared
         /// Authentication key.
         /// </summary>
         public string? AuthenticationKey { get; set; }
-
-        /// <summary>
-        /// Notify port. Server waits notify, event or push messages to this port.
-        /// </summary>
-        public int Port { get; set; } = 4059;
 
         /// <summary>
         /// Expiration time in seconds.
@@ -113,6 +120,5 @@ namespace Gurux.DLMS.AMI.Shared
         {
             return Helpers.GetProperties(this);
         }
-
     }
 }

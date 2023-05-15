@@ -52,20 +52,27 @@ namespace Gurux.DLMS.AMI.Shared
         public bool Active { get; set; } = true;
 
         /// <summary>
-        /// Listener port. Server waits meters to connect to this port..
+        /// Media type.
         /// </summary>
-        public int Port { get; set; } = 4059;
+        public string MediaType
+        {
+            get;
+            set;
+        } = string.Empty;
 
         /// <summary>
-        /// Network type. UDP = 1 and TCP = 2.
+        /// Media settings as a string.
         /// </summary>
-        public int NetworkType { get; set; } = 1;
+        public string? MediaSettings
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Interface type.
         /// </summary>
         public int Interface { get; set; }
-
 
         /// <summary>
         /// Use logical name referencing.
