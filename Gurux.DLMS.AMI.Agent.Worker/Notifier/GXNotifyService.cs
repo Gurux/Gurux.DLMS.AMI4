@@ -75,7 +75,9 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
             if (GXAgentWorker.Options.NotifySettings != null)
             {
                 settings = GXAgentWorker.Options.NotifySettings;
-                if (settings != null && settings.Active && settings.Port != 0)
+                GXNet net = new GXNet();
+                net.Settings = settings.MediaSettings;
+                if (settings != null && settings.Active && net.Port != 0)
                 {
                     if (settings.ScriptMethod != null)
                     {
@@ -95,14 +97,14 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
                     {
                         scriptMethod = null;
                     }
-                    notify = new GXNet((NetworkType)settings.NetworkType, settings.Port);
+                    notify = new GXNet((NetworkType)net.Protocol, net.Port);
                     ExpirationTime = settings.ExpirationTime;
                     notify.OnReceived += OnNotifyReceived;
                     _logger.LogInformation("Listening notifications in port: " + notify.Port);
                     notify.Open();
                 }
             }
-            if (settings == null || !settings.Active || settings.Port == 0)
+            if (settings == null || !settings.Active || notify == null)
             {
                 _logger.LogInformation("Notify service is not used.");
             }

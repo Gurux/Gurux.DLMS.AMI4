@@ -49,7 +49,6 @@ using Gurux.Terminal;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
@@ -57,7 +56,6 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
@@ -121,11 +119,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             else
             {
-                //In default there are max 10 threads.
+                //In default there is one thread.
                 _meterReads = new ActionBlock<GXActionBlock>(_ => ReadMeter(_),
                     new ExecutionDataflowBlockOptions
                     {
-                        MaxDegreeOfParallelism = 10
+                        MaxDegreeOfParallelism = 1
                     });
             }
         }
@@ -211,6 +209,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             Options.ReaderSettings = tmp;
                             _logger?.LogInformation("Reader settings: " + Options.ReaderSettings.ToString());
                             _meterReads.Complete();
+                            if (!string.IsNullOrEmpty(agent.SerialPort))
+                            {
+                                //There is only one thread when serial port is used.
+                                tmp.Threads = 1;
+                            }
                             _meterReads = new ActionBlock<GXActionBlock>(_ => ReadMeter(_),
                                new ExecutionDataflowBlockOptions
                                {
@@ -236,6 +239,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             _logger?.LogInformation("Notify settings: " + tmp.ToString());
                         }
                     }
+                    Options.SerialPort = agent.SerialPort;
                     Options.SerialPorts = agent.SerialPorts;
                     await UpdateAgentSerialPorts();
                     _logger?.LogInformation("Agent '{0}' started.", agent.Name);
@@ -648,6 +652,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         throw new Exception("Unknown media type '" + dev.MediaType + "'.");
                     }
                     media.Settings = dev.MediaSettings;
+                    if (media is GXSerial serial)
+                    {
+                        //Update used serial port from the agent options.
+                        serial.PortName = Options.SerialPort;
+                    }
                     var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
                     var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
                     int deviceAddress;
@@ -856,6 +865,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         if (!string.IsNullOrEmpty(agent.ReaderSettings) &&
                             JsonSerializer.Serialize(Options.ReaderSettings) != agent.ReaderSettings)
                         {
+                            //MIKKO agent.SerialPort
                             int threadCount = Options.ReaderSettings.Threads;
                             ReaderSettings? rs = JsonSerializer.Deserialize<ReaderSettings>(agent.ReaderSettings);
                             if (rs != null)
