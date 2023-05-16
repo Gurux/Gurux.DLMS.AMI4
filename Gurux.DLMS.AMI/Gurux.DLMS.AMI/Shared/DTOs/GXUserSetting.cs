@@ -62,7 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         /// <summary>
         /// Settings owner.

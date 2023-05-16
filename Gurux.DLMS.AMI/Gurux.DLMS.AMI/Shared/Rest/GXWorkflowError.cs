@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXWorkflow.Modules),
              nameof(GXWorkflow.WorkflowGroups),
              nameof(GXWorkflow.Logs))]
+        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
         public GXWorkflowLog? Filter
         {
             get;

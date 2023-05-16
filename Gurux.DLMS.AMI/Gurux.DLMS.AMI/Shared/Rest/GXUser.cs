@@ -56,6 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.IpAddresses),
             nameof(GXUser.BlockSettings),
             nameof(GXUser.Errors),
+            nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
             nameof(GXUser.Settings))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id)
@@ -106,6 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.IpAddresses),
             nameof(GXUser.BlockSettings),
             nameof(GXUser.Errors),
+            nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
             nameof(GXUser.Settings))]
         public GXUser? Filter
@@ -185,7 +187,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.IpAddresses),
                 nameof(GXUser.BlockSettings),
                 nameof(GXUser.Errors),
-                nameof(GXUser.RestStatistics),
+                          nameof(GXUser.Favorites),
+  nameof(GXUser.RestStatistics),
                 nameof(GXUser.Settings))]
         public GXUser[] Users
         {
@@ -215,6 +218,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Users to add or update.
         /// </summary>
         [DataMember]
+        [ExcludeSwagger(typeof(GXUser),
+                nameof(GXUser.PasswordHash),
+                nameof(GXUser.Actions),
+                nameof(GXUser.UserGroups),
+                nameof(GXUser.Roles),
+                nameof(GXUser.IpAddresses),
+                nameof(GXUser.BlockSettings),
+                nameof(GXUser.Errors),
+                nameof(GXUser.Favorites),
+                nameof(GXUser.RestStatistics))]
+        [ExcludeSwagger(typeof(GXUserSetting),
+                nameof(GXUserSetting.User))]
+        
         public GXUser[] Users
         {
             get;
@@ -231,6 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New users.
         /// </summary>
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
         public GXUser[] Users
         {
             get;

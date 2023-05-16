@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter favorites.
         /// </summary>
-        [ExcludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
         public GXFavorite? Filter
         {
             get;
@@ -121,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of favorite items.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeSwagger(typeof(GXFavorite), nameof(GXFavorite.User))]
         public GXFavorite[]? Favorites
         {
             get;
@@ -149,7 +149,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Favorites to update.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXFavorite), nameof(GXFavorite.CreationTime), nameof(GXFavorite.User))]
+        [ExcludeSwagger(typeof(GXFavorite),
+            nameof(GXFavorite.CreationTime), nameof(GXFavorite.User))]
         public GXFavorite[] Favorites
         {
             get;

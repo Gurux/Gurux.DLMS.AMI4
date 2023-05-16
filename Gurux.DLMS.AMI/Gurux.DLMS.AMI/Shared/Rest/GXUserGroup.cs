@@ -60,6 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
             nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.ScriptGroups))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXUserGroup Item
@@ -109,6 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
             nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.ScriptGroups))]
         public GXUserGroup? Filter
         {
@@ -185,6 +187,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
             nameof(GXUserGroup.ComponentViewGroups),
+            nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.ScriptGroups))]
         public GXUserGroup[] UserGroups
         {
