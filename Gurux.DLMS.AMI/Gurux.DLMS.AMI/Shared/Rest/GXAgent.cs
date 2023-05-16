@@ -385,6 +385,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent IDs and updated version.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
         public List<GXAgent> Agents
         {
             get;
@@ -411,9 +412,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agents to update and the version number.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
-            nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
-            nameof(GXAgent.Versions))]
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
         public GXAgent? Agent
         {
             get;

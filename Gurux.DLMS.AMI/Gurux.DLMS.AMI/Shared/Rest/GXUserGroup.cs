@@ -36,6 +36,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -227,6 +228,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
         [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
         [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
+        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id), nameof(GXManufacturerGroup.Name))]
         public GXUserGroup[] UserGroups
         {
             get;
