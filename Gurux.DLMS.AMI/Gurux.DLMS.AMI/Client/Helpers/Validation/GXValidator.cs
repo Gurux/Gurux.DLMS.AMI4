@@ -50,7 +50,8 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         /// <summary>
         /// Validate.
         /// </summary>
-        [Parameter] public Action<GXValidator>? OnValidate { get; set; }
+        [Parameter] 
+        public Action<GXValidator>? OnValidate { get; set; }
 
         protected override void OnInitialized()
         {

@@ -73,7 +73,6 @@ namespace Gurux.DLMS.AMI.Server.Controllers
                 Item = await _manufacturerRepository.ReadAsync(User, id)
             };
         }
-
         /// <summary>
         /// Update manufacturer.
         /// </summary>
@@ -123,7 +122,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         }
 
         /// <summary>
-        /// Get model information.
+        /// Get device model information.
         /// </summary>
         [HttpPost("Model")]
         [Authorize(Policy = GXManufacturerPolicies.View)]
@@ -141,7 +140,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         }
 
         /// <summary>
-        /// Get Version information.
+        /// Get device version information.
         /// </summary>
         [HttpPost("Version")]
         [Authorize(Policy = GXManufacturerPolicies.View)]

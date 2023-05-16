@@ -1,4 +1,4 @@
-﻿@using Gurux.DLMS.AMI.Client.Pages.Device;
+﻿@using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -12,7 +12,6 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@attribute [Authorize(Roles = "Admin, AgentGroup, AgentGroupManager, UserGroup")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier

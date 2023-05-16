@@ -443,8 +443,8 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return;
             }
-            Console.WriteLine("------------------------------------------------------------");
-            Console.WriteLine(context.Type.Name);
+            // Console.WriteLine("------------------------------------------------------------");
+            // Console.WriteLine(context.Type.Name);
             var include = context.Type.GetProperties()
                 .Where(t => t.GetCustomAttributes<IncludeSwaggerAttribute>().Any());
             var exclude = context.Type.GetProperties()
@@ -494,7 +494,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                     schema.Properties.Add(name, s);
                 }
             }
-            Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
+            // Console.WriteLine("++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
         }
     }
 }
