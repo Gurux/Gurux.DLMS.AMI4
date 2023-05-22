@@ -1,0 +1,1825 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
+  <GXDLMSDevice>
+    <WaitTime>4</WaitTime>
+    <Authentication>HighGMAC</Authentication>
+    <AuthenticationName>Gateway</AuthenticationName>
+    <Standard>2</Standard>
+    <Password />
+    <Security>AuthenticationEncryption</Security>
+    <KeyAgreementScheme>0</KeyAgreementScheme>
+    <SystemTitle>5341435341435341</SystemTitle>
+    <PreEstablished>true</PreEstablished>
+    <InvocationCounter>2147484410</InvocationCounter>
+    <FrameCounter>0.1.43.1.1.255</FrameCounter>
+    <Challenge />
+    <Signing>0</Signing>
+    <PhysicalAddress>16</PhysicalAddress>
+    <LogicalAddress>1</LogicalAddress>
+    <ClientAddress>1</ClientAddress>
+    <StartProtocol>DLMS</StartProtocol>
+    <MaxInfoTX>236</MaxInfoTX>
+    <MaxInfoRX>256</MaxInfoRX>
+    <MacDestinationAddress>0</MacDestinationAddress>
+    <UserId>100</UserId>
+    <InactivityTimeout>110</InactivityTimeout>
+    <SignCipherOrder>0</SignCipherOrder>
+    <Name>Gateway</Name>
+    <Conformance>9961478</Conformance>
+    <Manufacturer>itl</Manufacturer>
+    <HDLCAddressing>0</HDLCAddressing>
+    <UseProtectedRelease>false</UseProtectedRelease>
+    <SecurityChangeCheck>false</SecurityChangeCheck>
+    <MediaType>Gurux.Serial.GXSerial</MediaType>
+    <MediaSettings>&lt;Port&gt;COM8&lt;/Port&gt;&lt;Bps&gt;19200&lt;/Bps&gt;</MediaSettings>
+    <UseLN>true</UseLN>
+    <Objects2>
+      <GXDLMSObject xsi:type="GXDLMSAssociationLogicalName">
+        <Version>2</Version>
+        <LogicalName>0.0.40.0.3.255</LogicalName>
+        <Description>Installer/Maintainer Association</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSAssociationLogicalName">
+        <Version>2</Version>
+        <LogicalName>0.0.40.0.64.255</LogicalName>
+        <Description>Gateway Association</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSAssociationLogicalName">
+        <Version>2</Version>
+        <LogicalName>0.0.40.0.32.255</LogicalName>
+        <Description>Broadcasting Association</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.33.255</LogicalName>
+        <Description>Global Frame Counter Thresholds</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.1.255</LogicalName>
+        <Description>Management Frame Counter (On-line)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.1.43.1.1.255</LogicalName>
+        <Description>Management Frame Counter (Off-line)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.64.255</LogicalName>
+        <Description>Gateway Frame Counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.32.255</LogicalName>
+        <Description>Broadcast Frame Counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSClock">
+        <Version>0</Version>
+        <LogicalName>0.0.1.0.0.255</LogicalName>
+        <Description>Clock</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.1.1.0.255</LogicalName>
+        <Description>UNIX Time</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.1.1.0.101</LogicalName>
+        <Description>UNIX Time, Daily historical value, previous gas day</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.44.255</LogicalName>
+        <Description>Synchronization Algorithm</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.20.255</LogicalName>
+        <Description>Synchronization Registers</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.14.0.255</LogicalName>
+        <Description>Currently Active Tariff</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSTariffPlan">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.21.255</LogicalName>
+        <Description>Active UNI/TS Tariff Plan</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSTariffPlan">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.22.255</LogicalName>
+        <Description>Passive UNI/TS Tariff Plan</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSScriptTable">
+        <Version>0</Version>
+        <LogicalName>0.0.10.0.0.255</LogicalName>
+        <Description>Global Script</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.96.5.0.255</LogicalName>
+        <Description>UNI/TS Device Status</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.31.255</LogicalName>
+        <Description>Installer/Maintainer Remaining Time</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.30.255</LogicalName>
+        <Description>Installer/Maintainer Setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSDisconnectControl">
+        <Version>0</Version>
+        <LogicalName>0.0.96.3.10.255</LogicalName>
+        <Description>Disconnect Control</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <LogicalName>0.0.15.0.1.255</LogicalName>
+        <Description>Disconnect control Single action schedule </Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.3.255</LogicalName>
+        <Description>Valve Configuration PGV</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.1.255</LogicalName>
+        <Description>Valve Enable Password</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.2.255</LogicalName>
+        <Description>Maximum Password Attempts</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.6.255</LogicalName>
+        <Description>Opening Command Duration Validity</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.5.255</LogicalName>
+        <Description>Number Of Days Without Comms Threshold</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.25.255</LogicalName>
+        <Description>Tampering Attempts Threshold</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.26.255</LogicalName>
+        <Description>Leakage Test Parameters</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.7.255</LogicalName>
+        <Description>Valve Closure Cause</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.46.255</LogicalName>
+        <Description>User Message</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.96.5.1.255</LogicalName>
+        <Description>Current Diagnostic</Description>
+        <Attributes />
+        <Methods />
+        <Unit>255</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.1.96.5.1.255</LogicalName>
+        <Description>Daily diagnostic</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.2.96.5.1.255</LogicalName>
+        <Description>Snapshot Period Diagnostic</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.20.25.255</LogicalName>
+        <Description>Anti-fraud totalizer</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.15.2.255</LogicalName>
+        <Description>Event Counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.99.98.0.255</LogicalName>
+        <Description>Event Logbook</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.1.1.0.255</LogicalName>
+              <Description>UNIX Time</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>DateTime</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.15.2.255</LogicalName>
+              <Description>Event Counter</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.11.2.255</LogicalName>
+              <Description>Event Code</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values>
+                    <GXObisValueItem>
+                      <Value>13</Value>
+                      <UIValue>Local Communication Session: Start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>14</Value>
+                      <UIValue>Local Communication Session: End</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>16</Value>
+                      <UIValue>Non Metrological Parameter Configuration</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>70</Value>
+                      <UIValue>Power - Critical power outage: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>71</Value>
+                      <UIValue>Power - Critical power outage: end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>72</Value>
+                      <UIValue>Power - Main power outage: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>73</Value>
+                      <UIValue>Power - Main power outage: end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>74</Value>
+                      <UIValue>Power - Battery level below 10%: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>76</Value>
+                      <UIValue>Power - AC Mains power failure (above limit) for more than 30 min: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>77</Value>
+                      <UIValue>Power - AC Mains power failure (above limit) for more than 30 min: end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>80</Value>
+                      <UIValue>Tamper - Device tamper detection: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>81</Value>
+                      <UIValue>Tamper - Device tamper detection: end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>84</Value>
+                      <UIValue>Remote communication module failure</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>85</Value>
+                      <UIValue>Software - Severe software error</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>86</Value>
+                      <UIValue>DST (daylight saving time): start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>87</Value>
+                      <UIValue>DST (daylight saving time): end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>96</Value>
+                      <UIValue>New Firmware upgrade initiated</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>97</Value>
+                      <UIValue>Firmware upgrade activation date</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>98</Value>
+                      <UIValue>Firmware upgrade verification OK</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>99</Value>
+                      <UIValue>Firmware upgrade verification failed</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>100</Value>
+                      <UIValue>Firmware upgrade activation successful</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>101</Value>
+                      <UIValue>Firmware upgrade activation failed</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>129</Value>
+                      <UIValue>Management client key updated (KEYC)</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>130</Value>
+                      <UIValue>Installer/maintenance client key updated (KEYT)</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>131</Value>
+                      <UIValue>Guarantor authority client key updated (KEYS)</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>132</Value>
+                      <UIValue>Gateway client key updated (KEYN)</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>133</Value>
+                      <UIValue>Broadcasting client key updated (KEYM)</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>171</Value>
+                      <UIValue>Remote Connection: start</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>172</Value>
+                      <UIValue>Remote Connection: end</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>173</Value>
+                      <UIValue>Remote Connection: timeout</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>174</Value>
+                      <UIValue>Maintenance Window: hardware failure</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>175</Value>
+                      <UIValue>Maintenance Window: software failure</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>176</Value>
+                      <UIValue>Maintenance Window: activation</UIValue>
+                    </GXObisValueItem>
+                    <GXObisValueItem>
+                      <Value>177</Value>
+                      <UIValue>Maintenance Window: successfully termination</UIValue>
+                    </GXObisValueItem>
+                  </Values>
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSAssociationLogicalName">
+              <Version>3</Version>
+              <LogicalName>0.0.40.0.0.255</LogicalName>
+              <Description>Ch. 0 Current association</Description>
+              <Attributes>
+                <Item>
+                  <Index>11</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>11</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSGSMDiagnostic">
+              <Version>1</Version>
+              <LogicalName>0.0.25.6.0.255</LogicalName>
+              <Description>Ch. 0 GSM diagnostic</Description>
+              <Attributes>
+                <Item>
+                  <Index>5</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSGSMDiagnostic">
+              <Version>1</Version>
+              <LogicalName>0.0.25.6.0.255</LogicalName>
+              <Description>Ch. 0 GSM diagnostic</Description>
+              <Attributes>
+                <Item>
+                  <Index>6</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>6</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.15.1.255</LogicalName>
+        <Description>Metrological Event Counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.99.16.0.255</LogicalName>
+        <Description>Parameter Monitor Logbook</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.15.1.255</LogicalName>
+              <Description>Metrological Event Counter</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSParameterMonitor">
+              <Version>0</Version>
+              <LogicalName>0.0.16.2.0.255</LogicalName>
+              <Description>Parameter Monitor</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSParameterMonitor">
+        <Version>0</Version>
+        <LogicalName>0.0.16.2.0.255</LogicalName>
+        <Description>Parameter Monitor</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.2.0.255</LogicalName>
+        <Description>Current Index of Converted Volume</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.2.1.255</LogicalName>
+        <Description>Current Index of Converted Volume in F1 rate</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.2.2.255</LogicalName>
+        <Description>Current Index of Converted Volume in F2 rate</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.2.3.255</LogicalName>
+        <Description>Current Index of Converted Volume in F3 rate</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.12.2.0.255</LogicalName>
+        <Description>Current Index of Converted Volume Under Alarm</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSExtendedRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.43.45.0.255</LogicalName>
+        <Description>Maximum Convertional Converted Gas Flow</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>String</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>15</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.96.8.0.255</LogicalName>
+        <Description>Total operating time</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.26.0.101</LogicalName>
+        <Description>Index Converted Volume, Daily historical value, previous gas day</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.12.26.0.101</LogicalName>
+        <Description>Index Converted Volume under Alarm, Daily historical value, previous gas day</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.9.3.255</LogicalName>
+        <Description>Start of Conventional Gas Day</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.1.96.5.1.101</LogicalName>
+        <Description>Daily diagnostic, Daily historical value, previous gas day</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.1.1.0.255</LogicalName>
+        <Description>UNIX Time</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <UIType>DateTime</UIType>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <LogicalName>0.1.15.0.4.255</LogicalName>
+        <Description>Push Scheduler 1</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSPushSetup">
+        <Version>0</Version>
+        <LogicalName>0.1.25.9.0.255</LogicalName>
+        <Description>Push Setup 1</Description>
+        <Attributes />
+        <Methods />
+        <Service>Tcp</Service>
+        <Message>CosemApdu</Message>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.8.23.255</LogicalName>
+        <Description>EOB Snapshot Period</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.11.255</LogicalName>
+        <Description>EOB Snapshot Starting Date</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.8.255</LogicalName>
+        <Description>On Demand Snapshot Time</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.1.0.255</LogicalName>
+        <Description>Billing/Snapshot Period Counter</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.98.11.0.255</LogicalName>
+        <Description>Snapshot Period Data</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.1.1.0.255</LogicalName>
+              <Description>UNIX Time</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>DateTime</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.0.96.5.1.255</LogicalName>
+              <Description>Ch. 0 Internal operating status  (status word #1)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.0.96.10.2.255</LogicalName>
+              <Description>Invalid</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.0.0.1.0.255</LogicalName>
+              <Description>Billing/Snapshot Period Counter</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.13.2.0.255</LogicalName>
+              <Description>Current Index of Converted Volume</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.13.2.1.255</LogicalName>
+              <Description>Current Index of Converted Volume in F1 rate</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.13.2.2.255</LogicalName>
+              <Description>Current Index of Converted Volume in F2 rate</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.13.2.3.255</LogicalName>
+              <Description>Current Index of Converted Volume in F3 rate</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.12.2.0.255</LogicalName>
+              <Description>Current Index of Converted Volume Under Alarm</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.43.45.0.255</LogicalName>
+              <Description>Maximum Convertional Converted Gas Flow</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>15</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSExtendedRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.43.45.0.255</LogicalName>
+              <Description>Maximum Convertional Converted Gas Flow</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>15</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>5</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSTariffPlan">
+              <Version>0</Version>
+              <LogicalName>0.0.94.39.21.255</LogicalName>
+              <Description>Active UNI/TS Tariff Plan</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <LogicalName>0.2.15.0.4.255</LogicalName>
+        <Description>Push Scheduler 2</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSPushSetup">
+        <Version>0</Version>
+        <LogicalName>0.2.25.9.0.255</LogicalName>
+        <Description>Push Setup 2</Description>
+        <Attributes />
+        <Methods />
+        <Service>Tcp</Service>
+        <Message>CosemApdu</Message>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <LogicalName>0.3.15.0.4.255</LogicalName>
+        <Description>Push Scheduler 3</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSPushSetup">
+        <Version>0</Version>
+        <LogicalName>0.3.25.9.0.255</LogicalName>
+        <Description>Push Setup 3</Description>
+        <Attributes />
+        <Methods />
+        <Service>Tcp</Service>
+        <Message>CosemApdu</Message>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSActionSchedule">
+        <Version>0</Version>
+        <LogicalName>0.4.15.0.4.255</LogicalName>
+        <Description>Push Scheduler 4</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSPushSetup">
+        <Version>0</Version>
+        <LogicalName>0.4.25.9.0.255</LogicalName>
+        <Description>Push Setup 4</Description>
+        <Attributes />
+        <Methods />
+        <Service>Tcp</Service>
+        <Message>CosemApdu</Message>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.99.99.3.255</LogicalName>
+        <Description>Daily Load Profile</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.1.1.0.255</LogicalName>
+              <Description>UNIX Time</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>DateTime</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.1.96.5.1.255</LogicalName>
+              <Description>Daily diagnostic</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSImageTransfer">
+        <Version>0</Version>
+        <LogicalName>0.0.44.0.0.255</LogicalName>
+        <Description>Image transfer</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.2.1.255</LogicalName>
+        <Description>Metrological firmware version</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.2.8.255</LogicalName>
+        <Description>Metrological firmware signature</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.1.0.2.1.255</LogicalName>
+        <Description>Non Metrological firmware version</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.1.0.2.8.255</LogicalName>
+        <Description>Non Metrological firmware signature</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.41.255</LogicalName>
+        <Description>Block transfer status</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.96.6.0.255</LogicalName>
+        <Description>Battery Use Time Counter 0</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.1.96.6.0.255</LogicalName>
+        <Description>Battery Use Time Counter 1</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.96.6.6.255</LogicalName>
+        <Description>Battery estimated remaining use time 0</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.1.96.6.6.255</LogicalName>
+        <Description>Battery estimated remaining use time 1</Description>
+        <Attributes />
+        <Methods />
+        <Unit>7</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.96.6.4.255</LogicalName>
+        <Description>Battery Initial Capacity 0</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>57</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.1.96.6.4.255</LogicalName>
+        <Description>Battery Initial Capacity 1 </Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>57</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.14.255</LogicalName>
+        <Description>Battery Change Authorization </Description>
+        <Attributes />
+        <Methods />
+        <Unit>255</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.41.0.0.255</LogicalName>
+        <Description>Current Temperature</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.01</Scaler>
+        <Unit>52</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.41.2.0.255</LogicalName>
+        <Description>Base Temperature</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.01</Scaler>
+        <Unit>52</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.41.3.0.255</LogicalName>
+        <Description>Temperature, backup value</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.01</Scaler>
+        <Unit>52</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSMacAddressSetup">
+        <Version>0</Version>
+        <LogicalName>0.0.25.2.0.255</LogicalName>
+        <Description>RF module MAC address</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSWirelessModeQchannel">
+        <Version>0</Version>
+        <LogicalName>0.0.31.0.0.255</LogicalName>
+        <Description>RF module Secondary Address</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.13.255</LogicalName>
+        <Description>PhyTransmittingERPower </Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.15.255</LogicalName>
+        <Description>Physical channel Information Plan</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.16.255</LogicalName>
+        <Description>PIB</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.34.255</LogicalName>
+        <Description>Detected Transmission Frequency Offset</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.18.255</LogicalName>
+        <Description>MIB</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.9.255</LogicalName>
+        <Description>Synchronous Access</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSScriptTable">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.17.255</LogicalName>
+        <Description>Power Level Selection Script</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.12.255</LogicalName>
+        <Description>Maintenance Window</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.1.94.39.12.255</LogicalName>
+        <Description>Synchronization Window</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.4.255</LogicalName>
+        <Description>Number Of Days Without Comms</Description>
+        <Attributes>
+          <Item>
+            <Index>3</Index>
+            <Access>0</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegisterMonitor">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.10.255</LogicalName>
+        <Description>PM1 Orphaned Threshold</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.19.255</LogicalName>
+        <Description>PM1 Affiliation Parameters</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.23.255</LogicalName>
+        <Description>PM1 Datalink Frame Information</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.24.255</LogicalName>
+        <Description>PM1 Received RSSI</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.1.25.2.0.255</LogicalName>
+        <Description>PM1 Peer MAC Address</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.5.4.255</LogicalName>
+        <Description>PM1 Network Status</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.99.98.6.255</LogicalName>
+        <Description>PM1 Logbook</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.1.1.0.255</LogicalName>
+              <Description>UNIX Time</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>DateTime</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.15.3.255</LogicalName>
+              <Description>PM1 Event Counter</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.0.96.5.1.255</LogicalName>
+              <Description>Ch. 0 Internal operating status  (status word #1)</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.5.4.255</LogicalName>
+              <Description>PM1 Network Status</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSMacAddressSetup">
+              <Version>0</Version>
+              <LogicalName>0.1.25.2.0.255</LogicalName>
+              <Description>PM1 Peer MAC address</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.94.39.24.255</LogicalName>
+              <Description>PM1 Received RSSI</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.94.39.23.255</LogicalName>
+              <Description>PM1 Datalink Frame Information</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.94.39.13.255</LogicalName>
+              <Description>PhyTransmittingERPower </Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.94.39.15.255</LogicalName>
+              <Description>Physical channel Information Plan</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSIECLocalPortSetup">
+        <Version>0</Version>
+        <LogicalName>0.0.20.0.0.255</LogicalName>
+        <Description>IEC Local Port Setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSHdlcSetup">
+        <Version>1</Version>
+        <LogicalName>0.0.22.0.0.255</LogicalName>
+        <Description>IEC HDLC Setup</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.1.255</LogicalName>
+        <Description>CF1 </Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.2.255</LogicalName>
+        <Description>CF2 </Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.10.255</LogicalName>
+        <Description>CF10 </Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.11.255</LogicalName>
+        <Description>CF11</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.4.255</LogicalName>
+        <Description>CF4</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.6.255</LogicalName>
+        <Description>CF6</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.7.255</LogicalName>
+        <Description>CF7</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.9.255</LogicalName>
+        <Description>CF9</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSProfileGeneric">
+        <Version>0</Version>
+        <LogicalName>7.0.99.98.1.255</LogicalName>
+        <Description>Metrological logbook</Description>
+        <Attributes />
+        <Methods />
+        <CaptureObjects>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.1.1.0.255</LogicalName>
+              <Description>UNIX Time</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>DateTime</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.11.1.255</LogicalName>
+              <Description>Ch. 0 Event code  #2</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>0.0.96.15.1.255</LogicalName>
+              <Description>Metrological Event Counter</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSAssociationLogicalName">
+              <Version>3</Version>
+              <LogicalName>0.0.40.0.0.255</LogicalName>
+              <Description>Ch. 0 Current association</Description>
+              <Attributes>
+                <Item>
+                  <Index>11</Index>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>11</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSRegister">
+              <Version>0</Version>
+              <LogicalName>7.0.13.2.0.255</LogicalName>
+              <Description>Current Index of Converted Volume</Description>
+              <Attributes>
+                <Item>
+                  <Index>2</Index>
+                  <UIType>String</UIType>
+                  <Values />
+                  <UIValueType>0</UIValueType>
+                  <AccessSelector>0</AccessSelector>
+                </Item>
+              </Attributes>
+              <Methods />
+              <Scaler>0.001</Scaler>
+              <Unit>14</Unit>
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+          <GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+            <Key xsi:type="GXDLMSData">
+              <Version>0</Version>
+              <LogicalName>7.1.96.5.1.255</LogicalName>
+              <Description>Daily diagnostic</Description>
+              <Attributes />
+              <Methods />
+            </Key>
+            <Value>
+              <AttributeIndex>2</AttributeIndex>
+              <DataIndex>0</DataIndex>
+            </Value>
+          </GXKeyValuePairOfGXDLMSObjectGXDLMSCaptureObject>
+        </CaptureObjects>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSTariffPlan">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.22.255</LogicalName>
+        <Description>Passive UNI/TS Tariff Plan</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.96.5.1.101</LogicalName>
+        <Description>Current Diagnostic</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.96.10.2.101</LogicalName>
+        <Description>Snapshot Reason Code (end-of-billing-period)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.0.0.1.0.101</LogicalName>
+        <Description>Snapshot/Billing Period Counter (end-of-billing-period)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.2.0.101</LogicalName>
+        <Description>Current Index of Converted Volume (end-of-billing-period)</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>7.0.13.83.1.101</LogicalName>
+        <Description>Current Index of Converted Volume in F1 rate (end-of-billing-period)</Description>
+        <Attributes />
+        <Methods />
+        <Scaler>0.001</Scaler>
+        <Unit>14</Unit>
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>7.2.96.5.1.101</LogicalName>
+        <Description>Snapshot Period Diagnostic (end-of-billing-period)</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.44.255</LogicalName>
+        <Description>Synchronization Algorithm</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+    </Objects2>
+  </GXDLMSDevice>
+</ArrayOfGXDLMSDevice>

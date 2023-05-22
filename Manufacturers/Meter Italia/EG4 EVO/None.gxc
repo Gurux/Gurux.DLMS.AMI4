@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfGXDLMSDevice xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="Gurux1">
+  <GXDLMSDevice>
+    <WaitTime>2</WaitTime>
+    <AuthenticationName>Public</AuthenticationName>
+    <Standard>2</Standard>
+    <Password />
+    <KeyAgreementScheme>0</KeyAgreementScheme>
+    <SystemTitle>5341435341435341</SystemTitle>
+    <InvocationCounter>2147483648</InvocationCounter>
+    <Challenge>43504C6332733030</Challenge>
+    <Signing>0</Signing>
+    <PhysicalAddress>16</PhysicalAddress>
+    <LogicalAddress>1</LogicalAddress>
+    <StartProtocol>DLMS</StartProtocol>
+    <MacDestinationAddress>0</MacDestinationAddress>
+    <InactivityTimeout>110</InactivityTimeout>
+    <SignCipherOrder>0</SignCipherOrder>
+    <Name>Public</Name>
+    <Conformance>12089344</Conformance>
+    <Manufacturer>itl</Manufacturer>
+    <HDLCAddressing>0</HDLCAddressing>
+    <UseProtectedRelease>false</UseProtectedRelease>
+    <SecurityChangeCheck>false</SecurityChangeCheck>
+    <MediaType>Gurux.Serial.GXSerial</MediaType>
+    <MediaSettings>&lt;Port&gt;COM8&lt;/Port&gt;&lt;Bps&gt;19200&lt;/Bps&gt;</MediaSettings>
+    <UseLN>true</UseLN>
+    <Objects2>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.1.255</LogicalName>
+        <Description>Management Frame Counter (On-line)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.1.43.1.1.255</LogicalName>
+        <Description>Management Frame Counter (Off-line)</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.48.255</LogicalName>
+        <Description>Guarantor Authority Frame Counter</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.3.255</LogicalName>
+        <Description>Installer/Maintainer Frame Counter</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.64.255</LogicalName>
+        <Description>Gateway Frame Counter</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.43.1.32.255</LogicalName>
+        <Description>Broadcast Frame Counter</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>UInt32</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSRegister">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.31.255</LogicalName>
+        <Description>Installer/Maintainer Remaining Time</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSData">
+        <Version>0</Version>
+        <LogicalName>0.0.94.39.30.255</LogicalName>
+        <Description>Installer/Maintainer Setup</Description>
+        <Attributes>
+          <Item>
+            <Index>2</Index>
+            <Type>Structure</Type>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSWirelessModeQchannel">
+        <Version>0</Version>
+        <LogicalName>0.0.31.0.0.255</LogicalName>
+        <Description>RF module Secondary Address</Description>
+        <Attributes />
+        <Methods />
+      </GXDLMSObject>
+      <GXDLMSObject xsi:type="GXDLMSCompactData">
+        <Version>0</Version>
+        <LogicalName>0.0.66.0.1.255</LogicalName>
+        <Description>CF1 </Description>
+        <Attributes>
+          <Item>
+            <Index>3</Index>
+            <Access>0</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+          <Item>
+            <Index>5</Index>
+            <Access>0</Access>
+            <Access3>0</Access3>
+            <Values />
+            <UIValueType>0</UIValueType>
+            <AccessSelector>0</AccessSelector>
+          </Item>
+        </Attributes>
+        <Methods />
+      </GXDLMSObject>
+    </Objects2>
+  </GXDLMSDevice>
+</ArrayOfGXDLMSDevice>
