@@ -248,6 +248,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Excluded Ids.
+        /// </summary>
+        /// <remarks>
+        /// Excluded Ids can be used to filter data.
+        /// </remarks>
+        public string[]? Exclude
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

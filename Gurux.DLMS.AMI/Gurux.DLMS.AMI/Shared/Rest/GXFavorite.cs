@@ -108,7 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }
+        }       
     }
 
     /// <summary>

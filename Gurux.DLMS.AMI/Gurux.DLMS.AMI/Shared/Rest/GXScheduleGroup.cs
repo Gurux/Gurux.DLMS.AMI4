@@ -95,7 +95,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             set;
         }
 
-
         /// <summary>
         /// Admin user can access groups from all users.
         /// </summary>
@@ -138,6 +137,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Excluded Ids.
+        /// </summary>
+        /// <remarks>
+        /// Excluded Ids can be used to filter data.
+        /// </remarks>
+        public Guid[]? Exclude
         {
             get;
             set;

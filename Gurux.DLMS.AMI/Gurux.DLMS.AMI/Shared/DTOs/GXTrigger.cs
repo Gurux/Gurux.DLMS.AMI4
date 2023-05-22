@@ -43,6 +43,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXTrigger : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXTrigger()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXTrigger(string? name)
+        {
+            Workflows = new List<GXWorkflow>();
+            Activities = new List<GXTriggerActivity>();
+            TriggerGroups = new List<GXTriggerGroup>();
+            Schedules = new List<GXSchedule>();
+            Name = name;
+            ClassName = "";
+        }
+
         [DataMember(Name = "ID")]
         [Description("Trigger identifier.")]
         public Guid Id
@@ -280,7 +300,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }       
+        }
 
         /// <summary>
         /// Update creation time before update.
