@@ -280,6 +280,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Reset manufacturer filter.
                 request.Filter.Manufacturer = null;
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXDeviceTemplate>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && request.Count != 0)
             {
@@ -318,7 +322,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSelectArgs arg;
             if (user.IsInRole(GXRoles.Admin))
             {
-                arg = GXSelectArgs.SelectAll<GXDeviceTemplate>();
+                arg = GXSelectArgs.SelectAll<GXDeviceTemplate>(w => w.Id == id);
             }
             else
             {

@@ -27,7 +27,12 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="group" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="group"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -216,7 +221,10 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXScheduleGroup>(ret.ScheduleGroups, ret.Count);
+            if (ret?.ScheduleGroups != null)
+            {
+                return new ItemsProviderResult<GXScheduleGroup>(ret.ScheduleGroups, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {

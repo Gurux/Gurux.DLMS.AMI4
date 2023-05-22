@@ -15,9 +15,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="deviceTemplateGroups" />
-    <SelectionList Title="Available" ItemList="AllDeviceTemplateGroups" />
+<SelectionContainer TItem="GXDeviceTemplateGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -27,66 +46,211 @@
     [CascadingParameter]
     private UserGroupTab? UserGroupParent { get; set; }
 
-    List<GXDeviceTemplateGroup> AllDeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
-    List<GXDeviceTemplateGroup> deviceTemplateGroups = new List<GXDeviceTemplateGroup>();
+    SelectionList<GXDeviceTemplateGroup>? _selected;
+    SelectionList<GXDeviceTemplateGroup>? _available;
+    SelectionContainer<GXDeviceTemplateGroup>? _selectionContainer;
 
+    /// <summary>
+    /// DeviceTemplate group filter.
+    /// </summary>
+    private GXDeviceTemplateGroup filter = new GXDeviceTemplateGroup(null);
 
-    public void OnUpdated(object target)
+    string? GetName(GXDeviceTemplateGroup target)
     {
-
+        return target.Name;
     }
 
-    public string GetName(object target)
+    string? GetDescription(GXDeviceTemplateGroup target)
     {
-        return (target as GXDeviceTemplateGroup).Name;
+        return target.Name;
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXDeviceTemplateGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXDeviceTemplateGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXDeviceTemplateGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplateGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req, request.CancellationToken);
+            if (ret?.DeviceTemplateGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXDeviceTemplateGroup>(ret.DeviceTemplateGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (_selectionContainer == null || _selected == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
-                {
-                    Filter = new GXDeviceTemplateGroup()
-                };
-            if (UserGroupParent != null && UserGroupParent.Active != null && UserGroupParent.Active.DeviceTemplateGroups != null)
+            CrudAction action;
+            if (UserGroupParent?.Active?.DeviceTemplateGroups != null)
             {
                 //Add selected device templates.
-                deviceTemplateGroups = UserGroupParent.Active.DeviceTemplateGroups;
+                _selected.Items = UserGroupParent.Active.DeviceTemplateGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
             }
-            else if (DeviceTemplateParent != null && DeviceTemplateParent.Active != null && DeviceTemplateParent.Active.DeviceTemplateGroups != null)
+            else if (DeviceTemplateParent?.Active?.DeviceTemplateGroups != null)
             {
                 //Add selected device templates.
-                deviceTemplateGroups = DeviceTemplateParent.Active.DeviceTemplateGroups;
+                _selected.Items = DeviceTemplateParent.Active.DeviceTemplateGroups;
+                action = ClientHelpers.GetAction(DeviceTemplateParent.Action);
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !deviceTemplateGroups.Any();
-            var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req);
-            foreach (GXDeviceTemplateGroup it in ret.DeviceTemplateGroups)
+            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultGroups)
             {
-                //Add default groups when new device template is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
-                    !deviceTemplateGroups.Where(q => q.Id == it.Id).Any())
+                //Show default groups when new group is added.
+                ListDeviceTemplateGroups req = new ListDeviceTemplateGroups()
+                    {
+                        Filter = new GXDeviceTemplateGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListDeviceTemplateGroupsResponse>("api/DeviceTemplateGroup/List", req);
+                if (ret?.DeviceTemplateGroups != null)
                 {
-                    deviceTemplateGroups.Add(it);
+                    _selected.Items.AddRange(ret.DeviceTemplateGroups);
                 }
-                if (!deviceTemplateGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllDeviceTemplateGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

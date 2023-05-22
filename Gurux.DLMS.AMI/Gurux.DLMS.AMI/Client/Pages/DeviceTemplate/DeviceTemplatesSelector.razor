@@ -14,9 +14,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="templates" />
-    <SelectionList Title="Available" ItemList="AllDeviceTemplates" />
+<SelectionContainer TItem="GXDeviceTemplate" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -24,20 +43,165 @@
     [CascadingParameter]
     private DeviceTemplateGroupTab? Parent { get; set; }
 
-    List<GXDeviceTemplate> AllDeviceTemplates = new List<GXDeviceTemplate>();
-    List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
+    SelectionList<GXDeviceTemplate>? _selected;
+    SelectionList<GXDeviceTemplate>? _available;
+    SelectionContainer<GXDeviceTemplate>? _selectionContainer;
 
-    string GetName(object target)
+    /// <summary>
+    /// Device template filter.
+    /// </summary>
+    private GXDeviceTemplate filter = new GXDeviceTemplate(null);
+
+    string? GetName(GXDeviceTemplate target)
     {
-        return (target as GXDeviceTemplate).Name;
+        return target.Name;
     }
-    string GetDescription(object target)
+
+    string? GetDescription(GXDeviceTemplate target)
     {
-        return (target as GXDeviceTemplate).Name;
+        return target.Name;
+    }
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.DeviceTemplateGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXDeviceTemplateGroup? dtg = filter.DeviceTemplateGroups?.FirstOrDefault();
+                    if (dtg == null)
+                    {
+                        dtg = new GXDeviceTemplateGroup(null);
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        dtg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.DeviceTemplateGroups = new(new GXDeviceTemplateGroup[] { dtg });
+                    }
+                    else
+                    {
+                        user = dtg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXDeviceTemplate>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListDeviceTemplates req = new ListDeviceTemplates()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
+            if (ret?.Templates != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXDeviceTemplate>(ret.Templates, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
             if (Parent == null || Parent.Active == null || Parent.Active.DeviceTemplates == null)
@@ -46,18 +210,18 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            templates = Parent.Active.DeviceTemplates;
-            ListDeviceTemplates req = new ListDeviceTemplates()
-                {
-                    Filter = new GXDeviceTemplate()
-                };
-            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req);
-            foreach (GXDeviceTemplate it in ret.Templates)
+            if (_selected != null && Parent?.Active?.DeviceTemplates != null)
             {
-                if (!templates.Exists(q => q.Id == it.Id))
-                {
-                    AllDeviceTemplates.Add(it);
-                }
+                _selected.Items = Parent.Active.DeviceTemplates;
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

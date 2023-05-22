@@ -246,7 +246,15 @@
                 req.Count = Count;
             }
             ListSchedulesResponse ret = await Http.PostAsJson<ListSchedulesResponse>("api/Schedule/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXSchedule>(ret.Schedules, ret.Count);
+            if (ret.Schedules != null)
+            {
+                //Convert start time from invariant culture to UI culture.
+                foreach (var it in ret.Schedules)
+                {
+                    it.Start = new GXDateTime(it.Start, CultureInfo.InvariantCulture).ToFormatString();
+                }
+                return new ItemsProviderResult<GXSchedule>(ret.Schedules, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {

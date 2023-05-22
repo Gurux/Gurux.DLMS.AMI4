@@ -147,9 +147,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSelectArgs arg = GXQuery.GetAttributesByUser(userId, null);
             arg.Columns.Add<GXAttributeTemplate>();
             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXAttribute>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && request.Count != 0)
             {

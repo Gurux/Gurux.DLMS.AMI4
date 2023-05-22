@@ -12,62 +12,211 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="componentViews" />
-    <SelectionList Title="Available" ItemList="AllComponentViews" />
+<SelectionContainer TItem="GXComponentView" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
     [CascadingParameter]
     private ComponentViewGroupTab? Parent { get; set; }
 
+    SelectionList<GXComponentView>? _selected;
+    SelectionList<GXComponentView>? _available;
+    SelectionContainer<GXComponentView>? _selectionContainer;
+    /// <summary>
+    /// Component view filter.
+    /// </summary>
+    private GXComponentView filter = new GXComponentView(null);
 
-    List<GXComponentView> AllComponentViews = new List<GXComponentView>();
-    List<GXComponentView> componentViews = new List<GXComponentView>();
-
-    string GetName(object target)
+    string? GetName(GXComponentView target)
     {
-        return (target as GXComponentView).Name;
+        return target.Name;
     }
-    string GetDescription(object target)
+    string? GetDescription(GXComponentView target)
     {
-        return (target as GXComponentView).Name;
+        return target.Name;
+    }
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.ComponentViewGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXComponentViewGroup? cvg = filter.ComponentViewGroups?.FirstOrDefault();
+                    if (cvg == null)
+                    {
+                        cvg = new GXComponentViewGroup();
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        cvg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.ComponentViewGroups = new(new GXComponentViewGroup[] { cvg });
+                    }
+                    else
+                    {
+                        user = cvg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXComponentView>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXComponentView>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXComponentView>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListComponentViews req = new ListComponentViews()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", req, request.CancellationToken);
+            if (ret?.ComponentViews != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXComponentView>(ret.ComponentViews, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (Parent?.Active?.ComponentViews != null)
+            if (_selected != null && Parent?.Active?.ComponentViews != null)
             {
-                //Add selected user groups.
-                componentViews = Parent.Active.ComponentViews;
+                //Add selected component views.
+                _selected.Items = Parent.Active.ComponentViews;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            ListComponentViews req = new ListComponentViews()
-                {
-                    Filter = new GXComponentView()
-                };
-            var ret = await Http.PostAsJson<ListComponentViewsResponse>("api/ComponentView/List", req);
-            foreach (GXComponentView it in ret.ComponentViews)
+            //Read available items.
+            if (_available != null)
             {
-                if (!componentViews.Exists(q => q.Id == it.Id))
-                {
-                    AllComponentViews.Add(it);
-                }
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

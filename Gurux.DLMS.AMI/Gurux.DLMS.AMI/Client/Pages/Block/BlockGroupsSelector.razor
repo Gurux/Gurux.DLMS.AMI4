@@ -13,13 +13,31 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="blockGroups" />
-    <SelectionList Title="Available" ItemList="AllBlockGroups" />
+<SelectionContainer TItem="GXBlockGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -29,66 +47,211 @@
     [CascadingParameter]
     private BlockTab? BlockParent { get; set; }
 
-    List<GXBlockGroup> AllBlockGroups = new List<GXBlockGroup>();
-    List<GXBlockGroup> blockGroups = new List<GXBlockGroup>();
+    SelectionList<GXBlockGroup>? _selected;
+    SelectionList<GXBlockGroup>? _available;
+    SelectionContainer<GXBlockGroup>? _selectionContainer;
 
+    /// <summary>
+    /// Block group filter.
+    /// </summary>
+    private GXBlockGroup filter = new GXBlockGroup(null);
 
-    public void OnUpdated(object target)
+    public string? GetName(GXBlockGroup target)
     {
-
+        return target.Name;
     }
 
-    public string GetName(object target)
+    public string? GetDescription(GXBlockGroup target)
     {
-        return (target as GXBlockGroup).Name;
+        return target.Name;
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXBlockGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXBlockGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXBlockGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXBlockGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListBlockGroups req = new ListBlockGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req, request.CancellationToken);
+            if (ret?.BlockGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXBlockGroup>(ret.BlockGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (_selectionContainer == null || _selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            ListBlockGroups req = new ListBlockGroups()
-                {
-                    Filter = new GXBlockGroup()
-                };
+            CrudAction action;
             if (UserGroupParent?.Active?.BlockGroups != null)
             {
                 //Add selected block groups.
-                blockGroups = UserGroupParent.Active.BlockGroups;
+                _selected.Items = UserGroupParent.Active.BlockGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
             }
             else if (BlockParent?.Active?.BlockGroups != null)
             {
                 //Add selected block groups.
-                blockGroups = BlockParent.Active.BlockGroups;
+                _selected.Items = BlockParent.Active.BlockGroups;
+                action = ClientHelpers.GetAction(BlockParent.Action);
             }
             else
             {
-                //It's ok if block doesn't belong to any group.
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !blockGroups.Any();
-            var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);
-            foreach (GXBlockGroup it in ret.BlockGroups)
+            bool addDefaultBlocks = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultBlocks)
             {
-                //Add default groups when new block is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
-                    !blockGroups.Where(q => q.Id == it.Id).Any())
+                //Show default groups when new group is added.
+                ListBlockGroups req = new ListBlockGroups()
+                    {
+                        Filter = new GXBlockGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req);
+                if (ret?.BlockGroups != null)
                 {
-                    blockGroups.Add(it);
+                    _selected.Items.AddRange(ret.BlockGroups);
                 }
-                if (!blockGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllBlockGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

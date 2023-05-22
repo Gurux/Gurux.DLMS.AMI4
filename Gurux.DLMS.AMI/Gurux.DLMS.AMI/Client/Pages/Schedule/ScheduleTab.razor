@@ -11,6 +11,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization;
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager)]
 @inject NavigationManager NavigationManager
@@ -74,7 +75,10 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXSchedule Active = new GXSchedule(null);
+    public GXSchedule Active = new GXSchedule(null)
+        {
+            Start = new GXDateTime(@"*/*/* *:00:00", CultureInfo.InvariantCulture).ToFormatString()
+        };
 
     protected override async Task OnInitializedAsync()
     {
@@ -109,6 +113,8 @@
                 if (tmp?.Item != null)
                 {
                     Active = tmp.Item;
+                    //Convert start time from invariant culture to UI culture.
+                    Active.Start = new GXDateTime(Active.Start, CultureInfo.InvariantCulture).ToFormatString();
                     StateHasChanged();
                 }
             }

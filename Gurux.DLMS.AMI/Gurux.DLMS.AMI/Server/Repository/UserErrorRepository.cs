@@ -199,9 +199,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Filter != null && !string.IsNullOrEmpty(request?.Filter?.User?.UserName))
+                if (request.Filter != null && !string.IsNullOrEmpty(request.Filter?.User?.UserName))
                 {
                     arg.Where.And<GXUser>(w => w.UserName.Contains(request.Filter.User.UserName));
+                }
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXUserError>(w => request.Exclude.Contains(w.Id) == false);
                 }
             }
             arg.Distinct = true;

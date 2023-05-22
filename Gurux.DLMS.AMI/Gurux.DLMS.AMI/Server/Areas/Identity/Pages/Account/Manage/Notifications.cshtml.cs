@@ -110,6 +110,8 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             {
                 selected |= (UInt64)it;
             }
+            selected &= ~(UInt64) TargetType.Cron;
+            selected &= ~(UInt64)TargetType.Role;
             UInt64 value;
             foreach (var it in values)
             {
@@ -118,14 +120,14 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
                     selected &= ~value;
                 }
             }
-            GXUserSetting? settings = user.Settings.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
+            GXUserSetting? settings = user.Settings?.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
             if (settings == null)
             {
                 settings = new GXUserSetting()
                 {
                     Name = GXConfigurations.Performance,
                 };
-                user.Settings.Add(settings);
+                user.Settings?.Add(settings);
             }
             PerformanceSettings s = new PerformanceSettings()
             {

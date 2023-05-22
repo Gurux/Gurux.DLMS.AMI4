@@ -41,6 +41,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -183,7 +184,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
+                //If manufacturer groups are filtered by user.
+                if (request.Filter?.UserGroups != null)
+                {
+                    var ug = request.Filter.UserGroups.FirstOrDefault();
+                    if (ug?.Users != null && ug.Users.Any())
+                    {
+                        var user2 = ug.Users.FirstOrDefault();
+                        if (user2 != null)
+                        {
+                            arg.Joins.AddLeftJoin<GXUserGroupManufacturerGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            arg.Where.FilterBy(user2);
+                        }
+                    }
+                    request.Filter.UserGroups = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXManufacturerGroup>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -287,7 +309,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
-                    //Get default script groups if not admin.
+                    //Get default user groups.
                     if (user != null)
                     {
                         it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,

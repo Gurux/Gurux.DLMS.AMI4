@@ -15,9 +15,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="scheduleGroups" />
-    <SelectionList Title="Available" ItemList="AllScheduleGroups" />
+<SelectionContainer TItem="GXScheduleGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -27,70 +46,211 @@
     [CascadingParameter]
     private ScheduleTab? ScheduleParent { get; set; }
 
-    List<GXScheduleGroup> AllScheduleGroups = new List<GXScheduleGroup>();
-    List<GXScheduleGroup> scheduleGroups = new List<GXScheduleGroup>();
+    SelectionList<GXScheduleGroup>? _selected;
+    SelectionList<GXScheduleGroup>? _available;
+    SelectionContainer<GXScheduleGroup>? _selectionContainer;
+
+    /// <summary>
+    /// Schedule group filter.
+    /// </summary>
+    private GXScheduleGroup filter = new GXScheduleGroup(null);
 
 
-    public void OnUpdated(object target)
+    public string? GetName(GXScheduleGroup target)
     {
-
+        return target.Name;
+    }
+    public string? GetDescription(GXScheduleGroup target)
+    {
+        return target.Name;
     }
 
-    public string GetName(object target)
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXScheduleGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchByName(string? name)
     {
-        return (target as GXScheduleGroup).Name;
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXScheduleGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXScheduleGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXScheduleGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListScheduleGroups req = new ListScheduleGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req, request.CancellationToken);
+            if (ret?.ScheduleGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXScheduleGroup>(ret.ScheduleGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            ListScheduleGroups req = new ListScheduleGroups()
-                {
-                    Filter = new GXScheduleGroup()
-                };
-            if (UserGroupParent != null && UserGroupParent.Active != null && UserGroupParent.Active.ScheduleGroups != null)
-            {
-                //Add selected schedules.
-                scheduleGroups = UserGroupParent.Active.ScheduleGroups;
-            }
-            else if (ScheduleParent != null && ScheduleParent.Active != null && ScheduleParent.Active.ScheduleGroups != null)
-            {
-                //Add selected schedules.
-                scheduleGroups = ScheduleParent.Active.ScheduleGroups;
-            }
-            else
-            {
-                scheduleGroups = null;
-            }
-            if (scheduleGroups == null)
+            if (_selectionContainer == null || _selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scheduleGroups.Any();
-            var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req);
-            foreach (GXScheduleGroup it in ret.ScheduleGroups)
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            CrudAction action;
+            if (UserGroupParent?.Active?.ScheduleGroups != null)
             {
-                //Add default groups when new schedule is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) && 
-                    !scheduleGroups.Where(q => q.Id == it.Id).Any())
+                //Add selected schedules.
+                _selected.Items = UserGroupParent.Active.ScheduleGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
+            }
+            else if (ScheduleParent?.Active?.ScheduleGroups != null)
+            {
+                //Add selected schedules.
+                _selected.Items = ScheduleParent.Active.ScheduleGroups;
+                action = ClientHelpers.GetAction(ScheduleParent.Action);
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultGroups)
+            {
+                //Show default groups when new group is added.
+                ListScheduleGroups req = new ListScheduleGroups()
+                    {
+                        Filter = new GXScheduleGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListScheduleGroupsResponse>("api/ScheduleGroup/List", req);
+                if (ret?.ScheduleGroups != null)
                 {
-                    scheduleGroups.Add(it);
+                    _selected.Items.AddRange(ret.ScheduleGroups);
                 }
-                if (!scheduleGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllScheduleGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

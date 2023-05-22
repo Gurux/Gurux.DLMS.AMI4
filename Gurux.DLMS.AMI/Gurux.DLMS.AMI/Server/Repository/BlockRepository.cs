@@ -154,6 +154,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     request.Filter.User = null;
                     arg.Where.FilterBy(request.Filter);
+                    if (request.Exclude != null && request.Exclude.Any())
+                    {
+                        arg.Where.And<GXBlock>(w => request.Exclude.Contains(w.Id) == false);
+                    }
                 }
                 finally
                 {

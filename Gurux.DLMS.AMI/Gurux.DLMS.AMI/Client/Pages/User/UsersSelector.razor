@@ -15,67 +15,177 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="users" />
-    <SelectionList Title="Available" ItemList="AllUsers" />
+<SelectionContainer TItem="GXUser" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
     [CascadingParameter]
     private UserGroupTab? Parent { get; set; }
 
-    List<GXUser> AllUsers = new List<GXUser>();
-    List<GXUser> users = new List<GXUser>();
+    SelectionList<GXUser>? _selected;
+    SelectionList<GXUser>? _available;
+    SelectionContainer<GXUser>? _selectionContainer;
+    /// <summary>
+    /// User filter.
+    /// </summary>
+    private GXUser filter = new GXUser(null);
 
-
-    public void OnUpdated(object target)
+    string? GetName(GXUser target)
     {
-
+        return target.UserName;
     }
 
-    public string GetName(object target)
+    string? GetDescription(GXUser target)
     {
-        return (target as GXUser).UserName;
-    }
-    public string GetDescription(object target)
-    {
-        GXUser u = (target as GXUser);
-        string str = u.GivenName + " " + u.Surname;
-        if (string.IsNullOrEmpty(u.GivenName) && string.IsNullOrEmpty(u.Surname))
+        string? str = target.GivenName + " " + target.Surname;
+        if (string.IsNullOrEmpty(target.GivenName) && string.IsNullOrEmpty(target.Surname))
         {
-            str = u.UserName;
+            str = target.UserName;
         }
         return str;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected async Task SearchSelectedByName(string? name)
     {
         try
         {
-            if (Notifier == null)
+            if (_selected?.Items != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.UserName != null && !it.UserName.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.UserName = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXUser>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXUser>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXUser>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListUsers req = new ListUsers()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
+            if (ret?.Users != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXUser>(ret.Users, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (_selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             //Get selected user groups.
             if (Parent?.Active?.Users != null)
             {
-                users = Parent.Active.Users;
+                _selected.Items = Parent.Active.Users;
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            ListUsers req = new ListUsers()
-                {
-                    Filter = new GXUser()
-                };
-            var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req);
-            foreach (GXUser it in ret.Users)
+            //Read available items.
+            if (_available != null)
             {
-                if (!users.Exists(q => q.Id == it.Id))
-                {
-                    AllUsers.Add(it);
-                }
+                await _available.RefreshDataAsync();
             }
         }
         catch (AccessTokenNotAvailableException exception)

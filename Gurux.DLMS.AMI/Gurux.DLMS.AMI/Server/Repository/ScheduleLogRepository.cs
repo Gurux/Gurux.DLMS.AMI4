@@ -41,6 +41,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -205,9 +206,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetScheduleLogsByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXScheduleLog>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

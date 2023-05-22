@@ -970,6 +970,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by user....
+        /// </summary>
+        internal static string FilterByUser {
+            get {
+                return ResourceManager.GetString("FilterByUser", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to General information.
         /// </summary>
         internal static string GeneralInformation {

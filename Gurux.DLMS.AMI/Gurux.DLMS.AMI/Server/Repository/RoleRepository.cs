@@ -97,9 +97,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Joins.AddInnerJoin<GXRole, GXUserRole>(a => a.Id, b => b.RoleId);
                 arg.Where.And<GXUserRole>(where => where.UserId == userId);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
-                arg.Where.FilterBy(request.Filter);
+                arg.Where.FilterBy(request.Filter);                
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {

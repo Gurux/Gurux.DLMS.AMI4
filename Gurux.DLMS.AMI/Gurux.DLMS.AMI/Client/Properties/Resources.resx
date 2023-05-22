@@ -951,4 +951,7 @@
   <data name="ConfirmRestart" xml:space="preserve">
     <value>Confirm restart</value>
   </data>
+  <data name="FilterByUser" xml:space="preserve">
+    <value>Filter by user...</value>
+  </data>
 </root>

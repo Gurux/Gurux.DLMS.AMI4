@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Text.Json;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -243,6 +244,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXUser>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && request.Filter != null && request.Filter.Roles != null && request.Filter.Roles.Count != 0)
             {

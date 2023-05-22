@@ -256,7 +256,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                 DateTime now = DateTime.Now;
                 foreach (GXSchedule schedule2 in schedules)
                 {
-                    GXDateTime dt = new GXDateTime(schedule2.Start);
+                    GXDateTime dt = new GXDateTime(schedule2.Start, CultureInfo.InvariantCulture);
                     if (Equals(dt, now))
                     {
                         await RunSchedule(schedule2, tasks, now);

@@ -16,9 +16,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="moduleGroups" />
-    <SelectionList Title="Available" ItemList="AllModuleGroups" />
+<SelectionContainer TItem="GXModuleGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -27,66 +46,211 @@
     [CascadingParameter]
     private ModuleTab? ModuleParent { get; set; }
 
-    List<GXModuleGroup> AllModuleGroups = new List<GXModuleGroup>();
-    List<GXModuleGroup> moduleGroups = new List<GXModuleGroup>();
+    SelectionList<GXModuleGroup>? _selected;
+    SelectionList<GXModuleGroup>? _available;
+    SelectionContainer<GXModuleGroup>? _selectionContainer;
 
+    /// <summary>
+    /// Module group filter.
+    /// </summary>
+    private GXModuleGroup filter = new GXModuleGroup(null);
 
-    public void OnUpdated(object target)
+    string? GetName(GXModuleGroup target)
     {
-
+        return target.Name;
+    }
+    string? GetDescription(GXModuleGroup target)
+    {
+        return target.Name;
     }
 
-    public string GetName(object target)
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXModuleGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchByName(string? name)
     {
-        return (target as GXModuleGroup).Name;
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXModuleGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXModuleGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXModuleGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListModuleGroups req = new ListModuleGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListModuleGroupsResponse>("api/ModuleGroup/List", req, request.CancellationToken);
+            if (ret?.ModuleGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXModuleGroup>(ret.ModuleGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (_selectionContainer == null || _selected == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            ListModuleGroups req = new ListModuleGroups()
-                {
-                    Filter = new GXModuleGroup()
-                };
+            CrudAction action;
             if (UserGroupParent?.Active?.ModuleGroups != null)
             {
                 //Add selected module.
-                moduleGroups = UserGroupParent.Active.ModuleGroups;
+                _selected.Items = UserGroupParent.Active.ModuleGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
+
             }
             else if (ModuleParent?.Active?.ModuleGroups != null)
             {
                 //Add selected module.
-                moduleGroups = ModuleParent.Active.ModuleGroups;
+                _selected.Items = ModuleParent.Active.ModuleGroups;
+                action = ClientHelpers.GetAction(ModuleParent.Action);
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !moduleGroups.Any();
-            var ret = await Http.PostAsJson<ListModuleGroupsResponse>("api/ModuleGroup/List", req);
-            foreach (GXModuleGroup it in ret.ModuleGroups)
+            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultGroups)
             {
-                //Add default groups when new module is created.
-                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
-                    !moduleGroups.Where(q => q.Id == it.Id).Any())
+                //Show default groups when new group is added.
+                ListModuleGroups req = new ListModuleGroups()
+                    {
+                        Filter = new GXModuleGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListModuleGroupsResponse>("api/ModuleGroup/List", req);
+                if (ret?.ModuleGroups != null)
                 {
-                    moduleGroups.Add(it);
+                    _selected.Items.AddRange(ret.ModuleGroups);
                 }
-                if (!moduleGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllModuleGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

@@ -436,28 +436,45 @@ namespace Gurux.DLMS.AMI.Client
                             Name = GXConfigurations.Performance
                         }
                     };
-                    GetUserResponse? ret = await http.GetAsJsonAsync<GetUserResponse>("/api/User");
-                    var settings = ret.Item.Settings.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
-                    if (settings != null && !string.IsNullOrEmpty(settings.Value))
+                    GetUserResponse? ret = await http.GetAsJsonAsync<GetUserResponse>("api/User/");
+                    var settings = ret.Item?.Settings?.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
+                    if (!string.IsNullOrEmpty(settings?.Value))
                     {
-                        var s = JsonSerializer.Deserialize<PerformanceSettings>(settings.Value);
-                        if (s != null)
+                        try
                         {
-                            IgnoreNotification = s.IgnoreNotification;
+                            var s = JsonSerializer.Deserialize<PerformanceSettings>(settings.Value);
+                            if (s != null)
+                            {
+                                IgnoreNotification = s.IgnoreNotification;
+                            }
+                            else
+                            {
+                                //All notifications are ignored as a default.
+                                IgnoreNotification = (TargetType)UInt64.MaxValue;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            //All notifications are ignored as a default.
-                            IgnoreNotification = (TargetType)UInt64.MaxValue;
+                            _logger.LogError(ex.Message);
+                            IgnoreNotification = 0;
                         }
                     }
-                    settings = ret.Item.Settings.Where(w => w.Name == GXConfigurations.System).SingleOrDefault();
-                    if (settings != null && !string.IsNullOrEmpty(settings.Value))
+                    _logger.LogInformation("IgnoreNotification: " + IgnoreNotification);
+                    settings = ret.Item?.Settings?.Where(w => w.Name == GXConfigurations.System).SingleOrDefault();
+                    if (!string.IsNullOrEmpty(settings?.Value))
                     {
-                        var s = JsonSerializer.Deserialize<SystemSettings>(settings.Value);
-                        if (s != null)
+                        try
                         {
-                            RowsPerPage = s.RowsPerPage;
+                            var s = JsonSerializer.Deserialize<SystemSettings>(settings.Value);
+                            if (s != null)
+                            {
+                                RowsPerPage = s.RowsPerPage;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex.Message);
+                            RowsPerPage = 10;
                         }
                     }
                     hubConnection.On<GXModule>(nameof(IGXHubEvents.ModuleSettingsSave), async (module) =>
@@ -1411,7 +1428,7 @@ namespace Gurux.DLMS.AMI.Client
                     await hubConnection.StartAsync();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 hubConnection = null;
             }

@@ -349,6 +349,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXValue>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {

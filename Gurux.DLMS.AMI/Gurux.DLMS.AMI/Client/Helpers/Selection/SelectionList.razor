@@ -1,32 +1,233 @@
-﻿<div class="selection-status">
-    <h3>(@Title @ItemList.Count)</h3>
+﻿@using Gurux.DLMS.AMI.Shared.Enums;
+@typeparam TItem
 
-    <ul class="dropzone @dropClass"
-        ondragover="event.preventDefault();"
-        ondragstart="event.dataTransfer.setData('', event.target.id);"
+@if (Items != null)
+{
+    <div class="selection-status">
+        <h3>(@Title @Items.Count)</h3>
+        @if (FilterContent != null)
+        {
+            @if (Filter)
+            {
+                <div>
+                    <button style="float: right;" class="btn btn-outline-secondary border-left-0 border oi oi-x" type="button"
+                            onclick="@(() => EnableFilter(false))">
+                    </button>
+                </div>
+                @if (ShowAllUsers)
+                {
+                    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                   @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
+                            <label>@Properties.Resources.ShowDataForAllUsers</label>
+                        </div>
+                    </AuthorizeView>
+                }
+                @FilterContent
+            }
+            else
+            {
+                <div>
+                    <button style="float: right;" class="btn btn-outline-secondary border-left-0 border oi oi-magnifying-glass" type="button"
+                            onclick="@(() => EnableFilter(true))">
+                    </button>
+                </div>
+            }
+        }
+        <ul class="dropzone @dropClass"
+            ondragover="event.preventDefault();"
+            ondragstart="event.dataTransfer.setData('', event.target.id);"
         @ondrop="HandleDrop"
         @ondragenter="HandleDragEnter"
         @ondragleave="HandleDragLeave">
 
-        @foreach (var it in ItemList)
+            @foreach (var it in GetItems())
+            {
+                <CascadingValue Value="this">
+                    <SelectionItem SourceList="@Items" Target="@it" />
+                </CascadingValue>
+            }
+        </ul>
+
+        <!--Add paginatation-->
+        @if (Container != null && Pages.Count > 1 && !ShowAllData)
         {
-            <SelectionItem SourceList="@ItemList" Target="@it" />
+            <ul class="pagination justify-content-center">
+                @if (CurrentPage != 0)
+                {
+                    <li @onclick="@(() => SelectPage(0))" style="cursor: pointer;" class="page-link" href="#">&laquo;</li>
+                }
+                @foreach (int pos in Pages)
+                {
+                    @if (pos >= CurrentPage - Container.Spread && pos <= CurrentPage + Container.Spread)
+                    {
+                        <li onclick="@(() => SelectPage(pos))" style="cursor: pointer;" class="page-item @(CurrentPage == pos ? "active" : null)">
+                            <span class="page-link" href="#">@pos</span>
+                        </li>
+                    }
+                }
+                @if (CurrentPage != TotalPages - 1)
+                {
+                    <li @onclick="@(() => SelectPage(TotalPages - 1))" style="cursor: pointer;" class="page-link" href="#">&raquo;</li>
+                }
+            </ul>
         }
-    </ul>
-</div>
+        @if (Container != null && Total)
+        {
+            <label>
+                @Properties.Resources.Total @TotalCount
+            </label>
+        }
+    </div>
+}
 
 @code {
-    [CascadingParameter] SelectionContainer? Container { get; set; }
+    public delegate string? GetNameEventHandler(TItem target);
+    public delegate string? GetDescriptionEventHandler(TItem target);
+
+    [CascadingParameter]
+    SelectionContainer<TItem>? Container { get; set; }
+
+    private CancellationTokenSource? _cts;
+    private int _currentPage = 0;
+
+    /// <summary>
+    /// Data from the all users is shown for the admin.
+    /// </summary>
+    [Parameter]
+    public bool ShowAllUsers { get; set; } = true;
+
+    /// <summary>
+    /// Data from the all users is shown for the admin.
+    /// </summary>
+    protected bool ShowAllUserData { get; set; } = false;
+
+    /// <summary>
+    /// All table rows are shown and paginatation is not used.
+    /// </summary>
+    [Parameter]
+    public bool ShowAllData { get; set; }
+
+    /// <summary>
+    /// Is total shown.
+    /// </summary>
+    [Parameter]
+    public bool Total { get; set; } = true;
+
+    /// <summary>
+    /// Get name for the object.
+    /// </summary>
+    [Parameter]
+    public GetNameEventHandler? GetName { get; set; }
+
+    /// <summary>
+    /// Get description for the object.
+    /// </summary>
+    [Parameter]
+    public GetDescriptionEventHandler? GetDescription { get; set; }
+
+    internal List<int> Pages = new List<int>();
+
+
+    /// <summary>
+    /// Current page.
+    /// </summary>
+    [Parameter]
+    public int CurrentPage
+    {
+        get
+        {
+            return _currentPage;
+        }
+        set
+        {
+            if (value < 0)
+            {
+                //Select the first page.
+                value = 0;
+            }
+            else if (Container.PageSize * value > TotalCount)
+            {
+                //Select the last page.
+                value = TotalCount / Container.PageSize;
+            }
+            _currentPage = value;
+        }
+    }
+
+    /// <summary>
+    /// Change pagination page.
+    /// </summary>
+    /// <param name="index">Page index</param>
+    internal async Task SelectPage(int index)
+    {
+        CurrentPage = index;
+        await RefreshDataAsync(true);
+    }
+
+    /// <summary>
+    /// The total row count.
+    /// </summary>
+    public int TotalCount { get; private set; }
+
+    /// The total page count.
+    /// </summary>
+    public int TotalPages
+    {
+        get
+        {
+            return (int)Math.Ceiling(TotalCount / (double)Container.PageSize);
+        }
+    }
+
+    /// <summary>
+    /// Show the filter.
+    /// </summary>
+    private void EnableFilter(bool show)
+    {
+        Filter = show;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gets or sets the function providing items to the list.
+    /// </summary>
+    [Parameter]
+    public GXItemsProviderDelegate<TItem>? ItemsProvider { get; set; }
 
     /// <summary>
     /// List title.
     /// </summary>
-    [Parameter] public string? Title { get; set; }
+    [Parameter]
+    public string? Title { get; set; }
+
+    public List<TItem> GetItems()
+    {
+        return Items.Except(HiddenItems).ToList();
+    }
 
     /// <summary>
     /// Items in the list.
     /// </summary>
-    [Parameter] public System.Collections.IList? ItemList { get; set; }
+    public List<TItem>? Items { get; set; } = new List<TItem>();
+
+    /// <summary>
+    /// Hidden items is used in search.
+    /// </summary>
+    public List<TItem> HiddenItems { get; set; } = new List<TItem>();
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = false;
+
+    /// <summary>
+    /// Filter content.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? FilterContent { get; set; }
 
     string dropClass = "";
 
@@ -43,11 +244,50 @@
     private async Task HandleDrop()
     {
         dropClass = "";
-        if (Container != null && ItemList != null)
+        if (Container != null && Container.SourceList != null &&
+            Container.Payload != null && Items != null)
         {
             Container.SourceList.Remove(Container.Payload);
-            ItemList.Add(Container.Payload);
-            await Container.UpdateJobAsync(this, ItemList);
+            Items.Add(Container.Payload);
+            await Container.UpdateJobAsync(this, Items);
+        }
+    }
+
+    /// <summary>
+    /// Read values async.
+    /// </summary>
+    /// <param name="renderOnSuccess">Is UI render after success operation.</param>
+    public async Task RefreshDataAsync(bool renderOnSuccess = true)
+    {
+        if (Container != null)
+        {
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
+            CancellationToken cancellationToken = _cts.Token;
+            GXItemsProviderRequest req = new GXItemsProviderRequest(ShowAllData ? 0 : CurrentPage * Container.PageSize,
+                ShowAllData ? 0 : Container.PageSize,
+                ShowAllUserData, 
+                false, 
+                null, 
+                false, 
+                cancellationToken);
+            var result = await ItemsProvider(req);
+            Items?.Clear();
+            Items?.AddRange(result.Items);
+            TotalCount = result.TotalItemCount;
+            Pages.Clear();
+            if (!ShowAllData)
+            {
+                for (int pos = 0; pos != TotalPages; ++pos)
+                {
+                    Pages.Add(pos);
+                }
+            }
+            // Only apply result if the task was not canceled.
+            if (!cancellationToken.IsCancellationRequested && renderOnSuccess)
+            {
+                StateHasChanged();
+            }
         }
     }
 }

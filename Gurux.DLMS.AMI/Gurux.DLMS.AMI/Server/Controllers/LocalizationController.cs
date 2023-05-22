@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-        [Authorize(Policy = GXLocalizationPolicies.View)]
+        [Authorize]
         public async Task<ActionResult<string?>> Get()
         {
             return await _localizationRepository.GetUserLanguageAsync(User, ServerHelpers.GetUserId(User));

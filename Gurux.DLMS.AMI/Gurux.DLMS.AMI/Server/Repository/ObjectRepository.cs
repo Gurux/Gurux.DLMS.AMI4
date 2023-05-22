@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -142,15 +143,57 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListObjectsResponse? response,
             CancellationToken cancellationToken)
         {
-            string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg = GXQuery.GetObjectsByUser(userId, null);
+            GXSelectArgs arg;
+            bool allUsers = request != null && request.AllUsers && User.IsInRole(GXRoles.Admin);
+            if (allUsers)
+            {
+                //Admin can see all the module groups.
+                arg = GXSelectArgs.SelectAll<GXObject>();
+                arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            }
+            else
+            {
+                string userId = ServerHelpers.GetUserId(User);
+                arg = GXQuery.GetObjectsByUser(userId, null);
+            }
             arg.Columns.Add<GXObjectTemplate>();
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
+                if (request.Filter?.Device != null)
+                {
+                    var dg = request.Filter.Device.DeviceGroups?.FirstOrDefault();
+                    if (dg != null)
+                    {
+                        var ug = dg.UserGroups?.FirstOrDefault();
+                        if (ug != null)
+                        {
+                            var user = ug.Users?.FirstOrDefault();
+                            if (user != null)
+                            {
+                                if (allUsers)
+                                {
+                                    arg.Joins.AddLeftJoin<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId);
+                                }
+                                arg.Joins.AddLeftJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                                user.UserGroups = null;
+                                arg.Where.FilterBy(user);
+                            }
+                        }
+                    }
+                    request.Filter.Device = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXObject>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && request.Count != 0)
             {

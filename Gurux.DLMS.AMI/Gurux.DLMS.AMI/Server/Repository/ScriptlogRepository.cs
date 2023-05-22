@@ -195,9 +195,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetScriptLogsByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXScriptLog>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

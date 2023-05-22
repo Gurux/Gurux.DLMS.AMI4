@@ -12,13 +12,31 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="devices" />
-    <SelectionList Title="Available" ItemList="AllDevices" />
+<SelectionContainer TItem="GXDevice" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -28,46 +46,185 @@
     [CascadingParameter]
     private ScheduleTab? ScheduleParent { get; set; }
 
-    List<GXDevice> AllDevices = new List<GXDevice>();
-    List<GXDevice> devices = new List<GXDevice>();
+    SelectionList<GXDevice>? _selected;
+    SelectionList<GXDevice>? _available;
+    SelectionContainer<GXDevice>? _selectionContainer;
+    /// <summary>
+    /// Device filter.
+    /// </summary>
+    private GXDevice filter = new GXDevice(null);
 
-    string GetName(object target)
+    string? GetName(GXDevice target)
     {
-        return (target as GXDevice).Name;
+        return target.Name;
     }
-    string GetDescription(object target)
+
+    string? GetDescription(GXDevice target)
     {
-        return (target as GXDevice).Name;
+        return target.Name;
+    }
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.DeviceGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXDeviceGroup? dg = filter.DeviceGroups?.FirstOrDefault();
+                    if (dg == null)
+                    {
+                        dg = new GXDeviceGroup();
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        dg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[] { dg });
+                    }
+                    else
+                    {
+                        user = dg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXDevice>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXDevice>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListDevices req = new ListDevices()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
+            if (ret?.Devices != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXDevice>(ret.Devices, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (DeviceGropParent?.Active?.Devices != null)
+            if (_selected != null && DeviceGropParent?.Active?.Devices != null)
             {
-                //Get selected devices.
-                devices = DeviceGropParent.Active.Devices;
+                _selected.Items = DeviceGropParent.Active.Devices;
             }
-            else if (ScheduleParent?.Active?.Devices != null)
+            else if (_selected != null && ScheduleParent?.Active?.Devices != null)
             {
                 //Get selected devices.
-                devices = ScheduleParent.Active.Devices;
+                _selected.Items = ScheduleParent.Active.Devices;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            ListDevices req = new ListDevices();
-            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req);
-            foreach (GXDevice it in ret.Devices)
+            //Read available items.
+            if (_available != null)
             {
-                if (!devices.Exists(q => q.Id == it.Id))
-                {
-                    AllDevices.Add(it);
-                }
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

@@ -183,7 +183,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
+                //If block groups are filtered by user.
+                if (request.Filter?.UserGroups != null)
+                {
+                    var ug = request.Filter.UserGroups.FirstOrDefault();
+                    if (ug?.Users != null && ug.Users.Any())
+                    {
+                        var user2 = ug.Users.FirstOrDefault();
+                        if (user2 != null)
+                        {
+                            arg.Joins.AddLeftJoin<GXUserGroupBlockGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            arg.Where.FilterBy(user2);
+                        }
+                    }
+                    request.Filter.UserGroups = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXBlockGroup>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -288,12 +309,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
-                    //Get default block groups if not admin.
-                    if (!isAdmin)
-                    {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,
-                                                   ServerHelpers.GetUserId(user));
-                    }
+                    //Get default user groups.
+                    it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,
+                                               ServerHelpers.GetUserId(user));
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
                         throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);

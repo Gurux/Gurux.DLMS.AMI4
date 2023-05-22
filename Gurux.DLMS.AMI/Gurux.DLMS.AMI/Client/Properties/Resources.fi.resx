@@ -951,4 +951,7 @@
   <data name="ModuleNeedsRestart" xml:space="preserve">
     <value>Palvelin on käynnistettävä uudelleen, jotta moduulimuutokset voidaan ottaa käyttöön. Haluatko käynnistää palvelimen uudelleen nyt?</value>
   </data>
+  <data name="FilterByUser" xml:space="preserve">
+    <value>Suodata käyttäjän mukaan...</value>
+  </data>
 </root>

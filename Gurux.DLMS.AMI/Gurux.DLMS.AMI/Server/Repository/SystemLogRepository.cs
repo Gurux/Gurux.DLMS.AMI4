@@ -81,9 +81,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXSystemLog>();
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXSystemLog>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {

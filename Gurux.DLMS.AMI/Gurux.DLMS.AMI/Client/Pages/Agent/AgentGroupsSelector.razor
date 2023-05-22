@@ -16,9 +16,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="agentGroups" />
-    <SelectionList Title="Available" ItemList="AllAgentGroups" />
+<SelectionContainer TItem="GXAgentGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -28,67 +47,210 @@
     [CascadingParameter]
     private AgentTab? AgentParent { get; set; }
 
-    List<GXAgentGroup> AllAgentGroups = new List<GXAgentGroup>();
-    List<GXAgentGroup> agentGroups = new List<GXAgentGroup>();
+    SelectionList<GXAgentGroup>? _selected;
+    SelectionList<GXAgentGroup>? _available;
+    SelectionContainer<GXAgentGroup>? _selectionContainer;
 
+    /// <summary>
+    /// Agent group filter.
+    /// </summary>
+    private GXAgentGroup filter = new GXAgentGroup(null);
 
-    public void OnUpdated(object target)
+    public string? GetName(GXAgentGroup target)
     {
-
+        return target.Name;
+    }
+    public string? GetDescription(GXAgentGroup target)
+    {
+        return target.Name;
     }
 
-    public string GetName(object target)
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXAgentGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchByName(string? name)
     {
-        return (target as GXAgentGroup).Name;
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXAgentGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXAgentGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListAgentGroups req = new ListAgentGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req, request.CancellationToken);
+            if (ret?.AgentGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXAgentGroup>(ret.AgentGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (_selectionContainer == null || _selected == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            ListAgentGroups req = new ListAgentGroups()
-                {
-                    Filter = new GXAgentGroup()
-                };
+            CrudAction action;
             if (DeviceGroupParent?.Active?.AgentGroups != null)
             {
                 //Get selected agent groups.
-                agentGroups = DeviceGroupParent.Active.AgentGroups;
+                _selected.Items = DeviceGroupParent.Active.AgentGroups;
+                action = ClientHelpers.GetAction(DeviceGroupParent.Action);
             }
             else if (AgentParent?.Active?.AgentGroups != null)
             {
                 //Get selected agent groups.
-                agentGroups = AgentParent.Active.AgentGroups;
+                _selected.Items = AgentParent.Active.AgentGroups;
+                action = ClientHelpers.GetAction(AgentParent.Action);
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !agentGroups.Any();
-            Notifier.UpdateButtons();
-            var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req);
-            foreach (GXAgentGroup it in ret.AgentGroups)
+            bool addDefaultBlocks = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultBlocks)
             {
-                //Add default groups when new workflow is created.
-                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
-                    !agentGroups.Where(q => q.Id == it.Id).Any())
+                //Show default groups when new group is added.
+                ListAgentGroups req = new ListAgentGroups()
+                    {
+                        Filter = new GXAgentGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected?.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req);
+                if (ret?.AgentGroups != null)
                 {
-                    agentGroups.Add(it);
+                    _selected.Items.AddRange(ret.AgentGroups);
                 }
-                if (!agentGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllAgentGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

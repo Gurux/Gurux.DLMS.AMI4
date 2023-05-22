@@ -82,9 +82,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetUserActionsByUser(userId);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXUserAction>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

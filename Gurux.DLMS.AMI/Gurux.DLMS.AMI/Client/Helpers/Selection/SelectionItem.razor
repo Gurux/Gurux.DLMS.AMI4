@@ -1,37 +1,47 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DTOs
-
+@typeparam TItem
 <li class="draggable" draggable="true" title="@Name" @ondragstart="@(() => HandleDragStart(Target))">
     <p class="description">@Description</p>
 </li>
 
 @code {
     [CascadingParameter]
-    SelectionContainer Container { get; set; }
+    SelectionContainer<TItem>? Container { get; set; }
+
+    [CascadingParameter]
+    SelectionList<TItem>? List { get; set; }
 
     [Parameter]
-    public object Target { get; set; }
+    public TItem? Target { get; set; }
 
-    public string Name
+    public string? Name
     {
         get
         {
-            return Container.GetName(Target);
+            if (List == null || Target == null)
+            {
+                return null;
+            }
+            return List.GetName(Target);
         }
     }
-    public string Description
+    public string? Description
     {
         get
         {
-            return Container.GetDescription(Target);
+            return List?.GetDescription(Target);
         }
     }
 
     [Parameter]
-    public System.Collections.IList SourceList { get; set; }
+    public List<TItem>? SourceList { get; set; }
 
-    private void HandleDragStart(object selectedJob)
+    private void HandleDragStart(TItem target)
     {
-        Container.SourceList = SourceList;
-        Container.Payload = selectedJob;
+        if (Container != null)
+        {
+            Container.SourceList = SourceList;
+            Container.Payload = target;
+        }
     }
 }

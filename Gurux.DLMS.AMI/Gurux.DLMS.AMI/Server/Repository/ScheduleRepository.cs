@@ -225,9 +225,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetSchedulesByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXSchedule>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)
@@ -268,15 +272,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     response.Count = schedules.Length;
                 }
             }
-            //Convert schedule times from invariant culture to UI culture.
-            foreach (GXSchedule schedule in schedules)
-            {
-                if (!string.IsNullOrEmpty(schedule.Start))
-                {
-                    schedule.Start = new GXDateTime(schedule.Start,
-                    CultureInfo.InvariantCulture).ToFormatString();
-                }
-            }
             return schedules;
         }
 
@@ -313,13 +308,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
-            //Convert start time from invariant culture to UI culture.
-            if (!string.IsNullOrEmpty(schedule.Start))
-            {
-                schedule.Start = new GXDateTime(schedule.Start,
-                    CultureInfo.InvariantCulture).ToFormatString();
-            }
-
             //Get objects with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template }, q => q.Removed == null);
             arg.Distinct = true;
@@ -402,7 +390,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                     //Schedule times are saved in InvariantCulture.
-                    schedule.Start = new GXDateTime(schedule.Start).ToFormatString(CultureInfo.InvariantCulture);
+                    schedule.Start = new GXDateTime(schedule.Start, CultureInfo.InvariantCulture).ToFormatString(CultureInfo.InvariantCulture);
                 }
                 catch (Exception)
                 {

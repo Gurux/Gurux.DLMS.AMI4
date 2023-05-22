@@ -144,7 +144,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            bool all = request != null && request.AllUsers && User.IsInRole(GXRoles.Admin);
+            if (all)
             {
                 //Admin can see all the devices.
                 arg = GXSelectArgs.SelectAll<GXDevice>();
@@ -154,6 +155,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetDevicesByUser(userId, Guid.Empty);
             }
+            //If devices are filtered by user.
+            if (request?.Filter?.DeviceGroups != null &&
+                request.Filter.DeviceGroups.SingleOrDefault() is GXDeviceGroup dg)
+            {
+                if (dg.UserGroups != null &&
+                    dg.UserGroups.SingleOrDefault() is GXUserGroup ug)
+                {
+                    if (ug?.Users != null && ug.Users.Any())
+                    {
+                        var user = ug.Users.FirstOrDefault();
+                        if (user != null)
+                        {
+                            GXSelectArgs userGroups = GXSelectArgs.Select<GXDeviceGroupDevice>(s => s.DeviceId);
+                            userGroups.Joins.AddLeftJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                            userGroups.Joins.AddLeftJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
+                            userGroups.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                            userGroups.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                            userGroups.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            userGroups.Where.FilterBy(user);
+                            arg.Where.And<GXDevice>(q => GXSql.Exists<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId, userGroups));
+                        }
+                    }
+                }
+                request.Filter.DeviceGroups = null;
+            }
+
             if (request != null && (request.Select & TargetType.DeviceTemplate) != 0)
             {
                 arg.Columns.Add<GXDeviceTemplate>();
@@ -161,9 +188,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.And<GXDeviceTemplate>(w => w.Removed == null);
             }
             arg.Columns.Exclude<GXDevice>(e => new { e.Settings, e.MediaSettings });
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXDevice>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

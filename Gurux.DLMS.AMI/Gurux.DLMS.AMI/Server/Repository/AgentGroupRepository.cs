@@ -163,9 +163,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetAgentGroupsByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
+                //If agent groups are filtered by user.
+                if (request.Filter?.UserGroups != null)
+                {
+                    var ug = request.Filter.UserGroups.FirstOrDefault();
+                    if (ug?.Users != null && ug.Users.Any())
+                    {
+                        var user = ug.Users.FirstOrDefault();
+                        if (user != null)
+                        {
+                            arg.Joins.AddLeftJoin<GXUserGroupAgentGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            arg.Where.FilterBy(user);
+                        }
+                    }
+                    request.Filter.UserGroups = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXAgentGroup>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && request.Count != 0)
             {
@@ -272,7 +293,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
-                    //Get default script groups if not admin.
+                    //Get default user groups.
                     it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(User,
                         ServerHelpers.GetUserId(User));
                     if (it.UserGroups == null || !it.UserGroups.Any())

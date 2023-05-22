@@ -24,9 +24,28 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="userGroups" />
-    <SelectionList Title="Available" ItemList="AllUserGroups" />
+<SelectionContainer TItem="GXUserGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
@@ -55,108 +74,255 @@
     private DeviceTemplateGroupTab? DeviceTemplateParent { get; set; }
 
     [CascadingParameter]
-    private ScheduleGroupTab? ScheduleGroupParent { get; set; }
+    private UserGroupTab? UserGroupParent { get; set; }
 
-    List<GXUserGroup> AllUserGroups = new List<GXUserGroup>();
-    List<GXUserGroup> userGroups = new List<GXUserGroup>();
+    SelectionList<GXUserGroup>? _selected;
+    SelectionList<GXUserGroup>? _available;
+    SelectionContainer<GXUserGroup>? _selectionContainer;
 
+    /// <summary>
+    /// User group filter.
+    /// </summary>
+    private GXUserGroup filter = new GXUserGroup(null);
 
-    public void OnUpdated(object target)
+    string? GetName(GXUserGroup target)
     {
-
+        return target.Name;
     }
 
-    public string GetName(object target)
+    string? GetDescription(GXUserGroup target)
     {
-        return (target as GXUserGroup).Name;
-    }
-    public string GetDescription(object target)
-    {
-        string str = (target as GXUserGroup).Description;
+        string? str = target.Description;
         if (string.IsNullOrEmpty(str))
         {
-            str = (target as GXUserGroup).Name;
+            str = target.Name;
         }
         return str;
     }
 
-    protected override async Task OnInitializedAsync()
+    protected async Task SearchSelectedByName(string? name)
     {
         try
         {
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            if (Notifier == null)
+            if (_selected?.Items != null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
             }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.Users = null;
+                }
+                else
+                {
+                    GXUser? user = filter.Users?.FirstOrDefault();
+                    if (user == null)
+                    {
+                        user = new();
+                        filter.Users = new(new GXUser[] { user });
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXUserGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXUserGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXUserGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
             ListUserGroups req = new ListUserGroups()
                 {
-                    Filter = new GXUserGroup()
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
                 };
-            //Get selected user groups.
-            if (ScheduleGroupParent?.Active?.UserGroups != null)
+            var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req, request.CancellationToken);
+            if (ret?.UserGroups != null && _selected != null)
             {
-                userGroups = ScheduleGroupParent.Active.UserGroups;
+                return new ItemsProviderResult<GXUserGroup>(ret.UserGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (_selectionContainer == null || _selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            CrudAction action;
+            //Get selected user groups.
+            if (DeviceGroupParent?.Active?.UserGroups != null)
+            {
+                _selected.Items = DeviceGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
             }
             else if (DeviceTemplateParent?.Active?.UserGroups != null)
             {
-                userGroups = DeviceTemplateParent.Active.UserGroups;
+                _selected.Items = DeviceTemplateParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(DeviceTemplateParent.Action);
             }
             else if (DeviceGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = DeviceGroupParent.Active.UserGroups;
+                _selected.Items = DeviceGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(DeviceGroupParent.Action);
             }
             else if (AgentGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = AgentGroupParent.Active.UserGroups;
+                _selected.Items = AgentGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(AgentGroupParent.Action);
             }
             else if (ModuleGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = ModuleGroupParent.Active.UserGroups;
+                _selected.Items = ModuleGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(ModuleGroupParent.Action);
             }
             else if (WorkflowGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = WorkflowGroupParent.Active.UserGroups;
+                _selected.Items = WorkflowGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(WorkflowGroupParent.Action);
             }
             else if (TriggerGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = TriggerGroupParent.Active.UserGroups;
+                _selected.Items = TriggerGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(TriggerGroupParent.Action);
             }
             else if (BlockGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = BlockGroupParent.Active.UserGroups;
+                _selected.Items = BlockGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(BlockGroupParent.Action);
             }
             else if (ComponentViewGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = ComponentViewGroupParent.Active.UserGroups;
+                _selected.Items = ComponentViewGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(ComponentViewGroupParent.Action);
             }
             else if (ScriptGroupParent?.Active?.UserGroups != null)
             {
-                userGroups = ScriptGroupParent.Active.UserGroups;
+                _selected.Items = ScriptGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(ScriptGroupParent.Action);
             }
             else if (UserParent?.Active?.UserGroups != null)
             {
-                userGroups = UserParent.Active.UserGroups;
+                _selected.Items = UserParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(UserParent.Action);
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !userGroups.Any();
-            var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req);
-            foreach (GXUserGroup it in ret.UserGroups)
+            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultGroups)
             {
-                //Add default groups when new object is created.
-                if (addDefaultBlocks && it.Default.HasValue && it.Default.Value &&
-                    !userGroups.Where(q => q.Id == it.Id).Any())
+                //Show default groups when new group is added.
+                ListUserGroups req = new ListUserGroups()
+                    {
+                        Filter = new GXUserGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListUserGroupsResponse>("api/UserGroup/List", req);
+                if (ret?.UserGroups != null)
                 {
-                    userGroups.Add(it);
+                    _selected.Items.AddRange(ret.UserGroups);
                 }
-                if (!userGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllUserGroups.Add(it);
-                }
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
             }
         }
         catch (AccessTokenNotAvailableException exception)

@@ -15,6 +15,7 @@
 @inject ILogger<MainLayout> Logger
 @inject SignOutSessionStateManager SignOutManager
 @inject HttpClient Http
+
 <div class="page">
     <div class="sidebar">
         <NavMenu @ref="NavMenu" />
@@ -92,7 +93,7 @@
             var t = await AuthState;
             try
             {
-                HttpResponseMessage response = await Http.GetAsync("api/Localization");
+                HttpResponseMessage response = await Http.GetAsync("api/Localization/");
                 ClientHelpers.ValidateStatusCode(response);
                 string language = await response.Content.ReadAsStringAsync();
                 if (!string.IsNullOrEmpty(language))
@@ -113,6 +114,7 @@
             }
             catch (Exception ex)
             {
+                Logger.LogError(ex.Message);
                 //It's OK if this fails.
             }
             Notifier.OnProgressStart += () =>

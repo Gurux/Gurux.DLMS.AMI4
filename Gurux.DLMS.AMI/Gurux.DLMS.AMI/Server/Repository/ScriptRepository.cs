@@ -199,6 +199,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Joins.AddInnerJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
                 }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXScript>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)
@@ -359,7 +363,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (script.ScriptGroups == null || !script.ScriptGroups.Any())
                 {
-                    //Get default script groups if not admin.
+                    //Get default script groups.
                     ListScriptGroups request = new ListScriptGroups()
                     {
                         Filter = new GXScriptGroup() { Default = true }

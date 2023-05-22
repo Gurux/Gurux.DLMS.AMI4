@@ -87,9 +87,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg = GXQuery.GetDeviceTracesByUser(userId, null);
             }
             arg.Columns.Add<GXDevice>(c => new { c.Id, c.Name });
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXDeviceTrace>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             //Trace is shown as ascending order;

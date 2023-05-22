@@ -39,8 +39,8 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Client.Pages.Config;
 using System.Linq.Expressions;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -187,6 +187,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //Admin can see all the schedule groups.
                 arg = GXSelectArgs.SelectAll<GXScheduleGroup>();
+                arg.Joins.AddLeftJoin<GXScheduleGroup, GXUserGroupScheduleGroup>(j => j.Id, j => j.UserGroupId);
             }
             else
             {
@@ -195,7 +196,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
+                //If schedule groups are filtered by user.
+                if (request.Filter?.UserGroups != null)
+                {
+                    var ug = request.Filter.UserGroups.FirstOrDefault();
+                    if (ug?.Users != null && ug.Users.Any())
+                    {
+                        var user = ug.Users.FirstOrDefault();
+                        if (user != null)
+                        {
+                            arg.Joins.AddLeftJoin<GXUserGroupScheduleGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                            arg.Where.FilterBy(user);
+                        }
+                    }
+                    request.Filter.UserGroups = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXScheduleGroup>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)
@@ -297,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
-                    //Get default script groups if not admin.
+                    //Get default user groups.
                     if (user != null)
                     {
                         it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user, userId);
@@ -375,7 +397,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             foreach (var it in updates)
             {
-                await _eventsNotifier.ScheduleGroupUpdate(it.Value, new GXScheduleGroup[] { it.Key });
+                //Only ID and name are notified.
+                await _eventsNotifier.ScheduleGroupUpdate(it.Value,
+                    new GXScheduleGroup[] { new GXScheduleGroup() { Id = it.Key.Id, Name = it.Key.Name } });
             }
             return list.ToArray();
         }

@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -16,17 +17,21 @@
 @if (Active != null)
 {
     <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <GXValidator @ref="_scheduleValidator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control"
                                placeholder=@Properties.Resources.ScheduleName />
+                    <ValidationMessage For="@(() => Active.Name)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ScheduleExecutionTime</label>
                     <input type="text" id="start" disabled="@IsDeleting" value="@GetDateTime()" class="form-control"
                        @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
+                    <ValidationMessage For="@(() => Active.Start)" />
                 </div>
                 @if (Active.CreationTime != DateTime.MinValue)
                 {
@@ -91,6 +96,8 @@
             return _active;
         }
     }
+
+    private GXValidator? _scheduleValidator;
 
     /// <summary>
     /// User action.
@@ -206,15 +213,44 @@
     }
 
     /// <summary>
+    /// Validate the schedule content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            //Check schedule start time.
+            try
+            {
+                GXDateTime tm = new GXDateTime(Active.Start);
+            }
+            catch (Exception ex)
+            {
+                sender.AddError(() => Active.Start, "Invalid start time.");
+            }
+        }
+    }
+
+    /// <summary>
     /// Save Active.
     /// </summary>
     public async void OnSave()
     {
         try
         {
+            _scheduleValidator?.ClearErrors();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_scheduleValidator != null && !_scheduleValidator.Validate())
+            {
+                return;
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
@@ -243,10 +279,20 @@
                 {
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
-                await Http.PostAsJson<UpdateScheduleResponse>(address, new UpdateSchedule()
+                string? dt = Active.Start;
+                try
+                {
+                    //Convert start time from UI culture to invariant culture.
+                    Active.Start = new GXDateTime(Active.Start).ToFormatString(CultureInfo.InvariantCulture);
+                    await Http.PostAsJson<UpdateScheduleResponse>(address, new UpdateSchedule()
                     {
                         Schedules = new List<GXSchedule>() { Active }
                     });
+                }
+                finally
+                {
+                    Active.Start = dt;
+                }
             }
             ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }

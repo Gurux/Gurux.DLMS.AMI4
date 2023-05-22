@@ -152,7 +152,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            bool allUsers = request != null && request.AllUsers && User.IsInRole(GXRoles.Admin);
+            if (allUsers)
             {
                 //Admin can see all the user groups.
                 arg = GXSelectArgs.SelectAll<GXUserGroup>();
@@ -166,7 +167,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
+                //If user groups are filtered by user.
+                if (request.Filter?.Users != null)
+                {
+                    var user = request.Filter.Users.FirstOrDefault();
+                    if (user != null && allUsers)
+                    {
+                        arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                        arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                    }
+                    arg.Where.FilterBy(user);
+                    request.Filter.Users = null;
+                }
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXUserGroup>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -316,7 +333,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (userGroup.Users != null && userGroup.Users.Any())
                     {
                         string[] tmp = userGroup.Users.Select(s => s.Id).ToArray();
-                        string[] removed = users.Except(tmp).ToArray(); 
+                        string[] removed = users.Except(tmp).ToArray();
                         string[] added = tmp.Except(users).ToArray();
                         foreach (var ug in added)
                         {

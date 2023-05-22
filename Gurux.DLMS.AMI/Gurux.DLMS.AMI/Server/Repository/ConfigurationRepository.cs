@@ -108,6 +108,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null && request.Filter != null)
             {
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXConfiguration>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0 && response != null)

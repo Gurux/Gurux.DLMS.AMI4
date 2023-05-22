@@ -174,6 +174,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 request.Filter.Models = null;
                 arg.Where.FilterBy(request.Filter);
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXManufacturer>(w => request.Exclude.Contains(w.Id) == false);
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {

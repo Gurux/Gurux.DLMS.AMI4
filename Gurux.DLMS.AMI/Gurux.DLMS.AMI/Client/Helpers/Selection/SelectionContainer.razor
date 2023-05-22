@@ -1,4 +1,5 @@
-﻿
+﻿@typeparam TItem
+
 <div class="selection-container">
     <CascadingValue Value="this">
         @ChildContent
@@ -6,33 +7,47 @@
 </div>
 
 @code {
-    public delegate string GetNameEventHandler(object target);
+    int _pageSize = 5;
 
-    public delegate string GetDescriptionEventHandler(object target);
+    /// <summary>
+    /// Page size.
+    /// </summary>
+    public int PageSize
+    {
+        get
+        {
+            return _pageSize;
+        }
+        set
+        {
+            if (_pageSize < 5)
+            {
+                _pageSize = 5;
+            }
+            _pageSize = value;
+        }
+    }
+
+    /// <summary>
+    /// How many page links there are before and after the selected page.
+    /// </summary>
+    [Parameter]
+    public int Spread { get; set; } = 2;
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     /// <summary>
     /// Item has moved between the lists.
     /// </summary>
-    [Parameter] public EventCallback<object> OnUpdated { get; set; }
+    [Parameter]
+    public EventCallback<TItem> OnUpdated { get; set; }
 
-    /// <summary>
-    /// Get name for the object.
-    /// </summary>
-    [Parameter] public GetNameEventHandler GetName { get; set; }
+    public List<TItem>? SourceList { get; set; }
 
-    /// <summary>
-    /// Get description for the object.
-    /// </summary>
-    [Parameter] public GetDescriptionEventHandler GetDescription { get; set; }
+    public TItem? Payload { get; set; }
 
-    public System.Collections.IList SourceList { get; set; }
-
-    public object Payload { get; set; }
-
-    public async Task UpdateJobAsync(SelectionList list, System.Collections.IList added)
+    public async Task UpdateJobAsync(SelectionList<TItem> list, List<TItem> added)
     {
         StateHasChanged();
         await OnUpdated.InvokeAsync(Payload);

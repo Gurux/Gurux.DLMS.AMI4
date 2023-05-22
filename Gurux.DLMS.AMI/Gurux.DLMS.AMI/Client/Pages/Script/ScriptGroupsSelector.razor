@@ -15,10 +15,30 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="scriptGroups" />
-    <SelectionList Title="Available" ItemList="AllScriptGroups" />
+<SelectionContainer TItem="GXScriptGroup" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
+
 
 @code {
 
@@ -28,69 +48,210 @@
     [CascadingParameter]
     private UserGroupTab? UserGroupParent { get; set; }
 
-    List<GXScriptGroup> AllScriptGroups = new List<GXScriptGroup>();
-    List<GXScriptGroup> scriptGroups = new List<GXScriptGroup>();
+    SelectionList<GXScriptGroup>? _selected;
+    SelectionList<GXScriptGroup>? _available;
+    SelectionContainer<GXScriptGroup>? _selectionContainer;
 
+    /// <summary>
+    /// Script group filter.
+    /// </summary>
+    private GXScriptGroup filter = new GXScriptGroup(null);
 
-    public void OnUpdated(object target)
+    string? GetName(GXScriptGroup target)
     {
-
+        return target.Name;
     }
 
-    public string GetName(object target)
+    string? GetDescription(GXScriptGroup target)
     {
-        return (target as GXScriptGroup).Name;
+        return target.Name;
     }
-    public string GetDescription(object target)
+
+    protected async Task SearchSelectedByName(string? name)
     {
-        return (target as GXScriptGroup).Name;
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Name != null && !it.Name.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.UserGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXUserGroup? ug = filter.UserGroups?.FirstOrDefault();
+                    if (ug == null)
+                    {
+                        user = new GXUser();
+                        ug = new GXUserGroup();
+                        filter.UserGroups = new(new GXUserGroup[] { ug });
+                        ug.Users = new(new GXUser[] { user });
+                    }
+                    else
+                    {
+                        user = filter.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXScriptGroup>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXScriptGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXScriptGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListScriptGroups req = new ListScriptGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListScriptGroupsResponse>("api/ScriptGroup/List", req, request.CancellationToken);
+            if (ret?.ScriptGroups != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXScriptGroup>(ret.ScriptGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
+            if (_selectionContainer == null || _selected == null)
             {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            Notifier?.ProgressStart();
-            Notifier?.ClearStatus();
-            ListScriptGroups req = new ListScriptGroups()
-                {
-                    Filter = new GXScriptGroup()
-                };
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            CrudAction action;
             if (UserGroupParent?.Active?.ScriptGroups != null)
             {
-                scriptGroups = UserGroupParent.Active.ScriptGroups;
+                _selected.Items = UserGroupParent.Active.ScriptGroups;
+                action = ClientHelpers.GetAction(UserGroupParent.Action);
             }
-            else if (ScriptParent != null && ScriptParent.Active != null && ScriptParent.Active.ScriptGroups != null)
+            else if (ScriptParent?.Active?.ScriptGroups != null)
             {
                 //Add selected script groups.
-                scriptGroups = ScriptParent.Active.ScriptGroups;
+                _selected.Items = ScriptParent.Active.ScriptGroups;
+                action = ClientHelpers.GetAction(ScriptParent.Action);
             }
             else
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (scriptGroups == null)
+            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
+            if (addDefaultGroups)
             {
-                throw new Exception(Properties.Resources.InvalidTarget);
+                //Show default groups when new group is added.
+                ListScriptGroups req = new ListScriptGroups()
+                    {
+                        Filter = new GXScriptGroup()
+                        {
+                            Default = true
+                        },
+                        Count = _selectionContainer.PageSize,
+                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListScriptGroupsResponse>("api/ScriptGroup/List", req);
+                if (ret?.ScriptGroups != null)
+                {
+                    _selected.Items.AddRange(ret.ScriptGroups);
+                }
             }
-            bool addDefaultBlocks = Notifier.Action == CrudAction.Create && !scriptGroups.Any();
-            var ret = await Http.PostAsJson<ListScriptGroupsResponse>("api/ScriptGroup/List", req);
-            foreach (GXScriptGroup it in ret.ScriptGroups)
+            //Read available items.
+            if (_available != null)
             {
-                //Add default groups when new script is created.
-                if (addDefaultBlocks && it.Default.GetValueOrDefault(false) &&
-                    !scriptGroups.Where(q => q.Id == it.Id).Any())
-                {
-                    scriptGroups.Add(it);
-                }
-                if (!scriptGroups.Exists(q => q.Id == it.Id))
-                {
-                    AllScriptGroups.Add(it);
-                }
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

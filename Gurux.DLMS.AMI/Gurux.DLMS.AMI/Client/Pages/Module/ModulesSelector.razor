@@ -11,60 +11,218 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 
-@inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer GetName="GetName" GetDescription="GetDescription">
-    <SelectionList Title="Selected" ItemList="modules" />
-    <SelectionList Title="Available" ItemList="AllModules" />
+<SelectionContainer TItem="GXModule" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
 </SelectionContainer>
 
 @code {
     [CascadingParameter]
     private ModuleGroupTab? Parent { get; set; }
 
-    List<GXModule> AllModules = new List<GXModule>();
-    List<GXModule> modules = new List<GXModule>();
+    SelectionList<GXModule>? _selected;
+    SelectionList<GXModule>? _available;
+    SelectionContainer<GXModule>? _selectionContainer;
+    /// <summary>
+    /// Module filter.
+    /// </summary>
+    private GXModule filter = new GXModule("");
 
-    string GetName(object target)
+    string? GetName(GXModule target)
     {
-        return (target as GXModule).Id;
+        return target.Id;
     }
-    string GetDescription(object target)
+
+    string? GetDescription(GXModule target)
     {
-        return (target as GXModule).Id;
+        return target.Id;
+    }
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Id != null && !it.Id.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (!string.IsNullOrEmpty(name))
+                {
+                    filter.Id = name;
+                }
+                else
+                {
+                    filter.Id = string.Empty;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.ModuleGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXModuleGroup? mg = filter.ModuleGroups?.FirstOrDefault();
+                    if (mg == null)
+                    {
+                        mg = new GXModuleGroup(null);
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        mg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.ModuleGroups = new List<GXModuleGroup>(new GXModuleGroup[] { mg });
+                    }
+                    else
+                    {
+                        user = mg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXModule>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXModule>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListModules req = new ListModules()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
+            if (ret?.Modules != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
     }
 
     protected override async Task OnInitializedAsync()
     {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (Parent?.Active?.Modules != null)
+            if (_selected != null && Parent?.Active?.Modules != null)
             {
-                modules = Parent.Active.Modules;
+                _selected.Items = Parent.Active.Modules;
             }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            ListModules req = new ListModules()
-                {
-                    Filter = new GXModule()
-                };
-            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req);
-            foreach (GXModule it in ret.Modules)
+            //Read available items.
+            if (_available != null)
             {
-                if (!modules.Exists(q => q.Id == it.Id))
-                {
-                    AllModules.Add(it);
-                }
+                await _available.RefreshDataAsync();
             }
         }
         catch (Exception ex)

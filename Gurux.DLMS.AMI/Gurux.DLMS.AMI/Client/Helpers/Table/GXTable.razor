@@ -148,9 +148,6 @@
 </CascadingValue>
 
 @code {
-    public delegate ValueTask<ItemsProviderResult<TREG>> GXItemsProviderDelegate<TREG>(GXItemsProviderRequest request);
-
-
     public delegate Task SearchDelegate();
 
     /// <summary>
@@ -471,8 +468,13 @@
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
         CancellationToken cancellationToken = _cts.Token;
-        GXItemsProviderRequest req = new GXItemsProviderRequest(ShowAllData ? 0 : CurrentPage * PageSize, ShowAllData ? 0 : PageSize,
-            ShowAllUserData, Removed, OrderBy, SortMode == SortMode.Descending, cancellationToken);
+        GXItemsProviderRequest req = new GXItemsProviderRequest(ShowAllData ? 0 : CurrentPage * PageSize,
+            ShowAllData ? 0 : PageSize,
+            ShowAllUserData,
+            Removed,
+            OrderBy,
+            SortMode == SortMode.Descending,
+            cancellationToken);
         try
         {
             var result = await ItemsProvider(req);

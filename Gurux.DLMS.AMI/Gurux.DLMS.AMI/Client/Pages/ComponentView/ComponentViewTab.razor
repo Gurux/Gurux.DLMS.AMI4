@@ -104,6 +104,10 @@
                 if (tmp?.Item != null)
                 {
                     Active = tmp.Item;
+                    if (Active.ComponentViewGroups == null)
+                    {
+                        Active.ComponentViewGroups = new List<GXComponentViewGroup>();
+                    }
                     StateHasChanged();
                 }
             }
