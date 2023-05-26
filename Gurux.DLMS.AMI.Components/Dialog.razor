@@ -1,0 +1,75 @@
+﻿<div class="modal fade show d-block" id="confirmanceModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmanceModalLabel">@Title</h5>
+                <button type="button" class="btn btn-close"
+                        data-dismiss="modal" aria-label="Close"
+                        @onclick="Cancel">
+                </button>
+            </div>
+            <div class="modal-body">
+                @ChildContent
+            </div>
+            <div class="modal-footer">
+                @if (OnOk != null)
+                {
+                    <button type="button" class="btn btn-primary"
+                            data-dismiss="modal" @onclick=Ok>
+                        @OkButtonTitle
+                    </button>
+                }
+                @if (OnCancel != null)
+                {
+                    <button type="button" class="btn btn-secondary"
+                            data-dismiss="modal" @onclick=Cancel>
+                        @CancelButtonTitle
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code
+{
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// User has accept the action.
+    /// </summary>
+    [Parameter]
+    public Action? OnOk { get; set; }
+
+    /// <summary>
+    /// User has Cancel the action.
+    /// </summary>
+    [Parameter]
+    public Action? OnCancel { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public string OkButtonTitle { get; set; } = "Save";
+
+    [Parameter]
+    public string CancelButtonTitle { get; set; } = "Cancel";
+
+    /// <summary>
+    /// User has accept the action.
+    /// </summary>
+    private void Ok()
+    {
+        OnOk?.Invoke();
+    }
+
+    /// <summary>
+    /// User has Cancel the action.
+    /// </summary>
+    private void Cancel()
+    {
+        OnCancel?.Invoke();
+    }
+}

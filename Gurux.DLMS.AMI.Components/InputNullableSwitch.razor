@@ -1,18 +1,16 @@
 ﻿@using System.Diagnostics.CodeAnalysis
 
-@namespace Gurux.DLMS.AMI.Components
-
 @inherits InputBase<bool?>
 
 <CascadingValue Value="this">
     <label class="form-check-label">@Text</label>
-    @ChildContent
     <div class="form-check form-switch">
         <input type="checkbox" checked="@CurrentValue"
                class="@CssClass"
                @attributes="AdditionalAttributes"
                disabled="@IsDisabled()"
-               onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToBoolean(__e.Value))" />
+               @onchange="(e => ChangeValue(e))" />
+        @ChildContent
     </div>
 </CascadingValue>
 
@@ -53,10 +51,23 @@
     {
         get;
         set;
-    } = "form-check-input";   
+    } = "form-check-input";
 
     private string? IsDisabled()
     {
         return Disabled ? "disabled" : null;
     }
+
+    private void ChangeValue(ChangeEventArgs e)
+    {
+        bool value = Convert.ToBoolean(e.Value);
+        CurrentValue = value;
+        OnChange?.Invoke(value);
+    }
+
+    /// <summary>
+    /// Receive notification when user changes the value.
+    /// </summary>
+    [Parameter]
+    public Action<bool>? OnChange { get; set; }
 }
