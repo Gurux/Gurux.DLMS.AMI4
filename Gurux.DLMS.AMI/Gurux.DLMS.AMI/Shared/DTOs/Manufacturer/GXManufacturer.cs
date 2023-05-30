@@ -115,7 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         }
 
         /// <summary>
-        /// List of manuafacturer device models.
+        /// List of manufacturer device models.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceModel))]

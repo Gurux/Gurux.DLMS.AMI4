@@ -36,6 +36,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -54,14 +55,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
         [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Traces),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions)
+            , nameof(GXDevice.Keys)
             , nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
         [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        [ExcludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
+        [ExcludeSwagger(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXDevice Item
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -85,9 +88,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
         [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Creator),
             nameof(GXDevice.Objects),
+            nameof(GXDevice.Keys),
             nameof(GXDevice.Actions), nameof(GXDevice.Traces),
             nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
-
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
@@ -95,7 +98,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-
+        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [ExcludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
+        [ExcludeSwagger(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXDevice[] Devices
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -159,6 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXDevice.Tasks), nameof(GXDevice.Traces)
             , nameof(GXDevice.ProfilePicture)
             , nameof(GXDevice.Settings)
+            , nameof(GXDevice.Keys)
             , nameof(GXDevice.MediaSettings))]
         [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
@@ -250,7 +256,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.DeviceGroups)
             , nameof(GXDevice.Parameters), nameof(GXDevice.Objects)
             , nameof(GXDevice.Actions), nameof(GXDevice.Errors),
-            nameof(GXDevice.Tasks), nameof(GXDevice.Traces))]
+            nameof(GXDevice.Tasks), nameof(GXDevice.Keys), nameof(GXDevice.Traces))]
         [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]

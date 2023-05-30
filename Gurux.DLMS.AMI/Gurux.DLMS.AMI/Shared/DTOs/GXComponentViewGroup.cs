@@ -129,7 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When component view group is updated last time.
+        /// When was the compoent view group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

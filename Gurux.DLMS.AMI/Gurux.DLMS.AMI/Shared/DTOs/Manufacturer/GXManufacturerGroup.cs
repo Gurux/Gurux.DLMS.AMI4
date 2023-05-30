@@ -170,7 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         }
 
         /// <summary>
-        /// When manufacturer group is updated last time.
+        /// When was the manufacturer group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

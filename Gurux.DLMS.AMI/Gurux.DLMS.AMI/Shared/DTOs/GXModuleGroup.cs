@@ -37,7 +37,7 @@ using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
-    // <summary>
+    /// <summary>
     /// Module group table.
     /// </summary>
     [DataContract(Name = "GXModuleGroup"), Serializable]
@@ -123,7 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When module group is updated last time.
+        /// When was the module group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]

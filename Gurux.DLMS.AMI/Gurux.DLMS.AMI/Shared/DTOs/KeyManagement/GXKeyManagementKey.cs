@@ -29,47 +29,28 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>
-    /// Schedule group controller.
+    /// Key management key.
     /// </summary>
-    [DataContract(Name = "GXScheduleGroup"), Serializable]
-    public class GXScheduleGroup : GXTableBase, IUnique<Guid>
+    [DataContract(Name = "GXKeyManagementKey"), Serializable]
+    public class GXKeyManagementKey : GXTableBase, IUnique<Guid>
     {
-
         /// <summary>
-        /// Constructor.
+        /// Identifier.
         /// </summary>
-        public GXScheduleGroup()
-        {
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        /// <remarks>
-        /// This constuctor is called when a new schedule group is created. It will create all needed lists.
-        /// </remarks>
-        /// <param name="name">Schedule group name.</param>
-        public GXScheduleGroup(string? name)
-        {
-            Name = name;
-            UserGroups = new List<GXUserGroup>();
-            Schedules = new List<GXSchedule>();
-            Description = string.Empty;
-        }
-
-        /// <summary>
-        /// Schedule group ID.
-        /// </summary>
+        [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;
@@ -77,26 +58,48 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Name of the schedule group.
+        /// The parent key management.
         /// </summary>
         [DataMember]
-        [StringLength(64)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [DefaultValue(null)]
         [Index(false)]
-        [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
+        public GXKeyManagement? KeyManagement
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Schedule group description.
+        /// Key type.
         /// </summary>
-		[DataMember]
-        [DefaultValue(null)]
-        [Filter(FilterType.Contains)]
-        public string? Description
+        [DataMember]
+        [IsRequired]
+        public KeyManagementType? KeyType
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Is data in ASCII or hex format.
+        /// </summary>      
+        [DataMember]
+        [IsRequired]
+        [DefaultValue(false)]
+        public bool? IsHex
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Key data.
+        /// </summary>      
+        [DataMember]
+        [IsRequired]
+        public string? Data
         {
             get;
             set;
@@ -105,8 +108,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Creation time.
         /// </summary>
-        [DataMember]
         [Index(false, Descend = true)]
+        [DataMember]
+        [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTime? CreationTime
@@ -116,22 +120,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Time when schedule group was removed.
+        /// When was the key management key last updated.
         /// </summary>
+        [Description("When was the key management key last updated.")]
         [DataMember]
-        [Index(false, Descend = true)]
         [DefaultValue(null)]
-        [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// When was the schedule group last updated.
-        /// </summary>
-        [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated
         {
@@ -140,7 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the item.
+        /// User has modified the key management key.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -167,44 +160,24 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// List of users groups that belongs to this schedule group.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupScheduleGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of schedules that this schedule group can access.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXSchedule), typeof(GXScheduleGroupSchedule))]
-        public List<GXSchedule>? Schedules
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// This is default schedule group where new schedules are added automatically when user creates them.
+        /// Remove time.
         /// </summary>
         [DataMember]
-        [DefaultValue(false)]
-        [Filter(FilterType.Exact)]
-        [IsRequired]
-        public bool? Default
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
         {
             get;
             set;
-        }        
+        }
 
         /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }
@@ -221,11 +194,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <inheritdoc/>
         public override string ToString()
         {
-            if (!string.IsNullOrEmpty(Name))
+            if (KeyType != null)
             {
-                return Name;
+                return KeyType.ToString() + " " + Data;
             }
-            return nameof(GXScheduleGroup);
+            return nameof(GXKeyManagementKey);
         }
     }
 }

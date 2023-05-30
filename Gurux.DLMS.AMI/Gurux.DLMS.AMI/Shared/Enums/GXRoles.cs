@@ -342,6 +342,31 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string ManufacturerGroupManager = "ManufacturerGroupManager";
 
+        /// <summary>
+        /// User can access key managements.
+        /// </summary>
+        public const string KeyManagement = "KeyManagement";
+        /// <summary>
+        /// User is key management manager.
+        /// </summary>
+        public const string KeyManagementManager = "KeyManagementManager";
+        /// <summary>
+        /// User can access key management groups.
+        /// </summary>
+        public const string KeyManagementGroup = "KeyManagementGroup";
+        /// <summary>
+        /// User is key management group manager.
+        /// </summary>
+        public const string KeyManagementGroupManager = "KeyManagementGroupManager";
+        /// <summary>
+        /// User can access key management logs.
+        /// </summary>
+        public const string KeyManagementLog = "KeyManagementLog";
+        /// <summary>
+        /// User is key management log manager.
+        /// </summary>
+        public const string KeyManagementLogManager = "KeyManagementLogManager";
+
         public static string ToString(string param1)
         {
             return param1;

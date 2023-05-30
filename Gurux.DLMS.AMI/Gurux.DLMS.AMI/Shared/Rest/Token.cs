@@ -147,11 +147,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class DeleteToken : IGXRequest<DeleteTokenResponse>
     {
         /// <summary>
-        /// Removed devices.
+        /// Removed tokens.
         /// </summary>
         [DataMember]
         [Description("Removed tokens.")]
-        public string[] Ids
+        public string[]? Ids
         {
             get;
             set;
@@ -164,6 +164,32 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     [Description("Delete tokens response.")]
     public class DeleteTokenResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate token.
+    /// </summary>
+    public class RegenerateToken : IGXRequest<RegenerateTokenResponse>
+    {
+        /// <summary>
+        /// Regenerated personal access token.
+        /// </summary>
+        [DataMember]
+        [Description("Regenerated personal access token.")]
+        public GXPersonalToken? Token
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Regenerated token response.
+    /// </summary>
+    [DataContract]
+    [Description("Regenerated token response.")]
+    public class RegenerateTokenResponse
     {
     }
 }

@@ -228,6 +228,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
         [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Traces),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions)
+            , nameof(GXDevice.Keys)
             , nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]

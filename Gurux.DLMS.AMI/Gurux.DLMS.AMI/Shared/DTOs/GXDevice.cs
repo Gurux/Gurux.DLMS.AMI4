@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
@@ -70,6 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Errors = new List<GXDeviceError>();
             DeviceGroups = new List<GXDeviceGroup>();
             Tasks = new List<GXTask>();
+            Keys = new List<GXKeyManagement>();
         }
 
         /// <summary>
@@ -228,7 +230,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When device is updated last time.
+        /// When was the device last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
@@ -395,6 +397,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+        /// <summary>
+        /// List of key managements.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagement))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagement>? Keys
+        {
+            get;
+            set;
+        }
+
 
         /// <summary>
         /// Latitude and Longitude.

@@ -55,6 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         int RowsPerPage
         {
             get;
+            set;
         }
 
         /// <summary>

@@ -133,7 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When block group is updated last time.
+        /// When was the block group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

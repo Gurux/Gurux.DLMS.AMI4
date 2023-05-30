@@ -32,39 +32,24 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get user group.
+    /// Get key management group.
     /// </summary>
-    public class GetUserGroupResponse
+    public class GetKeyManagementGroupResponse
     {
         /// <summary>
-        /// User group information.
+        /// Key management group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id),
-            nameof(GXUser.GivenName), nameof(GXUser.Surname))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
-            nameof(GXScheduleGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
-            nameof(GXDeviceGroup.Name))]
-        [ExcludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.DeviceTemplateGroups),
-            nameof(GXUserGroup.AgentGroups),
-            nameof(GXUserGroup.ModuleGroups),
-            nameof(GXUserGroup.WorkflowGroups),
-            nameof(GXUserGroup.TriggerGroups),
-            nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ComponentViewGroups),
-            nameof(GXUserGroup.ManufacturerGroups),
-            nameof(GXUserGroup.KeyManagementGroups),
-            nameof(GXUserGroup.ScriptGroups))]
-        public GXUserGroup? Item
+        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.SystemTitle))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        public GXKeyManagementGroup? Item
         {
             get;
             set;
@@ -72,10 +57,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get user group list.
+    /// Get key management group list.
     /// </summary>
     [DataContract]
-    public class ListUserGroups : IGXRequest<ListUserGroupsResponse>
+    public class ListKeyManagementGroups : IGXRequest<ListKeyManagementGroupsResponse>
     {
         /// <summary>
         /// Start index.
@@ -88,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the user groups to retreave.
+        /// Amount of the key management groups to retreave.
         /// </summary>
         public int Count
         {
@@ -97,23 +82,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Filter can be used to filter user groups.
+        /// Filter can be used to filter key management groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXUserGroup),
-            nameof(GXUserGroup.Users),
-            nameof(GXUserGroup.DeviceGroups),
-            nameof(GXUserGroup.ScheduleGroups),
-            nameof(GXUserGroup.DeviceTemplateGroups),
-            nameof(GXUserGroup.AgentGroups),
-            nameof(GXUserGroup.ModuleGroups),
-            nameof(GXUserGroup.WorkflowGroups),
-            nameof(GXUserGroup.TriggerGroups),
-            nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ComponentViewGroups),
-            nameof(GXUserGroup.ManufacturerGroups),
-            nameof(GXUserGroup.KeyManagementGroups),
-            nameof(GXUserGroup.ScriptGroups))]
-        public GXUserGroup? Filter
+        [ExcludeSwagger(typeof(GXKeyManagementGroup),
+           nameof(GXKeyManagementGroup.KeyManagements),
+           nameof(GXKeyManagementGroup.UserGroups))]
+        public GXKeyManagementGroup? Filter
         {
             get;
             set;
@@ -180,37 +154,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get user groups response.
+    /// Get key management groups response.
     /// </summary>
     [DataContract]
-    public class ListUserGroupsResponse
+    public class ListKeyManagementGroupsResponse
     {
         /// <summary>
-        /// List of user groups.
+        /// List of key management groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXUserGroup),
-            nameof(GXUserGroup.Users),
-            nameof(GXUserGroup.DeviceGroups),
-            nameof(GXUserGroup.ScheduleGroups),
-            nameof(GXUserGroup.DeviceTemplateGroups),
-            nameof(GXUserGroup.AgentGroups),
-            nameof(GXUserGroup.ModuleGroups),
-            nameof(GXUserGroup.WorkflowGroups),
-            nameof(GXUserGroup.TriggerGroups),
-            nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ComponentViewGroups),
-            nameof(GXUserGroup.ManufacturerGroups),
-            nameof(GXUserGroup.KeyManagementGroups),
-            nameof(GXUserGroup.ScriptGroups))]
-        public GXUserGroup[] UserGroups
+        [ExcludeSwagger(typeof(GXKeyManagementGroup),
+           nameof(GXKeyManagementGroup.KeyManagements),
+           nameof(GXKeyManagementGroup.UserGroups))]
+        public GXKeyManagementGroup[]? KeyManagementGroups
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Total count of the user groups.
+        /// Total count of the key management groups.
         /// </summary>
         [DataMember]
         public int Count
@@ -221,29 +184,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new user group.
+    /// Add new key management group.
     /// </summary>
     [DataContract]
-    public class AddUserGroup : IGXRequest<AddUserGroupResponse>
+    public class AddKeyManagementGroup : IGXRequest<AddKeyManagementGroupResponse>
     {
         /// <summary>
-        /// New user group(s).
+        /// New key management group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [IncludeSwagger(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
-        [IncludeSwagger(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id), nameof(GXManufacturerGroup.Name))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-        public GXUserGroup[] UserGroups
+        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        public GXKeyManagementGroup[]? KeyManagementGroups
         {
             get;
             set;
@@ -251,13 +203,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new user group response.
+    /// Add new key management group response.
     /// </summary>
     [DataContract]
-    public class AddUserGroupResponse
+    public class AddKeyManagementGroupResponse
     {
         /// <summary>
-        /// New user group IDs.
+        /// New key management group IDs.
         /// </summary>
         public Guid[]? Ids
         {
@@ -267,16 +219,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Remove user group.
+    /// Remove key management group.
     /// </summary>
     [DataContract]
-    public class RemoveUserGroup : IGXRequest<RemoveUserGroupResponse>
+    public class RemoveKeyManagementGroup : IGXRequest<RemoveKeyManagementGroupResponse>
     {
         /// <summary>
-        /// User group Ids to remove.
+        /// KeyManagement group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -298,10 +250,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Remove user group response.
+    /// Remove key management group response.
     /// </summary>
     [DataContract]
-    public class RemoveUserGroupResponse
+    public class RemoveKeyManagementGroupResponse
     {
     }
 }

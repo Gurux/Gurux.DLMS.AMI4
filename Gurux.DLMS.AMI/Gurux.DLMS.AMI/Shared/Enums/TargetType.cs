@@ -275,5 +275,15 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         [XmlEnum("35184372088832")]
         Version = 0x200000000000,
+        /// <summary>
+        /// Key management is changed.
+        /// </summary>
+        [XmlEnum("70368744177664")]
+        KeyManagement = 0x400000000000,
+        /// <summary>
+        /// Key management group is changed.
+        /// </summary>
+        [XmlEnum("140737488355328")]
+        KeyManagementGroup = 0x800000000000,
     }
 }

@@ -49,7 +49,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [IsRequired]
         [DataMember]
         [StringLength(36)]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string UserId
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -62,7 +64,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(36)]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string RoleId
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;

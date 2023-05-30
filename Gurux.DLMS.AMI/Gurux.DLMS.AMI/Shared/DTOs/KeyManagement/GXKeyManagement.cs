@@ -30,23 +30,24 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>
-    /// Schedule controller.
+    /// Keys table.
     /// </summary>
-    public class GXSchedule : GXTableBase, IUnique<Guid>
+    [DataContract(Name = "GXKeyManagement"), Serializable]
+    public partial class GXKeyManagement : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXSchedule()
+        public GXKeyManagement()
         {
         }
 
@@ -54,30 +55,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Constructor.
         /// </summary>
         /// <remarks>
-        /// This constuctor is called when a new schedule is created. It will create all needed lists.
+        /// This constuctor is called when a new key management is created. It will create all needed lists.
         /// </remarks>
-        /// <param name="name">Schedule name.</param>
-        public GXSchedule(string? name)
+        /// <param name="systemTitle">System title.</param>
+        public GXKeyManagement(string? systemTitle)
         {
-            Name = name;
-            Attributes = new List<GXAttribute>();
-            Objects = new List<GXObject>();
-            Devices = new List<GXDevice>();
-            ScriptMethods = new List<GXScriptMethod>();
-            DeviceGroups = new List<GXDeviceGroup>();
-            ScheduleGroups = new List<GXScheduleGroup>();
-            Triggers = new List<GXTrigger>();
-            Logs = new List<GXScheduleLog>();
-            Modules = new List<GXModule>();
+            SystemTitle = systemTitle;
+            KeyManagementGroups = new List<GXKeyManagementGroup>();
+            Logs = new List<GXKeyManagementLog>();
+            Keys = new List<GXKeyManagementKey>();
         }
 
         /// <summary>
-        /// Reader identifier.
+        /// Identifier.
         /// </summary>
-        [Description("Schedule identifier.")]
-        [DataMember]
-        //Filter uses default value.
-        [DefaultValue(null)]
+        [Key]
+        [DataMember(Name = "ID"), Index(Unique = true)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;
@@ -85,105 +79,36 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Scheduled attributes.
+        /// Key management name.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXAttribute), typeof(GXScheduleToAttribute))]
-        public List<GXAttribute>? Attributes
+        [Description("Key management name")]
+        [StringLength(64, ErrorMessage = "Name is too long.")]
+        [Index(false)]
+        [Filter(FilterType.Contains)]
+        [IsRequired]
+        public string? Name
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Scheduled objects.
+        /// Target device.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXObject), typeof(GXScheduleToObject))]
-        public List<GXObject>? Objects
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXDevice? Device
         {
             get;
             set;
         }
 
-        /// <summary>
-        /// Scheduled devices.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXDevice), typeof(GXScheduleToDevice))]
-        public List<GXDevice>? Devices
-        {
-            get;
-            set;
-        }
 
         /// <summary>
-        /// Scheduled device groups.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXDeviceGroup), typeof(GXScheduleToDeviceGroup))]
-        public List<GXDeviceGroup>? DeviceGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Scheduled script methods.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXScriptMethod), typeof(GXScheduleScript))]
-        public List<GXScriptMethod>? ScriptMethods
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Scheduled modules.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXModule), typeof(GXScheduleModule))]
-        public List<GXModule>? Modules
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Scheduled triggers.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXTrigger), typeof(GXScheduleTrigger))]
-        public List<GXTrigger>? Triggers
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of schedule groups where this schedule belongs.
-        /// </summary>
-        [DataMember,
-            ForeignKey(typeof(GXScheduleGroup), typeof(GXScheduleGroupSchedule))]
-        public List<GXScheduleGroup>? ScheduleGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Schedule logs.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXScheduleLog))]
-        public List<GXScheduleLog>? Logs
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// The creator of the schedule.
+        /// The creator of the key management.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
@@ -195,29 +120,60 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
-
         /// <summary>
-        /// Schedule name.
+        /// System title.
         /// </summary>
+        [Index(Unique = true)]
         [DataMember]
-        [StringLength(64)]
-        //Filter uses default value.
-        [DefaultValue(null)]
-        [Index(Unique = false)]
+        [IsRequired]
         [Filter(FilterType.Contains)]
-        public string? Name
+        [StringLength(16)]
+        public string? SystemTitle
         {
             get;
             set;
         }
-      
+
+        /// <summary>
+        /// Key management keys.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXKeyManagementKey))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementKey>? Keys
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of key management groups where this key management belongs.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagementGroup), typeof(GXKeyManagementGroupKeyManagement))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementGroup>? KeyManagementGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Key management logs.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXKeyManagementLog))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementLog>? Logs
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Creation time.
         /// </summary>
-        [DataMember]
-        //Filter uses default value.
-        [DefaultValue(null)]
         [Index(false, Descend = true)]
+        [DataMember]
+        [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTime? CreationTime
         {
@@ -226,8 +182,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When was the schedule last updated.
+        /// When was the key management last updated.
         /// </summary>
+        [Description("When was the key management last updated.")]
+        [DataMember]
+        [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated
         {
@@ -236,7 +195,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the item.
+        /// User has modified the key management.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -263,34 +222,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Schedule start time.
-        /// </summary>
-        [DataMember]
-        [StringLength(36)]
-        [Filter(FilterType.Contains)]
-        [IsRequired]
-        public string? Start
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Last execution time
-        /// </summary>
-        [DataMember]
-        //Filter uses default value.
-        [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? ExecutionTime
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Remove time.
         /// </summary>
-        //Filter uses default value.
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
@@ -299,7 +232,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }       
+        }
 
         /// <summary>
         /// Update creation time before update.
@@ -323,11 +256,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <inheritdoc/>
         public override string ToString()
         {
+            string str = string.Empty;
             if (!string.IsNullOrEmpty(Name))
             {
-                return Name;
+                str = Name;
             }
-            return nameof(GXSchedule);
+            if (!string.IsNullOrEmpty(SystemTitle))
+            {
+                str += " " + SystemTitle;
+            }
+            if (str == string.Empty)
+            {
+                str = nameof(GXKeyManagement);
+            }
+            return str;
         }
     }
 }

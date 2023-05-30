@@ -131,7 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When device group is updated last time.
+        /// When was the device group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

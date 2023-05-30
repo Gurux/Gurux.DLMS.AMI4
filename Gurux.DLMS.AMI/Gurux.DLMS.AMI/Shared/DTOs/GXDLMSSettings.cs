@@ -150,21 +150,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public string? Password
         {
-            get
-            {
-                return null;
-            }
-            set
-            {
-                if (value != null)
-                {
-                    HexPassword = ASCIIEncoding.ASCII.GetBytes(value);
-                }
-                else
-                {
-                    HexPassword = null;
-                }
-            }
+            get;
+            set;
+        }
+        
+        /// <summary>
+        /// Is hex password used.
+        /// </summary>
+        public bool IsHex
+        {
+            get;
+            set;
         }
 
         /// <summary>

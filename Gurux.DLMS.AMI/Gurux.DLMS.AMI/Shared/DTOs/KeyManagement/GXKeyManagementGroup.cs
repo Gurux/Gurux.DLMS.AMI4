@@ -35,19 +35,19 @@ using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>
-    /// Schedule group controller.
+    /// Key management group controller.
     /// </summary>
-    [DataContract(Name = "GXScheduleGroup"), Serializable]
-    public class GXScheduleGroup : GXTableBase, IUnique<Guid>
+    [DataContract(Name = "GXKeyManagementGroup"), Serializable]
+    public class GXKeyManagementGroup : GXTableBase, IUnique<Guid>
     {
 
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXScheduleGroup()
+        public GXKeyManagementGroup()
         {
         }
 
@@ -55,19 +55,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Constructor.
         /// </summary>
         /// <remarks>
-        /// This constuctor is called when a new schedule group is created. It will create all needed lists.
+        /// This constuctor is called when a new key management group is created. It will create all needed lists.
         /// </remarks>
-        /// <param name="name">Schedule group name.</param>
-        public GXScheduleGroup(string? name)
+        /// <param name="name">Key management group name.</param>
+        public GXKeyManagementGroup(string? name)
         {
             Name = name;
             UserGroups = new List<GXUserGroup>();
-            Schedules = new List<GXSchedule>();
-            Description = string.Empty;
+            KeyManagements = new List<GXKeyManagement>();
         }
 
         /// <summary>
-        /// Schedule group ID.
+        /// Key management group ID.
         /// </summary>
         [DataMember(Name = "ID"), Index(Unique = true)]
         public Guid Id
@@ -77,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Name of the schedule group.
+        /// Name of the key management group.
         /// </summary>
         [DataMember]
         [StringLength(64)]
@@ -91,7 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Schedule group description.
+        /// Key management group description.
         /// </summary>
 		[DataMember]
         [DefaultValue(null)]
@@ -116,7 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Time when schedule group was removed.
+        /// Time when key management group was removed.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
@@ -129,7 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When was the schedule group last updated.
+        /// When was the key management group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
@@ -167,9 +166,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// List of users groups that belongs to this schedule group.
+        /// List of users groups that belongs to this key management group.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupScheduleGroup))]
+        [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupKeyManagementGroup))]
         public List<GXUserGroup>? UserGroups
         {
             get;
@@ -177,17 +176,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// List of schedules that this schedule group can access.
+        /// List of key managements that this key management group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXSchedule), typeof(GXScheduleGroupSchedule))]
-        public List<GXSchedule>? Schedules
+        [DataMember, ForeignKey(typeof(GXKeyManagement), typeof(GXKeyManagementGroupKeyManagement))]
+        public List<GXKeyManagement>? KeyManagements
         {
             get;
             set;
         }
 
         /// <summary>
-        /// This is default schedule group where new schedules are added automatically when user creates them.
+        /// This is default key management group where new key managements are added automatically when user creates them.
         /// </summary>
         [DataMember]
         [DefaultValue(false)]
@@ -197,7 +196,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }        
+        }
 
         /// <summary>
         /// Update creation time before update.
@@ -225,7 +224,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             {
                 return Name;
             }
-            return nameof(GXScheduleGroup);
+            return nameof(GXKeyManagementGroup);
         }
     }
 }

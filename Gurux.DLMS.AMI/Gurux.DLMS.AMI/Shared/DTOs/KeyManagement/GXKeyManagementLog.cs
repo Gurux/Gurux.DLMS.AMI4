@@ -31,86 +31,63 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.Serialization;
-using System.ComponentModel.DataAnnotations;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
     /// <summary>
-    /// Device codes table.
+    /// Error that is caused by key management.
     /// </summary>
-    [DataContract(Name = "GXDeviceCodes"), Serializable]
-    public class GXDeviceCodes : IUnique<string>
+    [DataContract]
+    public class GXKeyManagementLog : GXTableBase, IUnique<Guid>
     {
-        //Identifier.
-        [StringLength(200)]
-        [DataMember(Name = "UserCode")]
-        [Filter(FilterType.Exact)]
-        [IsRequired]
-        public string Id
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXKeyManagementLog()
         {
-            get
-            {
-                return DeviceCode;
-            }
-            set
-            {
-                DeviceCode = value;
-            }
         }
 
         /// <summary>
-        /// Device code.
+        /// Constructor.
         /// </summary>
-        [DataMember]
-        [Index]
-        [StringLength(200)]
-        [IsRequired]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string DeviceCode
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        /// <remarks>
+        /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
+        /// </remarks>
+        /// <param name="level">Error severity level</param>
+        public GXKeyManagementLog(int level)
         {
-            get;
-            set;
+            Level = level;
         }
-        [DataMember]
-        [StringLength(200)]
-        public string? SubjectId
-        {
-            get;
-            set;
-        }
+
         /// <summary>
-        /// Session Id.
+        /// Constructor.
+        /// </summary>
+        /// <param name="level">Error severity level</param>
+        public GXKeyManagementLog(TraceLevel level) : this((int)level)
+        {
+        }
+
+        /// <summary>
+        /// Error Id.
         /// </summary>
         [DataMember]
-        [StringLength(100)]
-        public string? SessionId
+        public Guid Id
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Client Id.
+        /// The changed key management.
         /// </summary>
         [DataMember]
-        [StringLength(200)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [DefaultValue(null)]
+        [Index(false)]
         [IsRequired]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string ClientId
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Description.
-        /// </summary>
-        [DataMember]
-        [StringLength(200)]
-        public string? Description
+        public GXKeyManagement? KeyManagement
         {
             get;
             set;
@@ -121,36 +98,74 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
-        [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTime? CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Expiration time.
+        /// Error is active if closed time is not set.
         /// </summary>
         [DataMember]
-        [IsRequired]
         [Index(false)]
-        public DateTime Expiration
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Closed
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Data.
+        /// KeyManagement log string.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
         [IsRequired]
-        public string Data
+        public string? Message
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Stack trace.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
+        public string? StackTrace
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Error severity level.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(1)]
+        [IsRequired]
+        [Filter(FilterType.Exact)]
+        public int? Level
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Update creation time before update.
+        /// </summary>
+        public override void BeforeAdd()
+        {
+            if (CreationTime == DateTime.MinValue)
+            {
+                CreationTime = DateTime.Now;
+            }
         }
     }
 }

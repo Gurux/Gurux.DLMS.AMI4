@@ -175,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When agent group is updated last time.
+        /// When was the agent group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

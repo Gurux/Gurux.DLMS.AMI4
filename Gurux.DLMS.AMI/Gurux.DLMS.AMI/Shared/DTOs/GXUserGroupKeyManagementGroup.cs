@@ -30,76 +30,48 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
-using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// Persisted access tokes are saved for this table.
+    /// A data contract class representing User Group to key management group binding object.
     /// </summary>
-    [DataContract(Name = "GXPersistedGrants"), Serializable]
-    public class GXPersistedGrants : IUnique<string>
+    [DataContract(Name = "GXUserGroupKeyManagementGroup"), Serializable]
+    [IndexCollection(true, nameof(UserGroupId), nameof(KeyManagementGroupId), Clustered = true)]
+    public class GXUserGroupKeyManagementGroup
     {
         /// <summary>
-        /// Identifier.
+        /// The database ID of the user group
         /// </summary>
-        [StringLength(200)]
-        [DataMember(Name = "Key")]
-        [Filter(FilterType.Exact)]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string Id
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        [StringLength(50)]
-        public string Type
-        {
-            get;
-            set;
-        }
-
-        [StringLength(200)]
-        [DataMember]
-        public string SubjectId
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        [StringLength(100)]
-        public string SessionId
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        [StringLength(200)]
-        public string ClientId
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        [StringLength(200)]
-        public string Description
+        [DataMember(Name = "UserGroupID")]
+        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        public Guid UserGroupId
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Creation time.
+        /// The database ID of the user
         /// </summary>
-        [DataMember]
+        [DataMember(Name = "KeyManagementGroupID")]
+        [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        public Guid KeyManagementGroupId
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+		/// Creation time.
+		/// The time when the key management group was added to the user group.
+		/// </summary>
+		[DataMember]
+        [Description("Creation time.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
@@ -110,25 +82,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// Expiration time.
+        /// Time when key management group was removed from user group.
         /// </summary>
         [DataMember]
-        [Index(false)]
-        public DateTime Expiration
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        public DateTime ConsumedTime
-        {
-            get;
-            set;
-        }
-
-        [DataMember]
-        public string Data
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
         {
             get;
             set;

@@ -312,7 +312,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// When user is updated last time.
+        /// When was the user last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]

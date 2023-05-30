@@ -219,9 +219,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When agent is updated last time.
+        /// When was the agent last updated.
         /// </summary>
-        [Description("When agent is updated last time.")]
+        [Description("When was the agent last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated

@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -72,6 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             ComponentViewGroups = new List<GXComponentViewGroup>();
             ScriptGroups = new List<GXScriptGroup>();
             ManufacturerGroups = new List<GXManufacturerGroup>();
+            KeyManagementGroups = new List<GXKeyManagementGroup>();
         }
 
         /// <summary>
@@ -139,7 +141,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When user group is updated last time.
+        /// When was the user group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
@@ -303,6 +305,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember, ForeignKey(typeof(GXManufacturerGroup), typeof(GXUserGroupManufacturerGroup))]
         [DefaultValue(null)]
         public List<GXManufacturerGroup>? ManufacturerGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of key management groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXKeyManagementGroup), typeof(GXUserGroupKeyManagementGroup))]
+        [DefaultValue(null)]
+        public List<GXKeyManagementGroup>? KeyManagementGroups
         {
             get;
             set;

@@ -36,6 +36,9 @@ using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle personal access tokens.
+    /// </summary>
     public interface IPatRepository
     {
         /// <summary>
@@ -55,7 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXPersonalToken[]> GetPersonalTokensAsync(ClaimsPrincipal User, ListTokens? request);
 
         /// <summary>
-        /// Add new personal token.
+        /// Add new personal access token.
         /// </summary>
         /// <param name="User">User</param>
         /// <param name="token"></param>
@@ -67,5 +70,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">User</param>
         /// <param name="id">Removed token ID</param>
         Task<GXPersonalToken> RemovePersonalTokenAsync(ClaimsPrincipal User, string id);
+
+        /// <summary>
+        /// Regenerate personal access token.
+        /// </summary>
+        /// <param name="User">User</param>
+        /// <param name="token"></param>
+        Task<string> RegeneratePersonalTokenAsync(ClaimsPrincipal User, GXPersonalToken token);
     }
 }
