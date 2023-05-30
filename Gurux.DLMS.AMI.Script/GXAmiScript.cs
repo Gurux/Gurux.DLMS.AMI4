@@ -44,6 +44,7 @@ using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.Loader;
+using System.Runtime.ExceptionServices;
 
 namespace Gurux.DLMS.AMI.Script
 {
@@ -78,14 +79,6 @@ namespace Gurux.DLMS.AMI.Script
                 }
             }
         }
-
-        /// <inheritdoc cref="IGXAmi.Data"/>
-        public object? Data
-        {
-            get;
-            set;
-        }
-
 
         /// <inheritdoc cref="IGXAmi.User"/>
         public GXUser? User
@@ -444,14 +437,26 @@ namespace Gurux.DLMS.AMI.Script
             {
                 throw new ArgumentException(string.Format("Invalid method name {0}.", args.MethodName));
             }
-            if (args.Asyncronous)
+            try
             {
-                return await Task.Run(() =>
+                if (args.Asyncronous)
                 {
-                    return entryPoint.Invoke(instance, null);
-                });
+                    return await Task.Run(() =>
+                    {
+                        return entryPoint.Invoke(instance, args.Parameters);
+                    });
+                }
+                return entryPoint.Invoke(instance, args.Parameters);
             }
-            return entryPoint.Invoke(instance, null);
+            catch (Exception ex)
+            {
+                if (ex.InnerException == null)
+                {
+                    throw;
+                }
+                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
+                return null;
+            }
         }
 
         /// <inheritdoc cref="IGXAmi.GetService"/>

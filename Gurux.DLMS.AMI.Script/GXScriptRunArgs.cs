@@ -68,5 +68,14 @@ namespace Gurux.DLMS.AMI.Script
             get;
             set;
         }
+
+        /// <summary>
+        /// Script parameters.
+        /// </summary>
+        public object?[]? Parameters
+        {
+            get;
+            set;
+        }
     }
 }

@@ -46,18 +46,6 @@ namespace Gurux.DLMS.AMI.Script
         }
 
         /// <summary>
-        /// Received data.
-        /// </summary>
-        /// <remarks>
-        /// This is used when meter sends push message.
-        /// </remarks>
-        object? Data
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// User that owns the script.
         /// </summary>
         GXUser? User
