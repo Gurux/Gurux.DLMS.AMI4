@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2305.3001" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2305.3002" />
   </ItemGroup>
 
   <ItemGroup>
