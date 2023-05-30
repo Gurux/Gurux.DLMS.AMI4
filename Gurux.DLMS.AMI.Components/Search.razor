@@ -9,10 +9,10 @@
                value="@Value"
                onsearch="@(() => OnSearch())"
                placeholder="@Placeholder"
-               @oninput="@((ChangeEventArgs __e) => Value = Convert.ToString(__e.Value))" />
+               oninput="@((ChangeEventArgs __e) => Value = Convert.ToString(__e.Value))" />
         <span class="input-group-append">
             <button class="btn btn-outline-secondary border-left-0 border" type="button"
-                    @onclick=OnSearch>
+                    onclick="@(() => OnSearch())">
                 <i class="oi oi-magnifying-glass"></i>
             </button>
         </span>

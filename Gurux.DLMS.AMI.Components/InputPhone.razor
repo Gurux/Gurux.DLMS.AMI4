@@ -2,4 +2,4 @@
 <input type="tel" value="@CurrentValue"
        class="@CssClass"
        @attributes="AdditionalAttributes"
-       onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToString(__e.Value))" />
+       onchange="@((ChangeEventArgs e) => CurrentValue = Convert.ToString(e.Value))" />

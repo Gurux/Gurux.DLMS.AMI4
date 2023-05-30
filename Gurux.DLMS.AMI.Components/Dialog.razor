@@ -5,7 +5,7 @@
                 <h5 class="modal-title" id="confirmanceModalLabel">@Title</h5>
                 <button type="button" class="btn btn-close"
                         data-dismiss="modal" aria-label="Close"
-                        @onclick="Cancel">
+                        onclick="@(() => Cancel())">
                 </button>
             </div>
             <div class="modal-body">
@@ -15,14 +15,14 @@
                 @if (OnOk != null)
                 {
                     <button type="button" class="btn btn-primary"
-                            data-dismiss="modal" @onclick=Ok>
+                            data-dismiss="modal" onclick="@(() => Ok())">
                         @OkButtonTitle
                     </button>
                 }
                 @if (OnCancel != null)
                 {
                     <button type="button" class="btn btn-secondary"
-                            data-dismiss="modal" @onclick=Cancel>
+                            data-dismiss="modal" onclick="@(() => Cancel())">
                         @CancelButtonTitle
                     </button>
                 }
