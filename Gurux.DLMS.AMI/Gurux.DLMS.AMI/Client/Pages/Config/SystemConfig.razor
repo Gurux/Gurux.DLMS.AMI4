@@ -37,26 +37,30 @@
                     <label>@Properties.Resources.EnableSwagger</label>
                 </div>
                 <div class="form-group">
-                    <label>Site email address</label>
+                    <label>@Properties.Resources.SiteEmailAddress</label>
                     <InputText id="siteEmailAddress" class="form-control"
                            @bind-Value="_settings.SiteEmailAddress" />
                 </div>
                 <div class="form-group">
-                    <label>Rows per page</label>
-                    <InputNumber id="rows" class="form-control"
-                             @bind-Value="_settings.RowsPerPage" />
+                    <label>@Properties.Resources.RowsPerPage</label>
+                    <select class="form-select" @bind="_settings.RowsPerPage">
+                        @foreach (var it in RowsPerPage)
+                        {
+                            <option value="@it">@it</option>
+                        }
+                    </select>
                 </div>
             </div>
         </div>
+        <button type="button" style="float: right;" class="btn btn-danger"
+            @onclick="() => OnRestart()">
+            Restart
+        </button>
     </EditForm>
 }
-<button type="button" class="btn btn-danger"
-        @onclick="() => OnRestart()">
-    Restart
-</button>
-
 
 @code {
+    int[] RowsPerPage = new int[] { 10, 20, 50, 100 };
 
     /// <inheritdoc/>
     public void Update()

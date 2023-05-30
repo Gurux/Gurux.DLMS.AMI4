@@ -954,4 +954,88 @@
   <data name="FilterByUser" xml:space="preserve">
     <value>Filter by user...</value>
   </data>
+  <data name="KeyManagementGroups" xml:space="preserve">
+    <value>Key management groups</value>
+  </data>
+  <data name="KeyManagements" xml:space="preserve">
+    <value>Key managements</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Key management</value>
+  </data>
+  <data name="KeyManagementGroup" xml:space="preserve">
+    <value>Key management group</value>
+  </data>
+  <data name="KeyManagementLogs" xml:space="preserve">
+    <value>Key management logs</value>
+  </data>
+  <data name="SystemTitle" xml:space="preserve">
+    <value>System title</value>
+  </data>
+  <data name="KeyManagementKeys" xml:space="preserve">
+    <value>Keys</value>
+  </data>
+  <data name="KeyManagementKey" xml:space="preserve">
+    <value>Key</value>
+  </data>
+  <data name="KeyManagementLLSPassword" xml:space="preserve">
+    <value>Low level security password</value>
+  </data>
+  <data name="KeyManagementPublicKey" xml:space="preserve">
+    <value>Public key</value>
+  </data>
+  <data name="KeyManagementPrivateKey" xml:space="preserve">
+    <value>Private key</value>
+  </data>
+  <data name="KeyManagementHLSPassword" xml:space="preserve">
+    <value>High level security password</value>
+  </data>
+  <data name="KeyManagementAuthenticationKey" xml:space="preserve">
+    <value>Authentication key</value>
+  </data>
+  <data name="KeyManagementBroadcast" xml:space="preserve">
+    <value>Broadcast key</value>
+  </data>
+  <data name="KeyManagementUnicastKey" xml:space="preserve">
+    <value>Unicast key</value>
+  </data>
+  <data name="KeyManagementKeyType" xml:space="preserve">
+    <value>Key type</value>
+  </data>
+  <data name="InvalidKey" xml:space="preserve">
+    <value>Invalid password or key.</value>
+  </data>
+  <data name="Hex" xml:space="preserve">
+    <value>Hex</value>
+  </data>
+  <data name="KeyManagementMasterKey" xml:space="preserve">
+    <value>Master key</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="DeviceSystemTitle" xml:space="preserve">
+    <value>Device system title</value>
+  </data>
+  <data name="ClientSystemTitle" xml:space="preserve">
+    <value>Client system title</value>
+  </data>
+  <data name="InvalidSystemTitle" xml:space="preserve">
+    <value>Invalid system title.</value>
+  </data>
+  <data name="InvalidBlockCipherKey" xml:space="preserve">
+    <value>Invalid block cipher key.</value>
+  </data>
+  <data name="InvalidAuthenticationKey" xml:space="preserve">
+    <value>Invalid authentication key.</value>
+  </data>
+  <data name="PreEstablishedConnection" xml:space="preserve">
+    <value>Pre-established connection</value>
+  </data>
+  <data name="RowsPerPage" xml:space="preserve">
+    <value>Rows per page</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Site email address</value>
+  </data>
 </root>

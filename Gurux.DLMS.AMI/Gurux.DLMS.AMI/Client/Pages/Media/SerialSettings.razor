@@ -168,7 +168,14 @@
 
     protected override void OnInitialized()
     {
-        _serial.Settings = _settings;
+        try
+        {
+            _serial.Settings = _settings;
+        }
+        catch (Exception)
+        {
+            //Settings might fail when media type is changed.
+        }
     }
 
     /// <summary>

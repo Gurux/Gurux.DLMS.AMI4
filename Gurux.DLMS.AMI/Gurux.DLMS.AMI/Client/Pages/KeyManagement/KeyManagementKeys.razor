@@ -1,0 +1,300 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.KeyManagementKeys</PageTitle>
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+    </ChildContent>
+</MenuControl>
+
+@if (KeyAction != CrudAction.None)
+{
+    <!--Show key.-->
+    <KeyManagementKey Parent="this"></KeyManagementKey>
+}
+<GXTable @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         OnCellChanged="EditKey"
+         OnSearch="@Updated">
+    <FilterContent>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="KeyType">@Properties.Resources.KeyManagementKeyType</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@ClientHelpers.GetKeyTypeDescription(item.KeyType)</td>
+        <td>@item.CreationTime</td>
+        <td>@item.Updated</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         AllowDelete="false"
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+    internal CrudAction KeyAction;
+    internal GXKeyManagementKey? Active;
+
+    /// <summary>
+    /// Close key manager key form.
+    /// </summary>
+    internal void Update()
+    {
+        KeyAction = CrudAction.None;
+        StateHasChanged();
+    }
+
+    [Parameter]
+    public KeyManagement? Parent { get; set; }
+
+    internal GXKeyManagement? KeyManagement
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Key management key filter.
+    /// </summary>
+    private GXKeyManagementKey filter = new GXKeyManagementKey();
+    /// <summary>
+    /// User is verified before key management key is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXKeyManagementKey>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.On<IEnumerable<GXKeyManagement>>(this, nameof(IGXHubEvents.KeyManagementUpdate), async (keys) =>
+            {
+                await Updated();
+            });
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXKeyManagementKey>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        try
+        {
+            if (KeyManagement?.Keys != null)
+            {
+                return new(new ItemsProviderResult<GXKeyManagementKey>(
+                    KeyManagement.Keys, KeyManagement.Keys.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new key management.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            if (Parent == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            KeyAction = CrudAction.Create;
+            Active = new GXKeyManagementKey();
+            StateHasChanged();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit key management key.
+    /// </summary>
+    private void EditKey(GXKeyManagementKey item)
+    {
+        try
+        {
+            if (table != null)
+            {
+                table.Active = item;
+            }
+            OnEdit();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit key management key.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            if (Parent == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            KeyAction = CrudAction.Update;
+            Active = table?.Active;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private string[] GetKeyTypes(KeyManagementType?[] types)
+    {
+        List<string> list = new();
+        foreach (var type in types)
+        {
+            list.Add(ClientHelpers.GetKeyTypeDescription(type));
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>
+    /// Remove selected key management.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(GetKeyTypes(table.SingleOrDefault().Select(s => s.KeyType).ToArray()));
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected key management keys.
+    /// </summary>
+    public void OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm && Parent?.Active?.Keys != null)
+            {
+                foreach (var it in table.SingleOrDefault())
+                {
+                    Parent.Active.Keys.Remove(it);
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

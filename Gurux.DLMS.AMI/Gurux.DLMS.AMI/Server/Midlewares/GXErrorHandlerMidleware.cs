@@ -38,6 +38,7 @@ using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
+using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
@@ -51,6 +52,29 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         {
             _next = next;
             _userErrorRepository = userErrorRepository;
+        }
+
+        private async Task AddUserErrorAsync(ClaimsPrincipal user, Exception ex)
+        {
+            try
+            {
+                //Add error to user errors.
+                GXUserError error = new GXUserError()
+                {
+                    User = new GXUser()
+                    {
+                        Id = ServerHelpers.GetUserId(user)
+                    },
+                    CreationTime = DateTime.Now,
+                    Message = ex.Message,
+                };
+                await _userErrorRepository.AddAsync(user, 
+                    new GXUserError[] { error});
+            }
+            catch (Exception)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
 
         public async Task Invoke(HttpContext context,
@@ -67,6 +91,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (GXAMIForbiddenException ex)
             {
+                await AddUserErrorAsync(context.User, ex);
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -84,24 +109,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (GXAmiNotFoundException ex)
             {
-                try
-                {
-                    //Add error to user errors.
-                    GXUserError error = new GXUserError()
-                    {
-                        User = new GXUser()
-                        {
-                            Id = ServerHelpers.GetUserId(context.User)
-                        },
-                        CreationTime = DateTime.Now,
-                        Message = ex.Message,
-                    };
-                    await _userErrorRepository.AddAsync(context.User, new GXUserError[] { error });
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine(ex.ToString());
-                }
+                await AddUserErrorAsync(context.User, ex);
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.NotFound;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -120,6 +128,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
 
             catch (UnauthorizedAccessException ex)
             {
+                await AddUserErrorAsync(context.User, ex);
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -137,6 +146,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (ArgumentException ex)
             {
+                await AddUserErrorAsync(context.User, ex);
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -154,6 +164,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (GXAmiException ex)
             {
+                await AddUserErrorAsync(context.User, ex);
                 context.Response.ContentType = "text/plain";
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
@@ -171,6 +182,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             catch (Exception ex)
             {
+                await AddUserErrorAsync(context.User, ex);
                 GXSystemLog err = await systemErrorRepository.AddAsync(context.User, ex);
                 context.Response.ContentType = "application/json";
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;

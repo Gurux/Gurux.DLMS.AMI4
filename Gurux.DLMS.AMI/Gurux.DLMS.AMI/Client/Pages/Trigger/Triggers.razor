@@ -28,12 +28,19 @@
     <MenuControl RightCorner="true">
         <ChildContent>
             <MenuItem Text="@Properties.Resources.Refresh" Icon="oi oi-reload" OnClick="@OnRefresh" />
-            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
         </ChildContent>
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="trigger" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="trigger"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowAllData="true"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="@Filter"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"

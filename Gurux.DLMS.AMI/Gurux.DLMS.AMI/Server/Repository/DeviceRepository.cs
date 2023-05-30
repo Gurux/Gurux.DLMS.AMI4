@@ -41,6 +41,13 @@ using System.Data;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.Linq.Expressions;
+using System;
+using System.Text.Json;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Org.BouncyCastle.Ocsp;
+using System.Threading;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -52,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IServiceProvider _serviceProvider;
         private readonly IDeviceGroupRepository _deviceGroupRepository;
         private readonly IUserRepository _userRepository;
-        private GXPerformanceSettings _performanceSettings;
+        private readonly IKeyManagementRepository _keyManagementRepository;
 
         /// <summary>
         /// Constructor.
@@ -63,14 +70,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IDeviceGroupRepository deviceGroupRepository,
             IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository,
-            GXPerformanceSettings performanceSettings)
+            IKeyManagementRepository keyManagementRepository)
         {
             _host = host;
             _serviceProvider = serviceProvider;
             _eventsNotifier = eventsNotifier;
             _deviceGroupRepository = deviceGroupRepository;
             _userRepository = userRepository;
-            _performanceSettings = performanceSettings;
+            _keyManagementRepository = keyManagementRepository;
         }
 
         /// <inheritdoc />
@@ -257,11 +264,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
             arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-            bool isAdmin = false;
-            if (User != null)
-            {
-                isAdmin = User.IsInRole(GXRoles.Admin);
-            }
+            bool isAdmin = User.IsInRole(GXRoles.Admin);
             GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg);
             if (device == null)
             {
@@ -273,7 +276,139 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Exclude<GXModule>(e => e.DeviceParameters);
             arg.Joins.AddInnerJoin<GXDeviceParameter, GXModule>(j => j.Module, j => j.Id);
             device.Parameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
+            //Get device password. This is obsolete.
+            //The Agent ask keys from the key management.
+            if (!string.IsNullOrEmpty(device.Settings))
+            {
+                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(device.Settings);
+                if (s != null && s.HexPassword == null)
+                {
+                    if (s.Authentication != (byte)Enums.Authentication.None ||
+                        s.Security != (byte)Enums.Security.None)
+                    {
+                        ListKeyManagements req = new ListKeyManagements()
+                        {
+                            Filter = new GXKeyManagement()
+                            {
+                                Device = device
+                            },
+                            Select = TargetType.KeyManagementKey
+                        };
+                        var list = await _keyManagementRepository.ListAsync(User, req, null, default);
+                        //Update password.
+                        foreach (var it in list)
+                        {
+                            if (it.Keys != null)
+                            {
+                                foreach (var key in it.Keys)
+                                {
+                                    if ((byte)key.KeyType.GetValueOrDefault(0) == s.Authentication &&
+                                        !string.IsNullOrEmpty(key.Data))
+                                    {
+                                        if (key.IsHex.GetValueOrDefault(false))
+                                        {
+                                            s.HexPassword = GXDLMSTranslator.HexToBytes(key.Data);
+                                        }
+                                        else
+                                        {
+                                            s.HexPassword = ASCIIEncoding.ASCII.GetBytes(key.Data);
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        //Update block cipher key.
+                        if (s.Authentication == (byte)Enums.Authentication.HighGMAC ||
+                            s.Security != 0)
+                        {
+                            foreach (var it in list)
+                            {
+                                if (it.Keys != null)
+                                {
+                                    foreach (var key in it.Keys)
+                                    {
+                                        if (key.KeyType.GetValueOrDefault(0) == KeyManagementType.BlockCipher &&
+                                            !string.IsNullOrEmpty(key.Data))
+                                        {
+                                            if (key.IsHex.GetValueOrDefault(false))
+                                            {
+                                                s.BlockCipherKey = key.Data;
+                                            }
+                                            else
+                                            {
+                                                var bytes = ASCIIEncoding.ASCII.GetBytes(key.Data);
+                                                s.BlockCipherKey = GXDLMSTranslator.ToHex(bytes, false);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        //Update authentication key.
+                        if (s.Authentication == (byte)Enums.Authentication.HighGMAC ||
+                            s.Security != 0)
+                        {
+                            foreach (var it in list)
+                            {
+                                if (it.Keys != null)
+                                {
+                                    foreach (var key in it.Keys)
+                                    {
+                                        if (key.KeyType.GetValueOrDefault(0) == KeyManagementType.Authentication &&
+                                            !string.IsNullOrEmpty(key.Data))
+                                        {
+                                            if (key.IsHex.GetValueOrDefault(false))
+                                            {
+                                                s.AuthenticationKey = key.Data;
+                                            }
+                                            else
+                                            {
+                                                var bytes = ASCIIEncoding.ASCII.GetBytes(key.Data);
+                                                s.AuthenticationKey = GXDLMSTranslator.ToHex(bytes, false);
+                                            }
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        device.Settings = JsonSerializer.Serialize(s);
+                    }
+                }
+            }
             return device;
+        }
+
+        private void UpdateKeys(GXKeyManagement management, KeyManagementType type, string? data, byte[]? hexData)
+        {
+            bool found = false;
+            bool isHex = hexData != null && hexData.Any();
+            if (management.Keys == null)
+            {
+                management.Keys = new List<GXKeyManagementKey>();
+            }
+            foreach (var key in management.Keys)
+            {
+                if (key.KeyType == type)
+                {
+                    found = true;
+                    key.IsHex = isHex;
+                    key.Data = isHex ? GXDLMSTranslator.ToHex(hexData) : data;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                management.Keys.Add(new GXKeyManagementKey()
+                {
+                    KeyType = type,
+                    IsHex = isHex,
+                    Data = isHex ? GXDLMSTranslator.ToHex(hexData) : data
+                });
+            }
         }
 
         /// <inheritdoc />
@@ -291,6 +426,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXDeviceGroup>? defaultGroups = null;
             try
             {
+                List<GXKeyManagement> keys = new List<GXKeyManagement>();
                 foreach (GXDevice device in devices)
                 {
                     bool newDevice = device.Id == Guid.Empty;
@@ -302,6 +438,111 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (newDevice && device.Template == null)
                     {
                         throw new ArgumentException("Device template identifier is unknown.");
+                    }
+                    GXKeyManagement[]? tmp = null;
+                    //Get device keys and save them to key manager table.
+                    if (!string.IsNullOrEmpty(device.Settings))
+                    {
+                        var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(device.Settings);
+                        if (s?.HexPassword != null ||
+                            !string.IsNullOrEmpty(s?.Password) ||
+                            !string.IsNullOrEmpty(s?.BlockCipherKey) ||
+                            !string.IsNullOrEmpty(s?.AuthenticationKey))
+                        {
+                            if (device.Id != Guid.Empty)
+                            {
+                                //There is no need to get the managemenet keys when a new device is added.
+                                ListKeyManagements req = new ListKeyManagements()
+                                {
+                                    Filter = new GXKeyManagement()
+                                    {
+                                        Device = device
+                                    }
+                                };
+                                tmp = await _keyManagementRepository.ListAsync(User, req, null, cancellationToken);
+                            }
+                            if (tmp?.FirstOrDefault() == null)
+                            {
+                                //Check that device system title is not assigned for other meter.
+                                if (!string.IsNullOrEmpty(s.DeviceSystemTitle))
+                                {
+                                    ListKeyManagements req = new ListKeyManagements()
+                                    {
+                                        Filter = new GXKeyManagement()
+                                        {
+                                            SystemTitle = s.DeviceSystemTitle,
+                                        }
+                                    };
+                                    tmp = await _keyManagementRepository.ListAsync(User, req, null, cancellationToken);
+                                    if (tmp.Any())
+                                    {
+                                        throw new ArgumentException(string.Format(Properties.Resources.SystemTitleIsAlreadyInUse,
+                                            s.DeviceSystemTitle));
+                                    }
+                                }
+                                tmp = new GXKeyManagement[] { new GXKeyManagement(
+                                    s.DeviceSystemTitle)
+                                {
+                                    Name = device.Name,
+                                    Device = device
+                                }
+                                };
+                            }
+                            else
+                            {
+                                //Read all key management information.
+                                tmp = new GXKeyManagement[] { await _keyManagementRepository.ReadAsync(User, tmp[0].Id) };
+                            }
+                            if (s?.HexPassword != null || !string.IsNullOrEmpty(s?.Password))
+                            {
+                                if (s.Authentication == (byte)Enums.Authentication.Low)
+                                {
+                                    UpdateKeys(tmp[0], KeyManagementType.LLSPassword, s.Password, s.HexPassword);
+                                }
+                                else if (s.Authentication == (byte)Enums.Authentication.High)
+                                {
+                                    UpdateKeys(tmp[0], KeyManagementType.HLSPassword, s.Password, s.HexPassword);
+                                }
+                                s.HexPassword = null;
+                                s.Password = null;
+                            }
+                            if (!string.IsNullOrEmpty(s?.BlockCipherKey))
+                            {
+                                byte[] tmp2 = GXDLMSTranslator.HexToBytes(s.BlockCipherKey);
+                                if (s.SecuritySuite == 2)
+                                {
+                                    if (tmp2.Length != 32)
+                                    {
+                                        throw new Exception("Invalid block cipher key.");
+                                    }
+                                }
+                                else if (tmp2.Length != 16)
+                                {
+                                    throw new Exception("Invalid block cipher key.");
+                                }
+                                UpdateKeys(tmp[0], KeyManagementType.BlockCipher, null, tmp2);
+                                s.BlockCipherKey = null;
+                            }
+                            if (!string.IsNullOrEmpty(s?.AuthenticationKey))
+                            {
+                                byte[] tmp2 = GXDLMSTranslator.HexToBytes(s.AuthenticationKey);
+                                if (s.SecuritySuite == 2)
+                                {
+                                    if (tmp2.Length != 32)
+                                    {
+                                        throw new Exception("Invalid authentication key.");
+                                    }
+                                }
+                                else if (tmp2.Length != 16)
+                                {
+                                    throw new Exception("Invalid authentication key.");
+                                }
+                                UpdateKeys(tmp[0], KeyManagementType.Authentication, s.AuthenticationKey, null);
+                                s.AuthenticationKey = null;
+                            }
+                            keys.Add(tmp[0]);
+                            device.Settings = JsonSerializer.Serialize(s);
+                        }
                     }
                     if (newDevice)
                     {
@@ -328,7 +569,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         device.Type = device.Template.Type;
                         GXInsertArgs args = GXInsertArgs.Insert(device);
                         args.Exclude<GXDevice>(q => new { q.Objects, q.DeviceGroups, q.Updated, q.Parameters });
-                        List<GXObject> tmp = device.Objects;
                         device.Creator = creator;
                         device.CreationTime = now;
                         await _host.Connection.InsertAsync(transaction, args, cancellationToken);
@@ -366,8 +606,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         //Add device to the default device group.
                         await AddDeviceToDeviceGroups(transaction, device.Id, device.DeviceGroups, cancellationToken);
                         //Only creator is notified.
-                        List<string> users = new List<string>();
-                        users.Add(creator.Id);
+                        List<string> users = new List<string>
+                        {
+                            creator.Id
+                        };
                         updates[device] = users;
                     }
                     else
@@ -451,6 +693,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     updated.Add(device.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
+                if (keys != null)
+                {
+                    //Management keys must update after the devices are added for the DB.
+                    await _keyManagementRepository.UpdateAsync(User, keys);
+                }
             }
             catch (Exception)
             {

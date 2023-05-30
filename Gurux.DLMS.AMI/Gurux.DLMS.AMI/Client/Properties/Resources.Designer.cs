@@ -457,6 +457,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Client system title.
+        /// </summary>
+        internal static string ClientSystemTitle {
+            get {
+                return ResourceManager.GetString("ClientSystemTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Closable.
         /// </summary>
         internal static string Closable {
@@ -664,6 +673,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default.
+        /// </summary>
+        internal static string Default {
+            get {
+                return ResourceManager.GetString("Default", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default group.
         /// </summary>
         internal static string DefaultGroup {
@@ -759,6 +777,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string DevicesTitle {
             get {
                 return ResourceManager.GetString("DevicesTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Device system title.
+        /// </summary>
+        internal static string DeviceSystemTitle {
+            get {
+                return ResourceManager.GetString("DeviceSystemTitle", resourceCulture);
             }
         }
         
@@ -1033,6 +1060,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hex.
+        /// </summary>
+        internal static string Hex {
+            get {
+                return ResourceManager.GetString("Hex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Home.
         /// </summary>
         internal static string Home {
@@ -1114,6 +1150,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid authentication key..
+        /// </summary>
+        internal static string InvalidAuthenticationKey {
+            get {
+                return ResourceManager.GetString("InvalidAuthenticationKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid block cipher key..
+        /// </summary>
+        internal static string InvalidBlockCipherKey {
+            get {
+                return ResourceManager.GetString("InvalidBlockCipherKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sorry, there&apos;s nothing at this address..
         /// </summary>
         internal static string InvalidHttpAddress {
@@ -1132,11 +1186,29 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid password or key..
+        /// </summary>
+        internal static string InvalidKey {
+            get {
+                return ResourceManager.GetString("InvalidKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The notifier is Invalid..
         /// </summary>
         internal static string InvalidNotifier {
             get {
                 return ResourceManager.GetString("InvalidNotifier", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid system title..
+        /// </summary>
+        internal static string InvalidSystemTitle {
+            get {
+                return ResourceManager.GetString("InvalidSystemTitle", resourceCulture);
             }
         }
         
@@ -1155,6 +1227,150 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string InvocationCounter {
             get {
                 return ResourceManager.GetString("InvocationCounter", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key management.
+        /// </summary>
+        internal static string KeyManagement {
+            get {
+                return ResourceManager.GetString("KeyManagement", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Authentication key.
+        /// </summary>
+        internal static string KeyManagementAuthenticationKey {
+            get {
+                return ResourceManager.GetString("KeyManagementAuthenticationKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Broadcast key.
+        /// </summary>
+        internal static string KeyManagementBroadcast {
+            get {
+                return ResourceManager.GetString("KeyManagementBroadcast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key management group.
+        /// </summary>
+        internal static string KeyManagementGroup {
+            get {
+                return ResourceManager.GetString("KeyManagementGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key management groups.
+        /// </summary>
+        internal static string KeyManagementGroups {
+            get {
+                return ResourceManager.GetString("KeyManagementGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to High level security password.
+        /// </summary>
+        internal static string KeyManagementHLSPassword {
+            get {
+                return ResourceManager.GetString("KeyManagementHLSPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key.
+        /// </summary>
+        internal static string KeyManagementKey {
+            get {
+                return ResourceManager.GetString("KeyManagementKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Keys.
+        /// </summary>
+        internal static string KeyManagementKeys {
+            get {
+                return ResourceManager.GetString("KeyManagementKeys", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key type.
+        /// </summary>
+        internal static string KeyManagementKeyType {
+            get {
+                return ResourceManager.GetString("KeyManagementKeyType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Low level security password.
+        /// </summary>
+        internal static string KeyManagementLLSPassword {
+            get {
+                return ResourceManager.GetString("KeyManagementLLSPassword", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key management logs.
+        /// </summary>
+        internal static string KeyManagementLogs {
+            get {
+                return ResourceManager.GetString("KeyManagementLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Master key.
+        /// </summary>
+        internal static string KeyManagementMasterKey {
+            get {
+                return ResourceManager.GetString("KeyManagementMasterKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Private key.
+        /// </summary>
+        internal static string KeyManagementPrivateKey {
+            get {
+                return ResourceManager.GetString("KeyManagementPrivateKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Public key.
+        /// </summary>
+        internal static string KeyManagementPublicKey {
+            get {
+                return ResourceManager.GetString("KeyManagementPublicKey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Key managements.
+        /// </summary>
+        internal static string KeyManagements {
+            get {
+                return ResourceManager.GetString("KeyManagements", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unicast key.
+        /// </summary>
+        internal static string KeyManagementUnicastKey {
+            get {
+                return ResourceManager.GetString("KeyManagementUnicastKey", resourceCulture);
             }
         }
         
@@ -1636,6 +1852,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Pre-established connection.
+        /// </summary>
+        internal static string PreEstablishedConnection {
+            get {
+                return ResourceManager.GetString("PreEstablishedConnection", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Protocol.
         /// </summary>
         internal static string Protocol {
@@ -1785,6 +2010,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Roles {
             get {
                 return ResourceManager.GetString("Roles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rows per page.
+        /// </summary>
+        internal static string RowsPerPage {
+            get {
+                return ResourceManager.GetString("RowsPerPage", resourceCulture);
             }
         }
         
@@ -2068,6 +2302,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Site email address.
+        /// </summary>
+        internal static string SiteEmailAddress {
+            get {
+                return ResourceManager.GetString("SiteEmailAddress", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Site information.
         /// </summary>
         internal static string SiteInformation {
@@ -2154,6 +2397,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string SystemSettings {
             get {
                 return ResourceManager.GetString("SystemSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to System title.
+        /// </summary>
+        internal static string SystemTitle {
+            get {
+                return ResourceManager.GetString("SystemTitle", resourceCulture);
             }
         }
         

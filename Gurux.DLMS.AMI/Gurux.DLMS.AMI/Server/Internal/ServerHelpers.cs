@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
@@ -1156,6 +1157,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return _hostedService.ManufacturerDelete(users, manufacturers);
             }
+
             /// <summary>
             /// New manufacturer group is added or modified.
             /// </summary>
@@ -1175,14 +1177,79 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 return _hostedService.ManufacturerGroupDelete(users, groups);
             }
 
+            /// <summary>
+            /// New favorite is added or modified.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="favorites">Updated favorites.</param>
             public Task FavoriteUpdate(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
             {
                 return _hostedService.FavoriteUpdate(users, favorites);
             }
 
+            /// <summary>
+            /// Favorite is deleted.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="favorites">Deleted favorites.</param>
             public Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites)
             {
                 return _hostedService.FavoriteDelete(users, favorites);
+            }
+
+            /// <summary>
+            /// New key management is added or modified.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="keys">Updated key managements.</param>
+            public Task KeyManagementUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
+            {
+                return _hostedService.KeyManagementUpdate(users, keys);
+            }
+
+            /// <summary>
+            /// KeyManagement is deleted.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="keys">Deleted key managements.</param>
+            public Task KeyManagementDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
+            {
+                return _hostedService.KeyManagementDelete(users, keys);
+            }
+            /// <summary>
+            /// New key management group is added or modified.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="groups">Updated key management groups.</param>
+            public Task KeyManagementGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
+            {
+                return _hostedService.KeyManagementGroupUpdate(users, groups);
+            }
+            /// <summary>
+            /// KeyManagement group is deleted.
+            /// </summary>
+            /// <param name="users">Notified users.</param>
+            /// <param name="groups">Deleted key management groups.</param>
+            public Task KeyManagementGroupDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
+            {
+                return _hostedService.KeyManagementGroupDelete(users, groups);
+            }
+
+            /// <inheritdoc/>
+            public Task AddKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
+            {
+                return _hostedService.AddKeyManagementLogs(users, errors);
+            }
+
+            /// <inheritdoc/>
+            public Task ClearKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagement>? keys)
+            {
+                return _hostedService.ClearKeyManagementLogs(users, keys);
+            }
+            /// <inheritdoc/>
+            public Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
+            {
+                return _hostedService.CloseKeyManagementLogs(users, errors);
             }
         }
 

@@ -1,0 +1,98 @@
+﻿@page "/config/KeyManagement"
+@page "/config/KeyManagementGroup"
+@page "/config/KeyManagementLog/{Id:guid?}"
+@page "/config/KeyManagementLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.KeyManagementManager + "," + GXRoles.KeyManagementGroupManager + "," + GXRoles.KeyManagementLog + "," + GXRoles.KeyManagementLogManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "config/KeyManagementGroup", true) == 0)
+    {
+        <KeyManagementGroupTab Action="@Action" Id="@Id"></KeyManagementGroupTab>
+    }
+    else if (string.Compare(Path, "config/KeyManagement", true) == 0)
+    {
+        <KeyManagementTab Action="@Action" Id="@Id"></KeyManagementTab>
+    }
+    else if (string.Compare(Path, "config/KeyManagementLog", true) == 0)
+    {
+        <KeyManagementLog Id="@Id"></KeyManagementLog>
+    }    
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementManager)>
+                <TabPage Path="config/KeyManagement" Text=@Properties.Resources.KeyManagements Icon="oi oi-key">
+                    <div style="position: relative; width: 100%; ">
+                        <KeyManagements Id="@Id"></KeyManagements>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementGroupManager)>
+                <TabPage Path="config/KeyManagementGroup" Text=@Properties.Resources.KeyManagementGroups Icon="oi oi-key">
+                    <div style="position: relative; width: 100%; ">
+                        <KeyManagementGroups Id="@Id"></KeyManagementGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementLog, GXRoles.KeyManagementLogManager)>
+                <TabPage Path="config/KeyManagementLog" Text=@Properties.Resources.KeyManagementLogs Icon="oi oi-warning">
+                    <div style="position: relative; width: 100%; ">
+                        <KeyManagementLogs Id="@Id"></KeyManagementLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Client.Shared
@@ -693,5 +694,47 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// </summary>
         /// <param name="favorites">Deleted favorites.</param>
         Task FavoriteDelete(IEnumerable<GXFavorite> favorites);
+
+        /// <summary>
+        /// New key management is added or modified.
+        /// </summary>
+        /// <param name="key managements">Updated key managements.</param>
+        Task KeyManagementUpdate(IEnumerable<GXKeyManagement> keys);
+
+        /// <summary>
+        /// Key management is deleted.
+        /// </summary>
+        /// <param name="key managements">Deleted key managements.</param>
+        Task KeyManagementDelete(IEnumerable<GXKeyManagement> keys);
+
+        /// <summary>
+        /// New key management group is added or modified.
+        /// </summary>
+        /// <param name="key managements">Updated key management groups.</param>
+        Task KeyManagementGroupUpdate(IEnumerable<GXKeyManagementGroup> groups);
+
+        /// <summary>
+        /// Key management group is deleted.
+        /// </summary>
+        /// <param name="key managements">Deleted key management groups.</param>
+        Task KeyManagementGroupDelete(IEnumerable<GXKeyManagementGroup> groups);
+
+        /// <summary>
+        /// Key management logs are cleared.
+        /// </summary>
+        /// <param name="logs">List of cleared logs.</param>
+        Task ClearKeyManagementLogs(IEnumerable<GXKeyManagement>? logs);
+
+        /// <summary>
+        /// New key management log is added.
+        /// </summary>
+        /// <param name="logs">New key management logs.</param>
+        Task AddKeyManagementLogs(IEnumerable<GXKeyManagementLog> logs);
+
+        /// <summary>
+        /// Key management logs are closed.
+        /// </summary>
+        /// <param name="errors">Closed key management logs.</param>
+        Task CloseKeyManagementLogs(IEnumerable<GXKeyManagementLog> errors);
     }
 }

@@ -71,8 +71,9 @@ namespace Gurux.DLMS.AMI.Server.Models
             get;
             set;
         }
+
         /// <summary>
-        /// When user is updated last time.
+        /// When was the user last updated.
         /// </summary>
         [PersonalData]
         [Column("Updated")]

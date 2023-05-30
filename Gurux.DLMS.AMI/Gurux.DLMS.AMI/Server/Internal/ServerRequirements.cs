@@ -101,6 +101,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddTriggerRequirements(options, issuer);
             AddTriggerGroupRequirements(options, issuer);
             AddRoleRequirements(options, issuer);
+            AddKeyManagementRequirements(options, issuer);
+            AddKeyManagementGroupRequirements(options, issuer);
+            AddKeyManagementLogRequirements(options, issuer);            
         }
 
         /// <summary>
@@ -601,6 +604,99 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXManufacturerGroupPolicies.Delete, issuer)
                 { Roles = new string[] { GXRoles.Admin, GXRoles.ManufacturerGroupManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add key management requirements that are used for policy.
+        /// </summary>
+        private static void AddKeyManagementRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXKeyManagementPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagement, GXRoles.KeyManagementManager } });
+            });
+            options.AddPolicy(GXKeyManagementPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementManager } });
+            });
+            options.AddPolicy(GXKeyManagementPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementManager } });
+            });
+            options.AddPolicy(GXKeyManagementPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add key management group requirements that are used for policy.
+        /// </summary>
+        private static void AddKeyManagementGroupRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXKeyManagementGroupPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementGroupPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementGroup, GXRoles.KeyManagementGroupManager } });
+            });
+            options.AddPolicy(GXKeyManagementGroupPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementGroupPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementGroupManager } });
+            });
+            options.AddPolicy(GXKeyManagementGroupPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementGroupPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementGroupManager } });
+            });
+            options.AddPolicy(GXKeyManagementGroupPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementGroupPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementGroupManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add key management logs requirements that are used for policy.
+        /// </summary>
+        private static void AddKeyManagementLogRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXKeyManagementLogPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementLogPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementLogManager } });
+            });
+            options.AddPolicy(GXKeyManagementLogPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementLogPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementLogManager } });
+            });
+            options.AddPolicy(GXKeyManagementLogPolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementLogPolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementLogManager } });
+            });
+            options.AddPolicy(GXKeyManagementLogPolicies.Close, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXKeyManagementLogPolicies.Close, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.KeyManagementLogManager } });
             });
         }
 

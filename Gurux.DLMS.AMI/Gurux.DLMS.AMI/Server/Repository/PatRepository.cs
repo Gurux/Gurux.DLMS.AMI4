@@ -45,7 +45,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
-    /// <inheritdoc cref="IPatRepository"/>
+    /// <inheritdoc />
     public class PatRepository : IPatRepository
     {
         private readonly IGXHost _host;
@@ -185,6 +185,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDeleteArgs args = GXDeleteArgs.Delete<GXPersistedGrants>(where => where.Id == id && where.SubjectId == user.Id);
             await _host.Connection.DeleteAsync(args);
             return new GXPersonalToken() { Id = it.Id, Name = it.Description, CreationTime = it.CreationTime, Expiration = it.Expiration }; ;
+        }
+
+        /// <inheritdoc />
+        public Task<string> RegeneratePersonalTokenAsync(ClaimsPrincipal User, GXPersonalToken token)
+        {
+            throw new NotImplementedException();
         }
     }
 }

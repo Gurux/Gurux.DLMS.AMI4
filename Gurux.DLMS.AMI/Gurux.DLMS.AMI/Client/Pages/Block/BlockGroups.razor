@@ -28,7 +28,12 @@
 </AuthorizeView>
 
 
-<GXTable @ref="table" Context="group" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table" 
+    Context="group" 
+    ItemsProvider="@GetItems" 
+    SelectionMode="SelectionMode.Multiple" 
+    Filter="@Filter" 
+    OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -215,7 +220,10 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListBlockGroupsResponse>("api/BlockGroup/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXBlockGroup>(ret.BlockGroups, ret.Count);
+            if (ret.BlockGroups != null)
+            {
+                return new ItemsProviderResult<GXBlockGroup>(ret.BlockGroups, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {

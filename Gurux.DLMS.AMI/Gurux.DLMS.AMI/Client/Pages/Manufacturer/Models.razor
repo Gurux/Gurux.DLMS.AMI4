@@ -26,7 +26,7 @@
          ShowAllUsers="false"
          Filter="false"
          OnCheckboxDisabled="@OnCheckboxDisabled"
-         OnSelectionChanged="@OnSelectionChanged"
+         OnRowChanged="@OnSelectionChanged"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -158,13 +158,14 @@
         }
     }
 
-    private async ValueTask<ItemsProviderResult<GXDeviceModel>> GetItems(GXItemsProviderRequest request)
+    private ValueTask<ItemsProviderResult<GXDeviceModel>> GetItems(GXItemsProviderRequest request)
     {
         try
         {
             if (Manufacturer?.Models != null)
             {
-                return new ItemsProviderResult<GXDeviceModel>(Manufacturer.Models, Manufacturer.Models.Count);
+                return new(new ItemsProviderResult<GXDeviceModel>(
+                    Manufacturer.Models, Manufacturer.Models.Count));
             }
         }
         catch (TaskCanceledException)

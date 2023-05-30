@@ -256,10 +256,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     trigger.TriggerGroups = new List<GXTriggerGroup>();
                     ListTriggerGroups request = new ListTriggerGroups() { Filter = new GXTriggerGroup() { Default = true } };
                     trigger.TriggerGroups.AddRange(await _triggerGroupRepository.ListAsync(User, request, null, CancellationToken.None));
-                    if (!trigger.TriggerGroups.Any())
-                    {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                    }
+                    //It's OK if trigger doesn't belong to trigger group.
                 }
                 if (trigger.Id == Guid.Empty)
                 {

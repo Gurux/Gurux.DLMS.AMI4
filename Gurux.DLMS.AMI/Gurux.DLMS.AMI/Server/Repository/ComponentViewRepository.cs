@@ -249,10 +249,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     };
                     componentView.ComponentViewGroups = new List<GXComponentViewGroup>();
                     componentView.ComponentViewGroups.AddRange(await _componentViewGroupRepository.ListAsync(User, request, null, CancellationToken.None));
-                    if (!componentView.ComponentViewGroups.Any())
-                    {
-                        throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
-                    }
+                    //It's OK if component doesn't belong to component group.
                 }
                 if (componentView.Id == Guid.Empty)
                 {

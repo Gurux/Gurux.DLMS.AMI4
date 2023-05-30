@@ -40,12 +40,14 @@
         <th>@Properties.Resources.Authentication</th>
         <th>@Properties.Resources.InterfaceType</th>
         <th>@Properties.Resources.Security</th>
+        <th>Pre-established</th>
         <th>@Properties.Resources.Installed</th>
     </HeaderContent>
     <ItemContent>
         <td>@GetAuthenticationLevel(item)</td>
         <td>@GetInterfaceType(item)</td>
         <td>@GetSecurity(item)</td>
+        <td>@GetPreEstablished(item)</td>
         <td>@item.InstallationTime</td>
     </ItemContent>
 </GXTable>
@@ -77,6 +79,12 @@
     {
         return ((Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).Security).ToString();
     }
+
+    string GetPreEstablished(GXDeviceSettings value)
+    {
+        return JsonSerializer.Deserialize<GXDLMSSettings>(value.Settings).PreEstablished.ToString();
+    }
+    
 
     string GetAuthenticationLevel(GXDeviceSettings value)
     {

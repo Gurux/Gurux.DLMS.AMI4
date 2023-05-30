@@ -3,6 +3,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.ComponentView;
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
+@using Gurux.DLMS.AMI.Client.Pages.KeyManagement;
 @using Gurux.DLMS.AMI.Client.Pages.Module;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Client.Pages.Script;
@@ -72,6 +73,9 @@
     private ScriptGroupTab? ScriptGroupParent { get; set; }
     [CascadingParameter]
     private DeviceTemplateGroupTab? DeviceTemplateParent { get; set; }
+
+    [CascadingParameter]
+    private KeyManagementGroupTab? KeyManagementParent { get; set; }
 
     [CascadingParameter]
     private UserGroupTab? UserGroupParent { get; set; }
@@ -295,6 +299,11 @@
             {
                 _selected.Items = UserParent.Active.UserGroups;
                 action = ClientHelpers.GetAction(UserParent.Action);
+            }
+            else if (KeyManagementParent?.Active?.UserGroups != null)
+            {
+                _selected.Items = KeyManagementParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(KeyManagementParent.Action);
             }
             else
             {

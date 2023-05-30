@@ -31,5 +31,6 @@
         public static string Roles = "Roles";
         public static string Performance = "Performance";
         public static string Manufacturers = "Manufacturers";
+        public static string KeyManagement = "KeyManagement";
     }
 }

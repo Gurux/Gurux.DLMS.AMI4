@@ -1,0 +1,364 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.ASN;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <Dialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm Model="@Active">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator" OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <div class="col-auto">
+                            <label>@Properties.Resources.KeyManagementKeyType</label>
+                            <select class="form-select" @bind="KeyType">
+                                @foreach (var it in KeyTypes)
+                                {
+                                    <option value="@Convert.ToInt32(it)">
+                                        @ClientHelpers.GetKeyTypeDescription(it)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <ValidationMessage For="@(() => KeyType)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@ClientHelpers.GetKeyTypeDescription(Active.KeyType)</label>
+                        <InputNullableSwitch OnChange="OnHexChange"
+                                          Disabled="@IsHexDisabled()" @bind-Value="Active.IsHex">
+                            @Properties.Resources.Hex
+                        </InputNullableSwitch>
+                        <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Data" />
+                        <ValidationMessage For="@(() => Active.Data)" />
+                    </div>
+                    @if (Active.CreationTime != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.CreationTime</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="generation"
+                                       readonly="readonly" class="form-control"
+                               @bind-Value="Active.CreationTime" />
+                        </div>
+                    }
+                    @if (Active.Updated != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.Updated</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="generation"
+                                       readonly="readonly" class="form-control"
+                               @bind-Value="Active.Updated" />
+                        </div>
+                    }
+                    @if (Active.Removed != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.Removed</label>
+                            <InputDate Type="@InputDateType.DateTimeLocal" id="removed"
+                                       class="form-control"
+                               @bind-Value="Active.Removed" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+@code {
+
+    private GXValidator? _validator;
+
+    [Parameter]
+    public KeyManagementKeys? Parent { get; set; }
+
+    /// <summary>
+    /// Origical value is returned if user cancels the action.
+    /// </summary>
+    GXKeyManagementKey? _original;
+
+    private GXKeyManagementKey? Active
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    private int KeyType
+    {
+        get
+        {
+            if (Active?.KeyType == null)
+            {
+                return (int)KeyManagementType.LLSPassword;
+            }
+            return (int)Active.KeyType.Value;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.KeyType = (KeyManagementType)value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Available key types.
+    /// </summary>
+    private List<KeyManagementType> KeyTypes = new List<KeyManagementType>(new[]
+    { KeyManagementType.LLSPassword,
+        KeyManagementType.HLSPassword,
+        KeyManagementType.BlockCipher,
+        KeyManagementType.Authentication,
+        KeyManagementType.Broadcast,
+        KeyManagementType.MasterKey,
+        KeyManagementType.PrivateKey,
+        KeyManagementType.PublicKey});
+
+    private bool DeleteTarget;
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Parent?.KeyAction != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    private bool IsHexDisabled()
+    {
+        switch ((KeyManagementType)KeyType)
+        {
+            case KeyManagementType.PrivateKey:
+            case KeyManagementType.PublicKey:
+                return true;
+            default:
+                break;
+        }
+        if (Active?.Data == null || !Active.IsHex.GetValueOrDefault(false))
+        {
+            return false;
+        }
+        return !IsAsciiString(GXDLMSTranslator.HexToBytes(Active.Data));
+    }
+
+    /// <summary>
+    /// Check is byte buffer ASCII string.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    public static bool IsAsciiString(byte[] value)
+    {
+        if (value != null)
+        {
+            foreach (byte it in value)
+            {
+                if (it < 32 || it > 127)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// User changes value type from ASCII to HEX or vice versa.
+    /// </summary>
+    /// <param name="value"></param>
+    private void OnHexChange(bool value)
+    {
+        try
+        {
+            if (Active != null)
+            {
+                if (!string.IsNullOrEmpty(Active?.Data))
+                {
+                    if (value)
+                    {
+                        //Convert ASCII to hex.
+                        Active.Data = GXDLMSTranslator.ToHex(ASCIIEncoding.ASCII.GetBytes(Active.Data));
+                    }
+                    else
+                    {
+                        //Convert hex to ASCII.
+                        Active.Data = ASCIIEncoding.ASCII.GetString(GXDLMSTranslator.HexToBytes(Active.Data));
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _validator?.AddError(() => Active.Data, ex.Message);
+        }
+    }
+
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Active == null || Parent?.KeyManagement?.Keys == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            _original = ClientHelpers.Clone<GXKeyManagementKey>(Active);
+
+            //Remove added key types.
+            foreach (var it in Parent.KeyManagement.Keys)
+            {
+                //Remove already added key types when adding a new key.
+                if (Parent.KeyAction == CrudAction.Create ||
+                //Remove key type if not selected key type.
+                Active.KeyType != it.KeyType)
+                {
+                    if (it.KeyType != null)
+                    {
+                        KeyTypes.Remove(it.KeyType.Value);
+                    }
+                }
+            }
+            if (Parent.KeyAction == CrudAction.Create)
+            {
+                if (Active.KeyType == null)
+                {
+                    Active.KeyType = KeyTypes.FirstOrDefault();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            if (_validator != null && Active != null)
+            {
+                _validator.AddError(() => Active.Data, ex.Message);
+            }
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the key management content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (Parent?.KeyManagement?.Keys == null || Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (KeyType == 0)
+            {
+                sender.AddError(() => KeyType, "Invalid key type.");
+            }
+            if (string.IsNullOrEmpty(Active.Data))
+            {
+                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+            }
+            try
+            {
+                switch ((KeyManagementType)KeyType)
+                {
+                    case KeyManagementType.BlockCipher:
+                    case KeyManagementType.Authentication:
+                    case KeyManagementType.Broadcast:
+                        if (GXDLMSTranslator.HexToBytes(Active.Data).Length != 16)
+                        {
+                            sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                        }
+                        break;
+                    case KeyManagementType.PrivateKey:
+                        //Validate private key.
+                        GXPkcs8.FromPem(Active.Data);
+                        break;
+                    case KeyManagementType.PublicKey:
+                        //Validate public key.
+                        GXx509Certificate.FromPem(Active.Data);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (Exception)
+            {
+                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Save key management group.
+    /// </summary>
+    public void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null || Parent?.KeyManagement?.Keys == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ClearStatus();
+            if (Parent?.KeyAction == CrudAction.Create)
+            {
+                Parent.KeyManagement.Keys.Add(Active);
+            }
+            else if (Parent?.KeyAction == CrudAction.Update)
+            {
+                //Do nothing.
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent?.Update();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        if (Active != null && _original != null)
+        {
+            //Reject the changes.
+            ClientHelpers.Copy(_original, Active);
+        }
+        Parent?.Update();
+    }
+}

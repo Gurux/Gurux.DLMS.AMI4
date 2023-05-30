@@ -18,9 +18,12 @@
     <select class="form-control" @bind="@ScriptMethod">
         @foreach (var script in Scripts)
         {
-            @foreach (var method in script.Methods)
+            @if (script.Methods != null)
             {
-                <option value="@method.Id">@script.Name + "." + @method.Name</option>
+                @foreach (var method in script.Methods)
+                {
+                    <option value="@method.Id">@(script.Name + "." + method.Name)</option>
+                }
             }
         }
     </select>

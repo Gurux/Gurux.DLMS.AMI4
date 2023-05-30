@@ -24,10 +24,12 @@
     {
         <ComponentViewTab Action="@Action" Id="@Id"></ComponentViewTab>
     }
+    <!--Component view group is not used at the moment.
     else if (string.Compare(Path, "/config/ComponentGroup", true) == 0)
     {
         <ComponentViewGroupTab Action="@Action" Id="@Id"></ComponentViewGroupTab>
     }
+    -->
 }
 else
 {
@@ -44,13 +46,15 @@ else
                     </div>
                 </TabPage>
             </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewGroupManager)>
+            <!--Component view group is not used at the moment.
+                        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ComponentViewGroupManager)>
                 <TabPage Path="config/ComponentGroup" Text=@Properties.Resources.ComponentViewGroups Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
                         <ComponentViewGroups Id="@Id"></ComponentViewGroups>
                     </div>
                 </TabPage>
             </AuthorizeView>
+            -->
         </ChildContent>
     </TabControl>
 }

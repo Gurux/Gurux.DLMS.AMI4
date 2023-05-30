@@ -36,6 +36,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Models;
@@ -78,7 +79,7 @@ namespace Gurux.DLMS.AMI.Client
         /// <summary>
         /// Aount of the rows per page.
         /// </summary>
-        public int RowsPerPage { get; private set; } = 10;
+        public int RowsPerPage { get; set; } = 10;
 
         /// <summary>
         /// Ignored notifications.
@@ -1424,6 +1425,39 @@ namespace Gurux.DLMS.AMI.Client
                             _toasterService.Add(new GXToast("Favorite deleted", ToString(manufacturers), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.FavoriteDelete), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXKeyManagement>>(nameof(IGXHubEvents.KeyManagementUpdate), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.KeyManagement) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Key management updated", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.KeyManagementUpdate), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXKeyManagement>>(nameof(IGXHubEvents.KeyManagementDelete), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.KeyManagement) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Key management deleted", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.KeyManagementDelete), manufacturers);
+                    });
+
+                    hubConnection.On<IEnumerable<GXKeyManagementGroup>>(nameof(IGXHubEvents.KeyManagementGroupUpdate), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.KeyManagementGroup) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Key management group updated", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.KeyManagementGroupUpdate), manufacturers);
+                    });
+                    hubConnection.On<IEnumerable<GXKeyManagementGroup>>(nameof(IGXHubEvents.KeyManagementGroupDelete), async (manufacturers) =>
+                    {
+                        if ((IgnoreNotification & TargetType.KeyManagementGroup) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Key management group deleted", ToString(manufacturers), Color.Warning, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.KeyManagementGroupDelete), manufacturers);
                     });
                     await hubConnection.StartAsync();
                 }

@@ -1,0 +1,235 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<SelectionContainer TItem="GXKeyManagement" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedBySystemTitle" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems"
+                   GetName="@GetName"
+                   GetDescription="@GetDescription">
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchBySystemTitle" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
+</SelectionContainer>
+
+@code {
+    [CascadingParameter]
+    private KeyManagementGroupTab? Parent { get; set; }
+
+    SelectionList<GXKeyManagement>? _selected;
+    SelectionList<GXKeyManagement>? _available;
+    SelectionContainer<GXKeyManagement>? _selectionContainer;
+    /// <summary>
+    /// KeyManagement filter.
+    /// </summary>
+    private GXKeyManagement filter = new GXKeyManagement(null);
+
+    string? GetName(GXKeyManagement target)
+    {
+        return target.SystemTitle;
+    }
+
+    string? GetDescription(GXKeyManagement target)
+    {
+        return target.SystemTitle;
+    }
+
+    protected async Task SearchSelectedBySystemTitle(string? systemTitle)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(systemTitle))
+                {
+                    systemTitle = systemTitle.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.SystemTitle != null && !it.SystemTitle.ToLower().Contains(systemTitle))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchBySystemTitle(string? systemTitle)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.SystemTitle = systemTitle;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.KeyManagementGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXKeyManagementGroup? sg = filter.KeyManagementGroups?.FirstOrDefault();
+                    if (sg == null)
+                    {
+                        sg = new GXKeyManagementGroup(null);
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        sg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.KeyManagementGroups = new List<GXKeyManagementGroup>(new GXKeyManagementGroup[] { sg });
+                    }
+                    else
+                    {
+                        user = sg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXKeyManagement>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXKeyManagement>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXKeyManagement>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListKeyManagements req = new ListKeyManagements()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListKeyManagementsResponse>("api/KeyManagement/List", req, request.CancellationToken);
+            if (ret?.KeyManagements != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXKeyManagement>(ret.KeyManagements, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (_selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (Parent?.Active?.KeyManagements != null)
+            {
+                _selected.Items = Parent.Active.KeyManagements;
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

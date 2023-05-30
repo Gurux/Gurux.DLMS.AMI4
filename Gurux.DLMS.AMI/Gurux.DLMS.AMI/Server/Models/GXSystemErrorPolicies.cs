@@ -123,6 +123,7 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// </summary>
         public const string Close = "schedule-error.close";
     }
+
     /// <summary>
     /// Script log policies.
     /// </summary>
@@ -375,7 +376,7 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// </summary>
         public const string Delete = "agent.delete";
     }
-   
+
     /// <summary>
     /// Agent group policies.
     /// </summary>
@@ -736,6 +737,76 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// User can delete manufacturer group(s).
         /// </summary>
         public const string Delete = "manufacturer-group.delete";
+    }
+
+    /// <summary>
+    /// KeyManagement policies.
+    /// </summary>
+    public static class GXKeyManagementPolicies
+    {
+        /// <summary>
+        /// User can view the key management(s).
+        /// </summary>
+        public const string View = "device-key.view";
+        /// <summary>
+        /// User can add new key management(s).
+        /// </summary>
+        public const string Add = "device-key.add";
+        /// <summary>
+        /// User can edit key management(s).
+        /// </summary>
+        public const string Edit = "device-key.edit";
+        /// <summary>
+        /// User can delete key management(s).
+        /// </summary>
+        public const string Delete = "device-key.delete";
+    }
+
+    /// <summary>
+    /// KeyManagement group policies.
+    /// </summary>
+    public static class GXKeyManagementGroupPolicies
+    {
+        /// <summary>
+        /// User can view the key management group information.
+        /// </summary>
+        public const string View = "device-key-group.view";
+        /// <summary>
+        /// User can add a new key management group.
+        /// </summary>
+        public const string Add = "device-key-group.add";
+        /// <summary>
+        /// User can edit key management group.
+        /// </summary>
+        public const string Edit = "device-key-group.edit";
+        /// <summary>
+        /// User can delete key management group.
+        /// </summary>
+        public const string Delete = "device-key-group.delete";
+    }
+
+
+    /// <summary>
+    /// Key management log policies.
+    /// </summary>
+    public static class GXKeyManagementLogPolicies
+    {
+        /// <summary>
+        /// User can view the key management logs.
+        /// </summary>
+        public const string View = "device-key-log.view";
+        /// <summary>
+        /// User can add new key management logs.
+        /// </summary>
+        public const string Add = "device-key-log.add";
+        /// <summary>
+        /// User can clear key management logs.
+        /// </summary>
+        public const string Clear = "device-key-log.clear";
+        /// <summary>
+        /// User can close key management logs.
+        /// </summary>
+        public const string Close = "device-key-log.close";
     }
 
     /// <summary>

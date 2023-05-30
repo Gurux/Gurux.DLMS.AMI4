@@ -114,7 +114,7 @@
             }
         </tbody>
     </table>
-    <!--Add paginatation-->
+    <!--Add pagination.-->
     @if (Pages.Count > 1 && !ShowAllData)
     {
         <ul class="pagination justify-content-center">
@@ -127,7 +127,7 @@
                 @if (pos >= CurrentPage - Spread && pos <= CurrentPage + Spread)
                 {
                     <li onclick="@(() => SelectPage(pos))" style="cursor: pointer;" class="page-item @(CurrentPage == pos ? "active" : null)">
-                        <span class="page-link" href="#">@pos</span>
+                        <span class="page-link" href="#">@(1 + pos)</span>
                     </li>
                 }
 
@@ -137,6 +137,18 @@
                 <li @onclick="@(() => SelectPage(TotalPages - 1))" style="cursor: pointer;" class="page-link" href="#">&raquo;</li>
             }
         </ul>
+    }
+    @if (!ShowAllData)
+    {
+        <div style="float: right;">
+            <label>@Properties.Resources.RowsPerPage</label>
+            <select class="select" @bind="PageSize">
+                @foreach (var it in RowsPerPage)
+                {
+                    <option value="@it">@it</option>
+                }
+            </select>
+        </div>
     }
     @if (Total)
     {
@@ -148,6 +160,7 @@
 </CascadingValue>
 
 @code {
+    int[] RowsPerPage = new int[] { 10, 20, 50, 100 };
     public delegate Task SearchDelegate();
 
     /// <summary>
@@ -189,7 +202,7 @@
     protected bool ShowAllUserData { get; set; } = false;
 
     /// <summary>
-    /// All table rows are shown and paginatation is not used.
+    /// All table rows are shown and pagination is not used.
     /// </summary>
     [Parameter]
     public bool ShowAllData { get; set; }
@@ -224,10 +237,16 @@
     public SortChangedEventHandler? SortChanged { get; set; }
 
     /// <summary>
-    /// User has select the new item.
+    /// User has select the new row.
     /// </summary>
     [Parameter]
-    public SelectionChangedEventHandler? OnSelectionChanged { get; set; }
+    public SelectionChangedEventHandler? OnRowChanged { get; set; }
+
+    /// <summary>
+    /// User has select the new cell.
+    /// </summary>
+    [Parameter]
+    public SelectionChangedEventHandler? OnCellChanged { get; set; }
 
     /// <summary>
     /// Notify client to ask is checkbox enabled.
@@ -321,10 +340,10 @@
                 //Select the first page.
                 value = 0;
             }
-            else if (PageSize * value > TotalCount)
+            else if (_pageSize * value > TotalCount)
             {
                 //Select the last page.
-                value = TotalCount / PageSize;
+                value = TotalCount / _pageSize;
             }
             _currentPage = value;
         }
@@ -348,6 +367,7 @@
                 _pageSize = 10;
             }
             _pageSize = value;
+            Notifier.RowsPerPage = value;
         }
     }
 
@@ -426,7 +446,8 @@
     [Parameter]
     public string? CssClass { get; set; } = "table table-striped";
 
-    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
     /// <summary>
     /// Filter content.
@@ -474,9 +495,14 @@
             Removed,
             OrderBy,
             SortMode == SortMode.Descending,
+            null,
             cancellationToken);
         try
         {
+            if (ItemsProvider == null)
+            {
+                throw new Exception("ItemsProvider not set.");
+            }
             var result = await ItemsProvider(req);
             Items = result.Items;
             //Update selected items.
@@ -549,16 +575,15 @@
         }
     }
 
-    /// <summary>
-    /// Sorted column.
-    /// </summary>
+    /// <inheritdoc/>
     [Parameter]
     public string? OrderBy { get; set; }
-    /// <summary>
-    /// Sort mode.
-    /// </summary>
+
+    /// <inheritdoc/>
     [Parameter]
     public SortMode SortMode { get; set; } = SortMode.None;
+
+    /// <inheritdoc/>
 
     public void NotifyShortChange()
     {
@@ -583,14 +608,19 @@
         return value != null && value.Equals(current) ? "table-info" : "table-striped";
     }
 
-    /// <summary>
-    /// User has selected the row.
-    /// </summary>
-    /// <param name="selected">Selected row.</param>
+    /// <inheritdoc/>
     public void SelectRow(object selected)
     {
         Active = (TItem)selected;
-        OnSelectionChanged?.Invoke((TItem)selected);
+        OnRowChanged?.Invoke((TItem)selected);
+    }
+
+    /// <inheritdoc/>
+    public void SelectCell(object selected)
+    {
+        Active = (TItem)selected;
+        OnRowChanged?.Invoke((TItem)selected);
+        OnCellChanged?.Invoke((TItem)selected);
     }
 
     /// <summary>
@@ -715,7 +745,7 @@
     ///</summary>
     protected override async Task OnInitializedAsync()
     {
-        PageSize = Notifier.RowsPerPage;
+        _pageSize = Notifier.RowsPerPage;
         await RefreshDataAsync(false);
     }
 

@@ -27,39 +27,39 @@
     {
         <Trigger Action="@Action" Id="@Id"></Trigger>
     }
+    <!--Trigger view group is not used at the moment.
     else if (string.Compare(Path, "config/TriggerGroup", true) == 0)
     {
         <TriggerGroupTab Action="@Action" Id="@Id"></TriggerGroupTab>
     }
-    else
-    {
-        <p>@Path</p>
-    }
+    -->
 }
 else
 {
-<TabControl Active="@Path" SelectionChanged="@SelectionChanged">
-    <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
-        @context.Text
-    </TabTextTemplate>
-    <ChildContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerManager)>
                 <TabPage Path="config/Trigger" Text=@Properties.Resources.Triggers Icon="oi oi-flash">
-                <div style="position: relative; width: 100%; ">
-                    <Triggers Id="@Id"></Triggers>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
-                <TabPage Path="config/TriggerGroup" Text=@Properties.Resources.TriggerGroups Icon="oi oi-timer">
-                <div style="position: relative; width: 100%; ">
-                    <TriggerGroups Id="@Id"></TriggerGroups>
-                </div>
-            </TabPage>
-        </AuthorizeView>
-    </ChildContent>
-</TabControl>
+                    <div style="position: relative; width: 100%; ">
+                        <Triggers Id="@Id"></Triggers>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <!--Trigger view group is not used at the moment.
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TriggerGroupManager)>
+                    <TabPage Path="config/TriggerGroup" Text=@Properties.Resources.TriggerGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <TriggerGroups Id="@Id"></TriggerGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+                -->
+        </ChildContent>
+    </TabControl>
 }
 <br />
 @code {

@@ -24,5 +24,11 @@
         /// </summary>
         /// <param name="selected">Selected row.</param>
         public void SelectRow(object selected);
+
+        /// <summary>
+        /// User has selected the cell.
+        /// </summary>
+        /// <param name="selected">Selected cell.</param>
+        public void SelectCell(object selected);
     }
 }

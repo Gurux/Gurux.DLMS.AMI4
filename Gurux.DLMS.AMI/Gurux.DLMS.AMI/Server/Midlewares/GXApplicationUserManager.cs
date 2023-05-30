@@ -47,6 +47,7 @@ using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Cron;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
@@ -237,6 +238,11 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     sgs.UserGroups.Add(ug);
                     IScriptGroupRepository scriptGroupRepository = scope.ServiceProvider.GetRequiredService<IScriptGroupRepository>();
                     await scriptGroupRepository.UpdateAsync(User, new GXScriptGroup[] { sgs });
+                    //Create default key management group and add user group to it.
+                    GXKeyManagementGroup kmg = new GXKeyManagementGroup(groupName) { CreationTime = now, Default = true };
+                    kmg.UserGroups.Add(ug);
+                    IKeyManagementGroupRepository kmGroupRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementGroupRepository>();
+                    await kmGroupRepository.UpdateAsync(User, new GXKeyManagementGroup[] { kmg });
                 }
                 //Run cron after the admin is added.
                 if (firstUser)

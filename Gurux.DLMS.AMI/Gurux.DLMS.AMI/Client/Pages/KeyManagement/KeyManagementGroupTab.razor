@@ -1,0 +1,126 @@
+﻿@page "/config/KeyManagementGroup/{Id:guid?}"
+@page "/config/KeyManagementGroup/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.User
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+    using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.KeyManagementManager + "," + GXRoles.KeyManagementGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementGroupManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <KeyManagementGroup Action="@Action"></KeyManagementGroup>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.KeyManagements Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <KeyManagementsSelector></KeyManagementsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.UserGroupsTitle Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <UserGroupsSelector></UserGroupsSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXKeyManagementGroup Active = new GXKeyManagementGroup(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.KeyManagementGroup;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get key management group data.
+                var tmp = (await Http.GetAsJsonAsync<GetKeyManagementGroupResponse>(string.Format("api/KeyManagementGroup?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

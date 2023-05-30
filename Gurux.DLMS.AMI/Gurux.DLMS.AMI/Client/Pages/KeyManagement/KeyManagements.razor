@@ -1,0 +1,367 @@
+﻿@page "/config/keymanagements"
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = "Admin, KeyManagementManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IGXComponentView
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.KeyManagements</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by system title..."
+                   type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.SystemTitle = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = "".Equals(__e.Value) ? DateTime.MinValue : Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = "".Equals(__e.Value) ? DateTime.MinValue :Convert.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.KeyManagementManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Description">@Properties.Resources.Description</Th>
+        <Th Id="SystemTitle">@Properties.Resources.SystemTitle</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("config/KeyManagement/Edit/" + item.Id)">@item.Name</Td>
+        <td>@item.SystemTitle</td>
+        <td>@item.CreationTime</td>
+        <td>@item.Updated</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected key management ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.KeyManagements;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-timer";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the key managements shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// KeyManagement filter.
+    /// </summary>
+    private GXKeyManagement filter = new GXKeyManagement();
+    /// <summary>
+    /// User is verified before key management is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXKeyManagement>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXKeyManagement>>(this, nameof(IGXHubEvents.KeyManagementUpdate), async (keys) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXKeyManagement>>(this, nameof(IGXHubEvents.KeyManagementDelete), async (keys) =>
+            {
+                await Updated();
+            });
+            //Clear buttons.
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXKeyManagement() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXKeyManagement>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListKeyManagements req = new ListKeyManagements()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            ListKeyManagementsResponse ret = await Http.PostAsJson<ListKeyManagementsResponse>("api/KeyManagement/List", req, request.CancellationToken);
+            if (ret.KeyManagements != null)
+            {
+                return new ItemsProviderResult<GXKeyManagement>(ret.KeyManagements, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new key management.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/KeyManagement/Add");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit key management.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/config/KeyManagement/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected key management.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.SystemTitle).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected key managements.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveKeyManagement req = new RemoveKeyManagement()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveKeyManagementResponse>("api/KeyManagement/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

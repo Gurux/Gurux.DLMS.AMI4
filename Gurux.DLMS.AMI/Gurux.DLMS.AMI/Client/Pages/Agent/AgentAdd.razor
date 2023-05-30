@@ -117,9 +117,10 @@ Configure your account by following the steps outlined <a target="_blank" href="
             token.Scopes = new string[] { "agent.view","agent.add", "agent.edit",
             "task.view", "task.edit", "object.edit",
             "device.view", "device-error.add",
-            "agent-error.add", "device-trace.add",
-            "device-action.add", "value.add", "attribute.edit"};
-
+            "agent-log.add", "device-trace.add",
+            "device-action.add", "value.add", "attribute.edit", 
+            "script.view", 
+            "script-log.add"};
             UpdateToken req = new UpdateToken() { Tokens = new GXPersonalToken[] { token } };
             var ret = await Http.PostAsJson<UpdateTokenResponse>("api/Token/Add", req);
             Token = ret.Token;

@@ -58,6 +58,7 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared;
 using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -115,6 +116,7 @@ namespace Gurux.DLMS.AMI.Server
                 AddMaintenanceConfiguration(configurations);
                 AddRolesConfiguration(configurations);
                 AddExternalAuthenticationServicesConfiguration(configurations);
+                AddKeyManagementConfiguration(configurations);
             }
             finally
             {
@@ -384,6 +386,22 @@ namespace Gurux.DLMS.AMI.Server
         }
 
         /// <summary>
+        /// Add key management configuration.
+        /// </summary>
+        internal static void AddKeyManagementConfiguration(List<GXConfiguration> configurations)
+        {
+            GXConfiguration conf = new GXConfiguration()
+            {
+                Name = GXConfigurations.KeyManagement,
+                Icon = "oi oi-key",
+                Description = Properties.Resources.KeyManagementsDescription,
+                Path = "config/KeyManagement",
+                Order = 8
+            };
+            configurations.Add(conf);
+        }
+
+        /// <summary>
         /// Add external authentication services configurations.
         /// </summary>
         internal static void AddExternalAuthenticationServicesConfiguration(List<GXConfiguration> configurations)
@@ -426,7 +444,7 @@ namespace Gurux.DLMS.AMI.Server
             GXConfiguration conf = new GXConfiguration()
             {
                 Name = GXConfigurations.Roles,
-                Icon = "oi oi-key",
+                Icon = "oi oi-badge",
                 Description = Properties.Resources.RolesDescription,
                 Path = "config/roles",
                 Order = 9,
@@ -545,6 +563,9 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IManufacturerRepository, ManufacturerRepository>();
             services.AddTransient<IManufacturerGroupRepository, ManufacturerGroupRepository>();
             services.AddTransient<IFavoriteRepository, FavoriteRepository>();
+            services.AddTransient<IKeyManagementRepository, KeyManagementRepository>();
+            services.AddTransient<IKeyManagementGroupRepository, KeyManagementGroupRepository>();
+            services.AddTransient<IKeyManagementLogRepository, KeyManagementLogRepository>();
         }
 
         /// <summary>
@@ -597,17 +618,24 @@ namespace Gurux.DLMS.AMI.Server
                 return 10;
             }
             var args = GXSelectArgs.Select<GXConfiguration>(s => s.Settings, w => w.Name == GXConfigurations.System);
-            GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(args);
-            if (conf == null || string.IsNullOrEmpty(conf.Settings))
+            try
+            {
+                GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(args);
+                if (conf == null || string.IsNullOrEmpty(conf.Settings))
+                {
+                    return 10;
+                }
+                SystemSettings? settings = JsonSerializer.Deserialize<SystemSettings>(conf.Settings);
+                if (settings == null)
+                {
+                    return 10;
+                }
+                return settings.PoolSize;
+            }
+            catch (Exception ex)
             {
                 return 10;
             }
-            SystemSettings? settings = JsonSerializer.Deserialize<SystemSettings>(conf.Settings);
-            if (settings == null)
-            {
-                return 10;
-            }
-            return settings.PoolSize;
         }
 
         /// <summary>
@@ -623,12 +651,12 @@ namespace Gurux.DLMS.AMI.Server
             bool disabled = db.Disabled;
             if (disabled)
             {
-                logger.LogInformation("Database service is disabled.");
+                logger.LogInformation(Properties.Resources.DatabaseServiceIsDisabled);
             }
             else
             {
-                logger.LogDebug("Database type: " + type);
-                logger.LogDebug("Connecting: " + settings);
+                logger.LogDebug(Properties.Resources.DatabaseType, type);
+                logger.LogDebug(Properties.Resources.Connecting, settings);
             }
             int connectionCount;
             List<DbConnection> connections = new List<DbConnection>();
@@ -761,6 +789,28 @@ namespace Gurux.DLMS.AMI.Server
                         }
                         host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
                         host.Connection.CreateTable<GXFavorite>(false, false);
+                    }                   
+                    if (!host.Connection.TableExist<GXKeyManagementGroup>())
+                    {
+                        host.Connection.CreateTable<GXKeyManagementGroup>(false, false);
+                        host.Connection.CreateTable<GXKeyManagement>(false, false);
+                        host.Connection.CreateTable<GXKeyManagementLog>(false, false);
+                        host.Connection.CreateTable<GXKeyManagementGroupKeyManagement>(false, false);
+                        host.Connection.CreateTable<GXUserGroupKeyManagementGroup>(false, false);
+                        host.Connection.CreateTable<GXKeyManagementKey>(false, false);
+                        List<GXConfiguration> configurations = new List<GXConfiguration>();
+                        //All values are saved using invariant culture.
+                        CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
+                        try
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+                            AddKeyManagementConfiguration(configurations);
+                        }
+                        finally
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = culture;
+                        }
+                        host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
                     }
                 }
             }

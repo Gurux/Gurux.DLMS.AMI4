@@ -13,7 +13,7 @@
 <div class="row">
     <div style="width:100%">
         <div class="form-group">
-            <label>@Properties.Resources.Protocol:</label>
+            <label>@Properties.Resources.Protocol</label>
             <select class="form-select" @bind="Protocol">
                 @foreach (var it in NetworkTypeList)
                 {
@@ -21,14 +21,17 @@
                 }
             </select>
         </div>
-        <div class="form-group">
-            <label>@Properties.Resources.HostName</label>
-            <InputText id="name" class="form-control"
+        @if (!IsServer)
+        {
+            <div class="form-group">
+                <label>@Properties.Resources.HostName</label>
+                <InputText id="name" class="form-control"
                        @bind-Value="HostName" />
-            <ValidationMessage For="@(() => HostName)" />
-        </div>
+                <ValidationMessage For="@(() => HostName)" />
+            </div>
+        }
         <div class="form-group">
-            <label>@Properties.Resources.Port:</label>
+            <label>@Properties.Resources.Port</label>
             <InputNumber id="port" class="form-control"
                          @bind-Value="Port" />
             <ValidationMessage For="@(() => Port)" />
@@ -41,6 +44,12 @@
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
     private string? _settings;
+
+    /// <summary>
+    /// Host name is hidden if only server settings are shown.
+    /// </summary>
+    [Parameter]
+    public bool IsServer { get; set; }
 
     [Parameter]
     public string? Settings
@@ -102,11 +111,26 @@
     }
 
     /// <summary>
+    /// Initialise network settings.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _net.Settings = _settings;
+        }
+        catch (Exception)
+        {
+            //Settings might fail when media type is changed.
+        }
+    }
+
+    /// <summary>
     /// Validate network settings.
     /// </summary>
     public void Validate(GXValidator sender)
     {
-        if (string.IsNullOrEmpty(HostName))
+        if (!IsServer && string.IsNullOrEmpty(HostName))
         {
             sender.AddError(() => HostName, "Invalid host name.");
         }

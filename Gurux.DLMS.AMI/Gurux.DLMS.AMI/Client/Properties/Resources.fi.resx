@@ -427,7 +427,7 @@
     <value>Tieto</value>
   </data>
   <data name="DefaultGroup" xml:space="preserve">
-    <value>Oletus Ryhmä</value>
+    <value>Oletus ryhmä</value>
   </data>
   <data name="Device" xml:space="preserve">
     <value>Laite</value>
@@ -953,5 +953,83 @@
   </data>
   <data name="FilterByUser" xml:space="preserve">
     <value>Suodata käyttäjän mukaan...</value>
+  </data>
+  <data name="SystemTitle" xml:space="preserve">
+    <value>Järjestelmän otsikko</value>
+  </data>
+  <data name="KeyManagementGroups" xml:space="preserve">
+    <value>Avainten hallintaryhmät</value>
+  </data>
+  <data name="KeyManagements" xml:space="preserve">
+    <value>Avainten hallinnat</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Avainten hallinta</value>
+  </data>
+  <data name="KeyManagementGroup" xml:space="preserve">
+    <value>Avainten hallintaryhmä</value>
+  </data>
+  <data name="KeyManagementLogs" xml:space="preserve">
+    <value>Avainhallinta lokit</value>
+  </data>
+  <data name="KeyManagementKeys" xml:space="preserve">
+    <value>Avaimet</value>
+  </data>
+  <data name="KeyManagementKey" xml:space="preserve">
+    <value>Avain</value>
+  </data>
+  <data name="KeyManagementLLSPassword" xml:space="preserve">
+    <value>Matalan suojaustason salasana</value>
+  </data>
+  <data name="KeyManagementHLSPassword" xml:space="preserve">
+    <value>Korkean suojaustason salasana</value>
+  </data>
+  <data name="KeyManagementPrivateKey" xml:space="preserve">
+    <value>Yksityinen avain</value>
+  </data>
+  <data name="KeyManagementPublicKey" xml:space="preserve">
+    <value>Julkinen avain</value>
+  </data>
+  <data name="KeyManagementUnicastKey" xml:space="preserve">
+    <value>Unicast-avain</value>
+  </data>
+  <data name="KeyManagementAuthenticationKey" xml:space="preserve">
+    <value>Todennusavain</value>
+  </data>
+  <data name="KeyManagementBroadcast" xml:space="preserve">
+    <value>Broadcast-key</value>
+  </data>
+  <data name="KeyManagementKeyType" xml:space="preserve">
+    <value>Avaimen tyyppi</value>
+  </data>
+  <data name="InvalidKey" xml:space="preserve">
+    <value>Virheellinen salasana tai avain.</value>
+  </data>
+  <data name="Hex" xml:space="preserve">
+    <value>Hex</value>
+  </data>
+  <data name="KeyManagementMasterKey" xml:space="preserve">
+    <value>Pääavain</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Oletys</value>
+  </data>
+  <data name="DeviceSystemTitle" xml:space="preserve">
+    <value>Device system title</value>
+  </data>
+  <data name="ClientSystemTitle" xml:space="preserve">
+    <value>Client system title</value>
+  </data>
+  <data name="InvalidSystemTitle" xml:space="preserve">
+    <value>Virheellinen system title.</value>
+  </data>
+  <data name="InvalidBlockCipherKey" xml:space="preserve">
+    <value>Virheellinen salakirjoitusavain.</value>
+  </data>
+  <data name="InvalidAuthenticationKey" xml:space="preserve">
+    <value>Virheellinen todennusavain.</value>
+  </data>
+  <data name="PreEstablishedConnection" xml:space="preserve">
+    <value>Ennakkoon muodostettu yhteys</value>
   </data>
 </root>

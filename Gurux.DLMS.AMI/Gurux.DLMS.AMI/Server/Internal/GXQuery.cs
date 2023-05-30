@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
@@ -1786,6 +1787,168 @@ namespace Gurux.DLMS.AMI.Server.Internal
         }
 
         /// <summary>
+        /// Get key management groups that user can access.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="groupId">KeyManagement group id.</param>
+        /// <returns>List of key management groups that user can access.</returns>
+        public static GXSelectArgs GetKeyManagementGroupsByUser(string userId, Guid? groupId = null)
+        {
+            GXSelectArgs userGroups = GetUserGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXUserGroupKeyManagementGroup>(s => s.KeyManagementGroupId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXKeyManagementGroup>();
+            args.Joins.AddInnerJoin<GXUserGroupKeyManagementGroup, GXKeyManagementGroup>(j => j.KeyManagementGroupId, j => j.Id);
+            args.Where.And<GXUserGroupKeyManagementGroup>(q => GXSql.Exists<GXUserGroupKeyManagementGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
+            if (groupId != null)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Id == groupId);
+            }
+            args.Where.And<GXKeyManagementGroup>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the key management group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupId">KeyManagement group id.</param>
+        /// <returns>List of users who can access the key management group.</returns>
+        public static GXSelectArgs GetUsersByKeyManagementGroup(string userId, Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupKeyManagementGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupKeyManagementGroup, GXKeyManagementGroup>(a => a.KeyManagementGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupId != null)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed == null && q.Id == groupId);
+            }
+            else
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the key management group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupIds">KeyManagement group ids.</param>
+        /// <returns>List of users who can access the key management group.</returns>
+        public static GXSelectArgs GetUsersByKeyManagementGroups(string userId, IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupKeyManagementGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupKeyManagementGroup, GXKeyManagementGroup>(a => a.KeyManagementGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupIds != null)
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXKeyManagementGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get key managements that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="keyId">Device Id</param>
+        /// <returns>List of key managements that user can access.</returns>
+        public static GXSelectArgs GetKeyManagementsByUser(string userId, Guid? keyId = null)
+        {
+            GXSelectArgs keyGroups = GetKeyManagementGroupsByUser(userId);
+            keyGroups.Columns.Clear();
+            keyGroups.Columns.Add<GXKeyManagementGroup>(s => s.Id);
+            GXSelectArgs args = GXSelectArgs.Select<GXKeyManagementGroupKeyManagement>(s => s.KeyManagementId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXKeyManagement>();
+            args.Joins.AddInnerJoin<GXKeyManagementGroupKeyManagement, GXKeyManagement>(j => j.KeyManagementId, j => j.Id);
+            args.Where.And<GXKeyManagementGroupKeyManagement>(q => GXSql.Exists<GXKeyManagementGroupKeyManagement, GXKeyManagementGroup>(j => j.KeyManagementGroupId, j => j.Id, keyGroups));
+            if (keyId != null)
+            {
+                args.Where.And<GXKeyManagement>(q => q.Id == keyId);
+            }
+            args.Where.And<GXKeyManagement>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the key management.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="keyId">KeyManagement id.</param>
+        /// <returns>List of users who can access the key management group.</returns>
+        public static GXSelectArgs GetUsersByKeyManagement(string userId, Guid? keyId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupKeyManagementGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupKeyManagementGroup, GXKeyManagementGroup>(a => a.KeyManagementGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXKeyManagementGroup, GXKeyManagementGroupKeyManagement>(a => a.Id, b => b.KeyManagementGroupId);
+            args.Joins.AddInnerJoin<GXKeyManagementGroupKeyManagement, GXKeyManagement>(a => a.KeyManagementId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXKeyManagementGroup>(where => where.Removed == null);
+            if (keyId != null && keyId != Guid.Empty)
+            {
+                args.Where.And<GXKeyManagement>(where => where.Removed == null && where.Id == keyId);
+            }
+            else
+            {
+                args.Where.And<GXKeyManagement>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the key management.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="keyIds">KeyManagement ids.</param>
+        /// <returns>List of users who can access the key management group.</returns>
+        public static GXSelectArgs GetUsersByKeyManagements(string userId, IEnumerable<Guid>? keyIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupKeyManagementGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupKeyManagementGroup, GXKeyManagementGroup>(a => a.KeyManagementGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXKeyManagementGroup, GXKeyManagementGroupKeyManagement>(a => a.Id, b => b.KeyManagementGroupId);
+            args.Joins.AddInnerJoin<GXKeyManagementGroupKeyManagement, GXKeyManagement>(a => a.KeyManagementId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXKeyManagementGroup>(where => where.Removed == null);
+            if (keyIds != null && keyIds.Any())
+            {
+                args.Where.And<GXKeyManagement>(where => where.Removed == null && keyIds.Contains(where.Id));
+            }
+            else
+            {
+                args.Where.And<GXKeyManagement>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
         /// Get schedule groups that user can access.
         /// </summary>
         /// <param name="userId">UserId</param>
@@ -2125,8 +2288,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
             return args;
         }
+
         /// <summary>
-        /// Get scripts errors by user.
+        /// Get scripts logs by user.
         /// </summary>
         /// <param name="userId">User Id</param>
         /// <param name="scriptId">Device Id</param>
@@ -2137,6 +2301,21 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Columns.Clear();
             args.Columns.Add<GXScriptLog>();
             args.Joins.AddInnerJoin<GXScript, GXScriptLog>(j => j.Id, j => j.Script);
+            return args;
+        }
+
+        /// <summary>
+        /// Get key managements errors by user.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="keyId">Key management Id</param>
+        /// <returns>List of key managements user that user can access.</returns>
+        public static GXSelectArgs GetKeyManagementLogsByUser(string userId, Guid? keyId = null)
+        {
+            GXSelectArgs args = GetKeyManagementsByUser(userId);
+            args.Columns.Clear();
+            args.Columns.Add<GXKeyManagementLog>();
+            args.Joins.AddInnerJoin<GXKeyManagement, GXKeyManagementLog>(j => j.Id, j => j.KeyManagement);
             return args;
         }
 

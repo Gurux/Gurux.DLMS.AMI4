@@ -43,7 +43,11 @@
                 {
                     <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
                         <td>
-                            <input type="checkbox" checked="@GetIgnoredState(@it)" @onchange="@((ChangeEventArgs __e) => UpdateIgnoredState(@it, __e.Value))" />
+                            <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox"
+                                   checked="@GetIgnoredState(@it)"
+                           @onchange="@((e) => UpdateIgnoredState(@it, e.Value))" />
+                            </div>
                         </td>
                         <td>
                             @it

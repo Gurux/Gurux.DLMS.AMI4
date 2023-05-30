@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Client.Shared
@@ -810,5 +811,60 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="favorites">Deleted favorites.</param>
         Task FavoriteDelete(IReadOnlyList<string> users, IEnumerable<GXFavorite> favorites);
+
+        /// <summary>
+        /// New key management is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="keys">Updated key managements.</param>
+        /// <remarks>
+        /// Only the Id and the name of the key management are sent to keep message short.
+        /// </remarks>
+        Task KeyManagementUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys);
+
+        /// <summary>
+        /// KeyManagement is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="keys">Deleted key managements.</param>
+        /// <remarks>
+        /// Only the Id and the name of the key management are sent to keep message short.
+        /// </remarks>
+        Task KeyManagementDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys);
+
+        /// <summary>
+        /// New key management group is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated key management groups.</param>
+        Task KeyManagementGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups);
+
+        /// <summary>
+        /// KeyManagement group is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Deleted key management groups.</param>
+        Task KeyManagementGroupDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups);
+
+        /// <summary>
+        /// KeyManagement log are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="keys">List of cleared key managements.</param>
+        Task ClearKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagement>? keys);
+
+        /// <summary>
+        /// New KeyManagement log is added.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="logs">New key management logs.</param>
+        Task AddKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> logs);
+
+        /// <summary>
+        /// KeyManagement logs are closed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="logs">Closed key management logs.</param>
+        Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> logs);
     }
 }

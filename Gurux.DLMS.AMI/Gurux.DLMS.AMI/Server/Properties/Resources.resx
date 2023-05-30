@@ -576,4 +576,34 @@
   <data name="ScriptUpdated" xml:space="preserve">
     <value>Script updated.</value>
   </data>
+  <data name="KeyManagementRemoved" xml:space="preserve">
+    <value>Key management removed.</value>
+  </data>
+  <data name="KeyManagementUpdated" xml:space="preserve">
+    <value>Key management updated.</value>
+  </data>
+  <data name="KeyManagementInstalled" xml:space="preserve">
+    <value>Key management installed.</value>
+  </data>
+  <data name="KeyManagementsDescription" xml:space="preserve">
+    <value>With the key managements, the settings of encrypted connections are processed.</value>
+  </data>
+  <data name="InvalidKeyType" xml:space="preserve">
+    <value>Invalid key type.</value>
+  </data>
+  <data name="InvalidKeyData" xml:space="preserve">
+    <value>Invalid key data.</value>
+  </data>
+  <data name="DatabaseType" xml:space="preserve">
+    <value>Database type: {0}</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Connecting: {0}</value>
+  </data>
+  <data name="DatabaseServiceIsDisabled" xml:space="preserve">
+    <value>Database service is disabled.</value>
+  </data>
+  <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
+    <value>System title {0} is already in use.</value>
+  </data>
 </root>

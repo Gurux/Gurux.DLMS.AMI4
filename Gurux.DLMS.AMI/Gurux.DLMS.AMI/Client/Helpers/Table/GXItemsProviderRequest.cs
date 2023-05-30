@@ -22,6 +22,14 @@
         public bool Removed { get; }
 
         /// <summary>
+        /// Filter items by string.
+        /// </summary>
+        public string? Filter
+        {
+            get;
+        }
+
+        /// <summary>
         /// Order by name.
         /// </summary>
         /// <remarks>
@@ -75,13 +83,15 @@
             bool removed,
             string? orderBy,
             bool descending,
-            CancellationToken cancellationToken)
+            string? filter = null,
+            CancellationToken cancellationToken = default)
         {
             StartIndex = startIndex;
             ShowAllUserData = showAllUserData;
             Count = count;
             OrderBy = orderBy;
             Descending = descending;
+            Filter = filter;
             CancellationToken = cancellationToken;
             Removed = removed;
         }

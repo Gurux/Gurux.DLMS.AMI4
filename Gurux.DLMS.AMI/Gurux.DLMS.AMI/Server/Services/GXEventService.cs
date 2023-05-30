@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Microsoft.AspNetCore.SignalR;
 
@@ -276,6 +277,20 @@ namespace Gurux.DLMS.AMI.Services
         public event Action<IEnumerable<GXFavorite>>? OnFavoriteUpdate;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXFavorite>>? OnFavoriteDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagement>>? OnKeyManagementUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagement>>? OnKeyManagementDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagementGroup>>? OnKeyManagementGroupUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagementGroup>>? OnKeyManagementGroupDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagement>?>? OnClearKeyManagementLogs;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagementLog>>? OnAddKeyManagementLogs;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXKeyManagementLog>>? OnCloseKeyManagementLogs;
 
         /// <inheritdoc/>
         public async Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
@@ -1088,6 +1103,53 @@ namespace Gurux.DLMS.AMI.Services
         {
             OnFavoriteDelete?.Invoke(favorites);
             await _hubContext.Clients.Users(users).FavoriteDelete(favorites);
+        }
+
+        /// <inheritdoc/>
+        public async Task KeyManagementUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
+        {
+            OnKeyManagementUpdate?.Invoke(keys);
+            await _hubContext.Clients.Users(users).KeyManagementUpdate(keys);
+        }
+
+        /// <inheritdoc/>
+        public async Task KeyManagementDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagement> keys)
+        {
+            OnKeyManagementDelete?.Invoke(keys);
+            await _hubContext.Clients.Users(users).KeyManagementDelete(keys);
+        }
+
+        /// <inheritdoc/>
+        public async Task KeyManagementGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
+        {
+            OnKeyManagementGroupUpdate?.Invoke(groups);
+            await _hubContext.Clients.Users(users).KeyManagementGroupUpdate(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task KeyManagementGroupDelete(IReadOnlyList<string> users, IEnumerable<GXKeyManagementGroup> groups)
+        {
+            OnKeyManagementGroupDelete?.Invoke(groups);
+            await _hubContext.Clients.Users(users).KeyManagementGroupDelete(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task AddKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
+        {
+            OnAddKeyManagementLogs?.Invoke(errors);
+            await _hubContext.Clients.Users(users).AddKeyManagementLogs(errors);
+        }
+        /// <inheritdoc/>
+        public async Task ClearKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagement>? scripts)
+        {
+            OnClearKeyManagementLogs?.Invoke(scripts);
+            await _hubContext.Clients.Users(users).ClearKeyManagementLogs(scripts);
+        }
+        /// <inheritdoc/>
+        public async Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
+        {
+            OnCloseKeyManagementLogs?.Invoke(errors);
+            await _hubContext.Clients.Users(users).CloseKeyManagementLogs(errors);
         }
     }
 }

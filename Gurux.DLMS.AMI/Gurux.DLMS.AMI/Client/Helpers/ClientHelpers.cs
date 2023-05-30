@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.ManufacturerSettings;
 using Gurux.DLMS.Objects;
 using System.Xml.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
@@ -637,6 +638,41 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             settings.UseLogicalNameReferencing = source.UseLogicalNameReferencing;
             settings.UseProtectedRelease = source.UseProtectedRelease;
             target.Settings = JsonSerializer.Serialize(settings);
+        }
+
+        public static string GetKeyTypeDescription(KeyManagementType? value)
+        {
+            string str;
+            switch (value.GetValueOrDefault(KeyManagementType.LLSPassword))
+            {
+                case KeyManagementType.LLSPassword:
+                    str = Properties.Resources.KeyManagementLLSPassword;
+                    break;
+                case KeyManagementType.HLSPassword:
+                    str = Properties.Resources.KeyManagementHLSPassword;
+                    break;
+                case KeyManagementType.BlockCipher:
+                    str = Properties.Resources.KeyManagementUnicastKey;
+                    break;
+                case KeyManagementType.Authentication:
+                    str = Properties.Resources.KeyManagementAuthenticationKey;
+                    break;
+                case KeyManagementType.Broadcast:
+                    str = Properties.Resources.KeyManagementBroadcast;
+                    break;
+                case KeyManagementType.MasterKey:
+                    str = Properties.Resources.KeyManagementMasterKey;
+                    break;
+                case KeyManagementType.PrivateKey:
+                    str = Properties.Resources.KeyManagementPrivateKey;
+                    break;
+                case KeyManagementType.PublicKey:
+                    str = Properties.Resources.KeyManagementPublicKey;
+                    break;
+                default:
+                    throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            return str;
         }
     }
 }

@@ -1,0 +1,337 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.KeyManagement)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting"
+                           @bind-Value="Active.Name"
+                               class="form-control" />
+                    <ValidationMessage For="@(() => Active.Name)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.SystemTitle</label>
+                    <InputText id="name" disabled="@IsDeleting"
+                           @bind-Value="Active.SystemTitle"
+                               class="form-control" />
+                    <ValidationMessage For="@(() => Active.SystemTitle)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Device</label>
+                    <DropdownSearch Context="item"
+                                @bind-Value="Device"
+                                ItemsProvider="@GetItems">
+                        <ItemContent>
+                            @item.Name
+                        </ItemContent>
+                    </DropdownSearch>
+                </div>
+                <KeyManagementKeys Parent="this"></KeyManagementKeys>
+                @if (Active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                           @bind-Value="Active.Removed" />
+                    </div>
+                }
+                @if (action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+
+    private GXDevice Device
+    {
+        get
+        {
+            if (Active?.Device == null)
+            {
+                //Return empty device.
+                return new GXDevice() { Name = Properties.Resources.Default };
+            }
+            return Active.Device;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Device = value;
+            }
+        }
+    }
+    private bool DeleteTarget;
+    [CascadingParameter]
+    private KeyManagementTab? Parent { get; set; }
+
+    private GXKeyManagement? _active;
+
+    internal GXKeyManagement? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    private string? GetName(GXDevice target)
+    {
+        return target.Name;
+    }
+
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
+    {
+        GXDevice? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search devices by name
+            filter = new GXDevice() { Name = request.Filter };
+        }
+        ListDevices req = new ListDevices()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+        var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
+        List<GXDevice> list = new();
+        //Add empty device.
+        list.Add(new GXDevice() { Name = Properties.Resources.Default });
+        if (ret.Devices != null)
+        {
+            list.AddRange(ret.Devices);
+        }
+        return new ItemsProviderResult<GXDevice>(list, ret.Count);
+    }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                Notifier.ProgressStart();
+                //Get key management data.
+                var tmp = (await Http.GetAsJsonAsync<GetKeyManagementResponse>(string.Format("api/KeyManagement?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                Notifier.ProgressEnd();
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the key management content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            if (!string.IsNullOrEmpty(Active.SystemTitle) &&
+            GXDLMSTranslator.HexToBytes(Active.SystemTitle).Length != 8)
+            {
+                sender.AddError(() => Active.SystemTitle, "Invalid system title.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Save Active.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveKeyManagementResponse>("api/KeyManagement/Delete",
+                    new RemoveKeyManagement()
+                        {
+                            Ids = new Guid[] { Active.Id },
+                            Delete = DeleteTarget
+                        }
+                    );
+            }
+            else
+            {
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/KeyManagement/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/KeyManagement/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateKeyManagementResponse>(address, new UpdateKeyManagement()
+                    {
+                        KeyManagements = new List<GXKeyManagement>() { Active }
+                    });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
