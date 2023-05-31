@@ -476,7 +476,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Regenerated agents.")]
-        public Guid? Ids
+        public Guid[]? Ids
         {
             get;
             set;
