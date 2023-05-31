@@ -70,12 +70,5 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">User</param>
         /// <param name="id">Removed token ID</param>
         Task<GXPersonalToken> RemovePersonalTokenAsync(ClaimsPrincipal User, string id);
-
-        /// <summary>
-        /// Regenerate personal access token.
-        /// </summary>
-        /// <param name="User">User</param>
-        /// <param name="token"></param>
-        Task<string> RegeneratePersonalTokenAsync(ClaimsPrincipal User, GXPersonalToken token);
     }
 }

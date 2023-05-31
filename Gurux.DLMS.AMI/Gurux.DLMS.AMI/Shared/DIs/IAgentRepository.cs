@@ -120,13 +120,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             ClaimsPrincipal User,
             ListAgentInstallers? request,
             bool includeRemoved,
-            ListAgentInstallersResponse? response);
-
-        /// <summary>
-        /// Regenerate agent access token.
-        /// </summary>
-        /// <param name="User">User</param>
-        /// <param name="id">Agent ID for which token is regenerated.</param>
-        Task<string> RegenerateAccessTokenAsync(ClaimsPrincipal User, Guid id);
+            ListAgentInstallersResponse? response);        
     }
 }

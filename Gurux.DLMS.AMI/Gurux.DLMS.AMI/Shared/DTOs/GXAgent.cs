@@ -377,16 +377,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Agent is asked to regenerate the current token.
-        /// </summary>
-        [DefaultValue(false)]
-        public bool? RegenerateToken
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()

@@ -464,31 +464,5 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class CheckAgentResponse
     {
-    }
-
-    /// <summary>
-    /// Regenerate agent access token.
-    /// </summary>
-    public class RegenerateAgentToken : IGXRequest<RegenerateAgentTokenResponse>
-    {
-        /// <summary>
-        /// Regenerated agents.
-        /// </summary>
-        [DataMember]
-        [Description("Regenerated agents.")]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Regenerated agent access token response.
-    /// </summary>
-    [DataContract]
-    [Description("Regenerated agent access token response.")]
-    public class RegenerateAgentTokenResponse
-    {
-    }
+    }   
 }
