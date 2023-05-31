@@ -377,6 +377,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// New agent token is send when agent token is updated.
+        /// </summary>
+        /// <remarks>
+        /// Agent token is not saved to the database.
+        /// </remarks>
+        [Ignore]
+        [DefaultValue(null)]
+        public string? Token
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()

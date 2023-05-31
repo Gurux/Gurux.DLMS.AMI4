@@ -123,11 +123,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             ListAgentInstallersResponse? response);
 
         /// <summary>
-        /// Regenerate agent access token.
+        /// Regenerate agent access tokens.
         /// </summary>
         /// <param name="User">User</param>
         /// <param name="agents">Agent IDs for which tokens are regenerated.</param>
-        Task<string> RegeneratePersonalTokenAsync(ClaimsPrincipal User, IEnumerable<Guid> agents);
-
+        Task RegenerateAccessTokenAsync(ClaimsPrincipal User, IEnumerable<Guid> agents);
     }
 }
