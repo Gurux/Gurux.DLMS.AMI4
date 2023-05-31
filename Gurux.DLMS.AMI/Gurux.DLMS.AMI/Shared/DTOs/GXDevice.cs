@@ -410,7 +410,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
-
         /// <summary>
         /// Latitude and Longitude.
         /// </summary>

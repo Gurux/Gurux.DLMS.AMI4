@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -64,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
             WaitTime = 5;
             ResendCount = 3;
+            Keys = new List<GXKeyManagement>();
         }
 
         /// <summary>
@@ -263,6 +265,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXDeviceTemplateGroup), typeof(GXDeviceTemplateGroupDeviceTemplate))]
         public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of key managements.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagement))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagement>? Keys
         {
             get;
             set;

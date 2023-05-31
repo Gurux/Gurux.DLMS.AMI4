@@ -30,7 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -64,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Devices = new List<GXDevice>();
             UserGroups = new List<GXUserGroup>();
             AgentGroups = new List<GXAgentGroup>();
+            Keys = new List<GXKeyManagement>();
             Parameters = new();
         }
 
@@ -176,6 +177,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         public List<GXDeviceGroupParameter>? Parameters
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of key managements.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagement))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagement>? Keys
         {
             get;
             set;
