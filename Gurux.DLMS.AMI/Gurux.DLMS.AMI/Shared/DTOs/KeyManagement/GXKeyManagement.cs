@@ -106,6 +106,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
             set;
         }
 
+        /// <summary>
+        /// Target device group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXDeviceGroup? DeviceGroup
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Target device template.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXDeviceTemplate? Template
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// The creator of the key management.

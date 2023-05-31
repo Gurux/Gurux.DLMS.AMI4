@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -462,6 +463,32 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// </summary>
     [DataContract]
     public class CheckAgentResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate agent access token.
+    /// </summary>
+    public class RegenerateAgentToken : IGXRequest<RegenerateAgentTokenResponse>
+    {
+        /// <summary>
+        /// Regenerated agents.
+        /// </summary>
+        [DataMember]
+        [Description("Regenerated agents.")]
+        public Guid? Ids
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Regenerated agent access token response.
+    /// </summary>
+    [DataContract]
+    [Description("Regenerated agent access token response.")]
+    public class RegenerateAgentTokenResponse
     {
     }
 }

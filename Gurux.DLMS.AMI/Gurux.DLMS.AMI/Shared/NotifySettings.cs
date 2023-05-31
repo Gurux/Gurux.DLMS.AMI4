@@ -76,22 +76,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Use logical name referencing.
         /// </summary>
-        public bool UseLogicalNameReferencing { get; set; } = true;
-
-        /// <summary>
-        /// System title of the server.
-        /// </summary>
-        public string? SystemTitle { get; set; }
-
-        /// <summary>
-        /// Block cipher key key.
-        /// </summary>
-        public string? BlockCipherKey { get; set; }
-
-        /// <summary>
-        /// Authentication key.
-        /// </summary>
-        public string? AuthenticationKey { get; set; }
+        public bool UseLogicalNameReferencing { get; set; } = true;      
 
         /// <summary>
         /// Expiration time in seconds.
