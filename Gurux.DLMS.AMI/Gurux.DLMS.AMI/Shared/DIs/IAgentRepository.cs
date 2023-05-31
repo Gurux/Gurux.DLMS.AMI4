@@ -68,8 +68,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="agents">Updated agent(s).</param>
         /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
-            IEnumerable<GXAgent> agents, 
+            ClaimsPrincipal User,
+            IEnumerable<GXAgent> agents,
             Expression<Func<GXAgent, object?>>? columns = null);
 
         /// <summary>
@@ -123,10 +123,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             ListAgentInstallersResponse? response);
 
         /// <summary>
-        /// Regenerate agent access tokens.
+        /// Regenerate agent access token.
         /// </summary>
         /// <param name="User">User</param>
-        /// <param name="agents">Agent IDs for which tokens are regenerated.</param>
-        Task RegenerateAccessTokenAsync(ClaimsPrincipal User, IEnumerable<Guid> agents);
+        /// <param name="id">Agent ID for which token is regenerated.</param>
+        Task<string> RegenerateAccessTokenAsync(ClaimsPrincipal User, Guid id);
     }
 }

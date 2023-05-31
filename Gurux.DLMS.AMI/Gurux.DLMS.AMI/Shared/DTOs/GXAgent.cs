@@ -377,14 +377,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// New agent token is send when agent token is updated.
+        /// Agent is asked to regenerate the current token.
         /// </summary>
-        /// <remarks>
-        /// Agent token is not saved to the database.
-        /// </remarks>
-        [Ignore]
-        [DefaultValue(null)]
-        public string? Token
+        [DefaultValue(false)]
+        public bool? RegenerateToken
         {
             get;
             set;
