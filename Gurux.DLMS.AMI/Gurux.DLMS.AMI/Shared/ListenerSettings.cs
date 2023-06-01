@@ -119,6 +119,16 @@ namespace Gurux.DLMS.AMI.Shared
         }
 
         /// <summary>
+        /// Absolute expiration time in seconds.
+        /// </summary>
+        public int ExpirationTime
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// Listener script is used to establish the connection for the meter 
         /// and read values from the meter.
         /// </summary>

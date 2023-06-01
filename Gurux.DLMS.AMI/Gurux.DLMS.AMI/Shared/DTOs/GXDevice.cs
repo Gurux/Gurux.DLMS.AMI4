@@ -102,6 +102,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// The system title of the meter.
+        /// </summary>
+        [StringLength(16)]
+        [DataMember]
+        [Index(false)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
+        public string? SystemTitle
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Media type.
         /// </summary>
         [DataMember]

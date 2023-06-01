@@ -33,7 +33,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using System.Runtime.Serialization;
-using System.Text;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {

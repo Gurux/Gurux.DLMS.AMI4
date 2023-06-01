@@ -317,9 +317,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Required]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Ids
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[]? Ids
         {
             get;
             set;
@@ -464,5 +462,43 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class CheckAgentResponse
     {
-    }   
+    }
+
+    /// <summary>
+    /// Clear agent cache.
+    /// </summary>
+    [DataContract]
+    public class AgentCacheClear : IGXRequest<AgentCacheClearResponse>
+    {
+        /// <summary>
+        /// Agent identifiers to clear.
+        /// </summary>
+        [DataMember]
+        [Required]
+        public Guid[]? Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Cleared caches.
+        /// </summary>
+        [DataMember]
+        [Required]
+        public string[]? Names
+        {
+            get;
+            set;
+        }
+
+    }
+
+    /// <summary>
+    /// Clear agent cache reply.
+    /// </summary>
+    [DataContract]
+    public class AgentCacheClearResponse
+    {
+    }
 }

@@ -120,6 +120,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             ClaimsPrincipal User,
             ListAgentInstallers? request,
             bool includeRemoved,
-            ListAgentInstallersResponse? response);        
+            ListAgentInstallersResponse? response);
+
+        /// <summary>
+        /// Clear agents' cache.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="Ids">Agent IDs.</param>
+        /// <param name="names">Cache names to clear</param>
+        Task ClearCache(
+            ClaimsPrincipal User,
+            Guid[]? Ids, string[] names);
     }
 }
