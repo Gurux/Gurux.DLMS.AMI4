@@ -811,7 +811,11 @@ namespace Gurux.DLMS.AMI.Server
                             CultureInfo.DefaultThreadCurrentUICulture = culture;
                         }
                         host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
+                        //System title moved from the GXDLMSSettings to device property.
+                        host.Connection.UpdateTable<GXDevice>();
                     }
+                    //Mikko
+                    host.Connection.UpdateTable<GXDevice>();
                 }
             }
             else
