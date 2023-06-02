@@ -38,14 +38,14 @@ namespace Gurux.DLMS.AMI.Agent.Shared
     /// This interface is used to handle agent worker.
     /// </summary>
     public interface IGXAgentWorker
-    {    
+    {
         /// <summary>
         /// Initialize agent worker.
         /// </summary>
         /// <param name="services">Services.</param>
         /// <param name="options">Agent options.</param>
         /// <param name="newVersion">New version is released.</param>
-        void Init(IServiceCollection services22, 
+        void Init(IServiceCollection services, 
             AgentOptions options, 
             AutoResetEvent newVersion);
 
