@@ -98,7 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
             ClaimsPrincipal User,
-            IEnumerable<Guid> scripts, 
+            IEnumerable<Guid> scripts,
             bool delete);
 
         /// <summary>
@@ -126,5 +126,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="methodId">Script method ID to run.</param>
         /// <returns>Script output.</returns>
         public Task<object?> RunAsync(ClaimsPrincipal User, Guid methodId);
+
+        /// <summary>
+        /// Rebuild scripts.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="scripts">Rebuild script IDs.</param>
+        public Task RebuildAsync(ClaimsPrincipal User, IEnumerable<Guid>? scripts);
     }
 }

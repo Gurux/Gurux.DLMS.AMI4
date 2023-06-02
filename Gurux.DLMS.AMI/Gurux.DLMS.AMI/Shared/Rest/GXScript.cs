@@ -54,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
             nameof(GXScriptMethod.Name))]
         [ExcludeSwagger(typeof(GXScript), nameof(GXScript.Logs)
-            , nameof(GXScript.Resources), nameof(GXScript.Languages), 
+            , nameof(GXScript.Resources), nameof(GXScript.Languages),
             nameof(GXScript.ByteAssembly), nameof(GXScript.Module))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -100,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXScript.Methods),
              nameof(GXScript.Logs),
              nameof(GXScript.Creator),
-             nameof(GXScript.Resources), 
+             nameof(GXScript.Resources),
              nameof(GXScript.Languages),
              nameof(GXScript.Module))]
         public GXScript? Filter
@@ -185,9 +185,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         nameof(GXScript.ScriptGroups),
             nameof(GXScript.Workflows),
             nameof(GXScript.Methods),
-            nameof(GXScript.Logs), 
-            nameof(GXScript.Resources), 
-            nameof(GXScript.Languages), 
+            nameof(GXScript.Logs),
+            nameof(GXScript.Resources),
+            nameof(GXScript.Languages),
             nameof(GXScript.Module))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXScript[]? Scripts
@@ -229,7 +229,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.Resources),
             nameof(GXScript.Languages),
             nameof(GXScript.Module))]
-        public List<GXScript> Scripts{get; set;} = new List<GXScript>();
+        public List<GXScript> Scripts { get; set; } = new List<GXScript>();
     }
 
     /// <summary>
@@ -370,5 +370,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+    }
+
+    /// <summary>
+    /// Rebuild the scripts.
+    /// </summary>
+    [DataContract]
+    public class RebuildScript : IGXRequest<RebuildScriptResponse>
+    {
+        /// <summary>
+        /// Rebuild script IDs.
+        /// </summary>
+        public Guid[]? Scripts
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Rebuild the scripts reply.
+    /// </summary>
+    [DataContract]
+    public class RebuildScriptResponse
+    {
     }
 }
