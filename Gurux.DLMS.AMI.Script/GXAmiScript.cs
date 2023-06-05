@@ -45,6 +45,8 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.Loader;
 using System.Runtime.ExceptionServices;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Gurux.DLMS.AMI.Script
 {
@@ -96,7 +98,7 @@ namespace Gurux.DLMS.AMI.Script
             set;
         }
 
-        /// <inheritdoc cref="IGXAmi.AddAsync"/>
+        /// <inheritdoc />
         public async Task AddAsync(object value)
         {
             if (_serviceProvider == null)
@@ -128,6 +130,11 @@ namespace Gurux.DLMS.AMI.Script
             {
                 IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
                 await repository.UpdateAsync(Claims, new GXObject[] { o });
+            }
+            else if (value is GXValue v)
+            {
+                IValueRepository repository = scope.ServiceProvider.GetRequiredService<IValueRepository>();
+                await repository.AddAsync(Claims, new GXValue[] { v });
             }
             else if (value is GXTask t)
             {
@@ -184,79 +191,104 @@ namespace Gurux.DLMS.AMI.Script
                 IAgentLogRepository repository = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
                 await repository.AddAsync(Claims, new GXAgentLog[] { ae });
             }
+            else if (value is IEnumerable<GXSystemLog> seList)
+            {
+                ISystemLogRepository repository = scope.ServiceProvider.GetRequiredService<ISystemLogRepository>();
+                await repository.AddAsync(Claims, seList);
+            }
+            else if (value is IEnumerable<GXDeviceError> deList)
+            {
+                IDeviceErrorRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceErrorRepository>();
+                await repository.AddAsync(Claims, deList);
+            }
+            else if (value is IEnumerable<GXDeviceGroup> dgList)
+            {
+                IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
+                await repository.UpdateAsync(Claims, dgList);
+            }
+            else if (value is IEnumerable<GXDevice> dList)
+            {
+                IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
+                await repository.UpdateAsync(Claims, dList, default);
+            }
+            else if (value is IEnumerable<GXObject> oList)
+            {
+                IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
+                await repository.UpdateAsync(Claims, oList);
+            }
+            else if (value is IEnumerable<GXValue> vList)
+            {
+                IValueRepository repository = scope.ServiceProvider.GetRequiredService<IValueRepository>();
+                await repository.AddAsync(Claims, vList);
+            }
+            else if (value is IEnumerable<GXTask> tList)
+            {
+                ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
+                await repository.AddAsync(Claims, tList);
+            }
+            else if (value is IEnumerable<GXDeviceAction> daList)
+            {
+                IDeviceActionRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceActionRepository>();
+                await repository.AddAsync(Claims, daList);
+            }
+            else if (value is IEnumerable<GXDeviceTrace> dtList)
+            {
+                IDeviceTraceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceTraceRepository>();
+                await repository.AddAsync(Claims, dtList);
+            }
+            else if (value is IEnumerable<GXAgentGroup> agList)
+            {
+                IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
+                await repository.UpdateAsync(Claims, agList);
+            }
+            else if (value is IEnumerable<GXAgent> aList)
+            {
+                IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
+                await repository.UpdateAsync(Claims, aList);
+            }
+            else if (value is IEnumerable<GXUserGroup> ugList)
+            {
+                IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
+                await repository.UpdateAsync(Claims, ugList);
+            }
+            else if (value is IEnumerable<GXUser> uList)
+            {
+                IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                await repository.UpdateAsync(Claims, uList);
+            }
+            else if (value is IEnumerable<GXScheduleGroup> sgList)
+            {
+                IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
+                await repository.UpdateAsync(Claims, sgList);
+            }
+            else if (value is IEnumerable<GXSchedule> sList)
+            {
+                IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
+                await repository.UpdateAsync(Claims, sList);
+            }
+            else if (value is IEnumerable<GXUserError> ueList)
+            {
+                IUserErrorRepository repository = scope.ServiceProvider.GetRequiredService<IUserErrorRepository>();
+                await repository.AddAsync(Claims, ueList);
+            }
+            else if (value is IEnumerable<GXAgentLog> aeList)
+            {
+                IAgentLogRepository repository = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
+                await repository.AddAsync(Claims, aeList);
+            }
             else
             {
                 throw new ArgumentException("Add script failed. Unknown target.");
             }
         }
 
-        /// <inheritdoc cref="IGXAmi.UpdateAsync"/>
+        /// <inheritdoc />
         public async Task UpdateAsync(object value)
         {
-            if (_serviceProvider == null)
-            {
-                throw new ArgumentException(nameof(_serviceProvider));
-            }
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-                if (value is GXDeviceGroup dg)
-                {
-                    IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                    await repository.UpdateAsync(Claims, new GXDeviceGroup[] { dg });
-                }
-                else if (value is GXDevice d)
-                {
-                    IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                    await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None);
-                }
-                else if (value is GXObject o)
-                {
-                    IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
-                    await repository.UpdateAsync(Claims, new GXObject[] { o });
-                }
-                else if (value is GXDeviceAction da)
-                {
-                    IDeviceActionRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceActionRepository>();
-                    await repository.AddAsync(Claims, new GXDeviceAction[] { da });
-                }
-                else if (value is GXAgentGroup ag)
-                {
-                    IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
-                    await repository.UpdateAsync(Claims, new GXAgentGroup[] { ag });
-                }
-                else if (value is GXAgent a)
-                {
-                    IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
-                    await repository.UpdateAsync(Claims, new GXAgent[] { a });
-                }
-                else if (value is GXUserGroup ug)
-                {
-                    IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
-                    await repository.UpdateAsync(Claims, new GXUserGroup[] { ug });
-                }
-                else if (value is GXUser u)
-                {
-                    IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                    await repository.UpdateAsync(Claims, new GXUser[] { u });
-                }
-                else if (value is GXScheduleGroup sg)
-                {
-                    IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                    await repository.UpdateAsync(Claims, new GXScheduleGroup[] { sg });
-                }
-                else if (value is GXSchedule s)
-                {
-                    IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
-                    await repository.UpdateAsync(Claims, new GXSchedule[] { s });
-                }
-                else
-                {
-                    throw new ArgumentException("Add script failed. Unknown target.");
-                }
-            }
+            await AddAsync(value);
         }
 
-        /// <inheritdoc cref="IGXAmi.RemoveAsync"/>
+        /// <inheritdoc />
         public async Task RemoveAsync(object value, bool delete)
         {
             if (_serviceProvider == null)
@@ -318,6 +350,62 @@ namespace Gurux.DLMS.AMI.Script
                 else if (value is GXUserError ue)
                 {
                     IUserErrorRepository repository = scope.ServiceProvider.GetRequiredService<IUserErrorRepository>();
+                    await repository.CloseAsync(Claims, new Guid[] { ue.Id });
+                }
+                else if (value is IEnumerable<GXDeviceGroup> dgList)
+                {
+                    IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
+                    await repository.DeleteAsync(Claims, dgList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXDevice> dList)
+                {
+                    IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
+                    await repository.DeleteAsync(Claims, dList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXObject> oList)
+                {
+                    IObjectRepository repository = scope.ServiceProvider.GetRequiredService<IObjectRepository>();
+                    await repository.DeleteAsync(Claims, oList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXTask> tList)
+                {
+                    ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
+                    await repository.DeleteAsync(Claims, tList.Select(s => s.Id).ToList());
+                }
+                else if (value is IEnumerable<GXAgentGroup> agList)
+                {
+                    IAgentGroupRepository repository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
+                    await repository.DeleteAsync(Claims, agList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXAgent> aList)
+                {
+                    IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
+                    await repository.DeleteAsync(Claims, aList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXUserGroup> ugList)
+                {
+                    IUserGroupRepository repository = scope.ServiceProvider.GetRequiredService<IUserGroupRepository>();
+                    await repository.DeleteAsync(Claims, ugList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXUser> uList)
+                {
+                    IUserRepository repository = scope.ServiceProvider.GetRequiredService<IUserRepository>();
+                    await repository.DeleteAsync(Claims, uList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXScheduleGroup> sgList)
+                {
+                    IScheduleGroupRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
+                    await repository.DeleteAsync(Claims, sgList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXSchedule> sList)
+                {
+                    IScheduleRepository repository = scope.ServiceProvider.GetRequiredService<IScheduleRepository>();
+                    await repository.DeleteAsync(Claims, sList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXUserError> ueList)
+                {
+                    IUserErrorRepository repository = scope.ServiceProvider.GetRequiredService<IUserErrorRepository>();
+                    await repository.CloseAsync(Claims, ueList.Select(s => s.Id).ToList());
                 }
                 else
                 {
