@@ -377,6 +377,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Cache expiration time in seconds.
+        /// </summary>
+        [DefaultValue(0)]
+        public int CacheExpiration
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()

@@ -91,8 +91,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Description("Object type.")]
+        [IsRequired]
         [DefaultValue(0)]
-        public int ObjectType
+        public int? ObjectType
         {
             get;
             set;
@@ -105,7 +106,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Object version.")]
         [DefaultValue(0)]
-        public int Version
+        [IsRequired]
+        public int? Version
         {
             get;
             set;
