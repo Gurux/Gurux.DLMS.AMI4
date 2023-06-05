@@ -207,9 +207,9 @@ else
     }
 
     //Get object type as a string.
-    public string GetObjectType(int value)
+    public string GetObjectType(int? value)
     {
-        return ((Gurux.DLMS.Enums.ObjectType)value).ToString();
+        return ((Gurux.DLMS.Enums.ObjectType)value.GetValueOrDefault(0)).ToString();
     }
 
     private string GetAccessRights(GXObjectTemplate template)

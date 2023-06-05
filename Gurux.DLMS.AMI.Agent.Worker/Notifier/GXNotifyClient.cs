@@ -34,14 +34,13 @@ using Gurux.Common;
 using Gurux.DLMS.Enums;
 using Gurux.DLMS.Secure;
 
-namespace Gurux.DLMS.AMI.Agent.Notifier
+namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
     public class GXNotifyClient
     {
         public GXNotifyClient(bool useLogicalNameReferencing, 
             int interfaceType, 
-            string? systemTitle, 
-            string? blockCipherKey)
+            string? systemTitle)
         {
             Notify = new GXReplyData();
             Reply = new GXByteBuffer();
@@ -50,10 +49,8 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
             {
                 Client.Ciphering.SystemTitle = GXCommon.HexToBytes(systemTitle);
             }
-            if (blockCipherKey != null)
-            {
-                Client.Ciphering.BlockCipherKey = GXCommon.HexToBytes(blockCipherKey);
-            }
+            Client.Ciphering.BlockCipherKey = null;
+            Client.Ciphering.AuthenticationKey = null;
             DataReceived = DateTime.MinValue;
         }
 

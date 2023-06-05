@@ -39,14 +39,22 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Script;
 using System.Runtime.Loader;
+using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using System.Text;
+using Gurux.DLMS.AMI.Shared.DIs;
+using System.Runtime.Caching;
+using Gurux.DLMS.AMI.Shared.Enums;
 
-namespace Gurux.DLMS.AMI.Agent.Notifier
+namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
     /// <inheritdoc/>
     internal class GXNotifyService : IHostedService, IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<GXNotifyService> _logger;
+        private readonly IDeviceRepository _deviceRepository;
         NotifySettings? settings;
         //Notify wait push, events or notifies from the meters.
         GXNet? notify;
@@ -63,10 +71,13 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXNotifyService(ILogger<GXNotifyService> logger, IServiceProvider serviceProvider)
+        public GXNotifyService(ILogger<GXNotifyService> logger,
+            IServiceProvider serviceProvider,
+            IDeviceRepository deviceRepository)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
+            _deviceRepository = deviceRepository;
         }
 
         /// <inheritdoc/>
@@ -81,15 +92,18 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
                 {
                     if (settings.ScriptMethod != null)
                     {
+                        //Get script when app starts.
                         ListScripts req = new ListScripts();
                         req.Filter = new GXScript();
-                        req.Filter.Methods.Add(new GXScriptMethod() { Id = settings.ScriptMethod.Value });
+                        req.Filter.Methods = new List<GXScriptMethod>(new GXScriptMethod[]
+                        {
+                        new GXScriptMethod() { Id = settings.ScriptMethod.Value } });
                         ListScriptsResponse? ret = GXAgentWorker.client.PostAsJson<ListScriptsResponse>("/api/Script/List", req).Result;
-                        if (ret == null || ret.Scripts.Length != 1)
+                        if (ret?.Scripts == null || ret.Scripts.Length != 1)
                         {
                             throw new Exception("Unknown script to execute.");
                         }
-                        scriptMethod = ret.Scripts[0].Methods.SingleOrDefault();
+                        scriptMethod = ret.Scripts[0].Methods.FirstOrDefault();
                         //Update parent script.
                         scriptMethod.Script = ret.Scripts[0];
                     }
@@ -112,110 +126,295 @@ namespace Gurux.DLMS.AMI.Agent.Notifier
         }
 
         /// <summary>
+        /// Get block cipher or authentication key.
+        /// </summary>
+        private byte[]? GetKey(
+            IEnumerable<GXKeyManagement>? managers,
+            KeyManagementType type)
+        {
+            if (managers != null)
+            {
+                foreach (var manager in managers)
+                {
+                    if (manager.Keys != null)
+                    {
+                        foreach (var it in manager.Keys)
+                        {
+                            if (it.KeyType == type)
+                            {
+                                if (string.IsNullOrEmpty(it.Data))
+                                {
+                                    throw new Exception("Invalid key.");
+                                }
+                                if (it.IsHex.GetValueOrDefault(false))
+                                {
+                                    return GXDLMSTranslator.HexToBytes(it.Data);
+                                }
+                                return ASCIIEncoding.ASCII.GetBytes(it.Data);
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Read devices are saved to cache.
+        /// </summary>
+        private MemoryCache _cachedDevices = new MemoryCache("Devices");
+
+        /// <summary>
+        /// Get certificate keys from the server.
+        /// </summary>
+        private void OnGetKeys(object sender, GXCryptoKeyParameter args)
+        {
+            string st = GXCommon.ToHex(args.SystemTitle, false);
+            //Check is device already read.            
+            GXDevice? device = (GXDevice)_cachedDevices.Get(st);
+            if (device != null)
+            {
+                if ((args.KeyType & Enums.CryptoKeyType.Authentication) != 0)
+                {
+                    args.AuthenticationKey = GetKey(device.Keys, KeyManagementType.Authentication);
+                    if (args.AuthenticationKey == null)
+                    {
+                        string msg = string.Format(Worker.Properties.Resources.UnknownKeyForSystemTitle, st);
+                        throw new Exception(msg);
+                    }
+                }
+                if ((args.KeyType & Enums.CryptoKeyType.BlockCipher) != 0)
+                {
+                    args.BlockCipherKey = GetKey(device.Keys, KeyManagementType.Broadcast);
+                    if (args.BlockCipherKey == null)
+                    {
+                        args.BlockCipherKey = GetKey(device.Keys, KeyManagementType.BlockCipher);
+                    }
+                    if (args.BlockCipherKey == null)
+                    {
+                        string msg = string.Format(Properties.Resources.UnknownKeyForSystemTitle, st);
+                        throw new Exception(msg);
+                    }
+                }
+                return;
+            }
+            ListKeyManagements req = new ListKeyManagements()
+            {
+                Filter = new GXKeyManagement()
+                {
+                    SystemTitle = st
+                },
+                Select = (TargetType.KeyManagementKey | TargetType.Device | TargetType.Object | TargetType.ObjectTemplate | TargetType.Attribute | TargetType.AttributeTemplate)
+            };
+            var ret = GXAgentWorker.client.PostAsJson<ListKeyManagementsResponse>("/api/KeyManagement/List", req).Result;
+            if (ret != null)
+            {
+                if ((args.KeyType & Enums.CryptoKeyType.Authentication) != 0)
+                {
+                    args.AuthenticationKey = GetKey(ret.KeyManagements, KeyManagementType.Authentication);
+                    if (args.AuthenticationKey == null)
+                    {
+                        string msg = string.Format(Worker.Properties.Resources.UnknownKeyForSystemTitle, st);
+                        throw new Exception(msg);
+                    }
+                }
+                if ((args.KeyType & Enums.CryptoKeyType.BlockCipher) != 0)
+                {
+                    args.BlockCipherKey = GetKey(ret.KeyManagements, KeyManagementType.Broadcast);
+                    if (args.BlockCipherKey == null)
+                    {
+                        args.BlockCipherKey = GetKey(ret.KeyManagements, KeyManagementType.BlockCipher);
+                    }
+                    if (args.BlockCipherKey == null)
+                    {
+                        string msg = string.Format(Properties.Resources.UnknownKeyForSystemTitle, st);
+                        throw new Exception(msg);
+                    }
+                }
+                //Read device and add it to the cache.
+                if (ret.KeyManagements?.FirstOrDefault() is GXKeyManagement f)
+                {
+                    if (f?.Device == null)
+                    {
+                        string msg = string.Format(Properties.Resources.UnknownDeviceForSystemTitle, st);
+                        throw new Exception(msg);
+                    }
+                    f.Device.Keys = new List<GXKeyManagement>(ret.KeyManagements);
+                    var cacheItem = new CacheItem(st, f.Device);
+                    var cacheItemPolicy = new CacheItemPolicy
+                    {
+                        AbsoluteExpiration = DateTimeOffset.Now.AddHours(1)
+                    };
+                    _cachedDevices.Add(cacheItem, cacheItemPolicy);
+                }
+            }
+        }
+
+        /// <summary>
         /// Handle received notify message.
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         internal void OnNotifyReceived(object sender, ReceiveEventArgs e)
         {
-            GXNotifyClient reply;
-            lock (notifyMessages)
+            try
             {
-                if (notifyMessages.ContainsKey(e.SenderInfo))
+                GXNotifyClient reply;
+                lock (notifyMessages)
                 {
-                    reply = notifyMessages[e.SenderInfo];
-                }
-                else
-                {
-                    reply = new GXNotifyClient(settings.UseLogicalNameReferencing,
-                        settings.Interface, settings.SystemTitle, settings.BlockCipherKey);
-                    notifyMessages.Add(e.SenderInfo, reply);
-                }
-            }
-            DateTime now = DateTime.Now;
-            //If received data is expired.
-            if (ExpirationTime != 0 && (now - reply.DataReceived).TotalSeconds > ExpirationTime)
-            {
-                reply.Reply.Clear();
-            }
-            reply.DataReceived = now;
-            reply.Reply.Set((byte[])e.Data);
-            GXReplyData data = new GXReplyData();
-            reply.Client.GetData(reply.Reply, data, reply.Notify);
-            // If all data is received.
-            if (reply.Notify.IsComplete && !reply.Notify.IsMoreData)
-            {
-                if (GXAgentWorker.Options.TraceLevel == System.Diagnostics.TraceLevel.Verbose)
-                {
-                    //Show data as XML in the console.
-                    string xml;
-                    GXDLMSTranslator t = new GXDLMSTranslator();
-                    t.DataToXml(reply.Notify.Data, out xml);
-                    _logger.LogDebug(xml);
-                }
-                if (settings != null && settings.TraceLevel == System.Diagnostics.TraceLevel.Verbose)
-                {
-                    //Meter trace.
-                    GXDeviceTrace trace = new GXDeviceTrace();
-                    trace.Send = false;
-                    trace.Frame = reply.Notify.Data.ToHex(false, 0);
-                    AddDeviceTrace it = new AddDeviceTrace();
-                    it.Traces = new GXDeviceTrace[] { trace };
-                    GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/DeviceTrace/Add", it).Wait();
-                }
-                try
-                {
-                    if (scriptMethod != null && scriptMethod.Script != null)
+                    if (notifyMessages.ContainsKey(e.SenderInfo))
                     {
-                        GXAmiScript tmp = new GXAmiScript(_serviceProvider);
-                        tmp.Sender = new GXAgent() { Id = GXAgentWorker.Options.Id };
-                        tmp.Data = reply.Notify.Value;
-                        //Run script.
-                        GXScriptRunArgs args = new GXScriptRunArgs()
-                        {
-                            ByteAssembly = scriptMethod.Script.ByteAssembly,
-                            MethodName = scriptMethod.Name,
-                            Asyncronous = scriptMethod.Asyncronous,
-                            AssemblyLoadContext = loadedScript
-                        };
-                        tmp.RunAsync(args).Wait();
+                        reply = notifyMessages[e.SenderInfo];
+                    }
+                    else
+                    {
+                        reply = new GXNotifyClient(settings.UseLogicalNameReferencing,
+                            settings.Interface, null);
+                        notifyMessages.Add(e.SenderInfo, reply);
                     }
                 }
-                catch (Exception ex)
+                DateTime now = DateTime.Now;
+                //If received data is expired.
+                if (ExpirationTime != 0 && (now - reply.DataReceived).TotalSeconds > ExpirationTime)
                 {
-                    _logger.LogError(ex.Message + Environment.NewLine + ex.StackTrace);
-                    AddAgentLog ae = new AddAgentLog();
-                    ae.Logs = new GXAgentLog[]{new GXAgentLog()
+                    reply.Reply.Clear();
+                }
+                reply.DataReceived = now;
+                reply.Reply.Set((byte[])e.Data);
+                //Send agent verbose trace.
+                if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
+                {
+                    //Agent trace.
+                    GXAgentLog trace = new GXAgentLog(TraceLevel.Verbose);
+                    trace.Agent = new GXAgent() { Id = GXAgentWorker.Options.Id };
+                    trace.Message = GXCommon.ToHex((byte[])e.Data);
+                    AddAgentLog it = new AddAgentLog();
+                    it.Logs = new GXAgentLog[] { trace };
+                    GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/AgentLog/Add", it).Wait();
+                }
+
+                try
+                {
+                    reply.Client.OnKeys += OnGetKeys;
+                    //There might be multiple frames waiting. Read them all.
+                    while (reply.Client.GetData(reply.Reply, reply.Notify) && reply.Reply.Available != 0) ;
+                }
+                finally
+                {
+                    reply.Client.OnKeys -= OnGetKeys;
+                }
+                // If all data is received.
+                if (reply.Notify.IsComplete && !reply.Notify.IsMoreData)
+                {
+                    if (GXAgentWorker.Options.TraceLevel == TraceLevel.Verbose)
+                    {
+                        //Show data as XML in the console.
+                        string xml;
+                        GXDLMSTranslator t = new GXDLMSTranslator();
+                        t.DataToXml(reply.Notify.Data, out xml);
+                        _logger.LogDebug(xml);
+                    }
+                    //Send agent trace.
+                    if (settings != null && settings.TraceLevel >= TraceLevel.Info)
+                    {
+                        string xml;
+                        GXDLMSTranslator t = new GXDLMSTranslator();
+                        t.DataToXml(reply.Notify.Data, out xml);
+                        //Agent trace.
+                        GXAgentLog trace = new GXAgentLog(TraceLevel.Info);
+                        trace.Agent = new GXAgent() { Id = GXAgentWorker.Options.Id };
+                        trace.Message = xml;
+                        AddAgentLog it = new AddAgentLog();
+                        it.Logs = new GXAgentLog[] { trace };
+                        GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/AgentLog/Add", it).Wait();
+                    }
+                    try
+                    {
+                        if (scriptMethod != null && scriptMethod.Script != null)
+                        {
+                            //Get the device from the cache.
+                            string st = GXCommon.ToHex(reply.Notify.SystemTitle, false);
+                            GXDevice? device = (GXDevice)_cachedDevices.Get(st);
+
+                            GXAmiScript tmp = new GXAmiScript(_serviceProvider);
+                            tmp.Sender = new GXAgent() { Id = GXAgentWorker.Options.Id };
+                            //Run script.
+                            GXScriptRunArgs args = new GXScriptRunArgs()
+                            {
+                                ByteAssembly = scriptMethod.Script.ByteAssembly,
+                                MethodName = scriptMethod.Name,
+                                Asyncronous = scriptMethod.Asyncronous,
+                                AssemblyLoadContext = loadedScript,
+                                Parameters = new object[]
+                                {
+                                    e.SenderInfo,
+                                    device,
+                                    reply.Notify.Time,
+                                    reply.Notify.Value,
+                                    }
+                            };
+                            tmp.RunAsync(args).Wait();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex.Message + Environment.NewLine + ex.StackTrace);
+                        AddAgentLog log = new AddAgentLog();
+                        log.Logs = new GXAgentLog[]{new GXAgentLog()
                         {
                             Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
-                            Message = ex.Message
+                            Message = ex.Message,
+                            StackTrace =ex.StackTrace
                         } };
-                    GXAgentWorker.client.PostAsJson("/api/AgentError/Add", ae).Wait();
-                    if (scriptMethod != null && scriptMethod.Script != null)
-                    {
-                        AddScriptLog se = new AddScriptLog();
-                        se.Logs = new GXScriptLog[]{new GXScriptLog()
+                        GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log).Wait();
+                        if (scriptMethod != null && scriptMethod.Script != null)
+                        {
+                            AddScriptLog se = new AddScriptLog();
+                            se.Logs = new GXScriptLog[]{new GXScriptLog()
                         {
                             Script = scriptMethod.Script,
                             Message = ex.Message
                         } };
-                        //Reset parent so it doesn't cause problems with JSON.
-                        GXScript original = scriptMethod.Script;
-                        scriptMethod.Script = null;
-                        try
-                        {
-                            GXAgentWorker.client.PostAsJson("/api/ScriptError/Add", se).Wait();
-                        }
-                        finally
-                        {
-                            scriptMethod.Script = original;
+                            //Reset parent so it doesn't cause problems with JSON.
+                            GXScript original = scriptMethod.Script;
+                            scriptMethod.Script = null;
+                            try
+                            {
+                                GXAgentWorker.client.PostAsJson<AddAgentLogResponse>("/api/ScriptLog/Add", se).Wait();
+                            }
+                            finally
+                            {
+                                scriptMethod.Script = original;
+                            }
                         }
                     }
+                    finally
+                    {
+                        reply.Notify.Clear();
+                        //Don't call clear here.
+                        //There might be bytes from the next frame waiting.
+                        reply.Reply.Trim();
+                    }
                 }
-                finally
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.Message + Environment.NewLine + ex.StackTrace);
+                AddAgentLog log = new AddAgentLog();
+                log.Logs = new GXAgentLog[]{new GXAgentLog()
+                        {
+                            Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
+                            Message = ex.Message,
+                            StackTrace =ex.StackTrace
+                        } };
+                try
                 {
-                    reply.Notify.Clear();
-                    reply.Reply.Clear();
+                    GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log).Wait();
+                }
+                catch (Exception ex2)
+                {
+                    //If connection is lost for the server.
+                    _logger.LogError(ex2.Message + Environment.NewLine + ex2.StackTrace);
                 }
             }
         }

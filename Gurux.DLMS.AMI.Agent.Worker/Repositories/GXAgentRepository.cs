@@ -45,6 +45,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXAgentRepository : IAgentRepository
     {
         /// <inheritdoc/>
+        public Task ClearCache(ClaimsPrincipal User, Guid[]? Ids, string[] names)
+        {
+            //The agent doesn't need this.
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc/>
         public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
         {
             RemoveAgent req = new RemoveAgent() { Ids = devices.ToArray(), Delete = delete };

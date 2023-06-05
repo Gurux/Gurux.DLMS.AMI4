@@ -88,10 +88,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         /// <inheritdoc/>
         public async Task<Guid[]> UpdateAsync(
             ClaimsPrincipal? user,
-            IEnumerable<GXObject> devices,
+            IEnumerable<GXObject> objects,
              Expression<Func<GXObject, object?>>? columns = null)
         {
-            UpdateObject req = new UpdateObject() { Objects = devices.ToArray() };
+            UpdateObject req = new UpdateObject() { Objects = objects.ToArray() };
             return (await GXAgentWorker.client.PostAsJson<UpdateObjectResponse>("/api/Object/Update", req)).Ids;
         }
 

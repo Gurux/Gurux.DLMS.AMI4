@@ -31,8 +31,8 @@
 //---------------------------------------------------------------------------
 
 using Gurux.Common;
-using Gurux.DLMS.AMI.Agent.Notifier;
 using Gurux.DLMS.AMI.Agent.Shared;
+using Gurux.DLMS.AMI.Agent.Worker.Notifier;
 using Gurux.DLMS.AMI.Agent.Worker.Repositories;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -379,15 +379,19 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             if (task.Object != null && task.Object.Template != null)
             {
                 obj = GXDLMSClient.CreateObject((ObjectType)task.Object.Template.ObjectType);
-                obj.Version = task.Object.Template.Version;
+                obj.Version = task.Object.Template.Version.GetValueOrDefault(0);
                 obj.LogicalName = task.Object.Template.LogicalName;
                 obj.ShortName = task.Object.Template.ShortName.GetValueOrDefault();
             }
             else if (task.Attribute != null && task.Attribute.Object != null &&
                 task.Attribute.Object.Template != null)
             {
+                if (task.Attribute.Object.Template.ObjectType == null)
+                {
+                    throw new Exception("Invlalid object type.");
+                }
                 obj = GXDLMSClient.CreateObject((ObjectType)task.Attribute.Object.Template.ObjectType);
-                obj.Version = task.Attribute.Object.Template.Version;
+                obj.Version = task.Object.Template.Version.GetValueOrDefault(0);
                 obj.LogicalName = task.Attribute.Object.Template.LogicalName;
                 obj.ShortName = task.Attribute.Object.Template.ShortName.GetValueOrDefault();
             }
@@ -687,7 +691,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             Authentication.None, null, (InterfaceType)settings.InterfaceType);
                         reader = new GXDLMSReader(cl, media, _logger, consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
                         media.Open();
-                        reader.InitializeConnection();
+                        reader.InitializeConnection(false);
                         //Read Innovation counter.
                         GXDLMSData d = new GXDLMSData(settings.FrameCounter);
                         await reader.Read(d, 2);
@@ -709,22 +713,22 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     cl.UseUtc2NormalTime = templateSettings.UtcTimeZone;
                     cl.Standard = (Standard)templateSettings.Standard;
                     cl.Ciphering.SystemTitle = GXCommon.HexToBytes(settings.ClientSystemTitle);
-                    if (cl.Ciphering.SystemTitle != null && cl.Ciphering.SystemTitle.Length == 0)
+                    if (cl.Ciphering.SystemTitle != null && !cl.Ciphering.SystemTitle.Any())
                     {
                         cl.Ciphering.SystemTitle = null;
                     }
                     cl.Ciphering.BlockCipherKey = GXCommon.HexToBytes(settings.BlockCipherKey);
-                    if (cl.Ciphering.BlockCipherKey != null && cl.Ciphering.BlockCipherKey.Length == 0)
+                    if (cl.Ciphering.BlockCipherKey != null && !cl.Ciphering.BlockCipherKey.Any())
                     {
                         cl.Ciphering.BlockCipherKey = null;
                     }
                     cl.Ciphering.AuthenticationKey = GXCommon.HexToBytes(settings.AuthenticationKey);
-                    if (cl.Ciphering.AuthenticationKey != null && cl.Ciphering.AuthenticationKey.Length == 0)
+                    if (cl.Ciphering.AuthenticationKey != null && !cl.Ciphering.AuthenticationKey.Any())
                     {
                         cl.Ciphering.AuthenticationKey = null;
                     }
                     cl.ServerSystemTitle = GXCommon.HexToBytes(settings.DeviceSystemTitle);
-                    if (cl.ServerSystemTitle != null && cl.ServerSystemTitle.Length == 0)
+                    if (cl.ServerSystemTitle != null && !cl.ServerSystemTitle.Any())
                     {
                         cl.ServerSystemTitle = null;
                     }
@@ -733,7 +737,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     reader = new GXDLMSReader(cl, media, _logger,
                         consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
                     media.Open();
-                    reader.InitializeConnection();
+                    reader.InitializeConnection(settings.PreEstablished);
                 }
                 catch (Exception ex)
                 {
@@ -806,7 +810,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             string message)
         {
             AddDeviceError error = new AddDeviceError();
-            error.Errors = new GXDeviceError[]{new GXDeviceError()
+            error.Errors = new GXDeviceError[]{
+                new GXDeviceError()
                         {
                             Device = dev,
                             Message = message + " " + ex.Message
@@ -850,7 +855,38 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             })
             .WithAutomaticReconnect()
             .Build();
-            _hubConnection.On<IEnumerable<GXTask>>("TaskAdd", async (tasks) =>
+
+            _hubConnection.On<IEnumerable<GXScript>>("ScriptUpdate", async (scripts) =>
+            {
+                //Download the latest script if the user changes it.
+                if (GXAgentWorker.Options.NotifySettings?.ScriptMethod != null)
+                {
+                    Guid id = Options.NotifySettings.ScriptMethod.Value;
+                    foreach (var script in scripts)
+                    {
+                        if (script.Methods != null)
+                        {
+                            foreach (var it in script.Methods)
+                            {
+                                if (it.Id == id)
+                                {
+                                    _logger?.LogInformation("Script updated.");
+                                    //Restart application so old script doesn't cause problems.
+                                    _newVersion.Set();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            _hubConnection.On<Guid, string[]?>("ClearCache", (id, names) =>
+            {
+                _logger?.LogInformation("Agent cache cleared.");
+            });
+
+            _hubConnection.On<IEnumerable<GXTask>>("TaskAdd", (tasks) =>
             {
                 _logger?.LogInformation("New task added.");
                 _newTask.Set();
@@ -862,10 +898,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (agent.Id == Options.Id)
                     {
                         _logger?.LogInformation("Agent '{0}' updated.", agent.Name);
+                        Options.SerialPort = agent.SerialPort;
                         if (!string.IsNullOrEmpty(agent.ReaderSettings) &&
                             JsonSerializer.Serialize(Options.ReaderSettings) != agent.ReaderSettings)
                         {
-                            Options.SerialPort = agent.SerialPort;
                             int threadCount = Options.ReaderSettings.Threads;
                             ReaderSettings? rs = JsonSerializer.Deserialize<ReaderSettings>(agent.ReaderSettings);
                             if (rs != null)
@@ -990,6 +1026,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 //It's OK if this fails.
                 _hubConnection = null;
             }
-        }
+        }      
     }
 }

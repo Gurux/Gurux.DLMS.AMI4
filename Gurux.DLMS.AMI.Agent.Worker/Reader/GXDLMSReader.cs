@@ -89,99 +89,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             Client = client;
             _logger = logger;
             _device = device;
-        }
-
-        /// <summary>
-        /// Read all data from the meter.
-        /// </summary>
-        public void ReadAll(bool useCache)
-        {
-            try
-            {
-                InitializeConnection();
-                GetAssociationView(useCache);
-                GetScalersAndUnits();
-                GetProfileGenericColumns();
-            }
-            finally
-            {
-                Close();
-            }
-        }
-
-        /// <summary>
-        /// Send SNRM Request to the meter.
-        /// </summary>
-        public void SNRMRequest()
-        {
-            GXReplyData reply = new GXReplyData();
-            byte[] data;
-            data = Client.SNRMRequest();
-            if (data != null)
-            {
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
-                }
-                ReadDataBlock(data, reply);
-                if (_consoleTrace == TraceLevel.Verbose)
-                {
-                    Console.WriteLine("Parsing UA reply." + reply.ToString());
-                }
-                //Has server accepted client.
-                Client.ParseUAResponse(reply.Data);
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Parsing UA reply succeeded.");
-                }
-            }
-        }
-
-        /// <summary>
-        /// Send AARQ Request to the meter.
-        /// </summary>
-        public void AarqRequest()
-        {
-            GXReplyData reply = new GXReplyData();
-            //Generate AARQ request.
-            //Split requests to multiple packets if needed.
-            //If password is used all data might not fit to one packet.
-            foreach (byte[] it in Client.AARQRequest())
-            {
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Send AARQ request", GXCommon.ToHex(it, true));
-                }
-                reply.Clear();
-                ReadDataBlock(it, reply);
-            }
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine("Parsing AARE reply" + reply.ToString());
-            }
-            //Parse reply.
-            Client.ParseAAREResponse(reply.Data);
-            reply.Clear();
-            //Get challenge Is HLS authentication is used.
-            if (Client.IsAuthenticationRequired)
-            {
-                foreach (byte[] it in Client.GetApplicationAssociationRequest())
-                {
-                    reply.Clear();
-                    ReadDataBlock(it, reply);
-                }
-                Client.ParseApplicationAssociationResponse(reply.Data);
-            }
-            if (_consoleTrace > TraceLevel.Info)
-            {
-                Console.WriteLine("Parsing AARE reply succeeded.");
-            }
-        }
+        }       
 
         /// <summary>
         /// Initialize connection to the meter.
         /// </summary>
-        public void InitializeConnection()
+        public void InitializeConnection(bool preEstablished)
         {
             GXReplyData reply = new GXReplyData();
             byte[] data;
@@ -204,7 +117,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     Console.WriteLine("Parsing UA reply succeeded.");
                 }
             }
-            //TODO: if (Client.ServerSystemTitle == null)
+            if (!preEstablished)
             {
                 //Generate AARQ request.
                 //Split requests to multiple packets if needed.

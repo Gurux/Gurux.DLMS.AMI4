@@ -46,7 +46,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         public async Task<Guid[]> AddAsync(ClaimsPrincipal? User, IEnumerable<GXValue> values)
         {
             AddValue req = new AddValue() { Values = values.ToArray() };
-            return (await GXAgentWorker.client.PostAsJson<AddValueResponse>("/api/Value/Update", req)).Ids;
+            return (await GXAgentWorker.client.PostAsJson<AddValueResponse>("/api/Value/Add", req)).Ids;
         }
 
         /// <inheritdoc/>

@@ -151,88 +151,88 @@
                                 </select>
                             </div>
                         }
-
-                        <div class="form-group row">
-                            <label>@Properties.Resources.Authentication</label>
-                            <InputSelect id="type" class="form-select"
-                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
-                                @foreach (var it in GetAuthenticationLevels())
-                                {
-                                    <option value="@it.Id">@GetAuthenticationLevel(it)</option>
-                                }
-                            </InputSelect>
-                        </div>
-                        <div class="form-group row">
-                            <div class="form-inline">
-                                <label>@Properties.Resources.Password</label>
-                                <Switch OnChange="OnHexChange"
-                                Disabled="@IsHexDisabled()" @bind-Value="_settings.IsHex">
-                                    @Properties.Resources.Hex
-                                </Switch>
+                        <fieldset disabled=@IsManagementKeyInUse()>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Authentication</label>
+                                <InputSelect id="type" class="form-select"
+                                     @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                    @foreach (var it in GetAuthenticationLevels())
+                                    {
+                                        <option value="@it.Id">@GetAuthenticationLevel(it)</option>
+                                    }
+                                </InputSelect>
                             </div>
-                            <InputText id="password" class="form-control"
-                               @bind-Value="Password" disabled="@IsAuthenticated()" />
-                            <ValidationMessage For="@(() => Password)" />
-                        </div>
-                        <div class="form-group row">
-                            <label>@Properties.Resources.Security</label>
-                            <InputSelect id="type" class="form-select"
-                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
-                                @foreach (var it in GetSecurity())
-                                {
-                                    <option value="@it.Id">@GetSecurity(it)</option>
-                                }
-                            </InputSelect>
-                        </div>
-                        <div class="form-group row">
-                            <div class="form-inline">
-                                <label>@Properties.Resources.ClientSystemTitle</label>
-                                <Switch OnChange="OnClientSTHexChange"
-                                Disabled="@IsClientSystemTileDisabled()" @bind-Value="IsHexClientST">
-                                    @Properties.Resources.Hex
-                                </Switch>
+                            <div class="form-group row">
+                                <div class="form-inline">
+                                    <label>@Properties.Resources.Password</label>
+                                    <Switch OnChange="OnHexChange"
+                                    Disabled="@IsHexDisabled()" @bind-Value="_settings.IsHex">
+                                        @Properties.Resources.Hex
+                                    </Switch>
+                                </div>
+                                <InputText id="password" class="form-control"
+                                   @bind-Value="Password" disabled="@IsAuthenticated()" />
+                                <ValidationMessage For="@(() => Password)" />
                             </div>
-                            <InputText id="clientSystemTitle" class="form-control"
-                               @bind-Value="_settings.ClientSystemTitle" disabled="@IsSecured()" />
-                            <ValidationMessage For="@(() => _settings.ClientSystemTitle)" />
-                        </div>
-                        <div class="form-group row">
-                            <div class="form-inline">
-                                <label>@Properties.Resources.DeviceSystemTitle</label>
-                                <Switch OnChange="OnDeviceSTHexChange"
-                                Disabled="@IsDeviceSystemTileDisabled()" @bind-Value="IsHexDeviceST">
-                                    @Properties.Resources.Hex
-                                </Switch>
+                            <div class="form-group row">
+                                <label>@Properties.Resources.Security</label>
+                                <InputSelect id="type" class="form-select"
+                                     @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                    @foreach (var it in GetSecurity())
+                                    {
+                                        <option value="@it.Id">@GetSecurity(it)</option>
+                                    }
+                                </InputSelect>
                             </div>
-                            <InputText id="deviceSystemTitle" class="form-control"
-                               @bind-Value="_settings.DeviceSystemTitle" disabled="@IsSecured()" />
-                            <ValidationMessage For="@(() => _settings.DeviceSystemTitle)" />
-                        </div>
-                        <div class="form-group row">
-                            <div class="form-inline">
-                                <label>@Properties.Resources.BlockCipherKey</label>
-                                <Switch OnChange="OnBlockCipherKeyHexChange"
-                                Disabled="@IsBlockCipherKeyDisabled()" @bind-Value="IsHexBlockCipherKey">
-                                    @Properties.Resources.Hex
-                                </Switch>
+                            <div class="form-group row">
+                                <div class="form-inline">
+                                    <label>@Properties.Resources.ClientSystemTitle</label>
+                                    <Switch OnChange="OnClientSTHexChange"
+                                    Disabled="@IsClientSystemTileDisabled()" @bind-Value="IsHexClientST">
+                                        @Properties.Resources.Hex
+                                    </Switch>
+                                </div>
+                                <InputText id="clientSystemTitle" class="form-control"
+                                   @bind-Value="_settings.ClientSystemTitle" disabled="@IsSecured()" />
+                                <ValidationMessage For="@(() => _settings.ClientSystemTitle)" />
                             </div>
-                            <InputText id="blockCipherKey" class="form-control"
-                               @bind-Value="_settings.BlockCipherKey" disabled="@IsSecured()" />
-                            <ValidationMessage For="@(() => _settings.BlockCipherKey)" />
-                        </div>
-                        <div class="form-group row">
-                            <div class="form-inline">
-                                <label>@Properties.Resources.AuthenticationKey</label>
-                                <Switch OnChange="OnAuthenticationKeyHexChange"
-                                Disabled="@IsAutheticationKeyDisabled()" @bind-Value="IsHexAuthenticationKey">
-                                    @Properties.Resources.Hex
-                                </Switch>
+                            <div class="form-group row">
+                                <div class="form-inline">
+                                    <label>@Properties.Resources.DeviceSystemTitle</label>
+                                    <Switch OnChange="OnDeviceSTHexChange"
+                                    Disabled="@IsDeviceSystemTileDisabled()" @bind-Value="IsHexDeviceST">
+                                        @Properties.Resources.Hex
+                                    </Switch>
+                                </div>
+                                <InputText id="deviceSystemTitle" class="form-control"
+                                   @bind-Value="_settings.DeviceSystemTitle" disabled="@IsSecured()" />
+                                <ValidationMessage For="@(() => _settings.DeviceSystemTitle)" />
                             </div>
-                            <InputText id="authenticationKey" class="form-control"
-                               @bind-Value="_settings.AuthenticationKey" disabled="@IsSecured()" />
-                            <ValidationMessage For="@(() => _settings.AuthenticationKey)" />
-                        </div>
-
+                            <div class="form-group row">
+                                <div class="form-inline">
+                                    <label>@Properties.Resources.BlockCipherKey</label>
+                                    <Switch OnChange="OnBlockCipherKeyHexChange"
+                                    Disabled="@IsBlockCipherKeyDisabled()" @bind-Value="IsHexBlockCipherKey">
+                                        @Properties.Resources.Hex
+                                    </Switch>
+                                </div>
+                                <InputText id="blockCipherKey" class="form-control"
+                                   @bind-Value="_settings.BlockCipherKey" disabled="@IsSecured()" />
+                                <ValidationMessage For="@(() => _settings.BlockCipherKey)" />
+                            </div>
+                            <div class="form-group row">
+                                <div class="form-inline">
+                                    <label>@Properties.Resources.AuthenticationKey</label>
+                                    <Switch OnChange="OnAuthenticationKeyHexChange"
+                                    Disabled="@IsAutheticationKeyDisabled()" @bind-Value="IsHexAuthenticationKey">
+                                        @Properties.Resources.Hex
+                                    </Switch>
+                                </div>
+                                <InputText id="authenticationKey" class="form-control"
+                                   @bind-Value="_settings.AuthenticationKey" disabled="@IsSecured()" />
+                                <ValidationMessage For="@(() => _settings.AuthenticationKey)" />
+                            </div>
+                        </fieldset>
                         @if (_settings != null && _settings.HDLCAddressing == (int)HDLCAddressType.SerialNumber)
                         {
                             <div class="form-group row">
@@ -384,9 +384,15 @@
         set;
     }
 
+    private bool IsManagementKeyInUse()
+    {
+        return action != CrudAction.Create && (IsSecured() || IsAuthenticated());
+    }
+
+
     private bool IsHexDisabled()
     {
-        if (IsAuthenticated() != null)
+        if (IsAuthenticated())
         {
             return true;
         }
@@ -710,12 +716,12 @@
             if (_settings?.BlockCipherKey != null)
             {
                 byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.BlockCipherKey);
-                IsHexBlockCipherKey = !IsAsciiString(tmp);
+                IsHexBlockCipherKey = true;
             }
             if (_settings?.AuthenticationKey != null)
             {
                 byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.AuthenticationKey);
-                IsHexAuthenticationKey = !IsAsciiString(tmp);
+                IsHexAuthenticationKey = true;
             }
         }
         StateHasChanged();
@@ -880,26 +886,26 @@
         return "disabled";
     }
 
-    string? IsAuthenticated()
+    bool IsAuthenticated()
     {
         if (_settings == null ||
             !(_settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.None ||
             _settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC ||
             _settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighECDSA))
         {
-            return null;
+            return false;
         }
-        return "disabled";
+        return true;
     }
 
-    string? IsSecured()
+    bool IsSecured()
     {
         if (_settings == null ||
             _settings.Security != (byte)Gurux.DLMS.Enums.Security.None)
         {
-            return null;
+            return false;
         }
-        return "disabled";
+        return true;
     }
 
 
@@ -1314,6 +1320,7 @@
             }
             Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
             Notifier.UpdateButtons();
+            Update();
         }
         catch (Exception ex)
         {
