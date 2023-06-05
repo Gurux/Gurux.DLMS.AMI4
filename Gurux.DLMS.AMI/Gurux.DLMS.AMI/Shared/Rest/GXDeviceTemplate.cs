@@ -35,6 +35,7 @@ using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -48,9 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
         [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDeviceTemplate Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Keys))]
+        public GXDeviceTemplate? Item
         {
             get;
             set;
@@ -69,8 +69,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects))]
-        public GXDeviceTemplate[] Templates
+        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects)
+            , nameof(GXDeviceTemplate.Keys))]
+        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        public GXDeviceTemplate[]? Templates
         {
             get;
             set;
@@ -124,7 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter device templates.
         /// </summary>
         [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects))]
+        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
         public GXDeviceTemplate? Filter
         {
             get;
@@ -205,7 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [Description("List of device templates.")]
         [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects))]
+        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
         public GXDeviceTemplate[] Templates
         {
             get;

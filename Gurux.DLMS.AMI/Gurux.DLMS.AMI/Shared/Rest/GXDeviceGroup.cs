@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -52,11 +53,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUserGroup.Name))]
         [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id),
                 nameof(GXAgentGroup.Name))]
+        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id),
+                nameof(GXKeyManagement.Name))]
         [ExcludeSwagger(typeof(GXDeviceGroupParameter), nameof(GXDeviceGroupParameter.DeviceGroup),
                 nameof(GXDeviceGroupParameter.Module))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDeviceGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDeviceGroup? Item
         {
             get;
             set;
@@ -94,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups)
-            , nameof(GXDeviceGroup.Parameters))]
+            , nameof(GXDeviceGroup.Keys), nameof(GXDeviceGroup.Parameters))]
         public GXDeviceGroup? Filter
         {
             get;
@@ -174,8 +175,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups)
-            , nameof(GXDeviceGroup.Parameters))]
-        public GXDeviceGroup[] DeviceGroups
+            , nameof(GXDeviceGroup.Keys), nameof(GXDeviceGroup.Parameters))]
+        public GXDeviceGroup[]? DeviceGroups
         {
             get;
             set;
@@ -205,13 +206,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Keys))]
         [ExcludeSwagger(typeof(GXDeviceGroupParameter),
             nameof(GXDeviceGroupParameter.Removed),
             nameof(GXDeviceGroupParameter.Updated),
             nameof(GXDeviceGroupParameter.CreationTime),
-            nameof(GXDeviceGroupParameter.DeviceGroup), 
+            nameof(GXDeviceGroupParameter.DeviceGroup),
             nameof(GXDeviceGroupParameter.Module))]
-        public GXDeviceGroup[] DeviceGroups
+        public GXDeviceGroup[]? DeviceGroups
         {
             get;
             set;
@@ -227,7 +229,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New device groups.
         /// </summary>
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -244,7 +246,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// User group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
