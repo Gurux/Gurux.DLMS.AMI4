@@ -45,8 +45,8 @@ namespace Gurux.DLMS.AMI.Agent
     class Program
     {
         const string settingsFile = "settings.json";
-        static ILogger _logger;
-        static IGXAgentWorker worker = null;
+        static ILogger? _logger;
+        static IGXAgentWorker? worker = null;
 
         /// <summary>
         /// Register the agent.
@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Agent
             string name = System.Net.Dns.GetHostName();
             Console.WriteLine("Welcome to use Gurux.DLMS.AMI.");
             Console.WriteLine(string.Format("Gurux.DLMS.AMI address: [{0}]", options.Address));
-            string tmp = Console.ReadLine();
+            string? tmp = Console.ReadLine();
             if (!string.IsNullOrEmpty(tmp))
             {
                 options.Address = tmp;

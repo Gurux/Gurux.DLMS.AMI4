@@ -35,7 +35,10 @@ namespace Gurux.DLMS.AMI.Agent
 {
     public class Settings
     {
-        public string Host
+        /// <summary>
+        /// Host name.
+        /// </summary>
+        public string? Host
         {
             get;
             set;
