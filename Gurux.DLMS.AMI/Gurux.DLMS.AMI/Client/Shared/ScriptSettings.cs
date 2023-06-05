@@ -33,54 +33,33 @@
 namespace Gurux.DLMS.AMI.Client.Shared
 {
     /// <summary>
-    /// Statistic settings.
+    /// Script settings.
     /// </summary>
-    public class StatisticSettings
+    public class ScriptSettings
     {
         /// <summary>
-        /// Are user actions saved.
+        /// Scripts' shared version.
         /// </summary>
-        public bool UserActions
+        /// <remarks>
+        /// All scripts must be rebuild if the Gurux.DLMS.AMI.Shared changes.
+        /// </remarks>
+        public string? SharedVersion
         {
             get;
             set;
-        } = true;
+        }
 
         /// <summary>
-        /// Log REST operations if it takes at least the given time in milliseconds.
+        /// Current shared version.
         /// </summary>
-        public int RestTrigger
+        /// <remarks>
+        /// All scripts must be rebuild if the Gurux.DLMS.AMI.Shared changes.
+        /// </remarks>
+        public string? CurrentSharedVersion
         {
             get;
             set;
-        } = 5000;
-
-        /// <summary>
-        /// Are device actions saved.
-        /// </summary>
-        public bool DeviceActions
-        {
-            get;
-            set;
-        } = true;
-
-        /// <summary>
-        /// Are Schedule actions saved.
-        /// </summary>
-        public bool ScheduleActions
-        {
-            get;
-            set;
-        } = true;
-
-        /// <summary>
-        /// Are Agent actions saved.
-        /// </summary>
-        public bool AgentActions
-        {
-            get;
-            set;
-        } = true;
+        }
 
     }
 }

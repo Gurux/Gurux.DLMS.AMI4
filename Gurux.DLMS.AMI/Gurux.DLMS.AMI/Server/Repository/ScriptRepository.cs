@@ -47,10 +47,10 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Gurux.DLMS.AMI.Server.Services;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
-using Gurux.DLMS.AMI.Client.Pages.Block;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Linq.Expressions;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared;
+using System.Reflection;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -291,7 +291,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="script">Updated script.</param>
         /// <returns>True, if the source code has changed.</returns>
-        /// <exception cref="ArgumentNullException"></exception>
         async Task<bool> IsChangedAsync(GXScript script)
         {
             if (script.Id == Guid.Empty)
@@ -542,7 +541,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IScriptRepository.Compile"/>
+        /// <inheritdoc />
         public byte[]? Compile(ClaimsPrincipal User, string fileName, string script, string? additionalNamespaces, List<GXScriptMethod> methods, out string? errorJson, out int compileTime)
         {
             errorJson = null;
@@ -550,15 +549,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new ArgumentNullException("No script to validate.");
             }
-            List<Script.GXScriptException> errors = new();
+            List<GXScriptException> errors = new();
             StringBuilder sb = new();
-            List<string> namespaces = new();
-            namespaces.Add("System");
-            namespaces.Add("Gurux.DLMS.AMI.Script");
-            namespaces.Add("Gurux.DLMS.AMI.Shared.DIs");
-            namespaces.Add("Gurux.DLMS.AMI.Shared.DTOs");
-            namespaces.Add("Gurux.DLMS.AMI.Shared.DTOs.Authentication");
-            namespaces.Add("Gurux.DLMS.AMI.Shared.DTOs.Enums");
+            List<string> namespaces = new List<string>
+            {
+                "System",
+                "System.Linq",
+                "System.Linq.Expressions",
+                "System.Collections.Generic",
+                "Gurux.DLMS.AMI.Script",
+                "Gurux.DLMS.AMI.Shared.DIs",
+                "Gurux.DLMS.AMI.Shared.DTOs",
+                "Gurux.DLMS.AMI.Shared.DTOs.Authentication",
+                "Gurux.DLMS.AMI.Shared.DTOs.Enums",
+                "Gurux.DLMS.Enums"
+            };
             if (!string.IsNullOrEmpty(additionalNamespaces))
             {
                 namespaces.AddRange(additionalNamespaces.Split(';', StringSplitOptions.RemoveEmptyEntries));
@@ -625,7 +630,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return byteAssembly;
         }
 
-        /// <inheritdoc cref="IScriptRepository.RunAsync"/>
+        /// <inheritdoc />
         public async Task<object?> RunAsync(ClaimsPrincipal User, Guid methodId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXScriptMethod>(q => q.Id == methodId);
@@ -665,6 +670,115 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     args.AssemblyLoadContext.Unload();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Update script shared version after scripts are updated.
+        /// </summary>
+        private void UpdateScriptSharedVersion()
+        {
+            var args = GXSelectArgs.Select<GXConfiguration>(
+                s => new { s.Id, s.Settings },
+                w => w.Name == GXConfigurations.Scripts);
+            try
+            {
+                GXConfiguration conf = _host.Connection.SingleOrDefault<GXConfiguration>(args);
+                ScriptSettings? settings = null;
+                if (!string.IsNullOrEmpty(conf.Settings))
+                {
+                    settings = JsonSerializer.Deserialize<ScriptSettings>(conf.Settings);
+                }
+                if (settings == null)
+                {
+                    settings = new ScriptSettings();
+                }
+                Assembly asm = typeof(GXAmiException).Assembly;
+                FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
+                settings.SharedVersion = info.FileVersion;
+                conf.Settings = JsonSerializer.Serialize(settings);
+                var u = GXUpdateArgs.Update(conf, c => new { c.Updated, c.Settings });
+                _host.Connection.Update(u);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task RebuildAsync(ClaimsPrincipal User, IEnumerable<Guid>? ids)
+        {
+            DateTime now = DateTime.Now;
+            List<Guid> list = new();
+            Dictionary<GXScript, List<string>> updates = new();
+            List<GXScript> scripts = new List<GXScript>();
+            if (ids == null || !ids.Any())
+            {
+                //All scripts are updated.
+                scripts.AddRange(await ListAsync(User, null, null, default));
+            }
+            else
+            {
+                foreach (Guid id in ids)
+                {
+                    var script = await ReadAsync(User, id);
+                    scripts.Add(script);
+                }
+            }
+            List<GXScriptLog> logs = new List<GXScriptLog>();
+            foreach (GXScript script in scripts)
+            {
+                try
+                {
+                    //Update compiled script if it's changed.
+                    UpdateScript(User, script, out int compileTime);
+                    _workflowHandler.UnloadScript(script.Id);
+                    GXSelectArgs m = GXSelectArgs.Select<GXScript>(q => q.ConcurrencyStamp, where => where.Id == script.Id);
+                    string updated = _host.Connection.SingleOrDefault<string>(m);
+                    if (!string.IsNullOrEmpty(updated) && updated != script.ConcurrencyStamp)
+                    {
+                        throw new ArgumentException(Properties.Resources.ContentEdited);
+                    }
+                    script.Updated = now;
+                    script.ConcurrencyStamp = Guid.NewGuid().ToString();
+                    GXUpdateArgs args = GXUpdateArgs.Update(script, c => new { c.Updated, c.ConcurrencyStamp });
+                    _host.Connection.Update(args);
+                    //Notify the workflow handler that the scipt has been updated.
+                    //This will cause that script is reload.
+                    _workflowHandler.Update(script);
+                    updates[script] = await GetUsersAsync(User, script.Id);
+                    logs.Add(new GXScriptLog(TraceLevel.Info)
+                    {
+                        CreationTime = DateTime.Now,
+                        Script = script,
+                        Message = Properties.Resources.ScriptRebuild
+                    });
+                }
+                catch (Exception ex)
+                {
+                    //Disable the script.
+                    script.Active = false;
+                    GXUpdateArgs args = GXUpdateArgs.Update(script, c => new { c.Active });
+                    _host.Connection.Update(args);
+                    logs.Add(new GXScriptLog(TraceLevel.Error)
+                    {
+                        CreationTime = DateTime.Now,
+                        Script = script,
+                        Message = string.Format(Properties.Resources.ScriptRebuildFailed, ex.Message),
+                        StackTrace = ex.StackTrace
+                    });
+                }
+            }
+            UpdateScriptSharedVersion();
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                var scriptLogRepository = scope.ServiceProvider.GetRequiredService<IScriptLogRepository>();
+                await scriptLogRepository.AddAsync(User, logs);
+            }
+            foreach (var it in updates)
+            {
+                await _eventsNotifier.ScriptUpdate(it.Value,
+                    new GXScript[] { it.Key });
             }
         }
     }

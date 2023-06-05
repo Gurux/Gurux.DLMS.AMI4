@@ -51,25 +51,7 @@
                     <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
                     <label>@Properties.Resources.UseLogicalNameReferencing</label>
                     <br />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.System</label>
-                    <InputText id="name" class="form-control"
-                           @bind-Value="Settings.SystemTitle" />
-                    <ValidationMessage For="@(() => Settings.SystemTitle)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.BlockCipherKey</label>
-                    <InputText id="name" class="form-control"
-                           @bind-Value="Settings.BlockCipherKey" />
-                    <ValidationMessage For="@(() => Settings.BlockCipherKey)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.AuthenticationKey</label>
-                    <InputText id="name" class="form-control"
-                           @bind-Value="Settings.AuthenticationKey" />
-                    <ValidationMessage For="@(() => Settings.AuthenticationKey)" />
-                </div>
+                </div>               
                 <div class="form-group">
                     <label>@Properties.Resources.ExpirationTime</label>
                     <InputNumber id="threads" class="form-control"
@@ -186,18 +168,6 @@
     {
         @if (Settings != null && Settings.Active)
         {
-            if (Settings.SystemTitle != null && Settings.SystemTitle.Length != 8)
-            {
-                sender.AddError(() => Settings.SystemTitle, "Invalid system title.");
-            }
-            if (Settings.BlockCipherKey != null && Settings.BlockCipherKey.Length != 8)
-            {
-                sender.AddError(() => Settings.BlockCipherKey, "Invalid block cipher key.");
-            }
-            if (Settings.AuthenticationKey != null && Settings.AuthenticationKey.Length != 8)
-            {
-                sender.AddError(() => Settings.AuthenticationKey, "Invalid authentication key.");
-            }
             if (Settings.ExpirationTime < 0)
             {
                 sender.AddError(() => Settings.ExpirationTime, "Invalid expiration time.");

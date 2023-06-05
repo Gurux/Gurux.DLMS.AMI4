@@ -162,7 +162,7 @@
   <data name="SystemSiteInformation" xml:space="preserve">
     <value>Sivuston tiedot</value>
   </data>
-  <data name="SystemSiteInformationDescription" xml:space="preserve">
+  <data name="SystemConfigurationDescription" xml:space="preserve">
     <value>Muuta sivuston nimi, sähköpostiosoite tai iskulause.</value>
   </data>
   <data name="SystemStatus" xml:space="preserve">
@@ -171,7 +171,7 @@
   <data name="SystemStatusInformation" xml:space="preserve">
     <value>Tila</value>
   </data>
-  <data name="SystemStatusInformationDescription" xml:space="preserve">
+  <data name="SystemStatusDescription" xml:space="preserve">
     <value>Järjestelmän tila.</value>
   </data>
   <data name="Logout" xml:space="preserve">

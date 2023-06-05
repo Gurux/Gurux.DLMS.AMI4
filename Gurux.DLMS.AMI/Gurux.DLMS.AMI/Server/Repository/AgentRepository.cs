@@ -44,9 +44,7 @@ using System.Diagnostics;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
-using Gurux.DLMS.AMI.Client.Pages.Device;
-using Mysqlx;
-using Microsoft.AspNetCore.Mvc;
+using Gurux.DLMS.AMI.Client.Pages.Agent;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -644,6 +642,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (_performanceSettings.Notify(TargetType.Agent))
                 {
                     await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public async Task ClearCache(ClaimsPrincipal User, Guid[]? Ids, string[] names)
+        {
+            if (Ids != null)
+            {
+                foreach (var id in Ids)
+                {
+                    GXAgent agent = await ReadAsync(User, id);
+                    if (agent == null)
+                    {
+                        throw new GXAmiNotFoundException(
+                            Properties.Resources.Agent + " " +
+                            Properties.Resources.Id + " " +
+                            id.ToString());
+                    }
+                    if (_performanceSettings.Notify(TargetType.Agent))
+                    {
+                        await _eventsNotifier.ClearCache(await GetUsersAsync(User, id), id, names);
+                    }
                 }
             }
         }

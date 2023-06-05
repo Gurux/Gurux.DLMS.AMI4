@@ -44,7 +44,7 @@
                     <div class="form-group">
                         <label>@ClientHelpers.GetKeyTypeDescription(Active.KeyType)</label>
                         <InputNullableSwitch OnChange="OnHexChange"
-                                          Disabled="@IsHexDisabled()" @bind-Value="Active.IsHex">
+                                         Disabled="@IsHexDisabled()" @bind-Value="Active.IsHex">
                             @Properties.Resources.Hex
                         </InputNullableSwitch>
                         <InputText id="name" disabled="@IsDeleting" class="form-control"
@@ -288,9 +288,20 @@
                     case KeyManagementType.BlockCipher:
                     case KeyManagementType.Authentication:
                     case KeyManagementType.Broadcast:
-                        if (GXDLMSTranslator.HexToBytes(Active.Data).Length != 16)
+                        if (Active.IsHex.GetValueOrDefault(false))
                         {
-                            sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                            if (GXDLMSTranslator.HexToBytes(Active.Data).Length != 16)
+                            {
+                                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                            }
+                        }
+                        else
+                        {
+                            if (Active.Data != null && Active.Data.Length != 16)
+                            {
+                                sender.AddError(() => Active.Data, Properties.Resources.InvalidKey);
+                            }
+
                         }
                         break;
                     case KeyManagementType.PrivateKey:

@@ -162,7 +162,7 @@
   <data name="SystemSiteInformation" xml:space="preserve">
     <value>Site information</value>
   </data>
-  <data name="SystemSiteInformationDescription" xml:space="preserve">
+  <data name="SystemConfigurationDescription" xml:space="preserve">
     <value>Change site name, e-mail address or slogan.</value>
   </data>
   <data name="SystemStatus" xml:space="preserve">
@@ -171,7 +171,7 @@
   <data name="SystemStatusInformation" xml:space="preserve">
     <value>Status status</value>
   </data>
-  <data name="SystemStatusInformationDescription" xml:space="preserve">
+  <data name="SystemStatusDescription" xml:space="preserve">
     <value>System status information.</value>
   </data>
   <data name="Logout" xml:space="preserve">
@@ -605,5 +605,44 @@
   </data>
   <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
     <value>System title {0} is already in use.</value>
+  </data>
+  <data name="WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts" xml:space="preserve">
+    <value>With Scripts enabled, workflows funtionality can be expand with scripts.</value>
+  </data>
+  <data name="MaintenanceDescription" xml:space="preserve">
+    <value>Take the site offline for maintenance or bring it back online.</value>
+  </data>
+  <data name="ManufacturerDescription" xml:space="preserve">
+    <value>Using manufacturers new device templates can be offered for the users.</value>
+  </data>
+  <data name="WorkflowDescription" xml:space="preserve">
+    <value>With Workflows enabled, new custom workflows funtionality can be offered for the users.</value>
+  </data>
+  <data name="TriggerDescription" xml:space="preserve">
+    <value>With triggers enabled, new custom functionality can be offered for the users.</value>
+  </data>
+  <data name="BlockDescription" xml:space="preserve">
+    <value>With blocks enabled, new custom user interfaces can be offered for the users.</value>
+  </data>
+  <data name="ComponentViewDescription" xml:space="preserve">
+    <value>With component views enabled, new custom user interfaces can be offered for the users.</value>
+  </data>
+  <data name="AgentDescription" xml:space="preserve">
+    <value>Installable agent versions.</value>
+  </data>
+  <data name="ModuleDescription" xml:space="preserve">
+    <value>With modules enabled, new custom functionality can be offered for the users.</value>
+  </data>
+  <data name="LanguageDescription" xml:space="preserve">
+    <value>With multiple languages enabled, interface text can be translated and registered users may select their preferred language.</value>
+  </data>
+  <data name="ScriptDescription" xml:space="preserve">
+    <value>With Scripts enabled, workflows funtionality can be expand with scripts.</value>
+  </data>
+  <data name="ScriptRebuild" xml:space="preserve">
+    <value>Rebuild the script.</value>
+  </data>
+  <data name="ScriptRebuildFailed" xml:space="preserve">
+    <value>Rebuild the script failed. {0}</value>
   </data>
 </root>

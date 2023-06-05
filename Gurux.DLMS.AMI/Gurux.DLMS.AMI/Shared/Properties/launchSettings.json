@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Gurux.DLMS.AMI.Shared": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:55125;http://localhost:55126"
+    }
+  }
+}

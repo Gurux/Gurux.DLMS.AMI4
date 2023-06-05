@@ -145,7 +145,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.System,
                 Icon = "oi oi-cog",
-                Description = Properties.Resources.SystemSiteInformationDescription,
+                Description = Properties.Resources.SystemConfigurationDescription,
                 Path = "config/system",
                 Order = 1,
                 Settings = JsonSerializer.Serialize(new SystemSettings())
@@ -166,7 +166,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Status,
                 Icon = "oi oi-dashboard",
-                Description = Properties.Resources.SystemStatusInformationDescription,
+                Description = Properties.Resources.SystemStatusDescription,
                 Path = "config/status",
                 Order = 2,
                 Settings = JsonSerializer.Serialize(new StatusSettings() { SiteVersion = info.FileVersion })
@@ -245,7 +245,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Language,
                 Icon = "oi oi-globe",
-                Description = "With multiple languages enabled, interface text can be translated and registered users may select their preferred language.",
+                Description = Properties.Resources.LanguageDescription,
                 Path = "config/language",
                 Order = 4,
                 Settings = JsonSerializer.Serialize(list.ToArray())
@@ -262,7 +262,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Modules,
                 Icon = "oi oi-puzzle-piece",
-                Description = "With modules enabled, new custom functionality can be offered for the users.",
+                Description = Properties.Resources.ModuleDescription,
                 Path = "config/Module",
                 Order = 4,
                 Settings = JsonSerializer.Serialize(new ModuleSettings())
@@ -279,7 +279,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Agents,
                 Icon = "oi oi-wifi",
-                Description = "Installable agent versions.",
+                Description = Properties.Resources.AgentDescription,
                 Path = "config/agent",
                 Order = 4,
                 Settings = JsonSerializer.Serialize(new AgentSettings())
@@ -296,7 +296,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Components,
                 Icon = "oi oi-layers",
-                Description = "With component views enabled, new custom user interfaces can be offered for the users.",
+                Description = Gurux.DLMS.AMI.Server.Properties.Resources.ComponentViewDescription,
                 Path = "config/Component",
                 Order = 5
             };
@@ -312,7 +312,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Blocks,
                 Icon = "oi oi-browser",
-                Description = "With blocks enabled, new custom user interfaces can be offered for the users.",
+                Description = Properties.Resources.BlockDescription,
                 Path = "config/Block",
                 Order = 6
             };
@@ -328,7 +328,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Triggers,
                 Icon = "oi oi-flash",
-                Description = "With triggers enabled, new custom functionality can be offered for the users.",
+                Description = Properties.Resources.TriggerDescription,
                 Path = "config/Trigger",
                 Order = 6
             };
@@ -344,7 +344,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Workflows,
                 Icon = "oi oi-fork",
-                Description = "With Workflows enabled, new custom workflows funtionality can be offered for the users.",
+                Description = Properties.Resources.WorkflowDescription,
                 Path = "config/Workflow",
                 Order = 7
             };
@@ -360,7 +360,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Manufacturers,
                 Icon = "oi oi-share-boxed",
-                Description = "Using manufacturers new device templates can be offered for the users.",
+                Description = Properties.Resources.ManufacturerDescription,
                 Path = "config/Manufacturer",
                 Order = 8,
                 Settings = JsonSerializer.Serialize(new Client.Shared.ManufacturerSettings())
@@ -478,7 +478,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 Name = GXConfigurations.Maintenance,
                 Icon = "oi oi-wrench",
-                Description = "Take the site offline for maintenance or bring it back online.",
+                Description = Properties.Resources.MaintenanceDescription,
                 Path = "config/maintenance",
                 Order = 11
             };
@@ -491,15 +491,57 @@ namespace Gurux.DLMS.AMI.Server
         /// </summary>
         internal static void AddScriptConfiguration(List<GXConfiguration> configurations)
         {
+            Assembly asm = typeof(GXAmiException).Assembly;
+            FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
             GXConfiguration conf = new GXConfiguration()
             {
                 Name = GXConfigurations.Scripts,
                 Icon = "oi oi-script",
-                Description = "With Scripts enabled, workflows funtionality can be expand with scripts.",
+                Description = Properties.Resources.ScriptDescription,
                 Path = "config/script",
-                Order = 7
+                Order = 7,
+                Settings = JsonSerializer.Serialize(new ScriptSettings()
+                {
+                    SharedVersion = info.FileVersion
+                })
             };
             configurations.Add(conf);
+        }
+
+        /// <summary>
+        /// Update script shared version.
+        /// </summary>
+        /// <param name="connection">Connnection.</param>
+        private static void UpdateScriptCommonSharedVersion(GXDbConnection connection)
+        {
+            var args = GXSelectArgs.Select<GXConfiguration>(
+                s => new { s.Id, s.Settings }, 
+                w => w.Name == GXConfigurations.Scripts);
+            try
+            {
+                GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(args);
+                ScriptSettings? settings = null;
+                if (!string.IsNullOrEmpty(conf.Settings))
+                {
+                    settings = JsonSerializer.Deserialize<ScriptSettings>(conf.Settings);
+                }
+                if (settings == null)
+                {
+                    settings = new ScriptSettings();
+                }
+                Assembly asm = typeof(GXAmiException).Assembly;
+                FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
+                if (settings.CurrentSharedVersion != info.FileVersion)
+                {
+                    settings.CurrentSharedVersion = info.FileVersion;
+                    conf.Settings = JsonSerializer.Serialize(settings);
+                    var u = GXUpdateArgs.Update(conf, c => new { c.Updated, c.Settings });
+                    connection.Update(u);
+                }
+            }
+            catch (Exception)
+            {
+            }
         }
 
         /// <summary>
@@ -789,7 +831,7 @@ namespace Gurux.DLMS.AMI.Server
                         }
                         host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
                         host.Connection.CreateTable<GXFavorite>(false, false);
-                    }                   
+                    }
                     if (!host.Connection.TableExist<GXKeyManagementGroup>())
                     {
                         host.Connection.CreateTable<GXKeyManagementGroup>(false, false);
@@ -813,14 +855,19 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
                         //System title moved from the GXDLMSSettings to device property.
                         host.Connection.UpdateTable<GXDevice>();
+                        //Agent cache expiration time added.
+                        host.Connection.UpdateTable<GXAgent>();
                     }
-                    //Mikko
-                    host.Connection.UpdateTable<GXDevice>();
                 }
             }
             else
             {
                 host = new GXHost();
+            }
+            //Update shared version.
+            if (host.Connection != null)
+            {
+                UpdateScriptCommonSharedVersion(host.Connection);
             }
             builder.Services.AddSingleton<IGXHost>(q => host);
             builder.Services.AddSingleton<IGXDatabase>(q => host);

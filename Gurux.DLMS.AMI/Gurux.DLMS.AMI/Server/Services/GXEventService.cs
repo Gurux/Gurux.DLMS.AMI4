@@ -1151,5 +1151,12 @@ namespace Gurux.DLMS.AMI.Services
             OnCloseKeyManagementLogs?.Invoke(errors);
             await _hubContext.Clients.Users(users).CloseKeyManagementLogs(errors);
         }
+
+        /// <inheritdoc/>
+        public Task ClearCache(IReadOnlyList<string> users, Guid id, string[] names)
+        {
+            //Only agent needs this.
+            return Task.CompletedTask;
+        }
     }
 }

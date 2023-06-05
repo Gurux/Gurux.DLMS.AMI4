@@ -79,6 +79,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Installable agent versions..
+        /// </summary>
+        internal static string AgentDescription {
+            get {
+                return ResourceManager.GetString("AgentDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Agents.
         /// </summary>
         internal static string Agents {
@@ -115,6 +124,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to With blocks enabled, new custom user interfaces can be offered for the users..
+        /// </summary>
+        internal static string BlockDescription {
+            get {
+                return ResourceManager.GetString("BlockDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Blocks.
         /// </summary>
         internal static string Blocks {
@@ -147,6 +165,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         internal static string Close {
             get {
                 return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to With component views enabled, new custom user interfaces can be offered for the users..
+        /// </summary>
+        internal static string ComponentViewDescription {
+            get {
+                return ResourceManager.GetString("ComponentViewDescription", resourceCulture);
             }
         }
         
@@ -574,6 +601,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to With multiple languages enabled, interface text can be translated and registered users may select their preferred language..
+        /// </summary>
+        internal static string LanguageDescription {
+            get {
+                return ResourceManager.GetString("LanguageDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dual value of a localized resource..
         /// </summary>
         internal static string LocalizedResourceDublicate {
@@ -628,6 +664,24 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Take the site offline for maintenance or bring it back online..
+        /// </summary>
+        internal static string MaintenanceDescription {
+            get {
+                return ResourceManager.GetString("MaintenanceDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Using manufacturers new device templates can be offered for the users..
+        /// </summary>
+        internal static string ManufacturerDescription {
+            get {
+                return ResourceManager.GetString("ManufacturerDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Max Failed Access Attempts.
         /// </summary>
         internal static string MaxFailedAccessAttempts {
@@ -651,6 +705,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         internal static string Module {
             get {
                 return ResourceManager.GetString("Module", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to With modules enabled, new custom functionality can be offered for the users..
+        /// </summary>
+        internal static string ModuleDescription {
+            get {
+                return ResourceManager.GetString("ModuleDescription", resourceCulture);
             }
         }
         
@@ -1042,11 +1105,38 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to With Scripts enabled, workflows funtionality can be expand with scripts..
+        /// </summary>
+        internal static string ScriptDescription {
+            get {
+                return ResourceManager.GetString("ScriptDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Script installed..
         /// </summary>
         internal static string ScriptInstalled {
             get {
                 return ResourceManager.GetString("ScriptInstalled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rebuild the script..
+        /// </summary>
+        internal static string ScriptRebuild {
+            get {
+                return ResourceManager.GetString("ScriptRebuild", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Rebuild the script failed. {0}.
+        /// </summary>
+        internal static string ScriptRebuildFailed {
+            get {
+                return ResourceManager.GetString("ScriptRebuildFailed", resourceCulture);
             }
         }
         
@@ -1240,6 +1330,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Change site name, e-mail address or slogan..
+        /// </summary>
+        internal static string SystemConfigurationDescription {
+            get {
+                return ResourceManager.GetString("SystemConfigurationDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to System exception:.
         /// </summary>
         internal static string SystemException {
@@ -1285,15 +1384,6 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Change site name, e-mail address or slogan..
-        /// </summary>
-        internal static string SystemSiteInformationDescription {
-            get {
-                return ResourceManager.GetString("SystemSiteInformationDescription", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to Status.
         /// </summary>
         internal static string SystemStatus {
@@ -1303,20 +1393,20 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to System status information..
+        /// </summary>
+        internal static string SystemStatusDescription {
+            get {
+                return ResourceManager.GetString("SystemStatusDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Status status.
         /// </summary>
         internal static string SystemStatusInformation {
             get {
                 return ResourceManager.GetString("SystemStatusInformation", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to System status information..
-        /// </summary>
-        internal static string SystemStatusInformationDescription {
-            get {
-                return ResourceManager.GetString("SystemStatusInformationDescription", resourceCulture);
             }
         }
         
@@ -1389,6 +1479,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         internal static string TokenCreateSucceeded {
             get {
                 return ResourceManager.GetString("TokenCreateSucceeded", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to With triggers enabled, new custom functionality can be offered for the users..
+        /// </summary>
+        internal static string TriggerDescription {
+            get {
+                return ResourceManager.GetString("TriggerDescription", resourceCulture);
             }
         }
         
@@ -1470,6 +1569,24 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         internal static string View {
             get {
                 return ResourceManager.GetString("View", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to With Scripts enabled, workflows funtionality can be expand with scripts..
+        /// </summary>
+        internal static string WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts {
+            get {
+                return ResourceManager.GetString("WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to With Workflows enabled, new custom workflows funtionality can be offered for the users..
+        /// </summary>
+        internal static string WorkflowDescription {
+            get {
+                return ResourceManager.GetString("WorkflowDescription", resourceCulture);
             }
         }
         

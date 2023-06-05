@@ -146,5 +146,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ret.Result = await _scriptrRepository.RunAsync(User, request.MethodId);
             return ret;
         }
+
+        /// <summary>
+        /// Rebuild the scripts.
+        /// </summary>
+        [HttpPost("Rebuild")]
+        public async Task<ActionResult<RebuildScriptResponse>> Rebuild(RebuildScript request)
+        {
+            await _scriptrRepository.RebuildAsync(User, request.Scripts);
+            return new RebuildScriptResponse();
+        }
     }
 }

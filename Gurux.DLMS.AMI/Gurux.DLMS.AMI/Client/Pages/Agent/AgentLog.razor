@@ -25,13 +25,21 @@
                 <div class="form-group">
                     <label>@Properties.Resources.ErrorSeverityLevel</label>
                     <input type="text" id="level" disabled="disabled"
-                       value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
                 </div>
                 @if (_active.Agent != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Agent</label>
                         <InputText id="agent" disabled="disabled" @bind-Value="_active.Agent.Name" class="form-control" />
+                    </div>
+                }
+                @if (string.IsNullOrEmpty(_active.StackTrace))
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.StackTrace</label>
+                        <textarea id="stackTrace" value="@_active.StackTrace"
+                                  rows="15" disabled="disabled" class="form-control" />
                     </div>
                 }
                 @if (_active.CreationTime != DateTime.MinValue)

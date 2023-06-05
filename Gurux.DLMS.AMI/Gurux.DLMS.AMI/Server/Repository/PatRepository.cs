@@ -95,9 +95,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //If expiration time is not given, it's one year.
                 expiration = now.AddYears(-1);
             }
-            List<Claim> claims = new List<Claim>();
-            claims.Add(new Claim(JwtClaimTypes.Subject, user.Id));
-            claims.Add(new Claim(JwtClaimTypes.Scope, "Gurux.DLMS.AMI.ServerAPI"));
+            List<Claim> claims = new List<Claim>
+            {
+                new Claim(JwtClaimTypes.Subject, user.Id),
+                new Claim(JwtClaimTypes.Scope, "Gurux.DLMS.AMI.ServerAPI")
+            };
             if (scopes == null || !scopes.Any())
             {
                 foreach (string role in roleList)
@@ -143,7 +145,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             return new GXPersonalToken() { Id = it.Id, Name = it.Description, CreationTime = it.CreationTime, Expiration = it.Expiration };
         }
-
+        
+        /// <inheritdoc />
         public async Task<GXPersonalToken[]> GetPersonalTokensAsync(ClaimsPrincipal User, ListTokens? request)
         {
             ApplicationUser user = await _userManager.GetUserAsync(User);
@@ -173,6 +176,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return tokens.ToArray();
         }
 
+        /// <inheritdoc />
         public async Task<GXPersonalToken> RemovePersonalTokenAsync(ClaimsPrincipal User, string id)
         {
             ApplicationUser user = await _userManager.GetUserAsync(User);
@@ -185,12 +189,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDeleteArgs args = GXDeleteArgs.Delete<GXPersistedGrants>(where => where.Id == id && where.SubjectId == user.Id);
             await _host.Connection.DeleteAsync(args);
             return new GXPersonalToken() { Id = it.Id, Name = it.Description, CreationTime = it.CreationTime, Expiration = it.Expiration }; ;
-        }
-
-        /// <inheritdoc />
-        public Task<string> RegeneratePersonalTokenAsync(ClaimsPrincipal User, GXPersonalToken token)
-        {
-            throw new NotImplementedException();
         }
     }
 }

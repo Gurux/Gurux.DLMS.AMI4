@@ -1915,6 +1915,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Rebuild.
+        /// </summary>
+        internal static string Rebuild {
+            get {
+                return ResourceManager.GetString("Rebuild", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Refresh.
         /// </summary>
         internal static string Refresh {
@@ -1929,6 +1938,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Refreshed {
             get {
                 return ResourceManager.GetString("Refreshed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Regenerate.
+        /// </summary>
+        internal static string Regenerate {
+            get {
+                return ResourceManager.GetString("Regenerate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to update the agents&apos; tokens?.
+        /// </summary>
+        internal static string RegenerateAgentTokens {
+            get {
+                return ResourceManager.GetString("RegenerateAgentTokens", resourceCulture);
             }
         }
         
@@ -2154,6 +2181,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string ScriptMethods {
             get {
                 return ResourceManager.GetString("ScriptMethods", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Scripts need rebuild before they can be used. This might take a long time..
+        /// </summary>
+        internal static string ScriptRebuildWarning {
+            get {
+                return ResourceManager.GetString("ScriptRebuildWarning", resourceCulture);
             }
         }
         

@@ -1032,4 +1032,16 @@
   <data name="PreEstablishedConnection" xml:space="preserve">
     <value>Ennakkoon muodostettu yhteys</value>
   </data>
+  <data name="RowsPerPage" xml:space="preserve">
+    <value>Riviä/sivu</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Sähköpostiosoite</value>
+  </data>
+  <data name="RegenerateAgentTokens" xml:space="preserve">
+    <value>Haluatko varmasti päivittää agenttien tunnukset?</value>
+  </data>
+  <data name="Regenerate" xml:space="preserve">
+    <value>Uudista</value>
+  </data>
 </root>

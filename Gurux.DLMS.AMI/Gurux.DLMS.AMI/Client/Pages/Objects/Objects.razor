@@ -60,9 +60,14 @@ else
                    @oninput="@SearchByLogicalName" />
             </th>
             <th>
-                <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
-                       type="search"
-                   @oninput="@SearchByObjectType" />
+                <DropdownSearch Context="item"
+                            Immediate="true"
+                            @bind-Value="filterByObjectType"
+                            ItemsProvider="@GetObjectTypes">
+                    <ItemContent>
+                        @item
+                    </ItemContent>
+                </DropdownSearch>
             </th>
         </FilterContent>
         <MenuContent>
@@ -74,10 +79,10 @@ else
             <Th Id="Name">@Properties.Resources.Name</Th>
             <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
             <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
-            <Th Id="ObjectType">@Properties.Resources.LastError</Th>
-            <Th Id="ObjectType">@Properties.Resources.Error</Th>
-            <Th Id="ObjectType">@Properties.Resources.LastRead</Th>
-            <Th Id="ObjectType">@Properties.Resources.LastWrite</Th>
+            <Th Id="LastError">@Properties.Resources.LastError</Th>
+            <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
+            <Th Id="LastRead">@Properties.Resources.LastRead</Th>
+            <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
         </HeaderContent>
         <ItemContent>
             <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
@@ -195,7 +200,7 @@ else
     /// <summary>
     /// Filter using object type.
     /// </summary>
-    private string? filterByObjectType;
+    private Enums.ObjectType filterByObjectType;
     /// <summary>
     /// Filter using object name.
     /// </summary>
@@ -368,15 +373,6 @@ else
     }
 
     /// <summary>
-    /// Search by object type.
-    /// </summary>
-    private Task SearchByObjectType(ChangeEventArgs args)
-    {
-        filterByObjectType = Convert.ToString(args.Value);
-        return Updated();
-    }
-
-    /// <summary>
     /// Search by name.
     /// </summary>
     private Task SearchByName(ChangeEventArgs args)
@@ -394,65 +390,72 @@ else
         return Updated();
     }
 
+    private ValueTask<ItemsProviderResult<Enums.ObjectType>> GetObjectTypes(GXItemsProviderRequest request)
+    {
+        string? filter = request.Filter?.ToLower();
+        List<Enums.ObjectType> list = new List<Enums.ObjectType>();
+        foreach (Enums.ObjectType it in Enum.GetValues(typeof(Enums.ObjectType)))
+        {
+            if (string.IsNullOrEmpty(filter) ||
+            it.ToString().ToLower().Contains(filter))
+            {
+                list.Add((Enums.ObjectType)it);
+            }
+        }
+        return new(new ItemsProviderResult<Enums.ObjectType>(list, list.Count));
+    }
+
     private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            if (Device?.Objects == null)
+            if (request.Removed)
             {
-                if (request.Removed)
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            if (filter.Template != null)
+            {
+                if (!string.IsNullOrEmpty(filterByName))
                 {
-                    filter.Removed = DateTimeOffset.MaxValue;
+                    filter.Template.Name = filterByName;
                 }
                 else
                 {
-                    filter.Removed = null;
+                    filter.Template.Name = null;
                 }
-                if (Device != null)
+                filter.Template.ObjectType = (int)filterByObjectType;
+                if (!string.IsNullOrEmpty(filterByLogicalName))
                 {
-                    filter.Device = new GXDevice() { Id = Device.Id };
+                    filter.Template.LogicalName = filterByLogicalName;
                 }
-                ListObjects req = new ListObjects()
-                    {
-                        Index = (UInt64)request.StartIndex,
-                        Count = (UInt64)request.Count,
-                        Filter = filter,
-                        OrderBy = request.OrderBy,
-                        Descending = request.Descending,
-                        AllUsers = request.ShowAllUserData,
-                        //Attributes are also read.
-                        Select = TargetType.AttributeTemplate
-                    };
-                var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
-                if (Device != null)
+                else
                 {
-                    if (Device.Objects == null)
-                    {
-                        Device.Objects = new List<GXObject>();
-                    }
-                    Device.Objects.AddRange(ret.Objects);
+                    filter.Template.LogicalName = null;
                 }
             }
-            List<GXObject> objects = new();
-            if (Device?.Objects != null)
+            if (Device != null)
             {
-                objects.AddRange(Device.Objects);
+                filter.Device = new GXDevice() { Id = Device.Id };
             }
-            if (!string.IsNullOrEmpty(filterByObjectType))
-            {
-                objects.RemoveAll(q => ((Enums.ObjectType)q.Template.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
-            }
-            if (!string.IsNullOrEmpty(filterByName))
-            {
-                objects.RemoveAll(q => q.Template.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
-            }
-            if (!string.IsNullOrEmpty(filterByLogicalName))
-            {
-                objects.RemoveAll(q => q.Template.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
-            }
-            return new ItemsProviderResult<GXObject>(objects, Device.Objects.Count);
+            ListObjects req = new ListObjects()
+                {
+                    Index = (UInt64)request.StartIndex,
+                    Count = (UInt64)request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    //Attributes are also read.
+                    Select = TargetType.AttributeTemplate
+                };
+            var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXObject>(ret.Objects, ret.Count);
         }
         catch (TaskCanceledException)
         {

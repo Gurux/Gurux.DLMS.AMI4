@@ -131,21 +131,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 await _patRepository.RemovePersonalTokenAsync(User, id);
             }
             return new DeleteTokenResponse();
-        }
-
-        /// <summary>
-        /// Regenerate token.
-        /// </summary>
-        [HttpPost("Regenerate")]
-        [Authorize(Policy = GXTokenPolicies.Edit)]
-        public async Task<ActionResult<RegenerateTokenResponse>> Post(RegenerateToken request)
-        {
-            if (request.Token == null)
-            {
-                return BadRequest(Properties.Resources.ArrayIsEmpty);
-            }
-            await _patRepository.RegeneratePersonalTokenAsync(User, request.Token);
-            return new RegenerateTokenResponse();
-        }
+        }       
     }
 }

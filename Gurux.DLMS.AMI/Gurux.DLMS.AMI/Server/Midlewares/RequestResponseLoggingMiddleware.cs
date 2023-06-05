@@ -199,6 +199,15 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         {
             try
             {
+                if (target == TargetType.UserAction ||
+                    target == TargetType.AgentLog ||
+                    target == TargetType.DeviceLog ||
+                    target == TargetType.ScheduleLog ||
+                    target == TargetType.ScriptLog)
+                {
+                    //Log data is not serialized.
+                    text = "";
+                }
                 string id = ServerHelpers.GetUserId(context.User);
                 GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id, where => where.Id == id);
                 GXUser user = await _host.Connection.SingleOrDefaultAsync<GXUser>(args);

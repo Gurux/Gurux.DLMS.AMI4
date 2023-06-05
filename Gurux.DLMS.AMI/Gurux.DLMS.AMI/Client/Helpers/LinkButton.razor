@@ -1,0 +1,30 @@
+﻿@typeparam TItem
+
+<button class="btn btn-link"
+        style="padding: 0; border: none; background: none;"
+        onclick="@(() => Click())">
+    @Text
+</button>
+@code
+{
+    [Parameter]
+    public string? Text { get; set; }
+
+    private void Click()
+    {
+        if (OnClick != null && Target != null)
+        {
+            OnClick(Target);
+        }
+    }
+
+    /// <summary>
+    /// User has click the link.
+    /// </summary>
+    [Parameter]
+    public Action<TItem>? OnClick { get; set; }
+
+    [Parameter]
+    public TItem? Target { get; set; }
+
+}

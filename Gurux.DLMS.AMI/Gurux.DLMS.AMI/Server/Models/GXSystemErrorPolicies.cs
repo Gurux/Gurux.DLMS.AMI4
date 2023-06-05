@@ -747,19 +747,19 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// <summary>
         /// User can view the key management(s).
         /// </summary>
-        public const string View = "device-key.view";
+        public const string View = "key-management.view";
         /// <summary>
         /// User can add new key management(s).
         /// </summary>
-        public const string Add = "device-key.add";
+        public const string Add = "key-management.add";
         /// <summary>
         /// User can edit key management(s).
         /// </summary>
-        public const string Edit = "device-key.edit";
+        public const string Edit = "key-management.edit";
         /// <summary>
         /// User can delete key management(s).
         /// </summary>
-        public const string Delete = "device-key.delete";
+        public const string Delete = "key-management.delete";
     }
 
     /// <summary>
@@ -770,19 +770,19 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// <summary>
         /// User can view the key management group information.
         /// </summary>
-        public const string View = "device-key-group.view";
+        public const string View = "key-management-group.view";
         /// <summary>
         /// User can add a new key management group.
         /// </summary>
-        public const string Add = "device-key-group.add";
+        public const string Add = "key-management-group.add";
         /// <summary>
         /// User can edit key management group.
         /// </summary>
-        public const string Edit = "device-key-group.edit";
+        public const string Edit = "key-management-group.edit";
         /// <summary>
         /// User can delete key management group.
         /// </summary>
-        public const string Delete = "device-key-group.delete";
+        public const string Delete = "key-management-group.delete";
     }
 
 
@@ -794,19 +794,19 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// <summary>
         /// User can view the key management logs.
         /// </summary>
-        public const string View = "device-key-log.view";
+        public const string View = "key-management-log.view";
         /// <summary>
         /// User can add new key management logs.
         /// </summary>
-        public const string Add = "device-key-log.add";
+        public const string Add = "key-management-log.add";
         /// <summary>
         /// User can clear key management logs.
         /// </summary>
-        public const string Clear = "device-key-log.clear";
+        public const string Clear = "key-management-log.clear";
         /// <summary>
         /// User can close key management logs.
         /// </summary>
-        public const string Close = "device-key-log.close";
+        public const string Close = "key-management-log.close";
     }
 
     /// <summary>

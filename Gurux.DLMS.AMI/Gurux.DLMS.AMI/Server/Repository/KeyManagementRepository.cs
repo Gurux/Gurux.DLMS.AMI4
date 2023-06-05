@@ -176,6 +176,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetKeyManagementsByUser(userId, null);
             }
+            bool selectItemsBySystemTitle = false;
             if (request != null && request.Filter != null)
             {
                 if (request.Filter.Device != null && request.Filter.Device.Id != Guid.Empty)
@@ -186,16 +187,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Where.And<GXDevice>(w => w.Id == id);
                     request.Filter.Device = null;
                 }
+                if (!string.IsNullOrEmpty(request.Filter.SystemTitle))
+                {
+                    selectItemsBySystemTitle = true;
+                    //Return key management items where system title is set ot it's null.
+                    string st = request.Filter.SystemTitle;
+                    arg.Where.And<GXKeyManagement>(w => w.SystemTitle == st || w.SystemTitle == "" ||
+                     w.SystemTitle == null);
+                    request.Filter.SystemTitle = null;
+                }
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXKeyManagement>(w => request.Exclude.Contains(w.Id) == false);
                 }
             }
-            if (request != null && request.Select == TargetType.Device)
+            if (request != null && (request.Select & TargetType.Device) != 0)
             {
                 //Get device basic information.
+                arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(j => j.Device, j => j.Id);
                 arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
+                arg.Columns.Exclude<GXDevice>(e => e.Keys);
             }
 
             arg.Distinct = true;
@@ -223,7 +235,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Descending = true;
             }
             GXKeyManagement[] list = (await _host.Connection.SelectAsync<GXKeyManagement>(arg)).ToArray();
-            if (request != null && request.Select == TargetType.KeyManagementKey)
+
+            //Ignore default key management items if user has ask
+            //key management by system title and it's set.
+            if (selectItemsBySystemTitle)
+            {
+                var tmp = list.Where(w => !string.IsNullOrEmpty(w.SystemTitle)).ToArray();
+                if (tmp != null && tmp.Any())
+                {
+                    list = tmp;
+                }
+            }
+
+            if (request != null && (request.Select & TargetType.KeyManagementKey) != 0)
             {
                 foreach (GXKeyManagement it in list)
                 {
@@ -236,6 +260,64 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         {
                             key.Data = _cryproService.Decrypt(key.Data);
                         }
+                    }
+                }
+            }
+
+            if (request != null && (request.Select & TargetType.Object) != 0)
+            {
+                foreach (GXKeyManagement it in list)
+                {
+                    if (it.Device != null)
+                    {
+                        //Get objects.
+                        GXDevice dev = it.Device;
+                        arg = GXSelectArgs.SelectAll<GXObject>(w => w.Device == dev && w.Removed == null);
+                        arg.Columns.Exclude<GXObject>(e => new
+                        {
+                            e.CreationTime,
+                            e.Updated,
+                            e.Removed
+                        });
+                        if (request != null && (request.Select & TargetType.ObjectTemplate) != 0)
+                        {
+                            arg.Columns.Add<GXObjectTemplate>();
+                            arg.Columns.Exclude<GXObjectTemplate>(e => new
+                            {
+                                e.CreationTime,
+                                e.Updated,
+                                e.Removed
+                            });
+                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                            arg.Where.And<GXObjectTemplate>(w => w.Removed == null);
+                        }
+                        if (request != null && (request.Select & TargetType.Attribute) != 0)
+                        {
+                            arg.Columns.Add<GXAttribute>();
+                            arg.Columns.Exclude<GXAttribute>(e => new
+                            {
+                                e.Object,
+                                e.CreationTime,
+                                e.Updated,
+                                e.Removed
+                            });
+                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                            arg.Where.And<GXAttribute>(w => w.Removed == null);
+                            if (request != null && (request.Select & TargetType.AttributeTemplate) != 0)
+                            {
+                                arg.Columns.Add<GXAttributeTemplate>();
+                                arg.Columns.Exclude<GXAttributeTemplate>(e => new
+                                {
+                                    e.ObjectTemplate,
+                                    e.CreationTime,
+                                    e.Updated,
+                                    e.Removed
+                                });
+                                arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                                arg.Where.And<GXAttributeTemplate>(w => w.Removed == null);
+                            }
+                        }
+                        it.Device.Objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToList();
                     }
                 }
             }
@@ -315,6 +397,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Dictionary<GXKeyManagement, List<string>> updates = new();
             foreach (GXKeyManagement key in keys)
             {
+                if (key.Device != null && key.Device.Id == Guid.Empty)
+                {
+                    key.Device = null;
+                }
                 //Verify key management key system title if it's given.
                 //If system title is not given key management is used as a default value.
                 if (!string.IsNullOrEmpty(key.SystemTitle) &&
@@ -359,10 +445,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         throw new ArgumentException(Properties.Resources.ContentEdited);
                     }
                     key.Updated = now;
-                    if (key.Device != null && key.Device.Id == Guid.Empty)
-                    {
-                        key.Device = null;
-                    }
                     key.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(key, columns);
                     args.Exclude<GXKeyManagement>(q => new

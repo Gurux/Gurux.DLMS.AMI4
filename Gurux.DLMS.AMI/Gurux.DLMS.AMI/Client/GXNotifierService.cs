@@ -457,8 +457,13 @@ namespace Gurux.DLMS.AMI.Client
                         catch (Exception ex)
                         {
                             _logger.LogError(ex.Message);
-                            IgnoreNotification = 0;
+                            IgnoreNotification = (TargetType)UInt64.MaxValue;
                         }
+                    }
+                    else
+                    {
+                        //All notifications are ignored as a default.
+                        IgnoreNotification = (TargetType)UInt64.MaxValue;
                     }
                     _logger.LogInformation("IgnoreNotification: " + IgnoreNotification);
                     settings = ret.Item?.Settings?.Where(w => w.Name == GXConfigurations.System).SingleOrDefault();

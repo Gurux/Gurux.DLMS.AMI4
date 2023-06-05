@@ -1246,10 +1246,18 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return _hostedService.ClearKeyManagementLogs(users, keys);
             }
+
             /// <inheritdoc/>
             public Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> errors)
             {
                 return _hostedService.CloseKeyManagementLogs(users, errors);
+            }
+
+            /// <inheritdoc/>
+            public Task ClearCache(IReadOnlyList<string> users, Guid id, string[] names)
+            {
+                //Only agent needs this.
+                return Task.CompletedTask;
             }
         }
 

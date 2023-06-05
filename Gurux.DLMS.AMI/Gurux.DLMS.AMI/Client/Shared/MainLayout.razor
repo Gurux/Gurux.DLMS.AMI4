@@ -27,8 +27,8 @@
             <AuthorizeView>
                 <Authorized>
                     <FavoriteTile />
-                    <a href=about/1>@Properties.Resources.About</a>
-                    <a href="authentication/profile"><span class="oi oi-person blue-color" aria-hidden="true"></span></a>
+                    <a href="@("/about/" + Guid.NewGuid())">@Properties.Resources.About</a>
+                    <a href="/authentication/profile"><span class="oi oi-person blue-color" aria-hidden="true"></span></a>
                 </Authorized>
             </AuthorizeView>
         </div>

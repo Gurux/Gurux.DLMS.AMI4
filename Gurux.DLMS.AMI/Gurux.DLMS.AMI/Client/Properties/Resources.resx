@@ -1038,4 +1038,16 @@
   <data name="SiteEmailAddress" xml:space="preserve">
     <value>Site email address</value>
   </data>
+  <data name="RegenerateAgentTokens" xml:space="preserve">
+    <value>Are you sure you want to update the agents' tokens?</value>
+  </data>
+  <data name="Regenerate" xml:space="preserve">
+    <value>Regenerate</value>
+  </data>
+  <data name="Rebuild" xml:space="preserve">
+    <value>Rebuild</value>
+  </data>
+  <data name="ScriptRebuildWarning" xml:space="preserve">
+    <value>Scripts need rebuild before they can be used. This might take a long time.</value>
+  </data>
 </root>

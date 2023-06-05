@@ -41,12 +41,9 @@ using System.Data;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.Linq.Expressions;
-using System;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Org.BouncyCastle.Ocsp;
-using System.Threading;
 using System.Text;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -234,11 +231,37 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 it.Actions = null;
                 it.DeviceGroups = null;
                 it.Errors = null;
-                it.Objects = null;
                 it.Parameters = null;
                 it.Tasks = null;
                 it.Traces = null;
+                it.Keys = null;
+                if (request != null && (request.Select & TargetType.Object) != 0)
+                {
+                    //Get objects.
+                    arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
+                    if (request != null && (request.Select & TargetType.ObjectTemplate) != 0)
+                    {
+                        arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.Attributes });
+                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                    }
+                    if (request != null && (request.Select & TargetType.Attribute) != 0)
+                    {
+                        arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template });
+                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                        if (request != null && (request.Select & TargetType.AttributeTemplate) != 0)
+                        {
+                            arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
+                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                        }
+                    }
+                    it.Objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToList();
+                }
+                else
+                {
+                    it.Objects = null;
+                }
             }
+
 
             if (response != null)
             {
@@ -474,10 +497,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                         }
                                     };
                                     tmp = await _keyManagementRepository.ListAsync(User, req, null, cancellationToken);
-                                    if (tmp.Any())
+                                    //Check that system title is not used yet.
+                                    foreach (var it in tmp)
                                     {
-                                        throw new ArgumentException(string.Format(Properties.Resources.SystemTitleIsAlreadyInUse,
-                                            s.DeviceSystemTitle));
+                                        if (!string.IsNullOrEmpty(it.SystemTitle))
+                                        {
+                                            throw new ArgumentException(string.Format(Properties.Resources.SystemTitleIsAlreadyInUse,
+                                                s.DeviceSystemTitle));
+                                        }
                                     }
                                 }
                                 tmp = new GXKeyManagement[] { new GXKeyManagement(

@@ -387,6 +387,14 @@ namespace Gurux.DLMS.AMI.Client.Shared
         Task AgentStatusChange(IReadOnlyList<string> users, IEnumerable<GXAgent> agents);
 
         /// <summary>
+        /// Clear agent cache.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="id">Agent id.</param>
+        /// <param name="names">Cache names.</param>
+        Task ClearCache(IReadOnlyList<string> users, Guid id, string[] names);
+
+        /// <summary>
         /// New agent group is added or modified.
         /// </summary>
         /// <param name="users">Notified users.</param>

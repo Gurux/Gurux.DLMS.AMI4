@@ -55,7 +55,10 @@
         <Th Id="Updated">@Properties.Resources.Updated</Th>
     </HeaderContent>
     <ItemContent>
-        <td>@ClientHelpers.GetKeyTypeDescription(item.KeyType)</td>
+        <td>
+            <LinkButton Target="@item" OnClick="@Edit"
+                        Text="@ClientHelpers.GetKeyTypeDescription(item.KeyType)" />
+        </td>
         <td>@item.CreationTime</td>
         <td>@item.Updated</td>
     </ItemContent>
@@ -213,6 +216,20 @@
                 table.Active = item;
             }
             OnEdit();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private void Edit(GXKeyManagementKey item)
+    {
+        try
+        {
+            KeyAction = CrudAction.Update;
+            Active = item;
+            StateHasChanged();
         }
         catch (Exception ex)
         {

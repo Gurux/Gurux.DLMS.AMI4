@@ -4,51 +4,31 @@
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared.Rest
 @inject HttpClient Http
-
 @if (Visible)
 {
-    <div class="modal fade show d-block" id="confirmanceModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <img src="favicon.ico" height="32" width="32" class="mr-3" />
-                    <h5 class="modal-title" id="confirmanceModalLabel">@Properties.Resources.AboutTitle</h5>
-                    <button type="button" class="btn close" data-dismiss="modal" aria-label="Close"
-                        @onclick="() => Close()">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <p>
-                        &emsp;&emsp;@Properties.Resources.Version&nbsp;@Version
-                    </p>
-                    <p>
-                        &emsp;&emsp;@Properties.Resources.Copyright&nbsp;1998-@Year&nbsp;Gurux Ltd.
-                        <br>
-                        &emsp;&emsp;@Properties.Resources.CopyrightAllRightsReserved
-                    </p>
-                    <p>
-                        &emsp;&emsp;@Properties.Resources.AboutInfo
-                        <br />
-                        &emsp;&emsp;<a href="https://www.gurux.fi" target="_blank">https://www.gurux.fi</a>
-                    </p>
-                    <br />
-                    <br />
-                    <img src="footer.png" style="position: absolute; bottom: 0px; left: 0px; height: 3px; width: 100%" />
-                    <img src="leaf.png" style="position: absolute; bottom: 0px; left: 0px " />
-                    <img src="factory.png" style="position: absolute; bottom: 0px; right: 0px " />
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                        @onclick="() => Close()">
-                        @Properties.Resources.Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <Dialog CancelButtonTitle="@Properties.Resources.Close"
+    OnCancel="Close"    
+    Title="@Properties.Resources.AboutTitle">
+        <p>
+            &emsp;&emsp;@Properties.Resources.Version&nbsp;@Version
+        </p>
+        <p>
+            &emsp;&emsp;@Properties.Resources.Copyright&nbsp;1998-@Year&nbsp;Gurux Ltd.
+            <br>
+            &emsp;&emsp;@Properties.Resources.CopyrightAllRightsReserved
+        </p>
+        <p>
+            &emsp;&emsp;@Properties.Resources.AboutInfo
+            <br />
+            &emsp;&emsp;<a href="https://www.gurux.fi" target="_blank">https://www.gurux.fi</a>
+        </p>
+        <br />
+        <br />
+        <img src="footer.png" style="position: absolute; bottom: 0px; left: 0px; height: 3px; width: 100%" />
+        <img src="leaf.png" style="position: absolute; bottom: 0px; left: 0px " />
+        <img src="factory.png" style="position: absolute; bottom: 0px; right: 0px " />
+    </Dialog>
 }
-
 @code {
     [Parameter]
     public string Show

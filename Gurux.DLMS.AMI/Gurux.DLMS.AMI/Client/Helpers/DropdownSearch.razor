@@ -16,7 +16,7 @@
                     <input class="form-control py-2 border-right-0 border"
                            type="search"
                            onsearch="@(() => RefreshDataAsync())"
-                           oninput="@((ChangeEventArgs e) => Filter = Convert.ToString(e.Value))" />
+                           oninput="@((ChangeEventArgs e) => UpdateFilter(e.Value))" />
                     <button class="btn btn-outline-secondary border-left-0 border" type="button"
                             onclick="@(() => RefreshDataAsync())">
                         <i class="oi oi-magnifying-glass"></i>
@@ -38,6 +38,12 @@
     @ChildContent
 }
 @code {
+
+    /// <summary>
+    /// If immediate filtering is used, the query is executed when the user presses any key.
+    /// </summary>
+    [Parameter]
+    public bool Immediate { get; set; }
 
     [Parameter]
     public string? CssClass { get; set; }
@@ -79,10 +85,20 @@
     [Parameter]
     public RenderFragment<TItem>? ItemContent { get; set; }
 
+    private async Task UpdateFilter(object? value)
+    {
+        Filter = Convert.ToString(value);
+        if (Immediate)
+        {
+            await RefreshDataAsync();
+        }
+    }
+
     private string? Filter;
     int _pageSize = 5;
     [Parameter]
-    public EventCallback<TItem> OnSelected { get; set; }
+    public EventCallback
+    <TItem> OnSelected { get; set; }
     private async Task HandleSelect(TItem item, RenderFragment<TItem> contentFragment)
     {
         Value = item;

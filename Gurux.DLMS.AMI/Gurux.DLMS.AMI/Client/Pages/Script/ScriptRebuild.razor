@@ -1,0 +1,94 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using System.Text.Json;
+@using Gurux.DLMS.AMI.Shared;
+@using System.Reflection;
+@using System.Diagnostics;
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+
+@inject IGXNotifier Notifier
+@inject HttpClient Http
+
+@if (Rebuild)
+{
+    <div role="alert"
+         class="alert alert-warning alert-dismissible fade show">
+        <p>
+            @Properties.Resources.ScriptRebuildWarning
+        </p>
+        <button type="button" class="btn btn-danger"
+            @onclick="() => OnRebuild()">
+            @Properties.Resources.Rebuild
+        </button>
+    </div>
+}
+<br />
+@code {
+    private bool Rebuild = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get script info.
+            ListConfiguration req = new ListConfiguration()
+                {
+                    Filter = new Gurux.DLMS.AMI.Shared.DTOs.GXConfiguration()
+                    {
+                        Name = GXConfigurations.Scripts
+                    }
+                };
+            var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
+            Rebuild = true;
+            if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
+            {
+                ScriptSettings? settings = JsonSerializer.Deserialize<ScriptSettings>(ret.Configurations[0].Settings);
+                if (settings != null && settings.SharedVersion == settings.CurrentSharedVersion)
+                {
+                    Rebuild = false;
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Rebuild the scripts.
+    /// </summary>
+    private async Task OnRebuild()
+    {
+        try
+        {
+            RebuildScript req = new RebuildScript();
+            var ret = await Http.PostAsJson<RebuildScriptResponse>("api/Script/Rebuild", req);
+            Rebuild = false;
+            StateHasChanged();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

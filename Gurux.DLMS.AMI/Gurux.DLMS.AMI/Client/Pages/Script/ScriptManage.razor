@@ -19,6 +19,7 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
+<ScriptRebuild></ScriptRebuild>
 <!--If user adds a new item or modifies the existing one.-->
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
 {
