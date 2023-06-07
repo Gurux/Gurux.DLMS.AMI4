@@ -123,7 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Target device template.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXDeviceTemplate? Template
