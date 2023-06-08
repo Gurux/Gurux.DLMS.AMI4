@@ -118,7 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Object description.
         /// </summary>
         [DataMember]
-        [StringLength(128)]
+        [StringLength(256)]
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
