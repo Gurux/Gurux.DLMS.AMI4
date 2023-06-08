@@ -503,7 +503,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             HttpResponseMessage response = await client.GetAsync(settings.Location);
             response.EnsureSuccessStatusCode();
             string xml = await response.Content.ReadAsStringAsync();
-            List<GXDeviceTemplate> templates = ClientHelpers.ConvertToTemplates(xml);
+            List<GXDeviceTemplate> templates = ClientHelpers.ConvertToTemplates(null, xml);
             foreach (var template in templates)
             {
                 template.Name = templateName;

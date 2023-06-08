@@ -21,6 +21,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
+@inject ILogger<DeviceTemplate> Logger
 
 @if (Active != null)
 {
@@ -284,7 +285,7 @@
             Notifier.ProgressStart();
             isLoading = true;
             StateHasChanged();
-            List<GXDeviceTemplate> templates = ClientHelpers.ConvertToTemplates(xml);
+            templates = ClientHelpers.ConvertToTemplates(Logger, xml);
             if (Parent != null && templates.Any())
             {
                 _active = templates[0];

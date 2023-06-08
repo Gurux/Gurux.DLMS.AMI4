@@ -45,6 +45,7 @@ using Gurux.DLMS.ManufacturerSettings;
 using Gurux.DLMS.Objects;
 using System.Xml.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Microsoft.Extensions.Logging;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
@@ -377,7 +378,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         /// Convert GXDLMSDirector device file to Gurux.DLMS.AMI device templates.
         /// </summary>
         /// <param name="xml">XML string.</param>
-        public static List<GXDeviceTemplate> ConvertToTemplates(string xml)
+        public static List<GXDeviceTemplate> ConvertToTemplates(ILogger? logger, string xml)
         {
             List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
             GXDLMSDevice[] devices;
@@ -426,6 +427,11 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                         ShortName = value.ShortName,
                         Attributes = new List<GXAttributeTemplate>()
                     };
+                    if (obj.Name.Length > 256)
+                    {
+                        logger?.LogError(string.Format("Name '{0}' is too long,", obj.Name));
+                        obj.Name = obj.Name.Substring(0, 256);
+                    }
                     list.Add(obj);
                     for (int pos = 2; pos <= ((IGXDLMSBase)value).GetAttributeCount(); ++pos)
                     {
