@@ -438,6 +438,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                         List<GXDeviceSettings> addedSettings = new List<GXDeviceSettings>();
                                         foreach (var uVersion in uModel.Versions)
                                         {
+                                            if (uVersion.Id == Guid.Empty)
+                                            {
+                                                //If new version.
+                                                AddVersionsToModel(iModel, new[] { uVersion });
+                                            }
                                             if (uVersion.Settings != null)
                                             {
                                                 foreach (var it in uVersion.Settings)
@@ -633,10 +638,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     it.CreationTime = now;
                     it.Version = version;
+                    GXInsertArgs args = GXInsertArgs.Insert(it);
+                    args.Exclude<GXDeviceSettings>(e => new { e.Updated, e.Removed });
+                    _host.Connection.Insert(args);
                 }
-                GXInsertArgs args = GXInsertArgs.InsertRange(settings);
-                args.Exclude<GXDeviceSettings>(e => new { e.Updated, e.Removed });
-                _host.Connection.Insert(args);
             }
         }
 

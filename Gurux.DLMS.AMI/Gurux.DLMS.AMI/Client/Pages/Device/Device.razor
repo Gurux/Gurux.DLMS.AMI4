@@ -31,7 +31,7 @@
 @implements IDisposable
 <CascadingValue Value="this">
 
-    @if (_templateSettings != null && Active != null)
+    @if (Active != null)
     {
         @if (Parent?.Templates != null && Parent.Templates.Any())
         {
@@ -45,7 +45,7 @@
             }
             <EditForm Model="@Active">
                 <DataAnnotationsValidator />
-                <GXValidator @ref="_deviceValidator" OnValidate="OnValidate" />
+                <GXValidator @ref="_validator" OnValidate="OnValidate" />
                 <ul>
                     @foreach (var message in context.GetValidationMessages())
                     {
@@ -130,28 +130,34 @@
                                     }
                                 </InputSelect>
                             </div>
-                            <div class="form-group row">
-                                <label>@Properties.Resources.Manufacturer</label>
-                                <InputText id="manuacturer" class="form-control" readonly="readonly"
+                            @if (_templateSettings != null)
+                            {
+                                <div class="form-group row">
+                                    <label>@Properties.Resources.Manufacturer</label>
+                                    <InputText id="manuacturer" class="form-control" readonly="readonly"
                                @bind-Value="_templateSettings.Manufacturer" />
-                            </div>
+                                </div>
+                            }
                             <div class="form-group row">
                                 <label>@Properties.Resources.Name</label>
                                 <InputText id="Name" class="form-control"
                                @bind-Value="Active.Name" />
                                 <ValidationMessage For="@(() => Active.Name)" />
                             </div>
-                            <div class="form-group row">
-                                <label style="margin:auto">@Properties.Resources.InterfaceType</label>
-                                <select class="form-select" @bind="@_settings.InterfaceType">
-                                    @foreach (var it in InterfaceList)
-                                    {
-                                        <option value="@Convert.ToInt32(it)">@it</option>
-                                    }
-                                </select>
-                            </div>
+                            @if (_settings != null)
+                            {
+                                <div class="form-group row">
+                                    <label style="margin:auto">@Properties.Resources.InterfaceType</label>
+                                    <select class="form-select" @bind="@_settings.InterfaceType">
+                                        @foreach (var it in InterfaceList)
+                                        {
+                                            <option value="@Convert.ToInt32(it)">@it</option>
+                                        }
+                                    </select>
+                                </div>
+                            }
                         }
-                        <fieldset disabled=@IsManagementKeyInUse()>
+                        <fieldset disabled=@DisablePassword()>
                             <div class="form-group row">
                                 <label>@Properties.Resources.Authentication</label>
                                 <InputSelect id="type" class="form-select"
@@ -162,18 +168,23 @@
                                     }
                                 </InputSelect>
                             </div>
-                            <div class="form-group row">
-                                <div class="form-inline">
-                                    <label>@Properties.Resources.Password</label>
-                                    <Switch OnChange="OnHexChange"
+                            @if (_settings != null)
+                            {
+                                <div class="form-group row">
+                                    <div class="form-inline">
+                                        <label>@Properties.Resources.Password</label>
+                                        <Switch OnChange="OnHexChange"
                                     Disabled="@IsHexDisabled()" @bind-Value="_settings.IsHex">
-                                        @Properties.Resources.Hex
-                                    </Switch>
-                                </div>
-                                <InputText id="password" class="form-control"
+                                            @Properties.Resources.Hex
+                                        </Switch>
+                                    </div>
+                                    <InputText id="password" class="form-control"
                                    @bind-Value="Password" disabled="@IsAuthenticated()" />
-                                <ValidationMessage For="@(() => Password)" />
-                            </div>
+                                    <ValidationMessage For="@(() => Password)" />
+                                </div>
+                            }
+                        </fieldset>
+                        <fieldset disabled=@DisableSecurity()>
                             <div class="form-group row">
                                 <label>@Properties.Resources.Security</label>
                                 <InputSelect id="type" class="form-select"
@@ -184,54 +195,43 @@
                                     }
                                 </InputSelect>
                             </div>
-                            <div class="form-group row">
-                                <div class="form-inline">
-                                    <label>@Properties.Resources.ClientSystemTitle</label>
-                                    <Switch OnChange="OnClientSTHexChange"
-                                    Disabled="@IsClientSystemTileDisabled()" @bind-Value="IsHexClientST">
-                                        @Properties.Resources.Hex
-                                    </Switch>
+                            @if (_settings != null)
+                            {
+                                <div class="form-group row">
+                                    <InputHexAscii @ref="_clientSystemTitle"
+                                       @bind-Hex="HexClientSystemTitle"
+                                       HexDisabled="@IsClientSystemTileDisabled()"
+                                       @bind-Value="@_settings.ClientSystemTitle"
+                                       Title="@Properties.Resources.ClientSystemTitle">
+                                    </InputHexAscii>
+                                    <ValidationMessage For="@(() => _clientSystemTitle)" />
                                 </div>
-                                <InputText id="clientSystemTitle" class="form-control"
-                                   @bind-Value="_settings.ClientSystemTitle" disabled="@IsSecured()" />
-                                <ValidationMessage For="@(() => _settings.ClientSystemTitle)" />
-                            </div>
-                            <div class="form-group row">
-                                <div class="form-inline">
-                                    <label>@Properties.Resources.DeviceSystemTitle</label>
-                                    <Switch OnChange="OnDeviceSTHexChange"
-                                    Disabled="@IsDeviceSystemTileDisabled()" @bind-Value="IsHexDeviceST">
-                                        @Properties.Resources.Hex
-                                    </Switch>
+                                <div class="form-group row">
+                                    <InputHexAscii @ref="_deviceSystemTitle"
+                                       @bind-Hex="HexDeviceSystemTitle"
+                                       HexDisabled="@IsClientSystemTileDisabled()"
+                                       @bind-Value="@_settings.DeviceSystemTitle"
+                                       Title="@Properties.Resources.DeviceSystemTitle">
+                                    </InputHexAscii>
+                                    <ValidationMessage For="@(() => _deviceSystemTitle)" />
                                 </div>
-                                <InputText id="deviceSystemTitle" class="form-control"
-                                   @bind-Value="_settings.DeviceSystemTitle" disabled="@IsSecured()" />
-                                <ValidationMessage For="@(() => _settings.DeviceSystemTitle)" />
-                            </div>
-                            <div class="form-group row">
-                                <div class="form-inline">
-                                    <label>@Properties.Resources.BlockCipherKey</label>
-                                    <Switch OnChange="OnBlockCipherKeyHexChange"
-                                    Disabled="@IsBlockCipherKeyDisabled()" @bind-Value="IsHexBlockCipherKey">
-                                        @Properties.Resources.Hex
-                                    </Switch>
+                                <div class="form-group row">
+                                    <InputHexAscii @ref="_blockCipherKey"
+                                       HexDisabled="@IsClientSystemTileDisabled()"
+                                       @bind-Value="@_settings.BlockCipherKey"
+                                       Title="@Properties.Resources.BlockCipherKey">
+                                    </InputHexAscii>
+                                    <ValidationMessage For="@(() => _blockCipherKey)" />
                                 </div>
-                                <InputText id="blockCipherKey" class="form-control"
-                                   @bind-Value="_settings.BlockCipherKey" disabled="@IsSecured()" />
-                                <ValidationMessage For="@(() => _settings.BlockCipherKey)" />
-                            </div>
-                            <div class="form-group row">
-                                <div class="form-inline">
-                                    <label>@Properties.Resources.AuthenticationKey</label>
-                                    <Switch OnChange="OnAuthenticationKeyHexChange"
-                                    Disabled="@IsAutheticationKeyDisabled()" @bind-Value="IsHexAuthenticationKey">
-                                        @Properties.Resources.Hex
-                                    </Switch>
+                                <div class="form-group row">
+                                    <InputHexAscii @ref="_authenticationKey"
+                                       HexDisabled="@IsClientSystemTileDisabled()"
+                                       @bind-Value="@_settings.AuthenticationKey"
+                                       Title="@Properties.Resources.AuthenticationKey">
+                                    </InputHexAscii>
                                 </div>
-                                <InputText id="authenticationKey" class="form-control"
-                                   @bind-Value="_settings.AuthenticationKey" disabled="@IsSecured()" />
-                                <ValidationMessage For="@(() => _settings.AuthenticationKey)" />
-                            </div>
+                                <ValidationMessage For="@(() => _authenticationKey)" />
+                            }
                         </fieldset>
                         @if (_settings != null && _settings.HDLCAddressing == (int)HDLCAddressType.SerialNumber)
                         {
@@ -331,6 +331,14 @@
     }
 </CascadingValue>
 @code {
+    private InputHexAscii? _clientSystemTitle;
+    private InputHexAscii? _deviceSystemTitle;
+    private InputHexAscii? _blockCipherKey;
+    private InputHexAscii? _authenticationKey;
+
+    private bool HexClientSystemTitle { get; set; }
+    private bool HexDeviceSystemTitle { get; set; }
+
     [CascadingParameter]
     private DeviceTab? Parent { get; set; }
 
@@ -348,47 +356,28 @@
         }
     }
 
-    ///<summary>
-    /// Is the client system shown as a hex string.
-    /// </summary>
-    private bool IsHexClientST
+    private bool DisablePassword()
     {
-        get;
-        set;
+        if (_settings != null &&
+            _settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.None)
+        {
+            return action != CrudAction.Create;
+        }
+        return true;
+
     }
 
-    ///<summary>
-    /// Is the device system shown as a hex string.
-    /// </summary>
-    private bool IsHexDeviceST
-    {
-        get;
-        set;
-    }
 
-    ///<summary>
-    /// Is the block cipher key shown as a hex string.
-    /// </summary>
-    private bool IsHexBlockCipherKey
+    private bool DisableSecurity()
     {
-        get;
-        set;
+        if (_settings != null &&
+            (_settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC ||
+            _settings.Security != (byte)Gurux.DLMS.Enums.Security.None))
+        {
+            return action != CrudAction.Create;
+        }
+        return true;
     }
-
-    ///<summary>
-    /// Is the authentication key shown as a hex string.
-    /// </summary>
-    private bool IsHexAuthenticationKey
-    {
-        get;
-        set;
-    }
-
-    private bool IsManagementKeyInUse()
-    {
-        return action != CrudAction.Create && (IsSecured() || IsAuthenticated());
-    }
-
 
     private bool IsHexDisabled()
     {
@@ -455,29 +444,7 @@
         }
         catch (Exception ex)
         {
-            _deviceValidator?.AddError(() => Password, ex.Message);
-        }
-    }
-
-    /// <summary>
-    /// User changes client system title from ASCII to HEX or vice versa.
-    /// </summary>
-    /// <param name="value"></param>
-    private void OnClientSTHexChange(bool value)
-    {
-        try
-        {
-            if (_settings != null)
-            {
-                _settings.ClientSystemTitle = GetValue(_settings.ClientSystemTitle, value);
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_settings != null)
-            {
-                _deviceValidator?.AddError(() => _settings.ClientSystemTitle, ex.Message);
-            }
+            _validator?.AddError(() => Password, ex.Message);
         }
     }
 
@@ -498,7 +465,7 @@
         {
             if (_settings != null)
             {
-                _deviceValidator?.AddError(() => _settings.DeviceSystemTitle, ex.Message);
+                _validator?.AddError(() => _settings.DeviceSystemTitle, ex.Message);
             }
         }
     }
@@ -521,7 +488,7 @@
         {
             if (_settings != null)
             {
-                _deviceValidator?.AddError(() => _settings.BlockCipherKey, ex.Message);
+                _validator?.AddError(() => _settings.BlockCipherKey, ex.Message);
             }
         }
     }
@@ -543,7 +510,7 @@
         {
             if (_settings != null)
             {
-                _deviceValidator?.AddError(() => _settings.AuthenticationKey, ex.Message);
+                _validator?.AddError(() => _settings.AuthenticationKey, ex.Message);
             }
         }
     }
@@ -582,7 +549,7 @@
         return Parent.CustomTemplates;
     }
 
-    private GXValidator? _deviceValidator;
+    private GXValidator? _validator;
 
 
     private void SelectFirstManufacturer()
@@ -699,30 +666,6 @@
             {
                 Parameters.AddRange(Active.Parameters);
             }
-            if (_settings?.HexPassword != null && _settings.HexPassword.Any())
-            {
-                IsHexClientST = true;
-            }
-            if (_settings?.ClientSystemTitle != null)
-            {
-                byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.ClientSystemTitle);
-                IsHexClientST = !IsAsciiString(tmp);
-            }
-            if (_settings?.DeviceSystemTitle != null)
-            {
-                byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.DeviceSystemTitle);
-                IsHexDeviceST = !IsAsciiString(tmp);
-            }
-            if (_settings?.BlockCipherKey != null)
-            {
-                byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.BlockCipherKey);
-                IsHexBlockCipherKey = true;
-            }
-            if (_settings?.AuthenticationKey != null)
-            {
-                byte[] tmp = GXDLMSTranslator.HexToBytes(_settings.AuthenticationKey);
-                IsHexAuthenticationKey = true;
-            }
         }
         StateHasChanged();
     }
@@ -762,6 +705,11 @@
     List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetAuthenticationLevels()
     {
         Gurux.DLMS.Enums.Authentication current = Gurux.DLMS.Enums.Authentication.None;
+        if (_templateSettings != null)
+        {
+            //Get default value when new device is create from device template.
+            current = (Gurux.DLMS.Enums.Authentication)_templateSettings.Authentication;
+        }
         if (_deviceSettings != null)
         {
             current = GetAuthenticationLevel(_deviceSettings);
@@ -780,6 +728,20 @@
                 }
             }
         }
+        else if (_deviceSettings != null)
+        {
+            settings.Add(_deviceSettings);
+        }
+        else
+        {
+            settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
+                {
+                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                    {
+                        Authentication = (byte)current
+                    })
+                });
+        }
         return settings;
     }
 
@@ -790,6 +752,11 @@
     List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurity()
     {
         Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
+        if (_templateSettings != null)
+        {
+            //Get default value when new device is create from device template.
+            current = (Gurux.DLMS.Enums.Security)_templateSettings.Security;
+        }
         if (_deviceSettings != null)
         {
             current = GetSecurity(_deviceSettings);
@@ -807,6 +774,21 @@
                     items.Add(item);
                 }
             }
+        }
+        else if (_deviceSettings != null)
+        {
+            settings.Add(_deviceSettings);
+        }
+        else
+        {
+            //Default authentication is added.
+            settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
+                {
+                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                    {
+                        Security = (byte)current
+                    })
+                });
         }
         return settings;
     }
@@ -917,57 +899,9 @@
         {
             return true;
         }
-        if (IsHexClientST)
-        {
-            return !IsAsciiString(GXDLMSTranslator.HexToBytes(_settings.ClientSystemTitle));
-        }
         return false;
     }
 
-    private bool IsDeviceSystemTileDisabled()
-    {
-        if (_settings == null ||
-            _settings.Security == (byte)Gurux.DLMS.Enums.Security.None ||
-             _settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC)
-        {
-            return true;
-        }
-        if (IsHexDeviceST)
-        {
-            return !IsAsciiString(GXDLMSTranslator.HexToBytes(_settings.DeviceSystemTitle));
-        }
-        return false;
-    }
-
-    private bool IsBlockCipherKeyDisabled()
-    {
-        if (_settings == null ||
-            _settings.Security == (byte)Gurux.DLMS.Enums.Security.None ||
-             _settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC)
-        {
-            return true;
-        }
-        if (IsHexBlockCipherKey)
-        {
-            return !IsAsciiString(GXDLMSTranslator.HexToBytes(_settings.BlockCipherKey));
-        }
-        return false;
-    }
-
-    private bool IsAutheticationKeyDisabled()
-    {
-        if (_settings == null ||
-            _settings.Security == (byte)Gurux.DLMS.Enums.Security.None ||
-             _settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC)
-        {
-            return true;
-        }
-        if (IsHexAuthenticationKey)
-        {
-            return !IsAsciiString(GXDLMSTranslator.HexToBytes(_settings.AuthenticationKey));
-        }
-        return false;
-    }
     /// <summary>
     /// Authentication level is read from the device template.
     /// </summary>
@@ -1274,6 +1208,7 @@
             action = ClientHelpers.GetAction(Action);
             InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HDLC);
             InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.WRAPPER);
+            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE);
             switch (action)
             {
                 case CrudAction.Create:
@@ -1358,47 +1293,59 @@
                     }
                 }
             }
-            if (_settings.PreEstablished && string.IsNullOrEmpty(_settings.DeviceSystemTitle))
-            {
-                sender.AddError(() => _settings.DeviceSystemTitle, Properties.Resources.InvalidSystemTitle);
-            }
 
             //Check security settings
             if (_settings != null)
             {
+                if (_settings.PreEstablished && string.IsNullOrEmpty(_settings.DeviceSystemTitle))
+                {
+                    sender.AddError(() => _settings.DeviceSystemTitle, Properties.Resources.InvalidSystemTitle);
+                }
                 if (_settings.Security != (byte)Enums.Security.None)
                 {
-                    if (!string.IsNullOrEmpty(_settings.ClientSystemTitle))
+                    if (!string.IsNullOrEmpty(_settings.ClientSystemTitle) && _clientSystemTitle != null)
                     {
-                        if (GetByteArray(_settings.ClientSystemTitle, !IsHexClientST).Length != 8)
+                        if (_clientSystemTitle.GetByteArray().Length != 8)
                         {
-                            sender.AddError(() => _settings.ClientSystemTitle, Properties.Resources.InvalidSystemTitle);
+                            sender.AddError(() => _clientSystemTitle, Properties.Resources.InvalidSystemTitle);
                         }
                     }
-                    if (!string.IsNullOrEmpty(_settings.DeviceSystemTitle))
+                    else
                     {
-                        if (GetByteArray(_settings.DeviceSystemTitle, !IsHexDeviceST).Length != 8)
+                        sender.AddError(() => _settings.ClientSystemTitle, Properties.Resources.InvalidSystemTitle);
+                    }
+                    if (!string.IsNullOrEmpty(_settings.DeviceSystemTitle) && _deviceSystemTitle != null)
+                    {
+                        if (_deviceSystemTitle.GetByteArray().Length != 8)
                         {
-                            sender.AddError(() => _settings.DeviceSystemTitle, Properties.Resources.InvalidSystemTitle);
+                            sender.AddError(() => _deviceSystemTitle, Properties.Resources.InvalidSystemTitle);
                         }
                     }
-                    if (!string.IsNullOrEmpty(_settings.BlockCipherKey))
+                    if (!string.IsNullOrEmpty(_settings.BlockCipherKey) && _blockCipherKey != null)
                     {
-                        var bytes = GetByteArray(_settings.BlockCipherKey, !IsHexBlockCipherKey);
+                        var bytes = _blockCipherKey.GetByteArray();
                         if ((_settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
                         (_settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
                         {
-                            sender.AddError(() => _settings.BlockCipherKey, Properties.Resources.InvalidBlockCipherKey);
+                            sender.AddError(() => _blockCipherKey, Properties.Resources.InvalidBlockCipherKey);
                         }
                     }
-                    if (!string.IsNullOrEmpty(_settings.AuthenticationKey))
+                    else
                     {
-                        var bytes = GetByteArray(_settings.AuthenticationKey, !IsHexAuthenticationKey);
+                        sender.AddError(() => _settings.BlockCipherKey, Properties.Resources.InvalidBlockCipherKey);
+                    }
+                    if (!string.IsNullOrEmpty(_settings.AuthenticationKey) && _authenticationKey != null)
+                    {
+                        var bytes = _authenticationKey.GetByteArray();
                         if ((_settings.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
                         (_settings.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
                         {
-                            sender.AddError(() => _settings.AuthenticationKey, Properties.Resources.InvalidAuthenticationKey);
+                            sender.AddError(() => _authenticationKey, Properties.Resources.InvalidAuthenticationKey);
                         }
+                    }
+                    else
+                    {
+                        sender.AddError(() => _settings.AuthenticationKey, Properties.Resources.InvalidAuthenticationKey);
                     }
                 }
             }
@@ -1420,12 +1367,14 @@
     {
         try
         {
-            _deviceValidator?.ClearErrors();
             if (Active == null)
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            if (_deviceValidator != null && !_deviceValidator.Validate())
+            //Save current settings so they are not lost if validation fails.
+            //MIKKO            Active.Settings = JsonSerializer.Serialize(_settings);
+            _validator?.ClearErrors();
+            if (_validator != null && !_validator.Validate())
             {
                 return;
             }
@@ -1437,7 +1386,14 @@
                 {
                     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
                 };
-            Active.Settings = JsonSerializer.Serialize(_settings, options);
+            if (_settings != null)
+            {
+                _settings.ClientSystemTitle = GXDLMSTranslator.ToHex(_clientSystemTitle?.GetByteArray(), false);
+                _settings.DeviceSystemTitle = GXDLMSTranslator.ToHex(_deviceSystemTitle?.GetByteArray(), false);
+                _settings.BlockCipherKey = GXDLMSTranslator.ToHex(_blockCipherKey?.GetByteArray(), false);
+                _settings.AuthenticationKey = GXDLMSTranslator.ToHex(_authenticationKey?.GetByteArray(), false);
+                Active.Settings = JsonSerializer.Serialize(_settings, options);
+            }
             if (action == CrudAction.Delete)
             {
                 await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", new RemoveDevice()

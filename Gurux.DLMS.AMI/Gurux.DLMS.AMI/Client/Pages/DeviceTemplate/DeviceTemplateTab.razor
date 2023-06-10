@@ -28,7 +28,8 @@
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceTemplateManager)>
                 <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
-                        <DeviceTemplate Action="@Action"></DeviceTemplate>
+                        <DeviceTemplate @ref="_deviceTemplate" 
+                            Action="@Action"></DeviceTemplate>
                     </div>
                 </TabPage>
             </AuthorizeView>
@@ -51,6 +52,8 @@
 </CascadingValue>
 <br />
 @code {
+    DeviceTemplate? _deviceTemplate;
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -112,7 +115,7 @@
                 if (tmp?.Item != null)
                 {
                     Active = tmp.Item;
-                    StateHasChanged();
+                    _deviceTemplate?.Update();
                 }
             }
         }

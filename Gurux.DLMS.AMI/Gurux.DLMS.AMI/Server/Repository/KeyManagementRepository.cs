@@ -401,6 +401,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     key.Device = null;
                 }
+                if (string.IsNullOrEmpty(key.SystemTitle))
+                {
+                    key.SystemTitle = null;
+                }
+                else
+                {
+                    key.SystemTitle = key.SystemTitle.Replace(" ", "");
+                    if (key.SystemTitle.Length != 16)
+                    {
+                        throw new ArgumentException(string.Format("Invalid system title '{0}'.", key.SystemTitle));
+                    }
+                }
                 //Verify key management key system title if it's given.
                 //If system title is not given key management is used as a default value.
                 if (!string.IsNullOrEmpty(key.SystemTitle) &&

@@ -208,6 +208,14 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     //Log data is not serialized.
                     text = "";
                 }
+                if (data != null && data.Length > 1000)
+                {
+                    data = data.Substring(0, 1000);
+                }
+                if (text != null && text.Length > 1000)
+                {
+                    text = text.Substring(0, 1000);
+                }
                 string id = ServerHelpers.GetUserId(context.User);
                 GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id, where => where.Id == id);
                 GXUser user = await _host.Connection.SingleOrDefaultAsync<GXUser>(args);
