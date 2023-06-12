@@ -148,7 +148,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// <summary>
         /// System title.
         /// </summary>
-        [Index(Unique = true)]
+        [Index(Unique = false)]
         [DataMember]
         [IsRequired]
         [Filter(FilterType.Contains)]
