@@ -197,7 +197,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
-                    arg.Where.And<GXDevice>(w => request.Exclude.Contains(w.Id) == false);
+                    arg.Where.And<GXDevice>(w => !request.Exclude.Contains(w.Id));
                 }
             }
             arg.Distinct = true;

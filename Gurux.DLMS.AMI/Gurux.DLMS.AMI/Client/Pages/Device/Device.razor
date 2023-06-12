@@ -1371,8 +1371,6 @@
             {
                 throw new Exception(Properties.Resources.InvalidTarget);
             }
-            //Save current settings so they are not lost if validation fails.
-            //MIKKO            Active.Settings = JsonSerializer.Serialize(_settings);
             _validator?.ClearErrors();
             if (_validator != null && !_validator.Validate())
             {
