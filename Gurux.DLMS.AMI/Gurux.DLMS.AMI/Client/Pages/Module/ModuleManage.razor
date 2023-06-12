@@ -8,6 +8,8 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Module
+
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -81,7 +83,7 @@ else
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Configurations? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations Parent { get; set; }
 
     /// <summary>
     /// User action.

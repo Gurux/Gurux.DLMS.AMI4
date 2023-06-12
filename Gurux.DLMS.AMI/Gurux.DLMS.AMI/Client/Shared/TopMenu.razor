@@ -11,7 +11,7 @@
 <div class="btn-group" role="group">
     @foreach (GXMenuItem it in Notifier.Items)
     {
-        <button class="btn button" @onclick=it.OnClick>
+        <button class="btn button" onclick="@(() => it.OnClick())">
             @if (it.Icon != null)
             {
                 <div class="@it.Icon"></div>

@@ -76,7 +76,7 @@
 
     void OnBlur(FocusEventArgs args)
     {
-        _timer.Interval = 150;
+        _timer.Interval = 300;
         _timer.AutoReset = true;
         _timer.Elapsed += TimerElapsed;
         _timer.Start();

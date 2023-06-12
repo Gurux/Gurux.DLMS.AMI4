@@ -29,10 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-public interface IGXConfigUpdate
+namespace Gurux.DLMS.AMI.Client.Pages.Config
 {
-    /// <summary>
-    /// Update config UI.
-    /// </summary>
-    void Update();
+    public interface IGXConfigUpdate
+    {
+        /// <summary>
+        /// Update config UI.
+        /// </summary>
+        void Update();
+    }
 }

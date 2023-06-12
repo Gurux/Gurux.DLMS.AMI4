@@ -1,4 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Client.Pages.Config;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 @using Gurux.DLMS.AMI.Shared.Models
@@ -12,7 +13,7 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Globalization
-@using System.Text.Json;
+@using System.Text.Json
 
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
@@ -100,7 +101,7 @@
     /// Parent component.
     /// </summary>
     [Parameter]
-    public ManufacturerManage? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Manufacturer.ManufacturerManage? Parent { get; set; }
 
     /// <summary>
     /// Manufacturer filter.

@@ -11,6 +11,8 @@
 @using System.Globalization
 @using Gurux.DLMS.AMI.Client.Helpers
 
+@namespace Gurux.DLMS.AMI.Client.Pages.KeyManagement
+
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.KeyManagement)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
