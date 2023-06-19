@@ -13,6 +13,8 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Text.Json;
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
@@ -92,7 +94,7 @@
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Configurations? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     private string? GetVersion(string? version)
     {

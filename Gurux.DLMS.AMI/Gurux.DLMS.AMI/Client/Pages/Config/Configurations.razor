@@ -19,6 +19,8 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Globalization
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
@@ -46,9 +48,9 @@ else if (string.Compare(Target, "authentications", true) == 0 ||
             string.Compare(Target, "authentication", true) == 0)
 {
     <Authentications Action="@GetAction()"
-                 Id="@Id"
-                 Parent="this"
-                 @ref="@_updater"></Authentications>
+                     Id="@Id"
+                     Parent="this"
+    @ref="@_updater"></Authentications>
 }
 else if (string.Compare(Target, "agent", true) == 0 ||
          string.Compare(Target, "AgentInstallers", true) == 0)
@@ -63,17 +65,17 @@ else if (string.Compare(Target, "Module", true) == 0 ||
         string.Compare(Target, "ModuleLog", true) == 0)
 {
     <ModuleManage Action="@GetAction()"
-              Path="@("config/" + Target)"
-              Id="@Id"
-              Parent="this"></ModuleManage>
+                  Path="@("config/" + Target)"
+                  Id="@Id"
+                  Parent="this"></ModuleManage>
 }
 else if (string.Compare(Target, "Manufacturer", true) == 0)
 {
     <ManufacturerManage Path="@("config/" + Target)"
-                    Action="@Action"
-                    Id="@GetId()"
-                    Parent="this"
-                    @ref="@_updater"></ManufacturerManage>
+                        Action="@Action"
+                        Id="@GetId()"
+                        Parent="this"
+    @ref="@_updater"></ManufacturerManage>
 }
 else if (string.Compare(Target, "Cron", true) == 0)
 {
@@ -96,18 +98,18 @@ else
     <h1>@Properties.Resources.SettingsTitle</h1>
     <hr />
     <GXTable @ref="table"
-         Context="conf"
-         ItemsProvider="@GetItems"
-         OnSearch="@Updated"
-         ShowAllUsers="false"
-         ShowRemoved="false"
-         ShowAllData="true">
+             Context="conf"
+             ItemsProvider="@GetItems"
+             OnSearch="@Updated"
+             ShowAllUsers="false"
+             ShowRemoved="false"
+             ShowAllData="true">
         <FilterContent>
             <th>
             </th>
             <th>
                 <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
             </th>
         </FilterContent>
         <MenuContent>

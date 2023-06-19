@@ -199,7 +199,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
-                    arg.Where.And<GXKeyManagement>(w => request.Exclude.Contains(w.Id) == false);
+                    arg.Where.And<GXKeyManagement>(w => !request.Exclude.Contains(w.Id));
                 }
             }
             if (request != null && (request.Select & TargetType.Device) != 0)
@@ -562,7 +562,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 logs.Add(new GXKeyManagementLog(TraceLevel.Info)
                 {
                     CreationTime = DateTime.Now,
-                    KeyManagement = it,
+                    KeyManagement = new GXKeyManagement() { Id = it.Id, Name = it.Name },
                     Message = it.CreationTime == now ? Properties.Resources.KeyManagementInstalled :
                     Properties.Resources.KeyManagementUpdated
                 });

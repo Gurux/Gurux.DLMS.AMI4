@@ -201,7 +201,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
-                    arg.Where.And<GXAgentLog>(w => request.Exclude.Contains(w.Id) == false);
+                    arg.Where.And<GXAgentLog>(w => !request.Exclude.Contains(w.Id));
                 }
             }
             if (request != null && request.Count != 0)

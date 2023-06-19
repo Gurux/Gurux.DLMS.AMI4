@@ -14,6 +14,8 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Text.Json
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
@@ -66,7 +68,7 @@ else @if (_authentications != null)
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Configurations? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     /// <summary>
     /// User action.

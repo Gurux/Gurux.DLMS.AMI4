@@ -17,6 +17,8 @@
 @using System.Text.Encodings.Web
 @using System.Text.Unicode
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -51,7 +53,7 @@
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Configurations? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     MaintenanceSettings? _settings;
 
@@ -81,13 +83,13 @@
         Notifier.ClearStatus();
         try
         {
-            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
             {
                 if (configurations != null)
                 {
                     foreach (var it in configurations)
                     {
-                        if (it.Name == GXConfigurations.Maintenance)
+                        if (it.Name == GXConfigurations.Maintenance && !string.IsNullOrEmpty(it.Settings))
                         {
                             _settings = JsonSerializer.Deserialize<MaintenanceSettings>(it.Settings);
                             StateHasChanged();

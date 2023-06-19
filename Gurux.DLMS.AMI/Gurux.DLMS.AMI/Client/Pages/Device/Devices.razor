@@ -371,7 +371,7 @@
     {
         try
         {
-            ClearConfirmation.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray(),
+            ClearConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray(),
             "Are you sure you want to clear device history? This action cannot be undone.");
         }
         catch (AccessTokenNotAvailableException exception)
@@ -387,7 +387,7 @@
     {
         try
         {
-            if (args.Confirm)
+            if (args.Confirm && table != null)
             {
                 List<GXDevice> devices = new List<GXDevice>();
                 foreach (var it in table.SingleOrDefault())

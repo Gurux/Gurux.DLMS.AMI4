@@ -15,6 +15,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -78,7 +80,7 @@
     /// Parent component.
     /// </summary>
     [Parameter]
-    public Configurations? Parent { get; set; }
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
 
     /// <inheritdoc/>
     public void Update()
