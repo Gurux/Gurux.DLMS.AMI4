@@ -39,8 +39,10 @@ using Gurux.DLMS.Enums;
 using Gurux.DLMS.Objects;
 using Gurux.DLMS.Secure;
 using Gurux.Net;
+using Gurux.Serial;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.IO.Ports;
 using System.Text;
 using Task = System.Threading.Tasks.Task;
 
@@ -89,13 +91,298 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             Client = client;
             _logger = logger;
             _device = device;
-        }       
+        }
+
+        /// <summary>
+        /// Send IEC disconnect message.
+        /// </summary>
+        void DiscIEC()
+        {
+            ReceiveParameters<string> p = new ReceiveParameters<string>()
+            {
+                AllData = false,
+                Eop = (byte)0x0A,
+                WaitTime = WaitTime * 1000
+            };
+            string data = (char)0x01 + "B0" + (char)0x03 + "\r\n";
+            Media.Send(data, null);
+            p.Eop = "\n";
+            p.AllData = true;
+            p.Count = 1;
+
+            Media.Receive(p);
+        }
+
+        /// <summary>
+        /// Initialize optical head.
+        /// </summary>
+        void InitializeOpticalHead()
+        {
+            if (Client.InterfaceType != InterfaceType.HdlcWithModeE)
+            {
+                return;
+            }
+            GXSerial serial = Media as GXSerial;
+            byte Terminator = (byte)0x0A;
+            Media.Open();
+            if (serial != null)
+            {
+                //Some meters need a little break.
+                Thread.Sleep(1000);
+            }
+            //Query device information.
+            string data = "/?!\r\n";
+            if (_consoleTrace > TraceLevel.Info)
+            {
+                Console.WriteLine("IEC Sending:" + data);
+            }
+            ReceiveParameters<string> p = new ReceiveParameters<string>()
+            {
+                AllData = false,
+                Eop = Terminator,
+                WaitTime = WaitTime * 1000
+            };
+            lock (Media.Synchronous)
+            {
+                Media.Send(data, null);
+                if (!Media.Receive(p))
+                {
+                    //Try to move away from mode E.
+                    try
+                    {
+                        Disconnect();
+                    }
+                    catch (Exception)
+                    {
+                    }
+                    DiscIEC();
+                    string str = "Failed to receive reply from the device in given time.";
+                    if (_consoleTrace > TraceLevel.Info)
+                    {
+                        Console.WriteLine(str);
+                    }
+                    Media.Send(data, null);
+                    if (!Media.Receive(p))
+                    {
+                        throw new Exception(str);
+                    }
+                }
+                //If echo is used.
+                if (p.Reply == data)
+                {
+                    p.Reply = null;
+                    if (!Media.Receive(p))
+                    {
+                        //Try to move away from mode E.
+                        GXReplyData reply = new GXReplyData();
+                        Disconnect();
+                        if (serial != null)
+                        {
+                            DiscIEC();
+                            serial.DtrEnable = serial.RtsEnable = false;
+                            serial.BaudRate = 9600;
+                            serial.DtrEnable = serial.RtsEnable = true;
+                            DiscIEC();
+                        }
+                        data = "Failed to receive reply from the device in given time.";
+                        if (_consoleTrace > TraceLevel.Info)
+                        {
+                            Console.WriteLine(data);
+                        }
+                        throw new Exception(data);
+                    }
+                }
+            }
+            if (_consoleTrace > TraceLevel.Info)
+            {
+                Console.WriteLine("IEC received: " + p.Reply);
+            }
+            int pos = 0;
+            //With some meters there might be some extra invalid chars. Remove them.
+            while (pos < p.Reply.Length && p.Reply[pos] != '/')
+            {
+                ++pos;
+            }
+            if (p.Reply[pos] != '/')
+            {
+                p.WaitTime = 100;
+                Media.Receive(p);
+                DiscIEC();
+                throw new Exception("Invalid responce.");
+            }
+            string manufactureID = p.Reply.Substring(1 + pos, 3);
+            char baudrate = p.Reply[4 + pos];
+            int BaudRate = 0;
+            switch (baudrate)
+            {
+                case '0':
+                    BaudRate = 300;
+                    break;
+                case '1':
+                    BaudRate = 600;
+                    break;
+                case '2':
+                    BaudRate = 1200;
+                    break;
+                case '3':
+                    BaudRate = 2400;
+                    break;
+                case '4':
+                    BaudRate = 4800;
+                    break;
+                case '5':
+                    BaudRate = 9600;
+                    break;
+                case '6':
+                    BaudRate = 19200;
+                    break;
+                default:
+                    throw new Exception("Unknown baud rate.");
+            }
+            if (_consoleTrace > TraceLevel.Info)
+            {
+                Console.WriteLine(DateTime.Now.ToLongTimeString() + "\tBaudRate is : " + BaudRate.ToString());
+            }
+            //Send ACK
+            //Send Protocol control character
+            // "2" HDLC protocol procedure (Mode E)
+            byte controlCharacter = (byte)'2';
+            //Send Baud rate character
+            //Mode control character
+            byte ModeControlCharacter = (byte)'2';
+            //"2" //(HDLC protocol procedure) (Binary mode)
+            //Set mode E.
+            byte[] arr = new byte[] { 0x06, controlCharacter, (byte)baudrate, ModeControlCharacter, 13, 10 };
+            if (_consoleTrace > TraceLevel.Info)
+            {
+                Console.WriteLine(DateTime.Now.ToLongTimeString() + "\tMoving to mode E.", arr);
+            }
+            lock (Media.Synchronous)
+            {
+                p.Reply = null;
+                Media.Send(arr, null);
+                //Some meters need this sleep. Do not remove.
+                Thread.Sleep(200);
+                p.WaitTime = 2000;
+                //Note! All meters do not echo this.
+                Media.Receive(p);
+                if (p.Reply != null)
+                {
+                    if (_consoleTrace > TraceLevel.Info)
+                    {
+                        Console.WriteLine("Received: " + p.Reply);
+                    }
+                }
+                if (serial != null)
+                {
+                    Media.Close();
+                    serial.BaudRate = BaudRate;
+                    serial.DataBits = 8;
+                    serial.Parity = Parity.None;
+                    serial.StopBits = StopBits.One;
+                    Media.Open();
+                }
+                //Some meters need this sleep. Do not remove.
+                Thread.Sleep(800);
+            }
+        }
+
+        /// <summary>
+        /// Read Invocation counter (frame counter) from the meter and update it.
+        /// </summary>
+        private async Task UpdateFrameCounter(string? invocationCounter)
+        {
+            //Read frame counter if GeneralProtection is used.
+            if (!string.IsNullOrEmpty(invocationCounter) && Client.Ciphering != null && Client.Ciphering.Security != Security.None)
+            {
+                InitializeOpticalHead();
+                byte[] data;
+                GXReplyData reply = new GXReplyData();
+                Client.ProposedConformance |= Conformance.GeneralProtection;
+                int add = Client.ClientAddress;
+                Authentication auth = Client.Authentication;
+                Security security = Client.Ciphering.Security;
+                Signing signing = Client.Ciphering.Signing;
+                byte[] challenge = Client.CtoSChallenge;
+                try
+                {
+                    Client.ClientAddress = 16;
+                    Client.Authentication = Authentication.None;
+                    Client.Ciphering.Security = Security.None;
+                    Client.Ciphering.Signing = Signing.None;
+                    data = Client.SNRMRequest();
+                    if (data != null)
+                    {
+                        if (_consoleTrace > TraceLevel.Info)
+                        {
+                            Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
+                        }
+                        ReadDataBlock(data, reply);
+                        if (_consoleTrace == TraceLevel.Verbose)
+                        {
+                            Console.WriteLine("Parsing UA reply." + reply.ToString());
+                        }
+                        //Has server accepted client.
+                        Client.ParseUAResponse(reply.Data);
+                        if (_consoleTrace > TraceLevel.Info)
+                        {
+                            Console.WriteLine("Parsing UA reply succeeded.");
+                        }
+                    }
+                    //Generate AARQ request.
+                    //Split requests to multiple packets if needed.
+                    //If password is used all data might not fit to one packet.
+                    foreach (byte[] it in Client.AARQRequest())
+                    {
+                        if (_consoleTrace > TraceLevel.Info)
+                        {
+                            Console.WriteLine("Send AARQ request", GXCommon.ToHex(it, true));
+                        }
+                        reply.Clear();
+                        ReadDataBlock(it, reply);
+                    }
+                    if (_consoleTrace > TraceLevel.Info)
+                    {
+                        Console.WriteLine("Parsing AARE reply" + reply.ToString());
+                    }
+                    try
+                    {
+                        //Parse reply.
+                        Client.ParseAAREResponse(reply.Data);
+                        reply.Clear();
+                        GXDLMSData d = new GXDLMSData(invocationCounter);
+                        await Read(d, 2);
+                        Client.Ciphering.InvocationCounter = 1 + Convert.ToUInt32(d.Value);
+                        Console.WriteLine("Invocation counter: " + Convert.ToString(Client.Ciphering.InvocationCounter));
+                        reply.Clear();
+                        Disconnect();
+                        //Some meters need this sleep. Do not remove.
+                        Thread.Sleep(800);
+                    }
+                    catch (Exception)
+                    {
+                        Disconnect();
+                        throw;
+                    }
+                }
+                finally
+                {
+                    Client.ClientAddress = add;
+                    Client.Authentication = auth;
+                    Client.Ciphering.Security = security;
+                    Client.CtoSChallenge = challenge;
+                    Client.Ciphering.Signing = signing;
+                }
+            }
+        }
 
         /// <summary>
         /// Initialize connection to the meter.
         /// </summary>
-        public void InitializeConnection(bool preEstablished)
+        public async Task InitializeConnection(bool preEstablished, string? invocationCounter)
         {
+            await UpdateFrameCounter(invocationCounter);
+            InitializeOpticalHead();
             GXReplyData reply = new GXReplyData();
             byte[] data;
             data = Client.SNRMRequest();

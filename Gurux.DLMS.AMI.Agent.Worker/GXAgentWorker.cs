@@ -391,11 +391,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     throw new Exception("Invlalid object type.");
                 }
                 obj = GXDLMSClient.CreateObject((ObjectType)task.Attribute.Object.Template.ObjectType);
-                obj.Version = task.Object.Template.Version.GetValueOrDefault(0);
+                // obj.Version = task.Object.Template.Version.GetValueOrDefault(0);
                 obj.LogicalName = task.Attribute.Object.Template.LogicalName;
                 obj.ShortName = task.Attribute.Object.Template.ShortName.GetValueOrDefault();
             }
-            else if (task.Device != null)
+            else if (task.Device?.Objects != null)
             {
                 foreach (var it in task.Device.Objects)
                 {
@@ -684,22 +684,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     }
                     TraceLevel consoleTrace = Options.TraceLevel;
                     TraceLevel deviceTrace = dev.TraceLevel.GetValueOrDefault(TraceLevel.Off);
-                    //Read frame counter from the meter.
-                    if (templateSettings.Security != 0)
-                    {
-                        cl = new GXDLMSSecureClient(templateSettings.UseLogicalNameReferencing, 16, deviceAddress,
-                            Authentication.None, null, (InterfaceType)settings.InterfaceType);
-                        reader = new GXDLMSReader(cl, media, _logger, consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
-                        media.Open();
-                        reader.InitializeConnection(false);
-                        //Read Innovation counter.
-                        GXDLMSData d = new GXDLMSData(settings.FrameCounter);
-                        await reader.Read(d, 2);
-                        settings.InvocationCounter = 1 + Convert.ToUInt32(d.Value);
-                        reader.Disconnect();
-                        media.Close();
-                    }
-
                     cl = new GXDLMSSecureClient(templateSettings.UseLogicalNameReferencing, templateSettings.ClientAddress, deviceAddress,
                         (Authentication)templateSettings.Authentication, null, (InterfaceType)settings.InterfaceType);
                     if (cl.InterfaceType == InterfaceType.HDLC || cl.InterfaceType == InterfaceType.HdlcWithModeE)
@@ -737,7 +721,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     reader = new GXDLMSReader(cl, media, _logger,
                         consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
                     media.Open();
-                    reader.InitializeConnection(settings.PreEstablished);
+                    await reader.InitializeConnection(settings.PreEstablished,
+                        settings.FrameCounter);
                 }
                 catch (Exception ex)
                 {
@@ -746,7 +731,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         task.Result = "Failed to establish the connection." + ex.Message;
                     }
                     await ReportDone(tasks);
-                    await ReportDeviceException(dev, ex, "Failed to establish the connection.");
+                    if (dev != null)
+                    {
+                        await ReportDeviceException(dev, ex, "Failed to establish the connection.");
+                    }
                     return;
                 }
                 int count = tasks.Count();
@@ -1026,6 +1014,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 //It's OK if this fails.
                 _hubConnection = null;
             }
-        }      
+        }
     }
 }
