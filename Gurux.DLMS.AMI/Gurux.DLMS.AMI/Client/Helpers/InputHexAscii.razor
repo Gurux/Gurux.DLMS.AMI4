@@ -4,12 +4,12 @@
     <div class="form-inline">
         <label>@Title</label>
         <Switch OnChange="OnHexChanged"
-                Disabled="@IsHexDisabled()" @bind-Value="Hex">
+                Disabled="@IsHexDisabled()" Checked="@Hex">
             @Properties.Resources.Hex
         </Switch>
     </div>
     <InputText class="form-control"
-               @bind-Value="Value" disabled="@Disabled" />
+    @bind-Value="Value" disabled="@Disabled" />
 </CascadingValue>
 @ChildContent
 @code
@@ -110,6 +110,7 @@
             {
                 Value = GetValue(Value, value);
             }
+            Hex = value;
             ValueChanged.InvokeAsync(Value);
         }
         catch (Exception ex)
