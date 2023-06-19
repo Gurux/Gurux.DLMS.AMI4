@@ -251,12 +251,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             args = GXSelectArgs.Select<GXDevice>(s => s.Name, w => w.Id == Id);
                             break;
                         case TargetType.Object:
-                            args = GXSelectArgs.Select<GXObjectTemplate>(s => s.Name, w => w.Id == Id);
+                            args = GXSelectArgs.Select<GXObjectTemplate>(s => s.Name);
                             args.Joins.AddInnerJoin<GXObjectTemplate, GXObject>(j => j.Id, j => j.Template);
                             args.Where.And<GXObject>(w => w.Id == Id);
                             break;
                         case TargetType.Attribute:
-                            args = GXSelectArgs.Select<GXAttributeTemplate>(s => s.Name, w => w.Id == Id);
+                            args = GXSelectArgs.Select<GXAttributeTemplate>(s => s.Name);
                             args.Joins.AddInnerJoin<GXAttributeTemplate, GXAttribute>(j => j.Id, j => j.Template);
                             args.Where.And<GXAttribute>(w => w.Id == Id);
                             break;

@@ -173,10 +173,10 @@
                                 <div class="form-group row">
                                     <div class="form-inline">
                                         <label>@Properties.Resources.Password</label>
-                                        <Switch OnChange="OnHexChange"
+                                        <InputSwitch OnChange="OnHexChange"
                                     Disabled="@IsHexDisabled()" @bind-Value="_settings.IsHex">
                                             @Properties.Resources.Hex
-                                        </Switch>
+                                        </InputSwitch>
                                     </div>
                                     <InputText id="password" class="form-control"
                                    @bind-Value="Password" disabled="@IsAuthenticated()" />

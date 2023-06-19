@@ -57,7 +57,6 @@ namespace Gurux.DLMS.AMI.Services
                 throw new Exception("Invalid crypto key.");
             }
         }
-        
 
         /// <summary>
         /// Decrypt string.
@@ -96,8 +95,17 @@ namespace Gurux.DLMS.AMI.Services
                 Aes aes = Aes.Create();
                 using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(key, iv), CryptoStreamMode.Read))
                 {
-                    int amount = cs.Read(data, 0, data.Length);
-                    return ASCIIEncoding.Unicode.GetString(data, 0, amount);
+                    int total = 0;
+                    while (total < data.Length)
+                    {
+                        int amount = cs.Read(data, total, data.Length - total);
+                        if (amount == 0)
+                        {
+                            break;
+                        }
+                        total += amount;
+                    }
+                    return ASCIIEncoding.Unicode.GetString(data, 0, total);
                 }
             }
         }
@@ -116,11 +124,11 @@ namespace Gurux.DLMS.AMI.Services
                 Aes aes = Aes.Create();
                 ms.Write(aes.IV, 0, 16);
                 using (CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(key, aes.IV), CryptoStreamMode.Write))
-                {                    
+                {
                     cs.Write(data);
                 }
                 return Convert.ToBase64String(ms.ToArray());
             }
-        }       
+        }
     }
 }

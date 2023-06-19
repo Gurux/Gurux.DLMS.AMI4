@@ -187,6 +187,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             }
                         }
                     }
+                    else if (request.Filter.Device.Id != Guid.Empty)
+                    {
+                        Guid id = request.Filter.Device.Id;
+                        arg.Where.And<GXDevice>(w => w.Id == id);
+                    }
                     request.Filter.Device = null;
                 }
                 arg.Where.FilterBy(request.Filter);

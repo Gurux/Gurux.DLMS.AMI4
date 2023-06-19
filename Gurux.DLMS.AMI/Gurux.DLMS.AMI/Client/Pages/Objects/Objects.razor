@@ -443,6 +443,10 @@ else
             {
                 filter.Device = new GXDevice() { Id = Device.Id };
             }
+            else if (Id.HasValue && Id.Value != Guid.Empty)
+            {
+                filter.Device = new GXDevice() { Id = Id.Value };
+            }
             ListObjects req = new ListObjects()
                 {
                     Index = (UInt64)request.StartIndex,
