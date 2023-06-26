@@ -355,7 +355,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         Client.Ciphering.InvocationCounter = 1 + Convert.ToUInt32(d.Value);
                         Console.WriteLine("Invocation counter: " + Convert.ToString(Client.Ciphering.InvocationCounter));
                         reply.Clear();
-                        Disconnect();
+                        Disconnect(false);
                         //Some meters need this sleep. Do not remove.
                         Thread.Sleep(800);
                     }
@@ -952,7 +952,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Disconnect.
         /// </summary>
-        public void Disconnect()
+        public void Disconnect(bool closeConnection = true)
         {
             if (Media != null && Client != null)
             {
@@ -964,14 +964,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     }
                     GXReplyData reply = new GXReplyData();
                     ReadDLMSPacket(Client.DisconnectRequest(), reply);
-                    Media.Close();
+                    if (closeConnection)
+                    {
+                        Media.Close();
+                    }
                 }
                 catch
                 {
 
                 }
-                Media = null;
-                Client = null;
             }
         }
 
