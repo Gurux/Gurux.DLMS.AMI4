@@ -38,17 +38,31 @@ namespace Gurux.DLMS.AMI.Module
     public interface IGXCryproService
     {
         /// <summary>
-        /// Decrypt the password.
+        /// Decrypt the string.
         /// </summary>
-        /// <param name="encrypted"></param>
-        /// <returns></returns>
+        /// <param name="encrypted">Decrypted string.</param>
+        /// <returns>Decrypted string.</returns>
         string Decrypt(string encrypted);
 
         /// <summary>
-        /// Encrypt the password.
+        /// Encrypt the string.
         /// </summary>
-        /// <param name="plainText"></param>
-        /// <returns></returns>
+        /// <param name="plainText">Encrypted byte array.</param>
+        /// <returns>Encrypted ASCII string</returns>
         string Encrypt(string plainText);
+
+        /// <summary>
+        /// Decrypt the byte array.
+        /// </summary>
+        /// <param name="encrypted">Decrypted byte array.</param>
+        /// <returns>Decrypted byte array.</returns>
+        byte[] Decrypt(byte[] encrypted);
+
+        /// <summary>
+        /// Encrypt the byte array.
+        /// </summary>
+        /// <param name="plainText">Encrypted byte array.</param>
+        /// <returns>Encrypted byte array.</returns>
+        byte[] Encrypt(byte[] plainText);
     }
 }
