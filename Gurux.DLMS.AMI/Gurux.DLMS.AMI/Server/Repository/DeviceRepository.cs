@@ -564,7 +564,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 {
                                     throw new Exception("Invalid authentication key.");
                                 }
-                                UpdateKeys(tmp[0], KeyManagementType.Authentication, s.AuthenticationKey, null);
+                                UpdateKeys(tmp[0], KeyManagementType.Authentication, null, tmp2);
                                 s.AuthenticationKey = null;
                             }
                             keys.Add(tmp[0]);

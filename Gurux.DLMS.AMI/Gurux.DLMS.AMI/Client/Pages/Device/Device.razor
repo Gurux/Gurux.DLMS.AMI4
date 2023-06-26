@@ -39,7 +39,7 @@
             {
                 <MenuControl RightCorner="true" Bottom="true">
                     <ChildContent>
-                        <MenuItem Text="Save as default" Icon="oi oi-pencil" OnClick="@(async () => OnDefault())" />
+                        <MenuItem Text="Save as default" Icon="oi oi-pencil" OnClick="@(async () => await OnDefault())" />
                     </ChildContent>
                 </MenuControl>
             }
@@ -59,7 +59,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.Manufacturer</label>
                                 <InputSelect id="type" class="form-control"
-                                 @bind-Value="SelectedManufacturer" disabled="@IsCreate()">
+                                @bind-Value="SelectedManufacturer" disabled="@IsCreate()">
                                     @foreach (var it in Parent.Manufacturers)
                                     {
                                         <option value="@it.Id">@it.Name</option>
@@ -74,7 +74,7 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.Model</label>
                                     <InputSelect id="type" class="form-control"
-                                 @bind-Value="SelectedModel" disabled="@IsCreate()">
+                                    @bind-Value="SelectedModel" disabled="@IsCreate()">
                                         @foreach (var it in _manufacturer.Models)
                                         {
                                             <option value="@it.Id">@it.Name</option>
@@ -86,7 +86,7 @@
                                     <div class="form-group row">
                                         <label>@Properties.Resources.Version</label>
                                         <InputSelect id="type" class="form-control"
-                                 @bind-Value="SelectedVersion" disabled="@IsCreate()">
+                                        @bind-Value="SelectedVersion" disabled="@IsCreate()">
                                             @foreach (var it in _model.Versions)
                                             {
                                                 <option value="@it.Id">
@@ -98,7 +98,7 @@
                                     <div class="form-group row">
                                         <label>@Properties.Resources.Name</label>
                                         <InputText id="name" class="form-control"
-                               @bind-Value="Active.Name" />
+                                        @bind-Value="Active.Name" />
                                         <ValidationMessage For="@(() => Active.Name)" />
                                     </div>
 
@@ -107,7 +107,7 @@
                                         <div class="form-group row">
                                             <label>@Properties.Resources.InterfaceType</label>
                                             <InputSelect id="type" class="form-select"
-                                 @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                            @bind-Value="SelectedSettings" disabled="@IsCreate()">
                                                 @foreach (var it in GetInterfaceTypes())
                                                 {
                                                     <option value="@it.Id">@GetInterfaceType(it)</option>
@@ -123,7 +123,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.Type</label>
                                 <InputSelect id="type" class="form-control"
-                                 @bind-Value="SelectedTemplate" disabled="@IsCreate()">
+                                @bind-Value="SelectedTemplate" disabled="@IsCreate()">
                                     @foreach (var it in GetCustomTemplates())
                                     {
                                         <option value="@it.Name">@it.Name</option>
@@ -135,13 +135,13 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.Manufacturer</label>
                                     <InputText id="manuacturer" class="form-control" readonly="readonly"
-                               @bind-Value="_templateSettings.Manufacturer" />
+                                    @bind-Value="_templateSettings.Manufacturer" />
                                 </div>
                             }
                             <div class="form-group row">
                                 <label>@Properties.Resources.Name</label>
                                 <InputText id="Name" class="form-control"
-                               @bind-Value="Active.Name" />
+                                @bind-Value="Active.Name" />
                                 <ValidationMessage For="@(() => Active.Name)" />
                             </div>
                             @if (_settings != null)
@@ -157,39 +157,39 @@
                                 </div>
                             }
                         }
-                        <fieldset disabled=@DisablePassword()>
-                            <div class="form-group row">
-                                <label>@Properties.Resources.Authentication</label>
-                                <InputSelect id="type" class="form-select"
-                                     @bind-Value="SelectedSettings" disabled="@IsCreate()">
-                                    @foreach (var it in GetAuthenticationLevels())
-                                    {
-                                        <option value="@it.Id">@GetAuthenticationLevel(it)</option>
-                                    }
-                                </InputSelect>
-                            </div>
-                            @if (_settings != null)
-                            {
+                        <div class="form-group row">
+                            <label>@Properties.Resources.Authentication</label>
+                            <InputSelect id="type" class="form-select"
+                            @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                @foreach (var it in GetAuthenticationLevels())
+                                {
+                                    <option value="@it.Id">@GetAuthenticationLevel(it)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        @if (_settings != null)
+                        {
+                            <fieldset disabled=@DisablePassword()>
                                 <div class="form-group row">
                                     <div class="form-inline">
                                         <label>@Properties.Resources.Password</label>
                                         <InputSwitch OnChange="OnHexChange"
-                                    Disabled="@IsHexDisabled()" @bind-Value="_settings.IsHex">
+                                        @bind-Value="_settings.IsHex">
                                             @Properties.Resources.Hex
                                         </InputSwitch>
                                     </div>
                                     <InputText id="password" class="form-control"
-                                   @bind-Value="Password" disabled="@IsAuthenticated()" />
+                                    @bind-Value="Password" disabled="@IsAuthenticated()" />
                                     <ValidationMessage For="@(() => Password)" />
                                 </div>
-                            }
-                        </fieldset>
+                            </fieldset>
+                        }
                         <fieldset disabled=@DisableSecurity()>
                             <div class="form-group row">
                                 <label>@Properties.Resources.Security</label>
                                 <InputSelect id="type" class="form-select"
-                                     @bind-Value="SelectedSettings" disabled="@IsCreate()">
-                                    @foreach (var it in GetSecurity())
+                                @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                    @foreach (var it in GetSecurityLevels())
                                     {
                                         <option value="@it.Id">@GetSecurity(it)</option>
                                     }
@@ -199,35 +199,29 @@
                             {
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_clientSystemTitle"
-                                       @bind-Hex="HexClientSystemTitle"
-                                       HexDisabled="@IsClientSystemTileDisabled()"
-                                       @bind-Value="@_settings.ClientSystemTitle"
-                                       Title="@Properties.Resources.ClientSystemTitle">
+                                    @bind-Value="@ClientSystemTitle"
+                                                   Title="@Properties.Resources.ClientSystemTitle">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _clientSystemTitle)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_deviceSystemTitle"
-                                       @bind-Hex="HexDeviceSystemTitle"
-                                       HexDisabled="@IsClientSystemTileDisabled()"
-                                       @bind-Value="@_settings.DeviceSystemTitle"
-                                       Title="@Properties.Resources.DeviceSystemTitle">
+                                    @bind-Value="@DeviceSystemTitle"
+                                                   Title="@Properties.Resources.DeviceSystemTitle">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _deviceSystemTitle)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_blockCipherKey"
-                                       HexDisabled="@IsClientSystemTileDisabled()"
-                                       @bind-Value="@_settings.BlockCipherKey"
-                                       Title="@Properties.Resources.BlockCipherKey">
+                                    @bind-Value="@BlockCipherKey"
+                                                   Title="@Properties.Resources.BlockCipherKey">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _blockCipherKey)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_authenticationKey"
-                                       HexDisabled="@IsClientSystemTileDisabled()"
-                                       @bind-Value="@_settings.AuthenticationKey"
-                                       Title="@Properties.Resources.AuthenticationKey">
+                                    @bind-Value="@AuthenticationKey"
+                                                   Title="@Properties.Resources.AuthenticationKey">
                                     </InputHexAscii>
                                 </div>
                                 <ValidationMessage For="@(() => _authenticationKey)" />
@@ -238,7 +232,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.SerialNumber</label>
                                 <InputNumber id="resend" class="form-control"
-                                 @bind-Value="_settings.PhysicalAddress" />
+                                @bind-Value="_settings.PhysicalAddress" />
                                 <ValidationMessage For="@(() => _settings.PhysicalAddress)" />
                             </div>
                         }
@@ -246,13 +240,13 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.WaitTime</label>
                             <InputIntegerTimeSpan id="resend" class="form-control"
-                                          @bind-Value="Active.WaitTime" />
+                            @bind-Value="Active.WaitTime" />
                             <ValidationMessage For="@(() => Active.WaitTime)" />
                         </div>
                         <div class="form-group row">
                             <label>Resend count</label>
                             <InputNumber id="resend" class="form-control"
-                                 @bind-Value="Active.ResendCount" />
+                            @bind-Value="Active.ResendCount" />
                             <ValidationMessage For="@(() => Active.ResendCount)" />
                         </div>
                         <div class="form-group row">
@@ -288,7 +282,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.CreationTime</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.CreationTime" />
+                            @bind-Value="Active.CreationTime" />
                         </div>
                     }
                     @if (Active.Updated != null)
@@ -296,7 +290,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.Updated</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                            @bind-Value="Active.Updated" />
                         </div>
                     }
                     @if (Active.Removed != null)
@@ -304,7 +298,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.Removed</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="Active.Removed" />
+                            @bind-Value="Active.Removed" />
                         </div>
                     }
                     @if (action == CrudAction.Delete)
@@ -336,8 +330,6 @@
     private InputHexAscii? _blockCipherKey;
     private InputHexAscii? _authenticationKey;
 
-    private bool HexClientSystemTitle { get; set; }
-    private bool HexDeviceSystemTitle { get; set; }
 
     [CascadingParameter]
     private DeviceTab? Parent { get; set; }
@@ -356,6 +348,86 @@
         }
     }
 
+    private byte[]? ClientSystemTitle
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_settings?.ClientSystemTitle))
+            {
+                return null;
+            }
+            return GXDLMSTranslator.HexToBytes(_settings.ClientSystemTitle);
+
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.ClientSystemTitle = GXDLMSTranslator.ToHex(value, false);
+            }
+        }
+    }
+
+    private byte[]? DeviceSystemTitle
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_settings?.DeviceSystemTitle))
+            {
+                return null;
+            }
+            return GXDLMSTranslator.HexToBytes(_settings.DeviceSystemTitle);
+
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.DeviceSystemTitle = GXDLMSTranslator.ToHex(value, false);
+            }
+        }
+    }
+
+    private byte[]? BlockCipherKey
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_settings?.BlockCipherKey))
+            {
+                return null;
+            }
+            return GXDLMSTranslator.HexToBytes(_settings.BlockCipherKey);
+
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.BlockCipherKey = GXDLMSTranslator.ToHex(value, false);
+            }
+        }
+    }
+
+    private byte[]? AuthenticationKey
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_settings?.AuthenticationKey))
+            {
+                return null;
+            }
+            return GXDLMSTranslator.HexToBytes(_settings.AuthenticationKey);
+
+        }
+        set
+        {
+            if (_settings != null)
+            {
+                _settings.ClientSystemTitle = GXDLMSTranslator.ToHex(value, false);
+            }
+        }
+    }
+
     private bool DisablePassword()
     {
         if (_settings != null &&
@@ -364,7 +436,6 @@
             return action != CrudAction.Create;
         }
         return true;
-
     }
 
 
@@ -448,72 +519,7 @@
         }
     }
 
-    /// <summary>
-    /// User changes device system title from ASCII to HEX or vice versa.
-    /// </summary>
-    /// <param name="value"></param>
-    private void OnDeviceSTHexChange(bool value)
-    {
-        try
-        {
-            if (_settings != null)
-            {
-                _settings.DeviceSystemTitle = GetValue(_settings.DeviceSystemTitle, value);
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_settings != null)
-            {
-                _validator?.AddError(() => _settings.DeviceSystemTitle, ex.Message);
-            }
-        }
-    }
 
-
-    /// <summary>
-    /// User changes block cipher key from ASCII to HEX or vice versa.
-    /// </summary>
-    /// <param name="value"></param>
-    private void OnBlockCipherKeyHexChange(bool value)
-    {
-        try
-        {
-            if (_settings != null)
-            {
-                _settings.BlockCipherKey = GetValue(_settings.BlockCipherKey, value);
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_settings != null)
-            {
-                _validator?.AddError(() => _settings.BlockCipherKey, ex.Message);
-            }
-        }
-    }
-
-    /// <summary>
-    /// User changes authentication key from ASCII to HEX or vice versa.
-    /// </summary>
-    /// <param name="value"></param>
-    private void OnAuthenticationKeyHexChange(bool value)
-    {
-        try
-        {
-            if (_settings != null)
-            {
-                _settings.AuthenticationKey = GetValue(_settings.AuthenticationKey, value);
-            }
-        }
-        catch (Exception ex)
-        {
-            if (_settings != null)
-            {
-                _validator?.AddError(() => _settings.AuthenticationKey, ex.Message);
-            }
-        }
-    }
 
     /// <summary>
     /// Check is byte buffer ASCII string.
@@ -568,9 +574,15 @@
     {
         if (Active != null && Parent?.CustomTemplates != null && Parent.CustomTemplates.Any())
         {
-            Active.Template = Parent.CustomTemplates[0];
-            Active.WaitTime = Active.Template.WaitTime;
-            Active.ResendCount = Active.Template.ResendCount;
+            if (SelectedManufacturer == null ||
+                SelectedManufacturer == Guid.Empty)
+            {
+                SelectedTemplate = Parent.CustomTemplates[0].Name;
+            }
+            else
+            {
+                SelectedTemplate = null;
+            }
         }
     }
     /// <summary>
@@ -662,7 +674,7 @@
             {
                 Active.MediaType = typeof(GXNet).FullName;
             }
-            if (Active.Parameters != null)
+            if (Active?.Parameters != null)
             {
                 Parameters.AddRange(Active.Parameters);
             }
@@ -749,7 +761,7 @@
     /// Get available security levels.
     /// </summary>
     /// <returns>Available security levels.</returns>
-    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurity()
+    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurityLevels()
     {
         Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
         if (_templateSettings != null)
@@ -889,7 +901,6 @@
         }
         return true;
     }
-
 
     private bool IsClientSystemTileDisabled()
     {
@@ -1086,7 +1097,8 @@
         {
             if (_deviceSettings == null)
             {
-                return null;
+                //Guid.Empty is returned for the custom templates.
+                return Guid.Empty;
             }
             return _deviceSettings.Id;
         }
@@ -1287,7 +1299,7 @@
                 settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC &&
                 settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighECDSA)
                 {
-                    if (string.IsNullOrEmpty(Password))
+                    if (action == CrudAction.Create && string.IsNullOrEmpty(Password))
                     {
                         sender.AddError(() => Password, "Invalid password.");
                     }

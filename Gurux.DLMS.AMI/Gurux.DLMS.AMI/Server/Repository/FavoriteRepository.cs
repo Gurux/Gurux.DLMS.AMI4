@@ -51,6 +51,7 @@ using Gurux.DLMS.AMI.Client.Pages.Module;
 using System.Configuration;
 using Gurux.DLMS.AMI.Client.Pages.Block;
 using Gurux.DLMS.AMI.Client.Pages.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -225,6 +226,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     break;
                                 case "manufacturergroup":
                                     args = GXSelectArgs.Select<GXManufacturerGroup>(s => s.Name, w => w.Id == Id);
+                                    break;
+                                case "keymanagement":
+                                    args = GXSelectArgs.Select<GXKeyManagement>(s => s.Name, w => w.Id == Id);
                                     break;
                             }
                         }

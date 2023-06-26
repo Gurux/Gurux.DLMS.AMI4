@@ -58,11 +58,7 @@ namespace Gurux.DLMS.AMI.Services
             }
         }
 
-        /// <summary>
-        /// Decrypt string.
-        /// </summary>
-        /// <param name="encrypted">Encrypted string.</param>
-        /// <returns></returns>
+        /// <inheritdoc/>
         public string Decrypt(string encrypted)
         {
             return Decrypt(encrypted, key);
@@ -128,6 +124,49 @@ namespace Gurux.DLMS.AMI.Services
                     cs.Write(data);
                 }
                 return Convert.ToBase64String(ms.ToArray());
+            }
+        }
+
+        /// <inheritdoc/>
+        public byte[] Decrypt(byte[] encrypted)
+        {
+            byte[] iv = new byte[16];
+            byte[] data = new byte[encrypted.Length - 16];
+            using (MemoryStream ms = new MemoryStream(encrypted))
+            {
+                ms.Read(iv, 0, 16);
+                Aes aes = Aes.Create();
+                using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(key, iv), CryptoStreamMode.Read))
+                {
+                    int total = 0;
+                    while (total < data.Length)
+                    {
+                        int amount = cs.Read(data, total, data.Length - total);
+                        if (amount == 0)
+                        {
+                            break;
+                        }
+                        total += amount;
+                    }
+                    byte[] tmp = new byte[total];
+                    Array.Copy(data, tmp, total);
+                    return tmp;
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public byte[] Encrypt(byte[] plainText)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                Aes aes = Aes.Create();
+                ms.Write(aes.IV, 0, 16);
+                using (CryptoStream cs = new CryptoStream(ms, aes.CreateEncryptor(key, aes.IV), CryptoStreamMode.Write))
+                {
+                    cs.Write(plainText);
+                }
+                return ms.ToArray();
             }
         }
     }

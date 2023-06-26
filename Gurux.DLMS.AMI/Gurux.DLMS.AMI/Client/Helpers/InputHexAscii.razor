@@ -9,7 +9,7 @@
         </Switch>
     </div>
     <InputText class="form-control"
-    @bind-Value="Value" disabled="@Disabled" />
+    @bind-Value="@HexValue" disabled="@Disabled" />
 </CascadingValue>
 @ChildContent
 @code
@@ -64,10 +64,45 @@
     [Parameter]
     public bool Disabled { get; set; }
 
-    private string? _value;
+    private byte[]? _value;
+
+    private string? HexValue
+    {
+        get
+        {
+            if (Value == null)
+            {
+                return null;
+            }
+            if (Hex)
+            {
+                return GXDLMSTranslator.ToHex(Value);
+            }
+            return ASCIIEncoding.ASCII.GetString(Value);
+        }
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _value = null;
+            }
+            else
+            {
+                if (Hex)
+                {
+                    _value = GXDLMSTranslator.HexToBytes(value);
+                }
+                else
+                {
+                    _value = ASCIIEncoding.ASCII.GetBytes(value);
+                }
+            }
+            ValueChanged.InvokeAsync(Value);
+        }
+    }
 
     [Parameter]
-    public string? Value
+    public byte[]? Value
     {
         get
         {
@@ -78,15 +113,17 @@
             if (_value != value)
             {
                 _value = value;
-                if (string.IsNullOrEmpty(_value))
+                if (_value == null || !_value.Any())
                 {
                     IsASCIIString = true;
+                    Hex = false;
                 }
                 else
                 {
-                    IsASCIIString = IsAsciiString(GXDLMSTranslator.HexToBytes(_value));
+                    IsASCIIString = IsAsciiString(_value);
+                    Hex = !IsASCIIString;
                 }
-                ValueChanged.InvokeAsync(Value);
+                HexDisabled = !IsASCIIString;
             }
         }
     }
@@ -96,7 +133,7 @@
     /// Notified when value is updated.
     /// </summary>
     [Parameter]
-    public EventCallback<string?> ValueChanged { get; set; }
+    public EventCallback<byte[]?> ValueChanged { get; set; }
 
     /// <summary>
     /// User changes string from ASCII to HEX or vice versa.
@@ -106,12 +143,9 @@
     {
         try
         {
-            if (Value != null)
-            {
-                Value = GetValue(Value, value);
-            }
             Hex = value;
-            ValueChanged.InvokeAsync(Value);
+            HexChanged.InvokeAsync(value);
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -125,34 +159,11 @@
     /// <returns></returns>
     public byte[] GetByteArray()
     {
-        return GetByteArray(Value, !Hex);
-    }
-
-    private byte[] GetByteArray(string? value, bool toHex)
-    {
-        if (string.IsNullOrEmpty(value))
+        if (Value == null)
         {
             return new byte[0];
         }
-        if (toHex)
-        {
-            //Convert ASCII to hex.
-            return ASCIIEncoding.ASCII.GetBytes(value);
-        }
-        //Convert hex to ASCII.
-        return GXDLMSTranslator.HexToBytes(value);
-    }
-
-    private string? GetValue(string? value, bool toHex)
-    {
-        byte[] bytes = GetByteArray(value, toHex);
-        if (toHex)
-        {
-            //Convert ASCII to hex.
-            return GXDLMSTranslator.ToHex(bytes);
-        }
-        //Convert hex to ASCII.
-        return ASCIIEncoding.ASCII.GetString(bytes);
+        return Value;
     }
 
     /// <summary>
@@ -161,7 +172,7 @@
     /// <param name="value"></param>
     /// <returns></returns>
     [System.Diagnostics.DebuggerStepThrough]
-    public static bool IsAsciiString(byte[] value)
+    public static bool IsAsciiString(byte[]? value)
     {
         if (value != null)
         {
@@ -176,44 +187,25 @@
         return true;
     }
 
-    protected override void OnInitialized()
+    public bool IsAsciiString()
     {
-        if (!Hex)
-        {
-            byte[] tmp = GXDLMSTranslator.HexToBytes(Value);
-            IsASCIIString = IsAsciiString(tmp);
-            Hex = !IsASCIIString;
-            if (IsASCIIString)
-            {
-                //Convert hex string to ASCII.
-                OnHexChanged(false);
-                StateHasChanged();
-            }
-        }
+        return IsAsciiString(Value);
     }
 
-    /// <summary>
-    /// Show value as ASCII.
-    /// </summary>
-    public void UpdateHexValue(string? value)
+    protected override void OnInitialized()
     {
-        if (string.IsNullOrEmpty(value))
+        if (!Hex && Value != null)
         {
-            Value = null;
-            Hex = false;
+            IsASCIIString = IsAsciiString();
+            Hex = !IsASCIIString;
+            if (!IsASCIIString)
+            {
+                HexDisabled = true;
+            }
         }
         else
         {
-            byte[] tmp = GXDLMSTranslator.HexToBytes(value);
-            Hex = true;
-            Value = value;
-            if (IsAsciiString(tmp))
-            {
-                //Convert hex string to ASCII.
-                Hex = false;
-                OnHexChanged(false);
-            }
-            StateHasChanged();
+            HexDisabled = !IsAsciiString();
         }
     }
 }

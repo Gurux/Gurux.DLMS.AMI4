@@ -41,8 +41,10 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
 using Gurux.DLMS.AMI.Shared;
+using System.Text.Json;
+using Gurux.DLMS.AMI.Module;
+using Org.BouncyCastle.Ocsp;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -54,6 +56,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IDeviceTemplateGroupRepository _deviceTemplateGroupRepository;
+        private readonly IGXCryproService _cryproService;
 
         /// <summary>
         /// Constructor.
@@ -63,13 +66,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IServiceProvider serviceProvider,
             IUserRepository userRepository,
             IDeviceTemplateGroupRepository deviceTemplateGroupRepository,
-            IGXEventsNotifier eventsNotifier)
+            IGXEventsNotifier eventsNotifier,
+             IGXCryproService cryproService)
         {
             _host = host;
             _serviceProvider = serviceProvider;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
             _deviceTemplateGroupRepository = deviceTemplateGroupRepository;
+            _cryproService = cryproService;
         }
 
         /// <inheritdoc />
@@ -349,7 +354,53 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXDeviceTemplateGroup, GXDeviceTemplateGroupDeviceTemplate>(o => o.Id, a => a.DeviceTemplateGroupId);
             arg.Where.And<GXDeviceTemplateGroupDeviceTemplate>(q => q.DeviceTemplateId == id && q.Removed == null);
             ret.DeviceTemplateGroups = _host.Connection.Select<GXDeviceTemplateGroup>(arg);
+            if (!string.IsNullOrEmpty(ret.Settings))
+            {
+                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(ret.Settings);
+                if (!string.IsNullOrEmpty(s.Password))
+                {
+                    try
+                    {
+                        s.Password = _cryproService.Decrypt(s.Password);
+                    }
+                    catch (Exception)
+                    {
+                        //Old data is not encrypted.
+                        //This can be removed later.
+                    }
+                }
+                if (s.HexPassword != null && s.HexPassword.Any())
+                {
+                    try
+                    {
+                        s.HexPassword = _cryproService.Decrypt(s.HexPassword);
+                    }
+                    catch (Exception)
+                    {
+                        //Old data is not encrypted.
+                        //This can be removed later.
+                    }
+                }
+                ret.Settings = JsonSerializer.Serialize(s);
+            }
             return ret;
+        }
+
+        private void EncryptPassword(GXDeviceTemplate it)
+        {
+            if (!string.IsNullOrEmpty(it.Settings))
+            {
+                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(it.Settings);
+                if (!string.IsNullOrEmpty(s.Password))
+                {
+                    s.Password = _cryproService.Encrypt(s.Password);
+                }
+                if (s.HexPassword != null && s.HexPassword.Any())
+                {
+                    s.HexPassword = _cryproService.Encrypt(s.HexPassword);
+                }
+                it.Settings = JsonSerializer.Serialize(s);
+            }
         }
 
         /// <inheritdoc />
@@ -389,9 +440,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
                     }
+                    EncryptPassword(it);
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
-                    args.Exclude<GXDeviceTemplate>(e => new { e.Updated, e.DeviceTemplateGroups });
+                    args.Exclude<GXDeviceTemplate>(e => new
+                    {
+                        e.Updated,
+                        e.Removed,
+                        e.DeviceTemplateGroups
+                    });
                     _host.Connection.Insert(args);
                     list.Add(it.Id);
                     AddDeviceToDeviceGroups(it.Id, it.DeviceTemplateGroups);
@@ -411,9 +468,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
+                    EncryptPassword(it);
                     args.Exclude<GXDeviceTemplate>(q => new { q.CreationTime, q.DeviceTemplateGroups });
                     _host.Connection.Update(args);
-
                     //Map device template to device template group.
                     List<GXDeviceTemplateGroup> deviceTemplateGroups;
                     using (IServiceScope scope = _serviceProvider.CreateScope())
