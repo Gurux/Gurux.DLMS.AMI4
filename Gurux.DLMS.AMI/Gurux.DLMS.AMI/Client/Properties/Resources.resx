@@ -1050,4 +1050,10 @@
   <data name="ScriptRebuildWarning" xml:space="preserve">
     <value>Scripts need rebuild before they can be used. This might take a long time.</value>
   </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Disconnect</value>
+  </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Reconnect</value>
+  </data>
 </root>

@@ -11,8 +11,8 @@
         <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
         <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
-        <AttributeTile Index="3" Name="Scaler" Text="@Scaler" Attributes="@Target.Attributes" Updated="@(e => Scaler = Convert.ToString(e))"></AttributeTile>
-        <AttributeTile Index="3" Name="Unit" Text="@Unit" Values="@Units" Attributes="@Target.Attributes" Updated="@(e => Unit = Convert.ToString(e))"></AttributeTile>
+        <AttributeTile Index="3" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
         @ChildContent
     </CascadingValue>
 }
@@ -21,29 +21,35 @@
     private GXDLMSRegister _register = new();
 
     [CascadingParameter]
-    private ObjectView Parent { get; set; }
+    private ObjectView? Parent { get; set; }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
-    string[] Units;
+    string[]? _states;
+    string[]? _modes;
 
     /// <summary>
     /// Target COSEM object.
     ///</summary>
     [Parameter]
-    public GXObject Target { get; set; }
+    public GXObject? Target { get; set; }
 
-    void Reset()
+    void Disconnect()
     {
-        Parent.OnAction(1, (sbyte)0);
+        Parent?.OnAction(1, (sbyte)0, true);
+    }
+
+    void Reconnect()
+    {
+        Parent?.OnAction(2, (sbyte)0, true);
     }
 
     /// <summary>
-    /// Register scaler.
+    /// Disconnect control State.
     /// </summary>
     [Parameter]
-    public string Scaler
+    public string State
     {
         get
         {
@@ -58,20 +64,20 @@
     }
 
     /// <summary>
-    /// Register unit.
+    /// Disconnect control mode.
     /// </summary>
     [Parameter]
-    public string Unit
+    public string Mode
     {
         get
         {
-            ObjectView.GetValue(Target, _register, 3);
+            ObjectView.GetValue(Target, _register, 4);
             return _register.Unit.ToString();
         }
         set
         {
             _register.Unit = Enum.Parse<Enums.Unit>(value);
-            ObjectView.SetValue(Target, _register, 3);
+            ObjectView.SetValue(Target, _register, 4);
         }
     }
 
@@ -84,11 +90,16 @@
             {
                 throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
             }
-            Units = Enum.GetNames(typeof(Gurux.DLMS.Enums.Unit));
-            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
-                "oi oi-flash",
-                Reset,
+            _states = Enum.GetNames(typeof(Gurux.DLMS.Objects.Enums.ControlState));
+            _modes = Enum.GetNames(typeof(Gurux.DLMS.Objects.Enums.ControlMode));
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Disconnect,
+                "oi fullscreen-enter",
+                Disconnect,
                 !Parent.CanInvokeAction(1)));
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reconnect,
+                "oi fullscreen-exit",
+                Reconnect,
+                !Parent.CanInvokeAction(2)));
         }
         catch (Exception ex)
         {

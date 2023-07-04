@@ -39,6 +39,9 @@
                     case ObjectType.ProfileGeneric:
                         <ProfileGenericView Target="Active"></ProfileGenericView>
                         break;
+                    case ObjectType.DisconnectControl:
+                        <DisconnectControlView Target="Active"></DisconnectControlView>
+                        break;
                     default:
                         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
                         @if (Active.Attributes != null)
@@ -158,7 +161,7 @@
             Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.ValueUpdate), (attributes) =>
            {
                //Update attribute value and last read time if it has been changed.
-               if (Active != null)
+               if (Active?.Attributes != null)
                {
                    foreach (var it in attributes)
                    {
@@ -346,8 +349,9 @@
         {
             if (Active.Template.ActionAccessLevels.StartsWith("0x"))
             {
-                ++index;
-                return Convert.ToUInt16(Active.Template.ActionAccessLevels.Substring(index, 2)) != 0;
+                string tmp = Active.Template.ActionAccessLevels.Substring(2);
+                --index;
+                return Convert.ToUInt16(tmp.Substring(index, 2)) != 0;
             }
             else
             {
@@ -361,16 +365,34 @@
     /// <summary>
     /// Invoke action.
     /// </summary>
-    public async void OnAction(int index, object data)
+    public async void OnAction(int index, object data, bool readAfterAction = false)
     {
         try
         {
+            List<GXTask> tasks = new List<GXTask>();
+            Guid? batch = null;
             GXTask task = new GXTask();
+            tasks.Add(task);
             task.Object = new() { Id = Active.Id };
             task.TaskType = TaskType.Action;
             task.Data = GXDLMSTranslator.ValueToXml(data);
             task.Index = index;
-            await GenerateTask(new GXTask[] { task });
+            if (readAfterAction && Active.Attributes != null)
+            {
+                task.Batch = batch = Guid.NewGuid();
+                foreach (var it in Active.Attributes)
+                {
+                    task = new GXTask()
+                        {
+                            TaskType = TaskType.Read,
+                            Batch = batch,
+                            Attribute = new GXAttribute() { Id = it.Id },
+                        };
+                    tasks.Add(task);
+                    task.Order = tasks.Count;
+                }
+            }
+            await GenerateTask(tasks.ToArray());
             Notifier.ShowInformation("Action tasks added.", true);
         }
         catch (Exception ex)
@@ -578,10 +600,15 @@
         }
     }
 
+    public async void OnRead()
+    {
+        await OnRead(true);
+    }
+
     /// <summary>
     /// Read object attributes.
     /// </summary>
-    public async void OnRead()
+    public async System.Threading.Tasks.Task OnRead(bool showInfo = true)
     {
         try
         {
@@ -637,7 +664,10 @@
                 }
             }
             await GenerateTask(tasks.ToArray());
-            Notifier.ShowInformation("Read tasks added.", true);
+            if (showInfo)
+            {
+                Notifier.ShowInformation("Read tasks added.", true);
+            }
         }
         catch (Exception ex)
         {

@@ -844,6 +844,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Disconnect.
+        /// </summary>
+        internal static string Disconnect {
+            get {
+                return ResourceManager.GetString("Disconnect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Download the agent.
         /// </summary>
         internal static string DownloadAgent {
@@ -1920,6 +1929,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Rebuild {
             get {
                 return ResourceManager.GetString("Rebuild", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reconnect.
+        /// </summary>
+        internal static string Reconnect {
+            get {
+                return ResourceManager.GetString("Reconnect", resourceCulture);
             }
         }
         

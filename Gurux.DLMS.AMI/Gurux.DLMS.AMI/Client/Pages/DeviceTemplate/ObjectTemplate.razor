@@ -31,12 +31,12 @@
                 <div class="form-group">
                     <label>@Properties.Resources.LogicalName</label>
                     <InputText id="name" disabled="disabled" class="form-control"
-                           @bind-Value="Active.LogicalName" />
+                    @bind-Value="Active.LogicalName" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Description</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="Active.Name" />
+                    @bind-Value="Active.Name" />
                 </div>
                 <table class="table table-striped" width="100%">
                     <thead>
@@ -60,7 +60,7 @@
                                     <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
                                     <td>
                                         <button type="button" class="btn btn-primary"
-                                    @onclick="() => UpdateInstance(it, true)">
+                                        @onclick="() => UpdateInstance(it, true)">
                                             @Properties.Resources.Update
                                         </button>
                                         <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
@@ -95,12 +95,33 @@
                         }
                     </tbody>
                 </table>
+
+                <table class="table table-striped" width="100%">
+                    <thead>
+                        <tr>
+                            <th>Index</th>
+                            <th>@Properties.Resources.Name</th>
+                            <th>Access rights</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var it in GetActions())
+                        {
+                            <tr>
+                                <td>@it.Index</td>
+                                <td>@it.Description</td>
+                                <td>@it.AccessLevel</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
                 @if (Active.Updated != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                        @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -108,7 +129,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Remove</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                           @bind-Value="Active.Removed" />
+                        @bind-Value="Active.Removed" />
                     </div>
                 }
             </div>
@@ -172,6 +193,62 @@
                 else
                 {
                     list.Add(it);
+                }
+            }
+        }
+        return list;
+    }
+
+    class GXAction
+    {
+        public int Index;
+        public string? Description;
+        public string? AccessLevel;
+    }
+
+    /// <summary>
+    /// Get action description and access rights.
+    /// </summary>
+    /// <returns>Attributes.</returns>
+    private IEnumerable<GXAction> GetActions()
+    {
+        var list = new List<GXAction>();
+        if (Active?.ObjectType != null && !string.IsNullOrEmpty(Active?.ActionAccessLevels))
+        {
+            var obj = Gurux.DLMS.GXDLMSClient.CreateObject((Enums.ObjectType)Active.ObjectType) as IGXDLMSBase;
+            var names = obj?.GetMethodNames();
+            int index = 0;
+            if (Active.ActionAccessLevels.StartsWith("0x"))
+            {
+                //Version 3.
+                for (var pos = 2; pos < Active.ActionAccessLevels.Length; pos += 2)
+                {
+                    var str = Active.ActionAccessLevels.Substring(pos, 2);
+                    var value = (Gurux.DLMS.Enums.MethodAccessMode3)Convert.ToInt32(str);
+                    GXAction item = new GXAction()
+                        {
+                            Index = 1 + index,
+                            Description = names != null ? names[index] : "",
+                            AccessLevel = value.ToString()
+                        };
+                    list.Add(item);
+                    ++index;
+                }
+            }
+            else
+            {
+                //Version 1.
+                foreach (var it in Active.ActionAccessLevels)
+                {
+                    var value = (Gurux.DLMS.Enums.MethodAccessMode)Convert.ToInt32(it);
+                    GXAction item = new GXAction()
+                        {
+                            Index = 1 + index,
+                            Description = names != null ? names[index] : "",
+                            AccessLevel = value.ToString()
+                        };
+                    list.Add(item);
+                    ++index;
                 }
             }
         }

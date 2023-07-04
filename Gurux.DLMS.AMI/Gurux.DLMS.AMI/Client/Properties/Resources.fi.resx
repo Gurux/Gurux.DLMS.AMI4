@@ -1044,4 +1044,16 @@
   <data name="Regenerate" xml:space="preserve">
     <value>Uudista</value>
   </data>
+  <data name="Rebuild" xml:space="preserve">
+    <value>Rakenna uudelleen</value>
+  </data>
+  <data name="ScriptRebuildWarning" xml:space="preserve">
+    <value>Komentosarjat on rakennettava uudelleen, ennen kuin niitä voidaan käyttää. Tämä voi kestää kauan.</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Katkaise yhteys</value>
+  </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Yhdistä uudelleen</value>
+  </data>
 </root>

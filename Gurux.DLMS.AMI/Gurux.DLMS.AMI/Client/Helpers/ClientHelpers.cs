@@ -537,7 +537,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                         sb = "0x";
                         for (int pos = 1; pos <= ((IGXDLMSBase)value).GetMethodCount(); ++pos)
                         {
-                            sb += ((int)value.GetMethodAccess3(pos)).ToString("X");
+                            sb += ((int)value.GetMethodAccess3(pos)).ToString("X2");
                         }
                     }
                     obj.ActionAccessLevels = sb;
@@ -609,8 +609,10 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             settings.Authentication = (byte)source.Authentication;
             settings.AuthenticationName = source.AuthenticationName;
             settings.Standard = (byte)source.Standard;
-            settings.Password = source.Password;
-            settings.HexPassword = source.HexPassword;
+            // Password is not saved as a default.
+            // User can change it if needed.
+            // settings.Password = source.Password;
+            // settings.HexPassword = source.HexPassword;
             settings.Security = (byte)source.Security;
             settings.ClientSystemTitle = source.SystemTitle;
             settings.DeviceSystemTitle = source.ServerSystemTitle;
