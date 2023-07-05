@@ -52,6 +52,11 @@ namespace Gurux.DLMS.AMI.Shared
         public bool Active { get; set; }
 
         /// <summary>
+        /// Amount of the listener threads.
+        /// </summary>
+        public int Threads { get; set; } = 100;
+
+        /// <summary>
         /// How long the identify message is waited from the meter.
         /// </summary>
         /// <remarks>

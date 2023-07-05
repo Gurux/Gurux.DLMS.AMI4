@@ -51,6 +51,11 @@ namespace Gurux.DLMS.AMI.Shared
         public bool Active { get; set; }
 
         /// <summary>
+        /// Amount of the notify threads.
+        /// </summary>
+        public int Threads { get; set; } = 100;
+
+        /// <summary>
         /// Media type.
         /// </summary>
         public string MediaType
@@ -76,7 +81,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Use logical name referencing.
         /// </summary>
-        public bool UseLogicalNameReferencing { get; set; } = true;      
+        public bool UseLogicalNameReferencing { get; set; } = true;
 
         /// <summary>
         /// Expiration time in seconds.
