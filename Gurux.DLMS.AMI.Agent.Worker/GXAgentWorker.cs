@@ -32,6 +32,7 @@
 
 using Gurux.Common;
 using Gurux.DLMS.AMI.Agent.Shared;
+using Gurux.DLMS.AMI.Agent.Worker.AutoConnect;
 using Gurux.DLMS.AMI.Agent.Worker.Notifier;
 using Gurux.DLMS.AMI.Agent.Worker.Repositories;
 using Gurux.DLMS.AMI.Shared;
@@ -96,10 +97,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <inheritdoc />
         public bool PollTasks { get; set; }
 
-        private class GXActionBlock
+        internal class GXActionBlock
         {
             public IEnumerable<GXTask> Tasks;
-            public AutoResetEvent NewTask;
+            public AutoResetEvent? NewTask;
+            public IGXMedia? Media;
         }
 
         /// <summary>
@@ -137,6 +139,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _closing.Reset();
             Options = options;
             services.AddSingleton<GXNotifyService>();
+            services.AddSingleton<GXAutoConnectService>();
             services.AddTransient<IDeviceErrorRepository, GXDeviceErrorRepository>();
             services.AddTransient<IAgentLogRepository, GXAgentLogRepository>();
             services.AddTransient<IAgentRepository, GXAgentRepository>();
@@ -572,10 +575,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
-        private static async System.Threading.Tasks.Task ReadMeter(GXActionBlock action)
+        internal static async System.Threading.Tasks.Task ReadMeter(GXActionBlock action)
         {
             GXDLMSSecureClient cl;
-            IGXMedia? media;
+            IGXMedia? media = action.Media;
             int pos;
             GXDLMSReader reader;
             IEnumerable<GXTask> tasks = action.Tasks;
@@ -604,62 +607,66 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 await ReportDone(tasks);
                 _logger?.LogError(ex.Message);
-                action.NewTask.Set();
+                action.NewTask?.Set();
                 return;
             }
             try
             {
                 try
                 {
-                    if (string.Compare(dev.MediaType, typeof(GXNet).FullName, true) == 0)
+                    if (media == null)
                     {
-                        media = new GXNet();
-                    }
-                    else if (string.Compare(dev.MediaType, typeof(GXSerial).FullName, true) == 0)
-                    {
-                        media = new GXSerial();
-                    }
-                    else if (string.Compare(dev.MediaType, typeof(GXTerminal).FullName, true) == 0)
-                    {
-                        media = new GXTerminal();
-                    }
-                    else
-                    {
-                        Type type = Type.GetType(dev.MediaType);
-                        if (type == null)
+                        if (string.Compare(dev.MediaType, typeof(GXNet).FullName, true) == 0)
                         {
-                            string ns = "";
-                            pos = dev.MediaType.LastIndexOf('.');
-                            if (pos != -1)
+                            media = new GXNet();
+                        }
+                        else if (string.Compare(dev.MediaType, typeof(GXSerial).FullName, true) == 0)
+                        {
+                            media = new GXSerial();
+                        }
+                        else if (string.Compare(dev.MediaType, typeof(GXTerminal).FullName, true) == 0)
+                        {
+                            media = new GXTerminal();
+                        }
+                        else
+                        {
+                            Type type = Type.GetType(dev.MediaType);
+                            if (type == null)
                             {
-                                ns = dev.MediaType.Substring(0, pos);
-                            }
-                            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-                            {
-                                if (assembly.GetName().Name == ns)
+                                string ns = "";
+                                pos = dev.MediaType.LastIndexOf('.');
+                                if (pos != -1)
                                 {
-                                    if (assembly.GetType(dev.MediaType, false, true) != null)
+                                    ns = dev.MediaType.Substring(0, pos);
+                                }
+                                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                                {
+                                    if (assembly.GetName().Name == ns)
                                     {
-                                        type = assembly.GetType(dev.MediaType);
+                                        if (assembly.GetType(dev.MediaType, false, true) != null)
+                                        {
+                                            type = assembly.GetType(dev.MediaType);
+                                        }
                                     }
                                 }
                             }
+                            if (type == null)
+                            {
+                                throw new Exception("Invalid media type: " + dev.MediaType);
+                            }
+                            media = (IGXMedia?)Activator.CreateInstance(type);
                         }
-                        if (type == null)
+                        if (media == null)
                         {
-                            throw new Exception("Invalid media type: " + dev.MediaType);
+                            throw new Exception("Unknown media type '" + dev.MediaType + "'.");
                         }
-                        media = (IGXMedia?)Activator.CreateInstance(type);
-                    }
-                    if (media == null)
-                    {
-                        throw new Exception("Unknown media type '" + dev.MediaType + "'.");
-                    }
-                    media.Settings = dev.MediaSettings;
-                    if (media is GXSerial serial)
-                    {
-                        //Update used serial port from the agent options.
-                        serial.PortName = Options.SerialPort;
+                        media.Settings = dev.MediaSettings;
+                        if (media is GXSerial serial)
+                        {
+                            //Update used serial port from the agent options.
+                            serial.PortName = Options.SerialPort;
+                        }
+                        media.Open();
                     }
                     var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
                     var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
@@ -720,7 +727,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     cl.Ciphering.Security = (Security)templateSettings.Security;
                     reader = new GXDLMSReader(cl, media, _logger,
                         consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
-                    media.Open();
                     await reader.InitializeConnection(settings.PreEstablished,
                         settings.FrameCounter);
                 }
@@ -782,7 +788,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             finally
             {
-                action.NewTask.Set();
+                action.NewTask?.Set();
             }
         }
 
@@ -928,9 +934,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             var ls = JsonSerializer.Deserialize<ListenerSettings>(agent.ListenerSettings);
                             if (ls != null)
                             {
-                                _logger?.LogInformation("Agent listener settings updated. " +
+                                _logger?.LogInformation("Agent auto connect settings updated. " +
                                     Environment.NewLine + ls.ToString());
                                 Options.ListenerSettings = ls;
+                                GXAutoConnectService? ns = _services?.GetRequiredService<GXAutoConnectService>();
+                                ns?.StopAsync(cancellationToken);
+                                ns?.StartAsync(cancellationToken);
                             }
                         }
                         //if the version is updated.
@@ -952,6 +961,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             await InstallNewVersion();
             GXNotifyService? ns = _services?.GetRequiredService<GXNotifyService>();
             ns?.StartAsync(cancellationToken).Wait();
+            GXAutoConnectService? ac = _services?.GetRequiredService<GXAutoConnectService>();
+            ac?.StartAsync(cancellationToken).Wait();
             await System.Threading.Tasks.Task.Factory.StartNew(TaskPoller);
             _logger?.LogInformation("Agent started");
         }
@@ -1002,6 +1013,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 _closing.Set();
                 GXNotifyService? ns = _services?.GetRequiredService<GXNotifyService>();
                 ns?.StopAsync(cancellationToken).Wait();
+                GXAutoConnectService? ac = _services?.GetRequiredService<GXAutoConnectService>();
+                ac?.StopAsync(cancellationToken).Wait();
                 if (_hubConnection != null)
                 {
                     await _hubConnection.DisposeAsync();

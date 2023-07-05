@@ -48,7 +48,7 @@ using Task = System.Threading.Tasks.Task;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
-    public class GXDLMSReader
+    internal class GXDLMSReader
     {
         /// <summary>
         /// Wait time.
@@ -63,7 +63,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         TraceLevel _deviceTrace;
         internal GXDLMSSecureClient Client;
         private readonly ILogger? _logger;
-        private GXDevice _device;
+        private GXDevice? _device;
 
         /// <summary>
         /// Constructor.
@@ -81,7 +81,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             TraceLevel deviceTrace,
             int wt,
             int retry,
-            GXDevice device)
+            GXDevice? device)
         {
             WaitTime = wt * 1000;
             RetryCount = retry;
@@ -800,21 +800,25 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <returns>Read value.</returns>
         public async Task<object> Read(GXDLMSObject it, int attributeIndex)
         {
-            GXDeviceAction a = new GXDeviceAction();
-            a.Device = new GXDevice()
+            GXDeviceAction? a = null;
+            if (_device != null)
             {
-                Id = _device.Id,
-                Name = _device.Name
-            };
-            a.Type = DeviceActionType.Read;
-            string[] names = ((IGXDLMSBase)it).GetNames();
-            if (attributeIndex < names.Length)
-            {
-                a.Data = it.LogicalName + ": " + names[attributeIndex - 1];
-            }
-            else
-            {
-                a.Data = it.LogicalName + ": " + attributeIndex;
+                a = new GXDeviceAction();
+                a.Device = new GXDevice()
+                {
+                    Id = _device.Id,
+                    Name = _device.Name
+                };
+                a.Type = DeviceActionType.Read;
+                string[] names = ((IGXDLMSBase)it).GetNames();
+                if (attributeIndex < names.Length)
+                {
+                    a.Data = it.LogicalName + ": " + names[attributeIndex - 1];
+                }
+                else
+                {
+                    a.Data = it.LogicalName + ": " + attributeIndex;
+                }
             }
             try
             {
@@ -853,25 +857,31 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     return a.Reply;
                 }
                 object value = Client.UpdateValue(it, attributeIndex, reply.Value);
-                if (value is byte[] b)
+                if (a != null)
                 {
-                    a.Reply = GXCommon.ToHex(b);
-                }
-                else
-                {
-                    a.Reply = Convert.ToString(value);
+                    if (value is byte[] b)
+                    {
+                        a.Reply = GXCommon.ToHex(b);
+                    }
+                    else
+                    {
+                        a.Reply = Convert.ToString(value);
+                    }
                 }
                 return value;
             }
             catch (Exception ex)
             {
-                a.Type = a.Type | DeviceActionType.Error;
-                a.Reply = ex.Message;
+                if (a != null)
+                {
+                    a.Type = a.Type | DeviceActionType.Error;
+                    a.Reply = ex.Message;
+                }
                 throw;
             }
             finally
             {
-                if (_device.TraceLevel > TraceLevel.Warning)
+                if (_device != null && _device.TraceLevel > TraceLevel.Warning)
                 {
                     //Send device action information if trace level is Info or Verbose.
                     AddDeviceAction log = new AddDeviceAction();
@@ -1067,7 +1077,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
             _logger?.LogInformation(frame);
-            if (_deviceTrace > TraceLevel.Info)
+            if (_device != null && _deviceTrace > TraceLevel.Info)
             {
                 try
                 {

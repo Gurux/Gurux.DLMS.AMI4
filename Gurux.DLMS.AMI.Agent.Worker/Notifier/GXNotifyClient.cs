@@ -36,7 +36,7 @@ using Gurux.DLMS.Secure;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
-    public class GXNotifyClient
+    internal class GXNotifyClient
     {
         public GXNotifyClient(bool useLogicalNameReferencing, 
             int interfaceType, 

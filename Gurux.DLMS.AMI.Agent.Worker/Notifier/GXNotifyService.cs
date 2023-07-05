@@ -34,7 +34,6 @@ using Gurux.Net;
 using Gurux.Common;
 using Microsoft.Extensions.Hosting;
 using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Script;
@@ -43,7 +42,6 @@ using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
-using Gurux.DLMS.AMI.Shared.DIs;
 using System.Runtime.Caching;
 using Gurux.DLMS.AMI.Shared.Enums;
 
@@ -54,12 +52,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<GXNotifyService> _logger;
-        private readonly IDeviceRepository _deviceRepository;
         NotifySettings? settings;
         //Notify wait push, events or notifies from the meters.
         GXNet? notify;
 
-        static public int ExpirationTime = 0;
         /// <summary>
         /// Each client has own message queue.
         /// </summary>
@@ -72,12 +68,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         /// Constructor.
         /// </summary>
         public GXNotifyService(ILogger<GXNotifyService> logger,
-            IServiceProvider serviceProvider,
-            IDeviceRepository deviceRepository)
+            IServiceProvider serviceProvider)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
-            _deviceRepository = deviceRepository;
         }
 
         /// <inheritdoc/>
@@ -112,7 +106,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         scriptMethod = null;
                     }
                     notify = new GXNet((NetworkType)net.Protocol, net.Port);
-                    ExpirationTime = settings.ExpirationTime;
                     notify.OnReceived += OnNotifyReceived;
                     _logger.LogInformation("Listening notifications in port: " + notify.Port);
                     notify.Open();
@@ -275,7 +268,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                 }
                 DateTime now = DateTime.Now;
                 //If received data is expired.
-                if (ExpirationTime != 0 && (now - reply.DataReceived).TotalSeconds > ExpirationTime)
+                if (settings.ExpirationTime != 0 && (now - reply.DataReceived).TotalSeconds > settings.ExpirationTime)
                 {
                     reply.Reply.Clear();
                 }
