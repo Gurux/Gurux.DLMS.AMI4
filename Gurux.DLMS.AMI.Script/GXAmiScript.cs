@@ -721,7 +721,15 @@ namespace Gurux.DLMS.AMI.Script
                 else if (value is GXDevice d)
                 {
                     IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                    ret = await repository.ReadAsync(Claims, d.Id);
+                    ListDevices request = new ListDevices()
+                    {
+                        Filter = d
+                    };
+                    var devices = await repository.ListAsync(Claims, request, null, CancellationToken.None);
+                    if (devices != null && devices.Length == 1)
+                    {
+                        ret = devices[0];
+                    }
                 }
                 else if (value is GXObject o)
                 {
