@@ -49,7 +49,20 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Is listener active.
         /// </summary>
-        public bool Active { get; set; } = true;
+        public bool Active { get; set; }
+
+        /// <summary>
+        /// How long the identify message is waited from the meter.
+        /// </summary>
+        /// <remarks>
+        /// If value is zero, the meter doesn't send the identify message.
+        /// </remarks>
+        public int IdentifyWaitTime { get; set; }
+
+        /// <summary>
+        /// Is connection pre-established.
+        /// </summary>
+        public bool PreEstablished { get; set; }
 
         /// <summary>
         /// Media type.
