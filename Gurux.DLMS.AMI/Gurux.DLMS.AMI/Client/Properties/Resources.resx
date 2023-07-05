@@ -1056,4 +1056,10 @@
   <data name="Reconnect" xml:space="preserve">
     <value>Reconnect</value>
   </data>
+  <data name="Dynamic" xml:space="preserve">
+    <value>Meter establishes the connection</value>
+  </data>
+  <data name="IdentifyWaitTime" xml:space="preserve">
+    <value>Identify wait time</value>
+  </data>
 </root>

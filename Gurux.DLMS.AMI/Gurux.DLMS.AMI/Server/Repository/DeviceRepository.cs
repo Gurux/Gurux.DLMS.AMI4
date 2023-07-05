@@ -45,6 +45,8 @@ using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Client.Pages.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -184,7 +186,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 request.Filter.DeviceGroups = null;
             }
-
+            else if ((request?.Filter?.Objects?.SingleOrDefault()?.Template?.LogicalName is string ldn) &&
+                (request?.Filter?.Objects?.SingleOrDefault()?.Attributes?.SingleOrDefault()?.Value is string att))
+            {
+                //If devices are filtered by attribute. E.g. logical device name.
+                request.Filter.Objects = null;
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                arg.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
+                arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+                arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+                arg.Where.And<GXObjectTemplate>(w => w.LogicalName == ldn);
+                arg.Where.And<GXAttribute>(w => w.Value == att);
+            }
             if (request != null && (request.Select & TargetType.DeviceTemplate) != 0)
             {
                 arg.Columns.Add<GXDeviceTemplate>();

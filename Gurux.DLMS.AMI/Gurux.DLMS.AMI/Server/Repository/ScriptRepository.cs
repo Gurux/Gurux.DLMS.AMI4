@@ -51,6 +51,7 @@ using System.Linq.Expressions;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared;
 using System.Reflection;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -557,6 +558,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 "System.Linq",
                 "System.Linq.Expressions",
                 "System.Collections.Generic",
+                "Gurux.Common",
                 "Gurux.DLMS.AMI.Script",
                 "Gurux.DLMS.AMI.Shared.DIs",
                 "Gurux.DLMS.AMI.Shared.DTOs",
@@ -693,9 +695,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     settings = new ScriptSettings();
                 }
-                Assembly asm = typeof(GXAmiException).Assembly;
-                FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
-                settings.SharedVersion = info.FileVersion;
+                settings.CurrentVersions = settings.Versions;
                 conf.Settings = JsonSerializer.Serialize(settings);
                 var u = GXUpdateArgs.Update(conf, c => new { c.Updated, c.Settings });
                 _host.Connection.Update(u);

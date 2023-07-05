@@ -862,6 +862,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Meter establishes the connection.
+        /// </summary>
+        internal static string Dynamic {
+            get {
+                return ResourceManager.GetString("Dynamic", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Edit.
         /// </summary>
         internal static string Edit {
@@ -1101,6 +1110,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Hours {
             get {
                 return ResourceManager.GetString("Hours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Identify wait time.
+        /// </summary>
+        internal static string IdentifyWaitTime {
+            get {
+                return ResourceManager.GetString("IdentifyWaitTime", resourceCulture);
             }
         }
         

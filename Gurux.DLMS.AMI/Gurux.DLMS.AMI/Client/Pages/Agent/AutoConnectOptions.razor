@@ -1,7 +1,12 @@
-﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Client.Pages.Admin
+@using Gurux.DLMS.AMI.Client.Pages.Media;
 @using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Components.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.Enums
+@using Gurux.Net;
+@using Gurux.Serial;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -16,26 +21,24 @@
 @if (Settings != null)
 {
     <EditForm Model="@Settings">
+        <DataAnnotationsValidator />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
                     <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
                     <br />
                 </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Port</label>
-                    <InputNumber id="threads" class="form-control"
-                             @bind-Value="Port" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Protocol</label>
-                    <select class="form-select" @bind="NetworkType">
-                        @foreach (var it in NetworkTypeList)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
+                @if (!IsSerialPort())
+                {
+                    <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
+                    @ref=networkSettings></NetworkSettings>
+                }
+                else
+                {
+                    <SerialSettings @bind-Settings="@Settings.MediaSettings"
+                    @ref=serialSettings></SerialSettings>
+                }
                 <div class="form-group">
                     <label style="margin:auto">Interface</label>
                     <select class="form-select" @bind="@Settings.Interface">
@@ -46,19 +49,19 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
-                    <label>@Properties.Resources.UseLogicalNameReferencing</label>
+                    <InputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
+                    @bind-Value="Settings.UseLogicalNameReferencing" />
                     <br />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ClientAddress</label>
                     <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.ClientAddress" />
+                    @bind-Value="Settings.ClientAddress" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ServerAddress</label>
                     <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.ServerAddress" />
+                    @bind-Value="Settings.ServerAddress" />
                 </div>
                 <div class="form-group">
                     <label style="margin:auto">Authentication</label>
@@ -72,7 +75,7 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Password</label>
                     <InputText id="name" class="form-control"
-                           @bind-Value="Settings.Password" />
+                    @bind-Value="Settings.Password" />
                 </div>
                 <div class="form-group">
                     <label style="margin:auto">@Properties.Resources.Security</label>
@@ -86,7 +89,7 @@
                 <div class="form-group">
                     <label>@Properties.Resources.InvocationCounter</label>
                     <InputText id="name" class="form-control"
-                           @bind-Value="Settings.InvocationCounter" />
+                    @bind-Value="Settings.InvocationCounter" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.TraceLevels</label>
@@ -98,10 +101,21 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label>@Properties.Resources.IdentifyWaitTime</label>
+                    <InputIntegerTimeSpan id="aliveTime" class="form-control"
+                    @bind-Value="Settings.IdentifyWaitTime" />
+                    <ValidationMessage For="@(() => Settings.IdentifyWaitTime)" />
+                </div>
+                <div class="form-group">
+                    <InputSwitch Text="@Properties.Resources.PreEstablishedConnection"
+                    @bind-Value="Settings.PreEstablished" />
+                    <br />
+                </div>
+                <div class="form-group">
                     <label>@Properties.Resources.Script</label>
                     <ScriptMethodSelector Scripts="@Scripts"
-                                      SelectionChanged="@SelectionChanged"
-                                      ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                                          SelectionChanged="@SelectionChanged"
+                                          ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
                 </div>
             </div>
         </div>
@@ -115,6 +129,8 @@
 
     [Parameter]
     public ListenerSettings? Settings { get; set; }
+
+    private GXValidator? _validator;
 
     InterfaceType[] InterfaceList = new InterfaceType[]
     {
@@ -138,12 +154,6 @@
         Enums.Security.AuthenticationEncryption
     };
 
-    Gurux.Net.NetworkType[] NetworkTypeList = new Gurux.Net.NetworkType[]
-    {
-        Gurux.Net.NetworkType.Tcp,
-        Gurux.Net.NetworkType.Udp
-    };
-
     TraceLevel[] TraceLevels = new TraceLevel[]
     {
         TraceLevel.Off,
@@ -153,15 +163,42 @@
         TraceLevel.Verbose
     };
 
-    /// <summary>
-    /// Network type
-    /// </summary>
-    int NetworkType { get; set; }
+    private string? _serialPort;
 
     /// <summary>
-    /// Network type
+    /// The serial port of the auto connect.
     /// </summary>
-    int Port { get; set; }
+    [Parameter]
+    public string? SerialPort
+    {
+        get => _serialPort;
+        set
+        {
+            if (_serialPort != value)
+            {
+                _serialPort = value;
+                SerialPortChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Is serial port used.
+    /// </summary>
+    /// <returns></returns>
+    private bool IsSerialPort()
+    {
+        return !string.IsNullOrEmpty(_serialPort);
+    }
+
+    /// <summary>
+    /// Notified when settings are updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> SerialPortChanged { get; set; }
+
+    NetworkSettings? networkSettings { get; set; }
+    SerialSettings? serialSettings { get; set; }
 
     ///<summary>
     ///Script method has been changed.
@@ -171,6 +208,31 @@
         if (Settings != null)
         {
             Settings.ScriptMethod = guid;
+        }
+    }
+
+    public void Validate(GXValidator sender)
+    {
+        OnValidate(sender);
+        _validator?.Validate();
+    }
+
+    public void OnValidate(GXValidator sender)
+    {
+        @if (Settings != null && Settings.Active)
+        {
+            if (Settings.ExpirationTime < 0)
+            {
+                sender.AddError(() => Settings.ExpirationTime, "Invalid expiration time.");
+            }
+            if (Settings?.MediaType == typeof(GXNet).FullName)
+            {
+                networkSettings?.Validate(sender);
+            }
+            else if (Settings?.MediaType == typeof(GXSerial).FullName)
+            {
+                serialSettings?.Validate(sender);
+            }
         }
     }
 }

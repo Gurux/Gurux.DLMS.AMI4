@@ -59,6 +59,7 @@ using Gurux.DLMS.AMI.Shared;
 using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -502,10 +503,28 @@ namespace Gurux.DLMS.AMI.Server
                 Order = 7,
                 Settings = JsonSerializer.Serialize(new ScriptSettings()
                 {
-                    SharedVersion = info.FileVersion
+                    Versions = info.FileVersion
                 })
             };
             configurations.Add(conf);
+        }
+
+        private static void UpdateScriptVersions(GXDbConnection connection,
+            GXConfiguration conf, ScriptSettings settings, Type[] references)
+        {
+            StringBuilder sb = new StringBuilder();
+            foreach (var item in references)
+            {
+                Assembly asm = typeof(GXAmiException).Assembly;
+                sb.Append(item.Name);
+                sb.Append(':');
+                sb.Append(FileVersionInfo.GetVersionInfo(asm.Location).FileVersion);
+                sb.Append(';');
+            }
+            settings.Versions = sb.ToString();
+            conf.Settings = JsonSerializer.Serialize(settings);
+            var u = GXUpdateArgs.Update(conf, c => new { c.Updated, c.Settings });
+            connection.Update(u);
         }
 
         /// <summary>
@@ -515,7 +534,7 @@ namespace Gurux.DLMS.AMI.Server
         private static void UpdateScriptCommonSharedVersion(GXDbConnection connection)
         {
             var args = GXSelectArgs.Select<GXConfiguration>(
-                s => new { s.Id, s.Settings }, 
+                s => new { s.Id, s.Settings },
                 w => w.Name == GXConfigurations.Scripts);
             try
             {
@@ -529,14 +548,27 @@ namespace Gurux.DLMS.AMI.Server
                 {
                     settings = new ScriptSettings();
                 }
-                Assembly asm = typeof(GXAmiException).Assembly;
-                FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
-                if (settings.CurrentSharedVersion != info.FileVersion)
+                Type[] references = new Type[] {
+                    typeof(GXAmiException),
+                    typeof(GXDateTime)
+                };
+                string[]? list = settings.CurrentVersions?.Split(';');
+                bool change = list == null;
+                if (list != null)
                 {
-                    settings.CurrentSharedVersion = info.FileVersion;
-                    conf.Settings = JsonSerializer.Serialize(settings);
-                    var u = GXUpdateArgs.Update(conf, c => new { c.Updated, c.Settings });
-                    connection.Update(u);
+                    foreach (var item in references)
+                    {
+                        Assembly asm = typeof(GXAmiException).Assembly;
+                        if (!list.Contains(item.Name + ":" + FileVersionInfo.GetVersionInfo(asm.Location)))
+                        {
+                            change = true;
+                            break;
+                        }
+                    }
+                }
+                if (change)
+                {
+                    UpdateScriptVersions(connection, conf, settings, references);
                 }
             }
             catch (Exception)

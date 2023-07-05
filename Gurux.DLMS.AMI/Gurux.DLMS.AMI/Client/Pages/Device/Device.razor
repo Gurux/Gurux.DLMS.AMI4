@@ -250,21 +250,29 @@
                             <ValidationMessage For="@(() => Active.ResendCount)" />
                         </div>
                         <div class="form-group row">
-                            <label style="margin:auto">@Properties.Resources.Media</label>
-                            <select class="form-select" @bind="@Active.MediaType">
-                                @foreach (var it in MediaList)
-                                {
-                                    <option value="@it.Key">@it.Value</option>
-                                }
-                            </select>
+                            <InputNullableSwitch Text="@Properties.Resources.Dynamic"
+                            @bind-Value="Active.Dynamic" />
+                            <br />
                         </div>
-                        @if (Active.MediaType == typeof(GXNet).FullName)
+                        @if (!Active.Dynamic.GetValueOrDefault(false))
                         {
-                            <NetworkSettings @bind-Settings="@Active.MediaSettings" @ref=networkSettings></NetworkSettings>
-                        }
-                        @if (Active.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(Active.MediaType))
-                        {
-                            <SerialSettings @bind-Settings="@Active.MediaSettings" @ref=serialSettings></SerialSettings>
+                            <div class="form-group row">
+                                <label style="margin:auto">@Properties.Resources.Media</label>
+                                <select class="form-select" @bind="@Active.MediaType">
+                                    @foreach (var it in MediaList)
+                                    {
+                                        <option value="@it.Key">@it.Value</option>
+                                    }
+                                </select>
+                            </div>
+                            @if (Active.MediaType == typeof(GXNet).FullName)
+                            {
+                                <NetworkSettings @bind-Settings="@Active.MediaSettings" @ref=networkSettings></NetworkSettings>
+                            }
+                            @if (Active.MediaType == typeof(GXSerial).FullName || string.IsNullOrEmpty(Active.MediaType))
+                            {
+                                <SerialSettings @bind-Settings="@Active.MediaSettings" @ref=serialSettings></SerialSettings>
+                            }
                         }
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                         <div class="form-group row">

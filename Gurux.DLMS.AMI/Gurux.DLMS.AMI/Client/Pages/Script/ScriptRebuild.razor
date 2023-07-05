@@ -17,7 +17,7 @@
             @Properties.Resources.ScriptRebuildWarning
         </p>
         <button type="button" class="btn btn-danger"
-            @onclick="() => OnRebuild()">
+        @onclick="() => OnRebuild()">
             @Properties.Resources.Rebuild
         </button>
     </div>
@@ -45,7 +45,8 @@
             if (ret.Configurations != null && ret.Configurations.Length == 1 && !string.IsNullOrEmpty(ret.Configurations[0].Settings))
             {
                 ScriptSettings? settings = JsonSerializer.Deserialize<ScriptSettings>(ret.Configurations[0].Settings);
-                if (settings != null && settings.SharedVersion == settings.CurrentSharedVersion)
+                if (settings != null &&
+                    settings.Versions == settings.CurrentVersions)
                 {
                     Rebuild = false;
                 }

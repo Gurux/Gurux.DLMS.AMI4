@@ -86,7 +86,6 @@
     [Parameter]
     public NotifySettings? Settings { get; set; }
 
-    Dictionary<string, string> MediaList = new Dictionary<string, string>();
     private GXValidator? _validator;
 
     InterfaceType[] InterfaceList = new InterfaceType[] {
@@ -140,7 +139,7 @@
     }
 
     /// <summary>
-    /// Is serail port used.
+    /// Is serial port used.
     /// </summary>
     /// <returns></returns>
     private bool IsSerialPort()
@@ -196,8 +195,6 @@
 
     protected override void OnInitialized()
     {
-        MediaList.Add(typeof(GXNet).FullName, Properties.Resources.Network);
-        MediaList.Add(typeof(GXSerial).FullName, Properties.Resources.SerialPort);
         if (string.IsNullOrEmpty(Settings.MediaType))
         {
             Settings.MediaType = typeof(GXNet).FullName;

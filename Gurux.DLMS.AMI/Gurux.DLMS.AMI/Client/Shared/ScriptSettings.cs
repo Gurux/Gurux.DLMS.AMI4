@@ -38,12 +38,12 @@ namespace Gurux.DLMS.AMI.Client.Shared
     public class ScriptSettings
     {
         /// <summary>
-        /// Scripts' shared version.
+        /// Scripts' versions.
         /// </summary>
         /// <remarks>
-        /// All scripts must be rebuild if the Gurux.DLMS.AMI.Shared changes.
+        /// All scripts must be rebuild if the references like Gurux.DLMS.AMI.Shared changes.
         /// </remarks>
-        public string? SharedVersion
+        public string? Versions
         {
             get;
             set;
@@ -55,11 +55,10 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <remarks>
         /// All scripts must be rebuild if the Gurux.DLMS.AMI.Shared changes.
         /// </remarks>
-        public string? CurrentSharedVersion
+        public string? CurrentVersions
         {
             get;
             set;
         }
-
     }
 }
