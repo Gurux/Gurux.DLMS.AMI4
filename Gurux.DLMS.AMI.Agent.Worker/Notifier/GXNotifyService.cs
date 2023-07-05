@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Runtime.Caching;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.Runtime;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
@@ -93,13 +94,23 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                         {
                         new GXScriptMethod() { Id = settings.ScriptMethod.Value } });
                         ListScriptsResponse? ret = GXAgentWorker.client.PostAsJson<ListScriptsResponse>("/api/Script/List", req).Result;
-                        if (ret?.Scripts == null || ret.Scripts.Length != 1)
+                        if (ret?.Scripts?.FirstOrDefault()?.Methods != null)
+                        {
+                            foreach (var sm in ret.Scripts.FirstOrDefault().Methods)
+                            {
+                                if (sm.Id == settings.ScriptMethod.Value)
+                                {
+                                    scriptMethod = sm;
+                                    //Update parent script.
+                                    sm.Script = ret.Scripts[0];
+                                    break;
+                                }
+                            }
+                        }
+                        if (scriptMethod == null)
                         {
                             throw new Exception("Unknown script to execute.");
                         }
-                        scriptMethod = ret.Scripts[0].Methods.FirstOrDefault();
-                        //Update parent script.
-                        scriptMethod.Script = ret.Scripts[0];
                     }
                     else
                     {

@@ -82,13 +82,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         new GXScriptMethod() { Id = _settings.ScriptMethod.Value }
                     });
                     ListScriptsResponse? ret = GXAgentWorker.client.PostAsJson<ListScriptsResponse>("/api/Script/List", req).Result;
-                    if (ret?.Scripts?.FirstOrDefault()?.Methods?.FirstOrDefault() is GXScriptMethod sm)
+                    if (ret?.Scripts?.FirstOrDefault()?.Methods != null)
                     {
-                        _scriptMethod = sm;
-                        //Update parent script.
-                        sm.Script = ret.Scripts[0];
+                        foreach (var sm in ret.Scripts.FirstOrDefault().Methods)
+                        {
+                            if (sm.Id == _settings.ScriptMethod.Value)
+                            {
+                                _scriptMethod = sm;
+                                //Update parent script.
+                                sm.Script = ret.Scripts[0];
+                                break;
+                            }
+                        }
                     }
-                    else
+                    if (_scriptMethod == null)
                     {
                         throw new Exception("Unknown script to execute.");
                     }

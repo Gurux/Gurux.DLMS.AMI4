@@ -87,10 +87,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         /// <inheritdoc/>
         public async Task<GXDevice> ReadAsync(ClaimsPrincipal? User, Guid id)
         {
-            //An exception is thrown if device is unknown.
-#pragma warning disable CS8603 // Possible null reference return.
-            return await Helpers.GetAsync<GXDevice>(string.Format("/api/Device/?Id={0}", id));
-#pragma warning restore CS8603 // Possible null reference return.
+            return await GXAgentWorker.client.GetAsJsonAsync<GXDevice>(string.Format("/api/Device/?Id={0}", id));
         }
 
         /// <inheritdoc/>
