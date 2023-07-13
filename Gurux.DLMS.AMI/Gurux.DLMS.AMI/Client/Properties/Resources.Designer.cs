@@ -1528,6 +1528,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Logical device name.
+        /// </summary>
+        internal static string LogicalDeviceName {
+            get {
+                return ResourceManager.GetString("LogicalDeviceName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Logical name.
         /// </summary>
         internal static string LogicalName {

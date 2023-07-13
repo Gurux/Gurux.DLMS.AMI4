@@ -101,7 +101,15 @@
                                         @bind-Value="Active.Name" />
                                         <ValidationMessage For="@(() => Active.Name)" />
                                     </div>
-
+                                    @if (ShowLogicalDeviceName)
+                                    {
+                                        <div class="form-group row">
+                                            <label>@Properties.Resources.LogicalDeviceName</label>
+                                            <InputText id="sn" class="form-control"
+                                            @bind-Value="LogicalDeviceNameeName" />
+                                            <ValidationMessage For="@(() => LogicalDeviceNameeName)" />
+                                        </div>
+                                    }
                                     @if (_version?.Settings != null)
                                     {
                                         <div class="form-group row">
@@ -144,6 +152,15 @@
                                 @bind-Value="Active.Name" />
                                 <ValidationMessage For="@(() => Active.Name)" />
                             </div>
+                            @if (ShowLogicalDeviceName)
+                            {
+                                <div class="form-group row">
+                                    <label>@Properties.Resources.LogicalDeviceName</label>
+                                    <InputText id="sn" class="form-control"
+                                    @bind-Value="LogicalDeviceNameeName" />
+                                    <ValidationMessage For="@(() => LogicalDeviceNameeName)" />
+                                </div>
+                            }
                             @if (_settings != null)
                             {
                                 <div class="form-group row">
@@ -353,6 +370,36 @@
                 return _active;
             }
             return Parent?.Active;
+        }
+    }
+
+    private bool ShowLogicalDeviceName
+    {
+        get
+        {
+            GXObject? ldn = Active?.Objects?.Where(w => w.Template.LogicalName == "0.0.42.0.0.255").SingleOrDefault() as GXObject;
+            return ldn?.Attributes?.FirstOrDefault() is GXAttribute;
+        }
+    }
+
+    private string? LogicalDeviceNameeName
+    {
+        get
+        {
+            GXObject? ldn = Active?.Objects?.Where(w => w.Template.LogicalName == "0.0.42.0.0.255").SingleOrDefault() as GXObject;
+            if (ldn?.Attributes?.FirstOrDefault() is GXAttribute att)
+            {
+                return att.Value;
+            }
+            return null;
+        }
+        set
+        {
+            GXObject? ldn = Active?.Objects?.Where(w => w.Template.LogicalName == "0.0.42.0.0.255").SingleOrDefault() as GXObject;
+            if (ldn?.Attributes?.FirstOrDefault() is GXAttribute att)
+            {
+                att.Value = value;
+            }
         }
     }
 
@@ -1249,6 +1296,31 @@
                                 Active.Id = Guid.Empty;
                                 Active.Name = null;
                             }
+                        }
+
+                        GXObject? ldn = Active?.Objects?.Where(w => w.Template.LogicalName == "0.0.42.0.0.255").SingleOrDefault() as GXObject;
+                        if (ldn == null)
+                        {
+                            if (Active.Objects == null)
+                            {
+                                Active.Objects = new List<GXObject>();
+                            }
+                            GXAttribute att = new()
+                                {
+                                    Template = new GXAttributeTemplate()
+                                    {
+                                        Index = 2
+                                    }
+                                };
+                            Active.Objects.Add(new GXObject()
+                                {
+                                    Template = new GXObjectTemplate()
+                                    {
+                                        LogicalName = "0.0.42.0.0.255"
+                                    },
+                                    Attributes = new List<GXAttribute>(new GXAttribute[] { att })
+                                }
+                            );
                         }
                     }
                     catch (Exception)

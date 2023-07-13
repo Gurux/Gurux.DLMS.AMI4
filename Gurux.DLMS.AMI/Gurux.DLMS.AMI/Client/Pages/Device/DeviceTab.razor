@@ -192,6 +192,29 @@
             {
                 //Get device data.
                 var tmp = (await Http.GetAsJsonAsync<GetDeviceResponse>(string.Format("api/Device?id={0}", Id)));
+                //Get serial number if it's used.
+                if (tmp?.Item != null && tmp.Item.Objects == null)
+                {
+                    //Get serial number object.
+                    ListObjects req2 = new ListObjects()
+                        {
+                            Select = TargetType.Attribute,
+                            Filter = new GXObject()
+                            {
+                                Device = new GXDevice() { Id = tmp.Item.Id },
+                                Template = new GXObjectTemplate()
+                                {
+                                    LogicalName = "0.0.42.0.0.255"
+                                },
+                            }
+                        };
+                    var tmp3 = (await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req2));
+                    if (tmp3.Objects != null && tmp3.Objects.Length == 1)
+                    {
+                        tmp.Item.Objects = new List<GXObject>(tmp3.Objects);
+                    }
+                }
+
                 if (tmp?.Item != null)
                 {
                     Active = tmp.Item;

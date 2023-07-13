@@ -45,8 +45,6 @@ using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
-using Gurux.DLMS.AMI.Client.Pages.User;
-using Gurux.DLMS.AMI.Client.Pages.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -59,7 +57,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IDeviceGroupRepository _deviceGroupRepository;
         private readonly IUserRepository _userRepository;
         private readonly IKeyManagementRepository _keyManagementRepository;
-
+        private readonly IAttributeRepository _attributeRepository;
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -69,7 +67,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IDeviceGroupRepository deviceGroupRepository,
             IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository,
-            IKeyManagementRepository keyManagementRepository)
+            IKeyManagementRepository keyManagementRepository,
+            IAttributeRepository attributeRepository)
         {
             _host = host;
             _serviceProvider = serviceProvider;
@@ -77,6 +76,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _deviceGroupRepository = deviceGroupRepository;
             _userRepository = userRepository;
             _keyManagementRepository = keyManagementRepository;
+            _attributeRepository = attributeRepository;
         }
 
         /// <inheritdoc />
@@ -609,7 +609,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         //Add new device.
                         device.Type = device.Template.Type;
                         GXInsertArgs args = GXInsertArgs.Insert(device);
-                        args.Exclude<GXDevice>(q => new { q.Objects, q.DeviceGroups, q.Updated, q.Parameters });
+                        args.Exclude<GXDevice>(q => new
+                        {
+                            q.Objects,
+                            q.DeviceGroups,
+                            q.Updated,
+                            q.Parameters
+                        });
                         device.Creator = creator;
                         device.CreationTime = now;
                         await _host.Connection.InsertAsync(transaction, args, cancellationToken);
@@ -639,9 +645,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 a.ExpirationTime = ait.ExpirationTime;
                                 obj.Attributes.Add(a);
                             };
-                            await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(obj.Attributes), cancellationToken);
-                        }
+                            //Update object values e.g. logical device name.
+                            if (device.Objects != null)
+                            {
+                                foreach (var it2 in device.Objects)
+                                {
+                                    if (obj?.Template?.LogicalName == it2?.Template?.LogicalName &&
+                                        it2?.Attributes != null)
+                                    {
+                                        foreach (var att in it2.Attributes)
+                                        {
+                                            if (!string.IsNullOrEmpty(att.Value))
+                                            {
+                                                var tmp3 = obj.Attributes.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
+                                                if (tmp3 != null)
+                                                {
+                                                    tmp3.Value = att.Value;
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
 
+                            await _host.Connection.InsertAsync(transaction,
+                                GXInsertArgs.InsertRange(obj.Attributes),
+                                cancellationToken);
+                        }
                         //Add device parameters.
                         await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
                         //Add device to the default device group.
@@ -662,8 +693,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         device.Updated = DateTime.Now;
                         GXUpdateArgs args = GXUpdateArgs.Update(device, columns);
-                        args.Exclude<GXDevice>(q => new { q.CreationTime, q.DeviceGroups, device.Type, q.Parameters, q.Template, q.Creator });
+                        args.Exclude<GXDevice>(q => new
+                        {
+                            q.Objects,
+                            q.CreationTime,
+                            q.DeviceGroups,
+                            device.Type,
+                            q.Parameters,
+                            q.Template,
+                            q.Creator
+                        });
                         _host.Connection.Update(args);
+                        //Update objects if exists.
+                        if (device.Objects != null)
+                        {
+                            GXAttribute a = new GXAttribute();
+                            foreach (var obj in device.Objects)
+                            {
+                                if (obj.Attributes != null)
+                                {
+                                    await _attributeRepository.UpdateAsync(User,
+                                        obj.Attributes,
+                                        c => a.Value);
+                                }
+                            }
+                        }
                         {
                             //Update device parameters.
                             if (device.Parameters == null)

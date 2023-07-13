@@ -1062,4 +1062,7 @@
   <data name="IdentifyWaitTime" xml:space="preserve">
     <value>Tunnistuksen odotusaika</value>
   </data>
+  <data name="LogicalDeviceName" xml:space="preserve">
+    <value>Looginen laite nimi</value>
+  </data>
 </root>

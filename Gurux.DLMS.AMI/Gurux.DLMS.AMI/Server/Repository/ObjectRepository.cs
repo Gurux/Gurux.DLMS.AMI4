@@ -40,7 +40,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
-using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -194,6 +193,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     request.Filter.Device = null;
                 }
+                if (request.Filter?.Template != null)
+                {
+                    arg.Where.FilterBy(request.Filter.Template);
+                    request.Filter.Template = null;
+                }
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
@@ -224,6 +228,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.OrderBy.Add<GXObject>(q => q.Id);
             }
             GXObject[] objects = (await _host.Connection.SelectAsync<GXObject>(arg)).ToArray();
+            if (request != null && (request.Select & TargetType.Attribute) != 0)
+            {
+                arg = GXSelectArgs.Select<GXAttribute>(s => new { s.Id, s.Template, s.Value });
+                arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
+                arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                foreach (var it in objects)
+                {
+                    arg.Where.Clear();
+                    arg.Where.And<GXAttribute>(w => w.Object == it);
+                    it.Attributes = (await _host.Connection.SelectAsync<GXAttribute>(arg)).ToList();
+                }
+            }
+
             if (response != null)
             {
                 response.Objects = objects;

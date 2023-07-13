@@ -1062,4 +1062,7 @@
   <data name="IdentifyWaitTime" xml:space="preserve">
     <value>Identify wait time</value>
   </data>
+  <data name="LogicalDeviceName" xml:space="preserve">
+    <value>Logical device name</value>
+  </data>
 </root>

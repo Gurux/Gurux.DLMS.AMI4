@@ -105,7 +105,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         } };
                     await client.PostAsJson("/api/AgentLog/Add", log);
                 }
-                if (settings != null && settings.IdentifyWaitTime == 0)
+                if (_deviceId == Guid.Empty && settings != null && settings.IdentifyWaitTime == 0)
                 {
                     GXDLMSObjectCollection objects = new GXDLMSObjectCollection();
                     GXDLMSData ldn = new GXDLMSData("0.0.42.0.0.255");

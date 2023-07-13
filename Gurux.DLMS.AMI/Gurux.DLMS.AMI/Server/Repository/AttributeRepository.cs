@@ -269,7 +269,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     Exception = it.Exception,
                     Value = it.Value,
                     Read = it.Read,
-                    Object = new GXObject()
+                    Object = it.Object == null ? null : new GXObject()
                     {
                         Id = it.Object.Id,
                     }
@@ -306,7 +306,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 _host.Connection.Delete(GXDeleteArgs.DeleteById<GXAttributeParameter>(it.Id));
             }
-//            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
+            //            _host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }
 
         /// <inheritdoc />
