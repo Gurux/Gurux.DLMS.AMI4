@@ -123,4 +123,7 @@
   <data name="UnknownDeviceForSystemTitle" xml:space="preserve">
     <value>Unknown device for system title {0}.</value>
   </data>
+  <data name="NoExecutedTasks" xml:space="preserve">
+    <value>No executed tasks.</value>
+  </data>
 </root>

@@ -170,8 +170,34 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         };
                         await GXAgentWorker.ReadMeter(ab);
                     }
-                }
+                    else if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
+                    {
+                        _logger?.LogInformation(Properties.Resources.NoExecutedTasks);
+                        if (_deviceId != Guid.Empty)
+                        {
+                            AddDeviceError error = new AddDeviceError();
+                            error.Errors = new GXDeviceError[]{
+                new GXDeviceError(TraceLevel.Info)
+                        {
+                            Device = new GXDevice(){Id = _deviceId},
+                            Message = Properties.Resources.NoExecutedTasks
+                        } };
+                            _logger?.LogError(error.Errors[0].Message);
+                            await client.PostAsJson("/api/DeviceError/Add", error);
+                        }
 
+                        AddAgentLog log = new AddAgentLog();
+                        log.Logs = new GXAgentLog[]{
+                            new GXAgentLog()
+                            {
+                                Agent = new GXAgent() { Id = GXAgentWorker.Options.Id },
+                                Message = Properties.Resources.NoExecutedTasks
+                            }
+                        };
+                        await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
+
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -187,7 +213,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                 StackTrace = ex.StackTrace
                             }
                         };
-                    await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
+                    await client.PostAsJson("/api/AgentLog/Add", log);
                 }
                 catch (Exception ex2)
                 {
@@ -196,7 +222,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             }
             finally
             {
-                _media.OnReceived -= Media_OnReceived;
                 if (reader != null)
                 {
                     reader.Close();

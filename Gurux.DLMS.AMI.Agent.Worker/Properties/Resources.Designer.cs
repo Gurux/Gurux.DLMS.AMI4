@@ -61,6 +61,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to No executed tasks..
+        /// </summary>
+        internal static string NoExecutedTasks {
+            get {
+                return ResourceManager.GetString("NoExecutedTasks", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown device for system title {0}..
         /// </summary>
         internal static string UnknownDeviceForSystemTitle {
