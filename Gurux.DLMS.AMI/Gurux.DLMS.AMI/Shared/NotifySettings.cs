@@ -92,6 +92,36 @@ namespace Gurux.DLMS.AMI.Shared
         public int ExpirationTime { get; set; } = 10;
 
         /// <summary>
+        /// Device name method is used to to generate device name for the new device.
+        /// </summary>
+        /// <remarks>
+        /// This can be used to get a new device when 
+        /// a new meter is connected.
+        /// </remarks>
+        public Guid? DeviceNameMethod { get; set; }
+
+        /// <summary>
+        /// Device template method is used to to get 
+        /// device template type for the new device.
+        /// </summary>
+        /// <remarks>
+        /// This can be used to create a new device when 
+        /// a connection is established and if the meter isn't found.
+        /// </remarks>
+        public Guid? DeviceTemplateMethod { get; set; }
+
+        /// <summary>
+        /// Default device template is used to to get 
+        /// default device template type for the new device.
+        /// </summary>
+        /// <remarks>
+        /// This can be used to create a new device when 
+        /// a connection is established and if the meter isn't found
+        /// and all meters are using the same device template type.
+        /// </remarks>
+        public Guid? DefaultDeviceTemplate { get; set; }
+
+        /// <summary>
         /// Script method is used to parse received notification message.
         /// </summary>
         public Guid? ScriptMethod { get; set; }

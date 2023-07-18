@@ -331,7 +331,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Is device using dynamic IP address.
+        /// Is device using auto connect.
         /// </summary>
         [DataMember]
         [Filter(FilterType.Exact)]
@@ -342,6 +342,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+        /// <summary>
+        /// How long the the connection is keeped up in seconds.
+        /// </summary>
+        /// <remarks>
+        /// Auto connect devices can use this so 
+        /// connection is not closed right after meter has read.
+        /// If value is zero, the connection is closed without delay.
+        /// If value is -1 the connection is not closed.
+        /// </remarks>
+        /// <seealso cref="KeepAliveAttribute"/>
+        /// <seealso cref="KeepAliveInterval"/>
+        public int? ConnectionUpTime { get; set; }
+
+        /// <summary>
+        /// Keep-alive attribute.
+        /// </summary>
+        /// <seealso cref="ConnectionUpTime"/>
+        /// <seealso cref="KeepAliveInterval"/>
+        public Guid? KeepAliveAttribute { get; set; }
+
+        /// <summary>
+        /// Keep-alive interval.
+        /// </summary>
+        /// <seealso cref="ConnectionUpTime"/>
+        /// <seealso cref="KeepAliveAttribute"/>
+        public int? KeepAliveInterval { get; set; }
 
         /// <summary>
         /// Used trace level.
