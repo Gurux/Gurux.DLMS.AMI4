@@ -27,7 +27,7 @@
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
                 <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-browser">
                     <div style="position: relative; width: 100%; ">
-                        <Agent Action="@Action"></Agent>
+                        <Agent @ref="_agent" Action="@Action"></Agent>
                     </div>
                 </TabPage>
             </AuthorizeView>
@@ -71,6 +71,7 @@
     /// </summary>
     public GXAgent Active = new GXAgent(null);
 
+    private Agent? _agent;
     protected override async Task OnInitializedAsync()
     {
         try
@@ -105,6 +106,7 @@
                 {
                     Active = tmp.Item;
                     StateHasChanged();
+                    _agent?.Update();
                 }
             }
         }

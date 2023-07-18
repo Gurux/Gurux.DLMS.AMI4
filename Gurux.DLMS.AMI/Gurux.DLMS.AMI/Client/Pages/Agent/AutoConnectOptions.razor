@@ -235,4 +235,9 @@
             }
         }
     }
+
+    protected override void OnInitialized()
+    {
+        Console.WriteLine(string.Format("AutoConnectOptions OnInitialized {0}.", Settings));
+    }
 }

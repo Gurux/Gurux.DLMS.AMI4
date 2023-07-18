@@ -224,13 +224,36 @@
     //Available scripts.
     private GXScript[]? scripts;
 
-    private List<GXScript>
-        Scripts = new();
+    private List<GXScript> Scripts = new();
+
+    /// <summary>
+    /// Update agent settings after they are read from the server.
+    /// </summary>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Active?.ReaderSettings))
+        {
+            ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
+                (Active.ReaderSettings);
+        }
+        if (!string.IsNullOrEmpty(Active?.NotifySettings))
+        {
+            NotifySettings = JsonSerializer.Deserialize<NotifySettings>
+                (Active.NotifySettings);
+        }
+        if (!string.IsNullOrEmpty(Active?.ListenerSettings))
+        {
+            ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
+                (Active.ListenerSettings);
+        }
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            Console.WriteLine("Agent OnInitialized.");
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.Clear();
