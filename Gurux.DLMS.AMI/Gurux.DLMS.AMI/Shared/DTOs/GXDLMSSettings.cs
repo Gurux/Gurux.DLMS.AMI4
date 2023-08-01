@@ -42,16 +42,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     public class GXDLMSSettings
     {
         /// <summary>
-        /// Server address.
-        /// </summary>
-        [DefaultValue(1)]
-        public int ServerAddress
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Client system title.
         /// </summary>
         [DataMember, StringLength(16)]
@@ -152,7 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-        
+
         /// <summary>
         /// Is hex password used.
         /// </summary>
@@ -282,6 +272,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Used logical client ID.
+        /// </summary>
+        /// <remarks>
+        /// Client ID is always 1 byte long in HDLC and 2 bytes long when WRAPPER is used.
+        /// </remarks>
+        [DefaultValue(0x10)]
+        [Description("Client address.")]
+        public int ClientAddress
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Used Physical address.
         /// </summary>
         /// <remarks>
@@ -305,6 +309,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Communication profiles.
+        /// </summary>
+        public List<GXCommunicationProfile> Profiles { get; set; } = new List<GXCommunicationProfile>();
+
+        /// <summary>
         /// Standard says that Time zone is from normal time to UTC in minutes.
         /// If meter is configured to use UTC time (UTC to normal time) set this to true.
         /// Example. Italy, Saudi Arabia and India standards are using UTC time zone, not DLMS standard time zone.
@@ -322,20 +331,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [Description("Skipped date time fields. This value can be used if meter can't handle deviation or status.")]
         public int DateTimeSkips
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// USed logical client ID.
-        /// </summary>
-        /// <remarks>
-        /// Client ID is always 1 byte long in HDLC and 2 bytes long when WRAPPER is used.
-        /// </remarks>
-        [DefaultValue(0x10)]
-        [Description("Client address.")]
-        public int ClientAddress
         {
             get;
             set;
@@ -624,21 +619,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public GXDLMSSettings()
         {
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXDLMSSettings(int serverAddress)
-        {
-            ServerAddress = serverAddress;
             PduSize = 0xFFFF;
             UserId = -1;
             MaxInfoRX = MaxInfoTX = 128;
             WindowSizeRX = WindowSizeTX = 1;
             MACSourceAddress = 0xC00;
-            ClientAddress = 0x10;
-            PhysicalAddress = 1;
             ChallengeSize = 16;
         }
 
@@ -663,12 +648,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 InvocationCounter == source.InvocationCounter &&
                 FrameCounter == source.FrameCounter &&
                 Challenge == source.Challenge &&
-                PhysicalAddress == source.PhysicalAddress &&
-                LogicalAddress == source.LogicalAddress &&
+                Profiles.Equals(source.Profiles) &&
                 UtcTimeZone == source.UtcTimeZone &&
-                ClientAddress == source.ClientAddress &&
                 UseRemoteSerial == source.UseRemoteSerial &&
-                InterfaceType == source.InterfaceType &&
                 MaxInfoTX == source.MaxInfoTX &&
                 MaxInfoRX == source.MaxInfoRX &&
                 WindowSizeTX == source.WindowSizeTX &&
