@@ -60,7 +60,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         private readonly ListenerSettings? settings;
         GXByteBuffer _notify = new GXByteBuffer();
         private readonly GXDLMSReader reader;
-        private Guid _deviceId;
+        private Guid? _deviceId;
+        private AutoResetEvent _connected = new AutoResetEvent(false);
 
         public GXAutoConnect(IServiceProvider serviceProvider,
             ILogger? logger,
@@ -77,9 +78,46 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             _scriptMethod = scriptMethod;
             _loadedScript = loadedScript;
             _media.OnReceived += Media_OnReceived;
+            if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
+            {
+                _media.OnTrace += _media_OnTrace;
+                _media.Trace = TraceLevel.Verbose;
+            }
             GXDLMSSecureClient client = new GXDLMSSecureClient(settings.UseLogicalNameReferencing, settings.ClientAddress, settings.ServerAddress, (Authentication)settings.Authentication, settings.Password, (InterfaceType)settings.Interface);
             reader = new GXDLMSReader(client, _media, _logger, TraceLevel.Off,
                 settings.TraceLevel, 60000, 3, null);
+        }
+
+        private async void _media_OnTrace(object sender, TraceEventArgs e)
+        {
+            try
+            {
+                string? str = null;
+                if (e.Type == TraceTypes.Sent)
+                {
+                    str = string.Format("Meter TX: {0}", GXCommon.ToHex((byte[])e.Data));
+
+                }
+                else if (e.Type == TraceTypes.Received)
+                {
+                    str = string.Format("Meter RX: {0}", GXCommon.ToHex((byte[])e.Data));
+                }
+                if (str != null)
+                {
+                    _logger?.LogInformation(str);
+                    AddAgentLog log = new AddAgentLog();
+                    log.Logs = new GXAgentLog[]{new GXAgentLog(TraceLevel.Verbose)
+                        {
+                            Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
+                            Message = str
+                        } };
+                    await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex.Message);
+            }
         }
 
         /// <summary>
@@ -92,7 +130,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 ListenerSettings? settings = GXAgentWorker.Options.ListenerSettings;
                 if (settings.IdentifyWaitTime != 0)
                 {
-                    Thread.Sleep(settings.IdentifyWaitTime * 1000);
+                    _connected.WaitOne(settings.IdentifyWaitTime * 1000);
+                    if (_deviceId == null)
+                    {
+                        //_deviceId is null if meter is sending data that is not require 
+                        //connection for the meter (e.g keep alive msg).
+                        return;
+                    }
                 }
                 if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
                 {
@@ -105,7 +149,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         } };
                     await client.PostAsJson("/api/AgentLog/Add", log);
                 }
-                if (_deviceId == Guid.Empty && settings != null && settings.IdentifyWaitTime == 0)
+                if (_deviceId == null || _deviceId == Guid.Empty && settings != null && settings.IdentifyWaitTime == 0)
                 {
                     GXDLMSObjectCollection objects = new GXDLMSObjectCollection();
                     GXDLMSData ldn = new GXDLMSData("0.0.42.0.0.255");
@@ -149,12 +193,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     }
                     _deviceId = ret.Devices[0].Id;
                 }
-                if (_deviceId == Guid.Empty)
+                if (_deviceId == null || _deviceId == Guid.Empty)
                 {
                     //If unknown device.
                     throw new GXAMIUnknownDeviceException("Unknown device.");
                 }
+                DateTime start = DateTime.Now;
+                GXDevice? dev = null;
                 //Get next tasks.
+                do
                 {
                     GetNextTask req2 = new GetNextTask();
                     req2.AgentId = Options.Id;
@@ -168,21 +215,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             Tasks = response.Tasks,
                             Media = _media
                         };
-                        await GXAgentWorker.ReadMeter(ab);
+                        dev = await GXAgentWorker.ReadMeter(ab, settings);
                     }
                     else if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
                     {
                         _logger?.LogInformation(Properties.Resources.NoExecutedTasks);
-                        if (_deviceId != Guid.Empty)
+                        if (_deviceId != null && _deviceId != Guid.Empty)
                         {
                             AddDeviceError error = new AddDeviceError();
                             error.Errors = new GXDeviceError[]{
                 new GXDeviceError(TraceLevel.Info)
                         {
-                            Device = new GXDevice(){Id = _deviceId},
+                            Device = new GXDevice(){Id = _deviceId.Value},
                             Message = Properties.Resources.NoExecutedTasks
                         } };
-                            _logger?.LogError(error.Errors[0].Message);
                             await client.PostAsJson("/api/DeviceError/Add", error);
                         }
 
@@ -198,6 +244,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
 
                     }
                 }
+                while (dev != null && (dev.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < dev.ConnectionUpTime));
             }
             catch (Exception ex)
             {
@@ -234,20 +281,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private async void Media_OnReceived(object sender, ReceiveEventArgs e)
+        private void Media_OnReceived(object sender, ReceiveEventArgs e)
         {
-            string str = string.Format("Meter notify: {0}", GXCommon.ToHex((byte[])e.Data));
-            if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
-            {
-                _logger?.LogInformation(str);
-                AddAgentLog log = new AddAgentLog();
-                log.Logs = new GXAgentLog[]{new GXAgentLog(TraceLevel.Verbose)
-                        {
-                            Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
-                            Message = str
-                        } };
-                await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
-            }
             GXReplyData reply = new GXReplyData();
             GXReplyData notify = new GXReplyData();
             _notify.Set((byte[])e.Data);
@@ -282,10 +317,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             }
                         };
                         var ret = tmp.RunAsync(arg).Result;
-                        if (_deviceId == Guid.Empty && ret is Guid id)
+                        if ((_deviceId == null || _deviceId == Guid.Empty) && ret is Guid id)
                         {
                             //If script returns device ID.
                             _deviceId = id;
+                            _connected.Set();
                         }
                     }
                 }

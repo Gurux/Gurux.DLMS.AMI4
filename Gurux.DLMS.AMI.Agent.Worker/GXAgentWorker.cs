@@ -575,7 +575,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
         }
 
-        internal static async System.Threading.Tasks.Task ReadMeter(GXActionBlock action)
+        internal static async Task<GXDevice?> ReadMeter(GXActionBlock action,
+            ListenerSettings? listenerSettings = null)
         {
             GXDLMSSecureClient cl;
             IGXMedia? media = action.Media;
@@ -608,7 +609,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 await ReportDone(tasks);
                 _logger?.LogError(ex.Message);
                 action.NewTask?.Set();
-                return;
+                return null;
             }
             try
             {
@@ -669,7 +670,22 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         media.Open();
                     }
                     var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
-                    var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
+                    var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Template.Settings);
+                    //Use interface type that is defined for agent.
+                    if (templateSettings != null && listenerSettings != null && settings.InterfaceType != listenerSettings.Interface)
+                    {
+                        foreach (var it in templateSettings.Profiles)
+                        {
+                            if (it.InterfaceType == listenerSettings.Interface)
+                            {
+                                settings.InterfaceType = it.InterfaceType;
+                                templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
+                                settings.LogicalAddress = it.LogicalAddress;
+                                settings.PhysicalAddress = it.PhysicalAddress;
+                                break;
+                            }
+                        }
+                    }
                     int deviceAddress;
                     if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
                     {
@@ -741,7 +757,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     {
                         await ReportDeviceException(dev, ex, "Failed to establish the connection.");
                     }
-                    return;
+                    return dev;
                 }
                 int count = tasks.Count();
                 pos = 0;
@@ -790,6 +806,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 action.NewTask?.Set();
             }
+            return dev;
         }
 
         /// <summary>
