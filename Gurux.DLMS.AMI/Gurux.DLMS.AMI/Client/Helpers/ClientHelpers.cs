@@ -623,12 +623,15 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             settings.InvocationCounter = source.InvocationCounter;
             settings.FrameCounter = source.FrameCounter;
             settings.Challenge = source.Challenge;
-            settings.PhysicalAddress = source.PhysicalAddress;
-            settings.LogicalAddress = source.LogicalAddress;
+            settings.Profiles.Add(new GXCommunicationProfile()
+            {
+                InterfaceType = (int)source.InterfaceType,
+                ClientAddress = source.ClientAddress,
+                PhysicalAddress = source.PhysicalAddress,
+                LogicalAddress = source.LogicalAddress,
+            });
             settings.UtcTimeZone = source.UtcTimeZone;
-            settings.ClientAddress = source.ClientAddress;
             settings.UseRemoteSerial = source.UseRemoteSerial;
-            settings.InterfaceType = (int)source.InterfaceType;
             settings.MaxInfoTX = source.MaxInfoTX;
             settings.MaxInfoRX = source.MaxInfoRX;
             settings.WindowSizeTX = source.WindowSizeTX;

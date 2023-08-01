@@ -38,10 +38,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
 {
     public class GXValidator : ComponentBase
     {
-        /// <summary>
-        /// Are there any errors.
-        /// </summary>
-        private bool _errors;
         private ValidationMessageStore? _messageStore;
 
         [CascadingParameter]
@@ -50,7 +46,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         /// <summary>
         /// Validate.
         /// </summary>
-        [Parameter] 
+        [Parameter]
         public Action<GXValidator>? OnValidate { get; set; }
 
         protected override void OnInitialized()
@@ -77,7 +73,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         /// <param name="message">Error message.</param>
         public void AddError(Expression<Func<object?>> accessor, string message)
         {
-            _errors = true;
             _messageStore?.Add(FieldIdentifier.Create(accessor), message);
         }
 
@@ -88,7 +83,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         /// <param name="message">Error message.</param>
         public void AddError(string identier, string message)
         {
-            _errors = true;
             if (CurrentEditContext != null)
             {
                 _messageStore?.Add(CurrentEditContext.Field(identier), message);
@@ -107,7 +101,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
             {
                 OnValidate?.Invoke(this);
                 CurrentEditContext.NotifyValidationStateChanged();
-                return !_errors;
+                return !CurrentEditContext.GetValidationMessages().Any();
             }
             return true;
         }
@@ -120,7 +114,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         {
             if (CurrentEditContext != null && _messageStore != null)
             {
-                _errors = errors.Any();
                 foreach (var err in errors)
                 {
                     _messageStore.Add(CurrentEditContext.Field(err.Key), err.Value);
@@ -134,7 +127,6 @@ namespace Gurux.DLMS.AMI.Client.Helpers.Validation
         /// </summary>
         public void ClearErrors()
         {
-            _errors = false;
             _messageStore?.Clear();
             CurrentEditContext?.NotifyValidationStateChanged();
         }

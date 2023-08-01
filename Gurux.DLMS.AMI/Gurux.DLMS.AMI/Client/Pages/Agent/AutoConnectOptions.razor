@@ -238,6 +238,10 @@
 
     protected override void OnInitialized()
     {
+        if (string.IsNullOrEmpty(Settings?.MediaType) && Settings != null)
+        {
+            Settings.MediaType = typeof(GXNet).FullName;
+        }
         Console.WriteLine(string.Format("AutoConnectOptions OnInitialized {0}.", Settings));
     }
 }

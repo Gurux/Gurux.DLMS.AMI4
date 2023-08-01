@@ -11,6 +11,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Client.Pages.Agent
 @using System.Text.Json
+@using System.Text.Encodings.Web;
 
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
@@ -358,9 +359,15 @@
             }
             else
             {
-                Active.ReaderSettings = JsonSerializer.Serialize(ReaderSettings);
-                Active.NotifySettings = JsonSerializer.Serialize(NotifySettings);
-                Active.ListenerSettings = JsonSerializer.Serialize(ListenerSettings);
+                //This is needed to serialize special chars.
+                var options = new JsonSerializerOptions
+                    {
+                        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                        WriteIndented = true
+                    };
+                Active.ReaderSettings = JsonSerializer.Serialize(ReaderSettings, options);
+                Active.NotifySettings = JsonSerializer.Serialize(NotifySettings, options);
+                Active.ListenerSettings = JsonSerializer.Serialize(ListenerSettings, options);
                 string address;
                 if (action == CrudAction.Create)
                 {

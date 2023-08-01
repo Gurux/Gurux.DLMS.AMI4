@@ -1,0 +1,281 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Web;
+@using System.Text.Json.Serialization;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<DeviceTemplate> Logger
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd"></MenuItem>
+        <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></MenuItem>
+    </ChildContent>
+</MenuControl>
+
+@if (ProfileAction != CrudAction.None)
+{
+    <!--Show profile.-->
+    <Profile Parent="this"></Profile>
+}
+
+<br />
+<br />
+<p>
+    <div class="row">
+        <div style="width:100%">
+            <div class="form-group">
+                <GXTable @ref="table"
+                         Context="profile"
+                         ItemsProvider="@GetItems"
+                         SelectionMode="SelectionMode.Multiple"
+                         Filter="false"
+                         ShowRemoved="false"
+                         ShowAllUsers="false"
+                         ShowAllData="true">
+                    <FilterContent>
+                    </FilterContent>
+                    <MenuContent>
+                        <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+                        <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+                    </MenuContent>
+                    <HeaderContent>
+                        <Th Id="InterfaceType">@Properties.Resources.InterfaceType</Th>
+                        <Th Id="ClientAddress">@Properties.Resources.ClientAddress</Th>
+                        <Th Id="LogicalAddress">@Properties.Resources.LogicalAddress</Th>
+                        <Th Id="PhysicalAddress">@Properties.Resources.PhysicalAddress</Th>
+                    </HeaderContent>
+                    <ItemContent>
+                        <td>
+                            <LinkButton Target="@profile" OnClick="@Edit"
+                                        Text="@(((Gurux.DLMS.Enums.InterfaceType)profile.InterfaceType).ToString())" />
+                        </td>
+                        <td>@profile.ClientAddress</td>
+                        <td>@profile.LogicalAddress</td>
+                        <td>@profile.PhysicalAddress</td>
+                    </ItemContent>
+                </GXTable>
+            </div>
+        </div>
+    </div>
+</p>
+<br />
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         AllowDelete="false"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+    internal CrudAction ProfileAction;
+
+    internal List<GXCommunicationProfile>? _profiles;
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    private GXTable<GXCommunicationProfile>? table;
+
+    internal IEnumerable<GXCommunicationProfile>? GetSelectedProfiles()
+    {
+        return table?.Items;
+    }
+
+    /// <summary>
+    /// User is verified before profiles are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
+
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    {
+        _profiles = s.Profiles;
+        //Handle old way.
+        if (s.ClientAddress != 0)
+        {
+            s.Profiles.Add(new GXCommunicationProfile()
+                {
+                    InterfaceType = s.InterfaceType,
+                    ClientAddress = s.ClientAddress,
+                    LogicalAddress = s.LogicalAddress,
+                    PhysicalAddress = s.PhysicalAddress
+                });
+            s.ClientAddress = 0;
+            s.LogicalAddress = 0;
+            s.PhysicalAddress = 0;
+        }
+        if (renderOnSuccess)
+        {
+            StateHasChanged();
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXCommunicationProfile>> GetItems(GXItemsProviderRequest request)
+    {
+        if (_profiles != null)
+        {
+            return new(new ItemsProviderResult<GXCommunicationProfile>(_profiles, _profiles.Count));
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new profile.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ProfileAction = CrudAction.Create;
+            Active = new()
+                {
+                    ClientAddress = 1,
+                    PhysicalAddress = 1
+                };
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    internal GXCommunicationProfile? Active;
+
+    /// <summary>
+    /// Close profile form.
+    /// </summary>
+    internal void Update()
+    {
+        ProfileAction = CrudAction.None;
+        StateHasChanged();
+    }
+
+    private void Edit(GXCommunicationProfile item)
+    {
+        try
+        {
+            ProfileAction = CrudAction.Update;
+            Active = item;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit profile.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table == null || table.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ProfileAction = CrudAction.Update;
+            Active = table.Active;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected device template group.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.InterfaceType.ToString()).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected device template groups.
+    /// </summary>
+    public void OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                _profiles?.RemoveAll(w => table.SingleOrDefault().Contains(w));
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+    }
+
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+        s.Profiles = _profiles;
+    }
+
+    [Parameter]
+    public DeviceTemplate? Parent { get; set; }
+
+    public bool IsDeleting
+    {
+        get
+        {
+            if (Parent == null)
+            {
+                return false;
+            }
+            return Parent.IsDeleting;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        {
+            Update(s, false);
+        }
+    }
+}

@@ -1,0 +1,189 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.ASN;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <Dialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm Model="@Active">
+            <DataAnnotationsValidator />
+            <GXValidator @ref="_validator" OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <div class="col-auto">
+                            <label>@Properties.Resources.KeyManagementKeyType</label>
+                            <select class="form-select" @bind="Active.InterfaceType">
+                                @foreach (var it in InterfaceTypes)
+                                {
+                                    <option value="@Convert.ToInt32(it)">
+                                        @it
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                        <ValidationMessage For="@(() => Active.InterfaceType)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.ClientAddress</label>
+                        <InputNumber id="clientAddress"
+                                     class="form-control"
+                        @bind-Value="Active.ClientAddress" />
+                        <ValidationMessage For="@(() => Active.ClientAddress)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.LogicalAddress</label>
+                        <InputNumber id="logicalAddress"
+                                     class="form-control"
+                        @bind-Value="Active.LogicalAddress" />
+                        <ValidationMessage For="@(() => Active.LogicalAddress)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.PhysicalAddress</label>
+                        <InputNumber id="physicalAddress"
+                                     class="form-control"
+                        @bind-Value="Active.PhysicalAddress" />
+                        <ValidationMessage For="@(() => Active.PhysicalAddress)" />
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+@code {
+
+    private List<Gurux.DLMS.Enums.InterfaceType> InterfaceTypes = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
+    Gurux.DLMS.Enums.InterfaceType.HDLC,
+    Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE,
+    Gurux.DLMS.Enums.InterfaceType.WRAPPER,
+    Gurux.DLMS.Enums.InterfaceType.WiredMBus,
+    Gurux.DLMS.Enums.InterfaceType.WirelessMBus,
+    Gurux.DLMS.Enums.InterfaceType.Plc,
+    Gurux.DLMS.Enums.InterfaceType.PlcHdlc,
+    Gurux.DLMS.Enums.InterfaceType.LPWAN,
+    Gurux.DLMS.Enums.InterfaceType.WiSUN,
+    Gurux.DLMS.Enums.InterfaceType.PlcPrime,
+    Gurux.DLMS.Enums.InterfaceType.SMS
+    });
+
+    private GXValidator? _validator;
+
+    [Parameter]
+    public Profiles? Parent { get; set; }
+
+    /// <summary>
+    /// Origical value is returned if user cancels the action.
+    ///</summary>
+    GXCommunicationProfile? _original;
+
+    private GXCommunicationProfile? Active
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Active == null || Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            _original = ClientHelpers.Clone<GXCommunicationProfile>(Active);
+            //Remove added profiles.
+            foreach (var it in Parent.GetSelectedProfiles())
+            {
+                //Remove already added profile types when adding a new profile.
+                if (Parent.ProfileAction == CrudAction.Create ||
+                //Remove key type if not selected key type.
+                Active.InterfaceType != it.InterfaceType)
+                {
+                    InterfaceTypes.Remove((Gurux.DLMS.Enums.InterfaceType)it.InterfaceType);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the profile content.
+    ///</summary>
+    ///<param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+
+    }
+
+    /// <summary>
+    /// Save profile group.
+    ///</summary>
+    public void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ClearStatus();
+            if (Parent?.ProfileAction == CrudAction.Create)
+            {
+                Parent?._profiles?.Add(Active);
+            }
+            else if (Parent?.ProfileAction == CrudAction.Update)
+            {
+                //Do nothing.
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent?.Update();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        if (Active != null && _original != null)
+        {
+            //Reject the changes.
+            ClientHelpers.Copy(_original, Active);
+        }
+        Parent?.Update();
+    }
+}

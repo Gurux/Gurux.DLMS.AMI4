@@ -1,0 +1,261 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Web;
+@using System.Text.Json.Serialization;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<DeviceTemplate> Logger
+@if (Active != null)
+{
+    <div class="row">
+        <div style="width:100%">
+            <div class="form-group">
+                <label>@Properties.Resources.Security</label>
+                <InputSelect id="type" class="form-select"
+                @bind-Value="SelectedSettings" disabled="true">
+                    @foreach (var it in GetSecurityLevels())
+                    {
+                        <option value="@it.Id">@GetSecurity(it)</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => SelectedSettings)" />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <InputHexAscii @ref="@_clientSystemTitle"
+                           Disabled="@IsDeleting"
+            @bind-Value="ClientSystemTitle"
+                           Title="@Properties.Resources.ClientSystemTitle">
+            </InputHexAscii>
+            <ValidationMessage For="@(() => _clientSystemTitle)" />
+        </div>
+
+        <div class="form-group">
+            <InputHexAscii @ref="@_deviceSystemTitle"
+                           Disabled="@IsDeleting"
+            @bind-Value="DeviceSystemTitle"
+                           Title="@Properties.Resources.DeviceSystemTitle">
+            </InputHexAscii>
+            <ValidationMessage For="@(() => _deviceSystemTitle)" />
+        </div>
+        <div class="form-group">
+            <InputHexAscii @ref="@_blockCipherKey"
+                           Disabled="@IsDeleting"
+            @bind-Value="BlockCipherKey"
+                           Title="@Properties.Resources.BlockCipherKey">
+            </InputHexAscii>
+            <ValidationMessage For="@(() => _blockCipherKey)" />
+        </div>
+        <div class="form-group">
+            <InputHexAscii @ref="@_authenticationKey"
+                           Disabled="@IsDeleting"
+            @bind-Value="AuthenticationKey"
+                           Title="@Properties.Resources.AuthenticationKey">
+            </InputHexAscii>
+            <ValidationMessage For="@(() => _authenticationKey)" />
+        </div>
+    </div>
+}
+@code {
+
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    {
+        ClientSystemTitle = GXDLMSTranslator.HexToBytes(s?.ClientSystemTitle);
+        DeviceSystemTitle = GXDLMSTranslator.HexToBytes(s?.DeviceSystemTitle);
+        BlockCipherKey = GXDLMSTranslator.HexToBytes(s?.BlockCipherKey);
+        AuthenticationKey = GXDLMSTranslator.HexToBytes(s?.AuthenticationKey);
+        if (renderOnSuccess)
+        {
+            StateHasChanged();
+        }
+    }
+
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+        if (s.Security != (byte)Enums.Security.None)
+        {
+            if (HasValue(ClientSystemTitle) && _clientSystemTitle != null)
+            {
+                if (_clientSystemTitle.GetByteArray().Length != 8)
+                {
+                    sender.AddError(() => _clientSystemTitle, Properties.Resources.InvalidSystemTitle);
+                }
+            }
+            if (HasValue(DeviceSystemTitle) && _deviceSystemTitle != null)
+            {
+                if (_deviceSystemTitle.GetByteArray().Length != 8)
+                {
+                    sender.AddError(() => _deviceSystemTitle, Properties.Resources.InvalidSystemTitle);
+                }
+            }
+            if (HasValue(BlockCipherKey) && _blockCipherKey != null)
+            {
+                var bytes = _blockCipherKey.GetByteArray();
+                if ((s.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
+                (s.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
+                {
+                    sender.AddError(() => _blockCipherKey, Properties.Resources.InvalidBlockCipherKey);
+                }
+            }
+            if (HasValue(AuthenticationKey) && _authenticationKey != null)
+            {
+                var bytes = _authenticationKey.GetByteArray();
+                if ((s.SecuritySuite != (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 16) ||
+                (s.SecuritySuite == (int)Gurux.DLMS.Objects.Enums.SecuritySuite.Suite2 && bytes.Length != 32))
+                {
+                    sender.AddError(() => _authenticationKey, Properties.Resources.InvalidAuthenticationKey);
+                }
+            }
+        }
+    }
+
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+        s.ClientSystemTitle = GXDLMSTranslator.ToHex(_clientSystemTitle?.GetByteArray(), false);
+        s.DeviceSystemTitle = GXDLMSTranslator.ToHex(_deviceSystemTitle?.GetByteArray(), false);
+        s.BlockCipherKey = GXDLMSTranslator.ToHex(_blockCipherKey?.GetByteArray(), false);
+        s.AuthenticationKey = GXDLMSTranslator.ToHex(_authenticationKey?.GetByteArray(), false);
+    }
+
+    private InputHexAscii? _clientSystemTitle;
+    private InputHexAscii? _deviceSystemTitle;
+    private InputHexAscii? _blockCipherKey;
+    private InputHexAscii? _authenticationKey;
+    private GXValidator? _validator;
+    private Guid SelectedSettings { get; set; }
+
+    [Parameter]
+    public DeviceTemplate? Parent { get; set; }
+
+    internal GXDeviceTemplate? Active
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    public bool IsDeleting
+    {
+        get
+        {
+            if (Parent == null)
+            {
+                return false;
+            }
+            return Parent.IsDeleting;
+        }
+    }
+
+    private bool IsCiphered()
+    {
+        if (Active?.Settings != null)
+        {
+            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            if (s == null)
+            {
+                return false;
+            }
+            if (s == null ||
+                s.Security != (byte)Gurux.DLMS.Enums.Security.None)
+            {
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Get available security levels.
+    /// </summary>
+    /// <returns>Available security levels.</returns>
+    List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> GetSecurityLevels()
+    {
+        Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
+        if (Active?.Settings != null)
+        {
+            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            if (s != null)
+            {
+                //Get default value when new device is create from device template.
+                current = (Gurux.DLMS.Enums.Security)s.Security;
+            }
+        }
+        List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
+        settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
+            {
+                Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                {
+                    Security = (byte)current
+                })
+            });
+        return settings;
+    }
+
+    Gurux.DLMS.Enums.Security GetSecurity(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
+    {
+        Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
+        if (!string.IsNullOrEmpty(value?.Settings))
+        {
+            current = (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Security;
+        }
+        return current;
+    }
+
+    private byte[]? ClientSystemTitle
+    {
+        get;
+        set;
+    }
+
+    private byte[]? DeviceSystemTitle
+    {
+        get;
+        set;
+    }
+
+    private byte[]? BlockCipherKey
+    {
+        get;
+        set;
+    }
+
+    private byte[]? AuthenticationKey
+    {
+        get;
+        set;
+    }
+
+    private bool HasValue(byte[]? value)
+    {
+        return value != null && value.Any();
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        {
+            Update(s, false);
+        }
+    }
+}

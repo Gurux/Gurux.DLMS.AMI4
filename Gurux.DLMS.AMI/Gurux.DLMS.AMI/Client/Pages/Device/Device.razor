@@ -106,8 +106,8 @@
                                         <div class="form-group row">
                                             <label>@Properties.Resources.LogicalDeviceName</label>
                                             <InputText id="sn" class="form-control"
-                                            @bind-Value="LogicalDeviceNameeName" />
-                                            <ValidationMessage For="@(() => LogicalDeviceNameeName)" />
+                                            @bind-Value="LogicalDeviceName" />
+                                            <ValidationMessage For="@(() => LogicalDeviceName)" />
                                         </div>
                                     }
                                     @if (_version?.Settings != null)
@@ -157,8 +157,8 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.LogicalDeviceName</label>
                                     <InputText id="sn" class="form-control"
-                                    @bind-Value="LogicalDeviceNameeName" />
-                                    <ValidationMessage For="@(() => LogicalDeviceNameeName)" />
+                                    @bind-Value="LogicalDeviceName" />
+                                    <ValidationMessage For="@(() => LogicalDeviceName)" />
                                 </div>
                             }
                             @if (_settings != null)
@@ -249,11 +249,10 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.SerialNumber</label>
                                 <InputNumber id="resend" class="form-control"
-                                @bind-Value="_settings.PhysicalAddress" />
+                            @bind-Value="_settings.PhysicalAddress" />
                                 <ValidationMessage For="@(() => _settings.PhysicalAddress)" />
                             </div>
                         }
-
                         <div class="form-group row">
                             <label>@Properties.Resources.WaitTime</label>
                             <InputIntegerTimeSpan id="resend" class="form-control"
@@ -382,7 +381,7 @@
         }
     }
 
-    private string? LogicalDeviceNameeName
+    private string? LogicalDeviceName
     {
         get
         {
@@ -1227,6 +1226,22 @@
                         Active.Settings = it.Settings;
                         //Update template settings.
                         _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
+                        //Update interfaces.
+                        if (_templateSettings?.Profiles != null && _templateSettings.Profiles.Any())
+                        {
+                            InterfaceList.Clear();
+                            foreach (var p in _templateSettings.Profiles)
+                            {
+                                InterfaceList.Add((Gurux.DLMS.Enums.InterfaceType)p.InterfaceType);
+                            }
+                        }
+                        else
+                        {
+                            InterfaceList = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
+                            Gurux.DLMS.Enums.InterfaceType.HDLC,
+                            Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE,
+                            Gurux.DLMS.Enums.InterfaceType.WRAPPER});
+                        }
                         break;
                     }
                 }
@@ -1273,26 +1288,34 @@
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
             action = ClientHelpers.GetAction(Action);
-            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HDLC);
-            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.WRAPPER);
-            InterfaceList.Add(Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE);
+            InterfaceList = new List<Gurux.DLMS.Enums.InterfaceType>(new[]{
+                Gurux.DLMS.Enums.InterfaceType.HDLC,
+                Gurux.DLMS.Enums.InterfaceType.HdlcWithModeE,
+                Gurux.DLMS.Enums.InterfaceType.WRAPPER,
+                Gurux.DLMS.Enums.InterfaceType.WiredMBus,
+                Gurux.DLMS.Enums.InterfaceType.WirelessMBus,
+                Gurux.DLMS.Enums.InterfaceType.Plc,
+                Gurux.DLMS.Enums.InterfaceType.PlcHdlc,
+                Gurux.DLMS.Enums.InterfaceType.LPWAN,
+                Gurux.DLMS.Enums.InterfaceType.WiSUN,
+                Gurux.DLMS.Enums.InterfaceType.PlcPrime,
+                Gurux.DLMS.Enums.InterfaceType.SMS
+    });
             switch (action)
             {
                 case CrudAction.Create:
                     try
                     {
                         //Get default user settings.
-                        GXUserSetting? settings = await Http.GetAsJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
-                        if (settings != null && !string.IsNullOrEmpty(settings.Value))
+                        GetUserSettings us = await Http.GetAsJsonAsync<GetUserSettings>("api/UserSetting?Name=Ami.Device");
+                        if (us.Item != null && !string.IsNullOrEmpty(us.Item.Value))
                         {
-                            Guid Id = JsonSerializer.Deserialize<Guid>(settings.Value);
+                            Guid Id = JsonSerializer.Deserialize<Guid>(us.Item.Value);
                             //Get device data.
-                            response = await Http.GetAsync(string.Format("api/Device?id={0}", Id));
-                            ClientHelpers.ValidateStatusCode(response);
-                            GXDevice? tmp = await response.Content.ReadFromJsonAsync<GXDevice>();
-                            if (tmp != null)
+                            GetDeviceResponse ret = await Http.GetAsJsonAsync<GetDeviceResponse>(string.Format("api/Device?id={0}", Id));
+                            if (ret.Item != null)
                             {
-                                _active = tmp;
+                                _active = ret.Item;
                                 Active.Id = Guid.Empty;
                                 Active.Name = null;
                             }
@@ -1532,11 +1555,16 @@
             if (Active != null && Active.Id != Guid.Empty)
             {
                 //Get default user settings.
-                GXUserSetting? settings = await Http.GetAsJsonAsync<GXUserSetting>("api/UserSetting?Name=Ami.Device");
-                if (settings == null)
+                GXUserSetting? settings;
+                GetUserSettings? tmp = await Http.GetAsJsonAsync<GetUserSettings>("api/UserSetting?Name=Ami.Device");
+                if (tmp?.Item == null)
                 {
                     settings = new GXUserSetting();
                     settings.Name = "Ami.Device";
+                }
+                else
+                {
+                    settings = tmp.Item;
                 }
                 settings.Value = JsonSerializer.Serialize(Active.Id);
                 await Http.PostAsJson("api/UserSetting/Add", new GXUserSetting[] { settings });

@@ -1065,4 +1065,10 @@
   <data name="LogicalDeviceName" xml:space="preserve">
     <value>Logical device name</value>
   </data>
+  <data name="LogicalAddress" xml:space="preserve">
+    <value>Logical address</value>
+  </data>
+  <data name="PhysicalAddress" xml:space="preserve">
+    <value>Physical address</value>
+  </data>
 </root>

@@ -64,7 +64,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXDeviceTemplatePolicies.Add)]
         public async Task<ActionResult<UpdateDeviceTemplateResponse>> Post(UpdateDeviceTemplate request)
         {
-            if (request.Templates == null || request.Templates.Length == 0)
+            if (request.Templates == null || !request.Templates.Any())
             {
                 return BadRequest("Invalid device template.");
             }

@@ -890,6 +890,8 @@ namespace Gurux.DLMS.AMI.Server
                         //Agent cache expiration time added.
                         host.Connection.UpdateTable<GXAgent>();
                     }
+                    //https://www.gurux.fi/issue/guruxdlmsami4/21165
+                    host.Connection.UpdateTable<GXDevice>();
                 }
             }
             else

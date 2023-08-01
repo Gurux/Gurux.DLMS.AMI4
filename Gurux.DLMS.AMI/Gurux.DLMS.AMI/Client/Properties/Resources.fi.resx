@@ -1065,4 +1065,10 @@
   <data name="LogicalDeviceName" xml:space="preserve">
     <value>Looginen laite nimi</value>
   </data>
+  <data name="LogicalAddress" xml:space="preserve">
+    <value>Looginen osoite</value>
+  </data>
+  <data name="PhysicalAddress" xml:space="preserve">
+    <value>Fyysinen osoite</value>
+  </data>
 </root>

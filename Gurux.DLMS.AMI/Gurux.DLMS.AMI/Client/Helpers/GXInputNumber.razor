@@ -1,0 +1,58 @@
+﻿@using System.Diagnostics.CodeAnalysis
+@using System.Globalization
+@typeparam TVALUE
+@inherits InputNumber<TVALUE>
+
+@namespace Gurux.DLMS.AMI.Components
+<input type="number"
+       class="@this.CssClass"
+@attributes=this.AdditionalAttributes
+       value=@this.CurrentValueAsString
+@oninput=OnValueChanged />
+
+@code {
+    [Parameter] public TVALUE? Min { get; set; }
+    [Parameter] public TVALUE? Max { get; set; }
+
+    private async Task OnValueChanged(ChangeEventArgs e)
+    {
+        var currentValue = this.CurrentValue;
+        var resetToCurrent = false;
+        if (BindConverter.TryConvertTo<TVALUE>(e.Value?.ToString(), CultureInfo.InvariantCulture, out TVALUE value))
+            resetToCurrent = (Min == null || Convert.ToInt32(value) < Convert.ToInt32(Min)) ||
+            (Max == null || Convert.ToInt32(value) > Convert.ToInt32(this.Max));
+        {
+            this.CurrentValueAsString = e.Value?.ToString();
+        }
+        if (resetToCurrent)
+        {
+            this.CurrentValue = value;
+            StateHasChanged();
+            await Task.Delay(1);
+            this.CurrentValue = currentValue;
+            StateHasChanged();
+        }
+    }
+
+    protected override bool TryParseValueFromString(string? value, [MaybeNullWhen(false)] out TVALUE result, [NotNullWhen(false)] out string? validationErrorMessage)
+    {
+        validationErrorMessage = null;
+        if (BindConverter.TryConvertTo<TVALUE>(value, CultureInfo.InvariantCulture, out result))
+        {
+            if (Min != null && Convert.ToInt32(result) < Convert.ToInt32(this.Min))
+            {
+                validationErrorMessage = $"{DisplayName ?? FieldIdentifier.FieldName} must be greater than {this.Min}";
+            }
+
+            if (Max != null && Convert.ToInt32(result) > Convert.ToInt32(this.Max))
+            {
+                validationErrorMessage = $"{DisplayName ?? FieldIdentifier.FieldName} must be less than {this.Max}";
+            }
+        }
+
+        if (validationErrorMessage is not null)
+            result = CurrentValue;
+
+        return validationErrorMessage is null;
+    }
+}
