@@ -391,7 +391,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 if (task.Attribute.Object.Template.ObjectType == null)
                 {
-                    throw new Exception("Invlalid object type.");
+                    throw new Exception("Invalid object type.");
                 }
                 obj = GXDLMSClient.CreateObject((ObjectType)task.Attribute.Object.Template.ObjectType);
                 // obj.Version = task.Object.Template.Version.GetValueOrDefault(0);
@@ -680,37 +680,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         throw new Exception("Failed to serialize template settings.");
                     }
                     //Use interface type that is defined for agent.
-                    if (listenerSettings != null)
-                    {
-                        if (settings.InterfaceType != listenerSettings.Interface)
-                        {
-                            foreach (var it in templateSettings.Profiles)
-                            {
-                                if (it.InterfaceType == listenerSettings.Interface)
-                                {
-                                    settings.InterfaceType = it.InterfaceType;
-                                    templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
-                                    settings.LogicalAddress = it.LogicalAddress;
-                                    settings.PhysicalAddress = it.PhysicalAddress;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        foreach (var it in templateSettings.Profiles)
-                        {
-                            if (it.InterfaceType == settings.InterfaceType)
-                            {
-                                settings.InterfaceType = it.InterfaceType;
-                                templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
-                                settings.LogicalAddress = it.LogicalAddress;
-                                settings.PhysicalAddress = it.PhysicalAddress;
-                                break;
-                            }
-                        }
-                    }
                     if (listenerSettings != null && settings.InterfaceType != listenerSettings.Interface)
                     {
                         foreach (var it in templateSettings.Profiles)
@@ -720,7 +689,26 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 settings.InterfaceType = it.InterfaceType;
                                 templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
                                 settings.LogicalAddress = it.LogicalAddress;
-                                settings.PhysicalAddress = it.PhysicalAddress;
+                                if (settings.HDLCAddressing != (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
+                                {
+                                    settings.PhysicalAddress = it.PhysicalAddress;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var it in templateSettings.Profiles)
+                        {
+                            if (it.InterfaceType == settings.InterfaceType)
+                            {
+                                templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
+                                settings.LogicalAddress = it.LogicalAddress;
+                                if (settings.HDLCAddressing != (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
+                                {
+                                    settings.PhysicalAddress = it.PhysicalAddress;
+                                }
                                 break;
                             }
                         }
