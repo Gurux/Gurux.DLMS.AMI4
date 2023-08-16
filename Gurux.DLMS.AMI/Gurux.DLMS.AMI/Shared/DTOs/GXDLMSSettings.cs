@@ -184,7 +184,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Use pre-established application associations.
         /// </summary>
         [DefaultValue(false)]
+        /// <seealso cref="IgnoreSNRMWithPreEstablished"/>
         public bool PreEstablished
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// SNRM command is not send With pre-established connection.
+        /// </summary>
+        /// <remarks>
+        /// DLMS standard defines that SNRM message is sent with pre-established connections, 
+        /// but there are some meters that don't follow the standard.
+        /// </remarks>
+        /// <seealso cref="PreEstablished"/>
+        [DefaultValue(false)]
+        public bool IgnoreSNRMWithPreEstablished
         {
             get;
             set;
@@ -290,9 +306,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         /// <remarks>
         /// Server HDLC Address (Logical + Physical address)  might be 1,2 or 4 bytes long.
+        /// Serial number is also saved for PhysicalAddress.
         /// </remarks>
         [DefaultValue(1)]
-        virtual public int PhysicalAddress
+        virtual public long PhysicalAddress
         {
             get;
             set;
@@ -580,6 +597,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Serial number formula.
         /// </summary>
+        /// <remarks>
+        /// Serial number formula is used to get logical and physical address from the serial number.
+        /// This is not defined in DLMS standard and different meters are using a different ways 
+        /// to get this information from the serial number.
+        /// </remarks>
         public string? SerialNumberFormula
         {
             get;

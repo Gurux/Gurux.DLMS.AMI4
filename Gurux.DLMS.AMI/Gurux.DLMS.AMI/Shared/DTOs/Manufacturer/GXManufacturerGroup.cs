@@ -69,6 +69,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// </summary>
         [Description("Manufacturer group identifier.")]
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

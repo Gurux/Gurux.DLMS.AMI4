@@ -73,6 +73,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Error Id.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

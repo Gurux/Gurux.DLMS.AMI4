@@ -45,6 +45,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Request Id.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

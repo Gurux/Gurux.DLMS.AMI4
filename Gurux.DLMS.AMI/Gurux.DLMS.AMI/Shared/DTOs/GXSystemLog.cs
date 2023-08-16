@@ -74,6 +74,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// System error identifier.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

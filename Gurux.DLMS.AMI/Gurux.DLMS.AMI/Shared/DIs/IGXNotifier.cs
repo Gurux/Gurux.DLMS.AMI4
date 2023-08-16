@@ -118,8 +118,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Update page data.
         /// </summary>
+        /// <param name="page"></param>
         /// <param name="data"></param>
         void UpdateData(string page, object? data);
+   
+        /// <summary>
+        /// Get page data.
+        /// </summary>
+        /// <param name="page">Page</param>
+        /// <returns>Page data.</returns>
         object? GetData(string page);
 
         /// <summary>

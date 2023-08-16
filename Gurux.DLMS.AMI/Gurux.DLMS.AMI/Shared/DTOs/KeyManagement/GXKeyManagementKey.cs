@@ -50,6 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </summary>
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
+        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
         {

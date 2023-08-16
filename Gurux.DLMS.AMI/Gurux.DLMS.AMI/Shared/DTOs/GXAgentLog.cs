@@ -77,6 +77,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Log Id.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

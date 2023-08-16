@@ -67,11 +67,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="devices">Updated device(s).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <param name="columns">Updated columns(s).</param>
+        /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
+        /// <remarks>
+        /// Late binding improves device creation when a huge amount of devices is created. 
+        /// This is handy when only a part of device objects is read, but the objects want to remain active just in case.
+        /// </remarks>
         Task<Guid[]> UpdateAsync(
             ClaimsPrincipal user,
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns = null);
+            Expression<Func<GXDevice, object?>>? columns = null,
+            bool lateBinding = false);
 
         /// <summary>
         /// Delete device(s).
@@ -81,7 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
             ClaimsPrincipal user,
-            IEnumerable<Guid> devices, 
+            IEnumerable<Guid> devices,
             bool delete);
 
         /// <summary>

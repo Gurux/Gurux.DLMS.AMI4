@@ -42,7 +42,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     [DataContract(Name = "GXDeviceCodes"), Serializable]
     public class GXDeviceCodes : IUnique<string>
     {
-        //Identifier.
+        /// <summary>
+        /// Identifier.
+        /// </summary>
         [StringLength(200)]
         [DataMember(Name = "UserCode")]
         [Filter(FilterType.Exact)]

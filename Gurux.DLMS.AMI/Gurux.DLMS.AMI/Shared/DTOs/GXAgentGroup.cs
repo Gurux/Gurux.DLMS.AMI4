@@ -70,6 +70,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [Description("Agent group identifier.")]
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

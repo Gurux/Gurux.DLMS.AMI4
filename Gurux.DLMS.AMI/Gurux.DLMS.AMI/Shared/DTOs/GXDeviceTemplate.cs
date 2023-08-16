@@ -71,6 +71,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Device template Id.
         /// </summary>
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

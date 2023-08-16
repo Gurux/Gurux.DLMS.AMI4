@@ -15,6 +15,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Version identifier.
         /// </summary>
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

@@ -41,7 +41,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     [DataContract(Name = "GXKey"), Serializable]
     public partial class GXKey : IUnique<string>
     {
-        //Identifier.
+        /// <summary>
+        /// Identifier.
+        /// </summary>
         [StringLength(450)]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]

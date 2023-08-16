@@ -41,8 +41,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
     /// </summary>
     public class GXTriggerActivity : GXTableBase, IUnique<Guid>
     {
+        /// <summary>
+        /// Trigger activity identifier.
+        /// </summary>
         [DataMember(Name = "ID")]
         [Description("Trigger activity identifier.")]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

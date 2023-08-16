@@ -37,14 +37,18 @@ using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle workflows.
+    /// </summary>
     public interface IWorkflowRepository
     {
         /// <summary>
         /// List workflows.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="includeActivity">Are script activities included.</param>
-        /// <param name="includeActivity">User info included.</param>
+        /// <param name="request"></param>
+        /// <param name="response"></param>
+        /// <param name="includeActivity"></param>
         /// <returns>Workflows.</returns>
         Task<GXWorkflow[]> ListAsync(
             ClaimsPrincipal User,
@@ -71,7 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="workflows">Updated workflow(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
+            ClaimsPrincipal User,
             IEnumerable<GXWorkflow> workflows,
             Expression<Func<GXWorkflow, object?>>? columns = null);
 

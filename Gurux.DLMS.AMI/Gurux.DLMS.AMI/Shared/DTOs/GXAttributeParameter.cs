@@ -46,6 +46,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Attribute parameter identifier.
         /// </summary>
         [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

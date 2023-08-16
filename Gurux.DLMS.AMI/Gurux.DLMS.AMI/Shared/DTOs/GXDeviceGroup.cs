@@ -72,6 +72,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Device group ID.
         /// </summary>
         [DataMember(Name = "ID"), Index(Unique = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

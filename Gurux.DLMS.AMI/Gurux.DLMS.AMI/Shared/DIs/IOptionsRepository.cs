@@ -30,10 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Shared.Rest;
-
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle options.
+    /// </summary>
     public interface IOptionsRepository
     {
         T GetServerSettings<T>(string configuration);

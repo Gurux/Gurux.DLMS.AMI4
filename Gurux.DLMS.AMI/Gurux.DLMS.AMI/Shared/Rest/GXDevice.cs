@@ -108,6 +108,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Device objects are created when they are read from the meter. This improves device creation speed.
+        /// </summary>
+        public bool LateBinding
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

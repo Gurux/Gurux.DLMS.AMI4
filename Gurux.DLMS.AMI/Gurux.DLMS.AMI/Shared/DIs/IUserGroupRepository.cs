@@ -30,17 +30,16 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle used groups.
+    /// </summary>
     public interface IUserGroupRepository
     {
         /// <summary>
@@ -98,17 +97,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? groupId);
 
         /// <summary>
-        /// Add user to user group.
-        /// </summary>
-        /// <param name="userId">User ID.</param>
-        /// <param name="group">Group ID of the group where the user is added.</param>
-        void AddUserToGroup(string userId, Guid group);
-
-        /// <summary>
         /// Add user to user groups.
         /// </summary>
         /// <param name="userId">User ID.</param>
-        /// <param name="group">Group ID of the group where the user is added.</param>
+        /// <param name="groups">Group ID of the group where the user is added.</param>
         void AddUserToGroups(string userId, IEnumerable<Guid> groups);
 
         /// <summary>

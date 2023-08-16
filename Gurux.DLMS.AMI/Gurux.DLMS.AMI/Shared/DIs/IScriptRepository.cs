@@ -37,6 +37,9 @@ using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle scripts.
+    /// </summary>
     public interface IScriptRepository
     {
         /// <summary>

@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
@@ -42,6 +43,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Identifier.
         /// </summary>
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

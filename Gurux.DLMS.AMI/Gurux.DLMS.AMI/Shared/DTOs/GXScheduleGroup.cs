@@ -70,6 +70,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Schedule group ID.
         /// </summary>
         [DataMember(Name = "ID"), Index(Unique = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

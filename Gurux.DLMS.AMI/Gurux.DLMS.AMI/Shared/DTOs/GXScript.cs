@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Script identifier.
         /// </summary>
         [DataMember(Name = "ID")]
+        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
         {

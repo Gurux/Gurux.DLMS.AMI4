@@ -48,6 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember(Name = "ID")]
         [Description("System setting category identifier.")]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

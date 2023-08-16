@@ -63,8 +63,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             ClassName = "";
         }
 
+        /// <summary>
+        /// Trigger identifier.
+        /// </summary>
         [DataMember(Name = "ID")]
         [Description("Trigger identifier.")]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

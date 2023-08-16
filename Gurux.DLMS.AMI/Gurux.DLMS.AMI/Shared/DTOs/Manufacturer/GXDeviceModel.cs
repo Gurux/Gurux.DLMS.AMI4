@@ -63,6 +63,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// Device type ID.
         /// </summary>
         [DataMember(Name = "ID")]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

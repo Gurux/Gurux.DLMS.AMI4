@@ -79,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [Description("Device identifier.")]
         [DataMember]
+        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
         {
@@ -257,6 +258,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// User has modified the device.
         /// </summary>
+        /// <remarks>
+        /// This information is not saved in the database.
+        /// </remarks>
         [IgnoreDataMember]
         [Ignore]
         public bool Modified
@@ -265,6 +269,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
+        /// <summary>
+        /// Device objects are created when they are read from the meter. This improves device creation speed.
+        /// </summary>
+        /// <remarks>
+        /// This information is not saved in the database.
+        /// </remarks>
+        [Ignore]
+        public bool? LateBinding
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Concurrency stamp.

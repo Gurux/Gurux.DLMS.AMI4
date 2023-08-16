@@ -60,6 +60,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Name of the component view class.
         /// </summary>
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

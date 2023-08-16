@@ -37,6 +37,9 @@ using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
+    /// <summary>
+    /// This interface is used to handle module groups.
+    /// </summary>
     public interface IModuleGroupRepository
     {
         /// <summary>
@@ -44,8 +47,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXModuleGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListModuleGroups? request, 
+            ClaimsPrincipal User,
+            ListModuleGroups? request,
             ListModuleGroupsResponse? response,
             CancellationToken cancellationToken);
 
@@ -65,7 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="groups">Updated module groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
+            ClaimsPrincipal User,
             IEnumerable<GXModuleGroup> groups,
             Expression<Func<GXModuleGroup, object?>>? columns = null);
 
@@ -75,8 +78,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="User">Current user.</param>
         /// <param name="groups">Module groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, 
-            IEnumerable<Guid> groups, 
+        Task DeleteAsync(ClaimsPrincipal User,
+            IEnumerable<Guid> groups,
             bool delete);
 
         /// <summary>

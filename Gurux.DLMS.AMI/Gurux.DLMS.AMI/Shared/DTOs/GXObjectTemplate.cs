@@ -63,9 +63,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Object template identifier.
         /// </summary>
         [Description("Object template identifier.")]
+        [DataMember]
         //Filter uses default value.
         [DefaultValue(null)]
-        [DataMember]
+        [Filter(FilterType.Exact)]
         public Guid Id
         {
             get;

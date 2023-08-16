@@ -47,6 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Description("Value identifier.")]
+        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
         {
