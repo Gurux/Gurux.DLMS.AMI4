@@ -670,9 +670,48 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         media.Open();
                     }
                     var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
+                    if (settings == null)
+                    {
+                        throw new Exception("Failed to serialize settings.");
+                    }
                     var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Template.Settings);
+                    if (templateSettings == null)
+                    {
+                        throw new Exception("Failed to serialize template settings.");
+                    }
                     //Use interface type that is defined for agent.
-                    if (templateSettings != null && listenerSettings != null && settings.InterfaceType != listenerSettings.Interface)
+                    if (listenerSettings != null)
+                    {
+                        if (settings.InterfaceType != listenerSettings.Interface)
+                        {
+                            foreach (var it in templateSettings.Profiles)
+                            {
+                                if (it.InterfaceType == listenerSettings.Interface)
+                                {
+                                    settings.InterfaceType = it.InterfaceType;
+                                    templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
+                                    settings.LogicalAddress = it.LogicalAddress;
+                                    settings.PhysicalAddress = it.PhysicalAddress;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        foreach (var it in templateSettings.Profiles)
+                        {
+                            if (it.InterfaceType == settings.InterfaceType)
+                            {
+                                settings.InterfaceType = it.InterfaceType;
+                                templateSettings.ClientAddress = settings.ClientAddress = it.ClientAddress;
+                                settings.LogicalAddress = it.LogicalAddress;
+                                settings.PhysicalAddress = it.PhysicalAddress;
+                                break;
+                            }
+                        }
+                    }
+                    if (listenerSettings != null && settings.InterfaceType != listenerSettings.Interface)
                     {
                         foreach (var it in templateSettings.Profiles)
                         {

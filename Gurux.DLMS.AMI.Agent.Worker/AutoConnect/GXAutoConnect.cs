@@ -317,11 +317,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             }
                         };
                         var ret = tmp.RunAsync(arg).Result;
-                        if ((_deviceId == null || _deviceId == Guid.Empty) && ret is Guid id)
+                        if ((_deviceId == null || _deviceId == Guid.Empty))
                         {
-                            //If script returns device ID.
-                            _deviceId = id;
-                            _connected.Set();
+                            if (ret is Guid id)
+                            {
+                                //If script returns device ID.
+                                _deviceId = id;
+                                _connected.Set();
+                            }
+                            else if (ret == null)
+                            {
+                                _connected.Set();
+                            }
                         }
                     }
                 }
