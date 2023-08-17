@@ -716,7 +716,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     int deviceAddress;
                     if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
                     {
-                        deviceAddress = GXDLMSClient.GetServerAddressFromSerialNumber(settings.PhysicalAddress,
+                        deviceAddress = GXDLMSClient.GetServerAddressFromSerialNumber((int) settings.PhysicalAddress,
                             settings.LogicalAddress,
                             settings.SerialNumberFormula);
                     }
@@ -725,11 +725,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         if (settings.LogicalAddress != 0 &&
                             (settings.InterfaceType == (int)InterfaceType.HDLC || settings.InterfaceType == (int)InterfaceType.HdlcWithModeE))
                         {
-                            deviceAddress = GXDLMSClient.GetServerAddress(settings.LogicalAddress, settings.PhysicalAddress);
+                            deviceAddress = GXDLMSClient.GetServerAddress(settings.LogicalAddress, (int)settings.PhysicalAddress);
                         }
                         else
                         {
-                            deviceAddress = settings.PhysicalAddress;
+                            deviceAddress = (int) settings.PhysicalAddress;
                         }
                     }
                     TraceLevel consoleTrace = Options.TraceLevel;
@@ -770,7 +770,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     cl.Ciphering.Security = (Security)templateSettings.Security;
                     reader = new GXDLMSReader(cl, media, _logger,
                         consoleTrace, deviceTrace, dev.WaitTime, dev.ResendCount, dev);
-                    await reader.InitializeConnection(settings.PreEstablished,
+                    await reader.InitializeConnection(settings.PreEstablished, settings.IgnoreSNRMWithPreEstablished,
                         settings.FrameCounter);
                 }
                 catch (Exception ex)

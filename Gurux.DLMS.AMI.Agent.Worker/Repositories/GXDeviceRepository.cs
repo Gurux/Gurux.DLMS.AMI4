@@ -95,7 +95,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             ClaimsPrincipal? user, 
             IEnumerable<GXDevice> devices, 
             CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns = null)
+            Expression<Func<GXDevice, object?>>? columns = null,
+            bool lateBinding = false)
         {
             UpdateDevice req = new UpdateDevice() { Devices = devices.ToArray() };
             UpdateDeviceResponse? ret = await GXAgentWorker.client.PostAsJson<UpdateDeviceResponse>("/api/Device/Update", req, cancellationToken);

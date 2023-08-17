@@ -379,29 +379,32 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <summary>
         /// Initialize connection to the meter.
         /// </summary>
-        public async Task InitializeConnection(bool preEstablished, string? invocationCounter)
+        public async Task InitializeConnection(bool preEstablished, bool ignoreSNRMWithPreEstablished, string? invocationCounter)
         {
             await UpdateFrameCounter(invocationCounter);
             InitializeOpticalHead();
             GXReplyData reply = new GXReplyData();
             byte[] data;
-            data = Client.SNRMRequest();
-            if (data != null)
+            if (ignoreSNRMWithPreEstablished)
             {
-                if (_consoleTrace > TraceLevel.Info)
+                data = Client.SNRMRequest();
+                if (data != null)
                 {
-                    Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
-                }
-                ReadDataBlock(data, reply);
-                if (_consoleTrace == TraceLevel.Verbose)
-                {
-                    Console.WriteLine("Parsing UA reply." + reply.ToString());
-                }
-                //Has server accepted client.
-                Client.ParseUAResponse(reply.Data);
-                if (_consoleTrace > TraceLevel.Info)
-                {
-                    Console.WriteLine("Parsing UA reply succeeded.");
+                    if (_consoleTrace > TraceLevel.Info)
+                    {
+                        Console.WriteLine("Send SNRM request." + GXCommon.ToHex(data, true));
+                    }
+                    ReadDataBlock(data, reply);
+                    if (_consoleTrace == TraceLevel.Verbose)
+                    {
+                        Console.WriteLine("Parsing UA reply." + reply.ToString());
+                    }
+                    //Has server accepted client.
+                    Client.ParseUAResponse(reply.Data);
+                    if (_consoleTrace > TraceLevel.Info)
+                    {
+                        Console.WriteLine("Parsing UA reply succeeded.");
+                    }
                 }
             }
             if (!preEstablished)

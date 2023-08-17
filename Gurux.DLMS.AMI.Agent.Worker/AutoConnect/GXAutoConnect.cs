@@ -154,7 +154,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     GXDLMSObjectCollection objects = new GXDLMSObjectCollection();
                     GXDLMSData ldn = new GXDLMSData("0.0.42.0.0.255");
                     ldn.SetUIDataType(2, DataType.String);
-                    await reader.InitializeConnection(false, settings.InvocationCounter);
+                    await reader.InitializeConnection(false, false, settings.InvocationCounter);
                     await reader.Read(ldn, 2);
                     if (settings != null && settings.TraceLevel >= TraceLevel.Info)
                     {
