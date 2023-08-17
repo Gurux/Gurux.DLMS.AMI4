@@ -28,7 +28,19 @@
 {
     <p>
         <div class="oi oi-tablet" style="display: inline;">
-            <h2 style="display: inline;">@DeviceName</h2>
+            <AuthorizeView>
+                @if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0) ||
+               (context.User.Identity?.IsAuthenticated != true ||
+               !(context.User.IsInRole(GXRoles.Admin) || context.User.IsInRole(GXRoles.Device) || context.User.IsInRole(GXRoles.DeviceManager))))
+                {
+                    <!--User can't edit the device.-->
+                    <h2 style="display: inline;">@DeviceName</h2>
+                }
+                else
+                {
+                    <a href="/device/Edit/@Id"><h2 style="display: inline;">@DeviceName</h2></a>
+                }
+            </AuthorizeView>
         </div>
     </p>
     <hr />
@@ -44,26 +56,26 @@
 else
 {
     <GXTable @ref="table"
-         Context="item"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
-         OnSearch="@Updated">
+             Context="item"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             OnSearch="@Updated">
         <FilterContent>
             <th>
                 <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                        type="search"
-                   @oninput="@SearchByName" />
+                @oninput="@SearchByName" />
             </th>
             <th>
                 <input class="form-control" placeholder="@Properties.Resources.FilterByLogicalName"
-                   @oninput="@SearchByLogicalName" />
+                @oninput="@SearchByLogicalName" />
             </th>
             <th>
                 <DropdownSearch Context="item"
-                            Immediate="true"
-                            @bind-Value="filterByObjectType"
-                            ItemsProvider="@GetObjectTypes">
+                                Immediate="true"
+                @bind-Value="filterByObjectType"
+                                ItemsProvider="@GetObjectTypes">
                     <ItemContent>
                         @item
                     </ItemContent>
@@ -96,7 +108,7 @@ else
     </GXTable>
     <br />
     <Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation" OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="">
+             ConfirmationMessage="">
     </Confirm>
 }
 

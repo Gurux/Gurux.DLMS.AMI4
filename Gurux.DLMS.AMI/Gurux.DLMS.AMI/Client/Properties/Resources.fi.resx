@@ -663,9 +663,6 @@
   <data name="BlockCipherKey" xml:space="preserve">
     <value>Lohkon salausavain</value>
   </data>
-  <data name="AuthenticationKey" xml:space="preserve">
-    <value>Todennusavain</value>
-  </data>
   <data name="ExpirationTime" xml:space="preserve">
     <value>Viimeinen voimassaoloaika</value>
   </data>
@@ -1070,5 +1067,14 @@
   </data>
   <data name="PhysicalAddress" xml:space="preserve">
     <value>Fyysinen osoite</value>
+  </data>
+  <data name="AuthenticationKey" xml:space="preserve">
+    <value>Todennusavain</value>
+  </data>
+  <data name="ConnectionUpTime" xml:space="preserve">
+    <value>Yhteyden ylläpitoaika</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Arvo</value>
   </data>
 </root>

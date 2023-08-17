@@ -42,9 +42,8 @@ using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.Workflow;
-using Gurux.DLMS.AMI.Client.Pages.Script;
-using System.Linq;
+using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -280,7 +279,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXUserGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string userId = null;
+            string? userId = null;
             //User is null if framework creates the user group.
             if (user != null)
             {
@@ -288,34 +287,41 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             List<Guid> list = new List<Guid>();
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
-            foreach (GXUserGroup userGroup in userGroups)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                if (string.IsNullOrEmpty(userGroup.Name))
+                var newGroups = userGroups.Where(w => w.Id == Guid.Empty).ToList();
+                var updatedGroups = userGroups.Where(w => w.Id != Guid.Empty).ToList();
+                foreach (GXUserGroup userGroup in newGroups)
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (userGroup.Id == Guid.Empty)
-                {
+                    if (string.IsNullOrEmpty(userGroup.Name))
+                    {
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
                     userGroup.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(userGroup);
                     //Users must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXUserGroup>(e => e.Users);
-                    _host.Connection.Insert(args);
+                    args.Exclude<GXUserGroup>(e => new { e.Users, e.Updated, e.Removed });
+                    _host.Connection.Insert(transaction, args);
                     list.Add(userGroup.Id);
                     if (userGroup.Users != null && userGroup.Users.Any())
                     {
                         //Add user(s) to user group.
-                        AddUsersToGroup(userGroup.Users.Select(s => s.Id).ToArray(), userGroup.Id);
+                        AddUsersToGroup(transaction, userGroup.Users.Select(s => s.Id).ToArray(), userGroup.Id);
                     }
                     else if (userId != null)
                     {
                         //Add creator to user group.
-                        AddUserToGroup(userId, userGroup.Id);
+                        AddUsersToGroup(transaction, new string[] { userId }, userGroup.Id);
                     }
                     updates[userGroup] = await GetUsersAsync(user, userGroup.Id);
                 }
-                else
+                foreach (GXUserGroup userGroup in updatedGroups)
                 {
+                    if (string.IsNullOrEmpty(userGroup.Name))
+                    {
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
                     GXSelectArgs m = GXSelectArgs.Select<GXUserGroup>(q => q.ConcurrencyStamp, where => where.Id == userGroup.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
                     if (!string.IsNullOrEmpty(updated) && updated != userGroup.ConcurrencyStamp)
@@ -350,6 +356,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             await _host.Connection.DeleteAsync(GXDeleteArgs.Delete<GXUserGroupUser>(w => w.UserGroupId == userGroup.Id && w.UserId == it));
                         }
                     }
+                    updates[userGroup] = users;
+                }
+                foreach (GXUserGroup userGroup in userGroups)
+                {
                     //Map device groups to user group.
                     if (userGroup.DeviceGroups != null && userGroup.DeviceGroups.Any())
                     {
@@ -359,11 +369,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXDeviceGroup> addedDeviceGroups = userGroup.DeviceGroups.Except(deviceGroups, comparer).ToList();
                         if (removedDeviceGroups.Any())
                         {
-                            RemoveDeviceGroupsFromUserGroup(userGroup.Id, removedDeviceGroups);
+                            RemoveDeviceGroupsFromUserGroup(transaction, userGroup.Id, removedDeviceGroups);
                         }
                         if (addedDeviceGroups.Any())
                         {
-                            AddDeviceGroupToUserGroup(userGroup.Id, addedDeviceGroups);
+                            AddDeviceGroupToUserGroup(transaction, userGroup.Id, addedDeviceGroups);
                         }
                     }
 
@@ -380,7 +390,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         if (addedGroups.Any())
                         {
-                            AddDeviceTemplateGroupToUserGroup(userGroup.Id, addedGroups);
+                            AddDeviceTemplateGroupToUserGroup(transaction, userGroup.Id, addedGroups);
                         }
                     }
 
@@ -393,15 +403,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXScheduleGroup> addedScheduleGroups = userGroup.ScheduleGroups.Except(scheduleGroups, comparer).ToList();
                         if (removedScheduleGroups.Any())
                         {
-                            RemoveScheduleGroupsFromUserGroup(userGroup.Id, removedScheduleGroups);
+                            RemoveScheduleGroupsFromUserGroup(transaction, userGroup.Id, removedScheduleGroups);
                         }
                         if (addedScheduleGroups.Any())
                         {
-                            AddScheduleGroupToUserGroup(userGroup.Id, addedScheduleGroups);
+                            AddScheduleGroupToUserGroup(transaction, userGroup.Id, addedScheduleGroups);
                         }
                     }
-                    updates[userGroup] = users;
                 }
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -411,27 +426,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// Add user to user group.
-        /// </summary>
-        /// <param name="userId">User ID.</param>
-        /// <param name="group">Group ID of the group where the user is added.</param>
-        public void AddUserToGroup(string userId, Guid group)
-        {
-            GXUserGroupUser ugu = new GXUserGroupUser()
-            {
-                UserGroupId = group,
-                UserId = userId,
-                CreationTime = DateTime.Now
-            };
-            _host.Connection.Insert(GXInsertArgs.Insert(ugu));
-        }
-
-        /// <summary>
         /// Add users to the user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="users">Users ID.</param>
         /// <param name="groupId">Group ID of the group where the user is added.</param>
-        public void AddUsersToGroup(IEnumerable<string> users, Guid groupId)
+        public void AddUsersToGroup(IDbTransaction transaction, IEnumerable<string> users, Guid groupId)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupUser> list = new List<GXUserGroupUser>();
@@ -444,7 +444,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
@@ -453,6 +453,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="userId">User ID.</param>
         /// <param name="groups">Group IDs of the user groups where the user is added.</param>
         public void AddUserToGroups(string userId, IEnumerable<Guid> groups)
+        {
+            AddUserToGroups(null, userId, groups);
+        }
+
+        /// <summary>
+        /// Add user to user groups.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="userId">User ID.</param>
+        /// <param name="groups">Group IDs of the user groups where the user is added.</param>
+        public void AddUserToGroups(IDbTransaction? transaction, string userId, IEnumerable<Guid> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupUser> list = new List<GXUserGroupUser>();
@@ -468,13 +479,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _host.Connection.Insert(GXInsertArgs.InsertRange(list));
         }
 
-
         /// <summary>
         /// Map schedule group to user group.
         /// </summary>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added schedule groups.</param>
-        public void AddScheduleGroupToUserGroup(Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
+        public void AddScheduleGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupScheduleGroup> list = new List<GXUserGroupScheduleGroup>();
@@ -487,7 +497,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
@@ -495,7 +505,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Removed schedule groups.</param>
-        public void RemoveScheduleGroupsFromUserGroup(Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
+        public void RemoveScheduleGroupsFromUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupScheduleGroup>();
             foreach (var it in groups)
@@ -511,7 +521,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added device groups.</param>
-        public void AddDeviceGroupToUserGroup(Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
+        public void AddDeviceGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupDeviceGroup> list = new List<GXUserGroupDeviceGroup>();
@@ -524,7 +534,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
@@ -532,7 +542,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Removed device groups.</param>
-        public void RemoveDeviceGroupsFromUserGroup(Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
+        public void RemoveDeviceGroupsFromUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupDeviceGroup>();
             foreach (var it in groups)
@@ -548,7 +558,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added device template groups.</param>
-        public void AddDeviceTemplateGroupToUserGroup(Guid userGroupId, IEnumerable<GXDeviceTemplateGroup> groups)
+        public void AddDeviceTemplateGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceTemplateGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupDeviceTemplateGroup> list = new List<GXUserGroupDeviceTemplateGroup>();
@@ -561,7 +571,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>

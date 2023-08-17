@@ -45,6 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Client system title.
         /// </summary>
         [DataMember, StringLength(16)]
+        [Description("Client system title.")]
         public string? ClientSystemTitle
         {
             get;
@@ -88,6 +89,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Dedicated Key.
         /// </summary>
         [DefaultValue(null)]
+        [StringLength(32)]
+        [Description("Dedicatedkey.")]
         public string? DedicatedKey
         {
             get;
@@ -137,6 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Password is used only if authentication is used.
         /// </summary>
         [DefaultValue(null)]
+        [Browsable(false)]
         public string? Password
         {
             get;
@@ -146,6 +150,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Is hex password used.
         /// </summary>
+        [Browsable(false)]
         public bool IsHex
         {
             get;

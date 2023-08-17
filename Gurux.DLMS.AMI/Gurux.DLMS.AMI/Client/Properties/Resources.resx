@@ -1071,4 +1071,10 @@
   <data name="PhysicalAddress" xml:space="preserve">
     <value>Physical address</value>
   </data>
+  <data name="ConnectionUpTime" xml:space="preserve">
+    <value>Connection up time</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Value</value>
+  </data>
 </root>

@@ -1,0 +1,215 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.Objects.Enums;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Web;
+@using System.Text.Json.Serialization;
+@using System.Reflection;
+@using System.Text;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<DeviceTemplate> Logger
+@if (Action != CrudAction.None)
+{
+    <!--Edit advanced .-->
+    <AdvancedEdit Parent="this"></AdvancedEdit>
+}
+@if (Settings != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    @Properties.Resources.Name
+                </th>
+                <th>
+                    @Properties.Resources.Value
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var it in Settings.GetType().GetProperties())
+            {
+                @if (!ShouldSkip(it))
+                {
+                    <tr>
+                        <th>
+                            <LinkButton Target="@it" OnClick="@Edit" Text="@it.Name" />
+                        </th>
+                        <th>
+                            @GetValue(it)
+                        </th>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    internal CrudAction Action;
+    internal PropertyInfo? Selected;
+
+    internal Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? Settings;
+
+    private bool ShouldSkip(PropertyInfo pi)
+    {
+        switch (pi.Name)
+        {
+            case "Profiles":
+            case "IsHex":
+            case "Manufacturer":
+            case "Authentication":
+            case "Password":
+            case "HexPassword":
+            case "ClientAddress":
+            case "LogicalAddress":
+            case "SupporterdInterfaces":
+            case "HDLCAddressing":
+            case "InterfaceType":
+                return true;
+        }
+        return false;
+    }
+
+    private string? GetValue(PropertyInfo pi)
+    {
+        object? value = pi.GetValue(Settings);
+
+        @if (pi.Name == "Authentication")
+        {
+            return ((Gurux.DLMS.Enums.Authentication)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "Standard")
+        {
+            return ((Gurux.DLMS.Enums.Standard)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "Security")
+        {
+            return ((Gurux.DLMS.Enums.Security)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "SecuritySuite")
+        {
+            return ((SecuritySuite)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "DateTimeSkips")
+        {
+            return ((Gurux.DLMS.Enums.DateTimeSkips)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "InterfaceType")
+        {
+            return ((Gurux.DLMS.Enums.DateTimeSkips)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "ServiceClass")
+        {
+            return ((Gurux.DLMS.Enums.ServiceClass)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "Priority")
+        {
+            return ((Gurux.DLMS.Enums.Priority)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "Conformance")
+        {
+            return ((Gurux.DLMS.Enums.Conformance)Convert.ToInt32(value)).ToString();
+        }
+        else if (pi.Name == "SupporterdInterfaces")
+        {
+            return ((Gurux.DLMS.Enums.InterfaceType)Convert.ToInt32(value)).ToString();
+        }
+        if (value is byte[] ba)
+        {
+            return @GXDLMSTranslator.ToHex(ba);
+        }
+        return Convert.ToString(value);
+    }
+
+    private void Edit(PropertyInfo item)
+    {
+        try
+        {
+            Action = CrudAction.Update;
+            Selected = item;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    {
+        Settings = s;
+        if (renderOnSuccess)
+        {
+            StateHasChanged();
+        }
+    }
+
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+    }
+
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    {
+    }
+
+    private GXValidator? _validator;
+
+    [Parameter]
+    public DeviceTemplate? Parent { get; set; }
+
+    internal GXDeviceTemplate? Active
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    public bool IsDeleting
+    {
+        get
+        {
+            if (Parent == null)
+            {
+                return false;
+            }
+            return Parent.IsDeleting;
+        }
+    }
+
+    /// <summary>
+    /// Close profile form.
+    /// </summary>
+    internal void Update()
+    {
+        Action = CrudAction.None;
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        {
+            Settings = s;
+        }
+    }
+}

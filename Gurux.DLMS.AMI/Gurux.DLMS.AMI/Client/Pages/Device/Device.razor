@@ -249,7 +249,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.SerialNumber</label>
                                 <InputNumber id="resend" class="form-control"
-                            @bind-Value="_settings.PhysicalAddress" />
+                                @bind-Value="_settings.PhysicalAddress" />
                                 <ValidationMessage For="@(() => _settings.PhysicalAddress)" />
                             </div>
                         }
@@ -290,6 +290,12 @@
                                 <SerialSettings @bind-Settings="@Active.MediaSettings" @ref=serialSettings></SerialSettings>
                             }
                         }
+                        <div class="form-group row">
+                            <label>@Properties.Resources.ConnectionUpTime</label>
+                            <InputNullableIntegerTimeSpan id="resend" class="form-control"
+                            @bind-Value="Active.ConnectionUpTime" />
+                            <ValidationMessage For="@(() => Active.ConnectionUpTime)" />
+                        </div>
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                         <div class="form-group row">
                             <label>@Properties.Resources.TraceLevels</label>
@@ -1464,13 +1470,16 @@
                     }
                 }
             }
-            if (networkSettings != null && Active.MediaType == "Gurux.Net.GXNet")
+            if (!Active.Dynamic.GetValueOrDefault())
             {
-                networkSettings.Validate(sender);
-            }
-            else if (serialSettings != null && Active.MediaType == "Gurux.Serial.GXSerial")
-            {
-                serialSettings.Validate(sender);
+                if (networkSettings != null && Active.MediaType == "Gurux.Net.GXNet")
+                {
+                    networkSettings.Validate(sender);
+                }
+                else if (serialSettings != null && Active.MediaType == "Gurux.Serial.GXSerial")
+                {
+                    serialSettings.Validate(sender);
+                }
             }
         }
     }

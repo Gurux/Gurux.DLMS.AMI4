@@ -5,7 +5,10 @@
 
 <CascadingValue Value="this">
     <div class="form-inline">
-        <label>@Title</label>
+        @if (!string.IsNullOrEmpty(Title))
+        {
+            <label>@Title</label>
+        }
         <Switch OnChange="OnHexChanged"
                 Disabled="@IsHexDisabled()" Checked="@Hex">
             @Properties.Resources.Hex
@@ -33,7 +36,7 @@
     public string? Title { get; set; }
 
     /// <summary>
-    /// Is system title in hex format.
+    /// Is value shown in hex format.
     /// </summary>
     [Parameter]
     public bool Hex { get; set; }

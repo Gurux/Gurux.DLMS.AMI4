@@ -1,0 +1,280 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.ASN;
+@using Gurux.DLMS.Objects.Enums;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text;
+@using System.Reflection;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <Dialog OnOk="OnSave" OnCancel="OnCancel">
+        <EditForm Model="@Active">
+            <DataAnnotationsValidator />
+            <GXValidator @ref="_validator" OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <div class="col-auto">
+                            <label>@Active.Name</label>
+                        </div>
+                        <div class="col-auto">
+                            @if (IsHexString)
+                            {
+                                <InputHexAscii @bind-Value="HexByteArray"></InputHexAscii>
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            }
+                            else @if (Active.Name == "Authentication")
+                            {
+                                <select class="form-select" @bind="ByteValue">
+                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Authentication)))
+                                    {
+                                        <option value="@Convert.ToInt32(it)">@it</option>
+                                    }
+                                </select>
+                            }
+                            else if (Active.Name == "Standard")
+                            {
+                                <select class="form-select" @bind="ByteValue">
+                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Standard)))
+                                    {
+                                        <option value="@Convert.ToByte(it)">@it</option>
+                                    }
+                                </select>
+                            }
+                            else if (Active.Name == "Security")
+                            {
+                                <select class="form-select" @bind="ByteValue">
+                                    @foreach (var it in Enum.GetValues(typeof(Gurux.DLMS.Enums.Security)))
+                                    {
+                                        <option value="@Convert.ToByte(it)">@it</option>
+                                    }
+                                </select>
+                            }
+                            else if (Active.Name == "SecuritySuite")
+                            {
+                                <select class="form-select" @bind="ByteValue">
+                                    @foreach (var it in Enum.GetValues(typeof(SecuritySuite)))
+                                    {
+                                        <option value="@Convert.ToByte(it)">@it</option>
+                                    }
+                                </select>
+                            }
+                            else if (Active.PropertyType.FullName == typeof(string).FullName)
+                            {
+                                <InputText class="form-control" @bind-Value="StringValue" />
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            }
+                            else if (Active.PropertyType.FullName == typeof(int).FullName)
+                            {
+                                <InputNumber @bind-Value="IntValue" />
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            }
+                            else if (Active.PropertyType.FullName == typeof(byte).FullName)
+                            {
+                                <GXInputNumber @bind-Value="ByteValue" Min="0" Max="255" />
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            }
+                            else if (Active.PropertyType.FullName == typeof(bool).FullName)
+                            {
+                                <InputSwitch @bind-Value="BoolValue" />
+                            }
+                            else if (Active.PropertyType.FullName == typeof(byte[]).FullName)
+                            {
+                                <InputHexAscii @bind-Value="ByteArray" Title="@Active.Name"></InputHexAscii>
+                                <ValidationMessage For="@(() => Active.Name)" />
+                            }
+                            else
+                            {
+                                <label>@Value</label>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+@code {
+    private object? Value;
+
+    private bool IsHexString
+    {
+        get
+        {
+            return Active == null ||
+            Active.Name == "ClientSystemTitle" ||
+            Active.Name == "DeviceSystemTitle" ||
+            Active.Name == "BlockCipherKey" ||
+            Active.Name == "AuthenticationKey" ||
+            Active.Name == "DedicatedKey" ||
+            Active.Name == "HexPassword";
+        }
+    }
+
+    private byte[]? ByteArray
+    {
+        get
+        {
+            return Value as byte[];
+        }
+        set
+        {
+            Value = value;
+        }
+    }
+
+    private byte[]? HexByteArray
+    {
+        get
+        {
+            return GXDLMSTranslator.HexToBytes(Value as string);
+        }
+        set
+        {
+            Value = GXDLMSTranslator.ToHex(value);
+        }
+    }
+
+    private int IntValue
+    {
+        get
+        {
+            return (int)Value;
+        }
+        set
+        {
+            Value = value;
+        }
+    }
+
+    private int ByteValue
+    {
+        get
+        {
+            return (byte)Value;
+        }
+        set
+        {
+            Value = Convert.ToByte(value);
+        }
+    }
+
+    private bool BoolValue
+    {
+        get
+        {
+            return (bool)Value;
+        }
+        set
+        {
+            Value = value;
+        }
+    }
+
+    private string StringValue
+    {
+        get
+        {
+            return (string)Value;
+        }
+        set
+        {
+            Value = value;
+        }
+    }
+
+    private GXValidator? _validator;
+
+    [Parameter]
+    public Advanced? Parent { get; set; }
+
+    private PropertyInfo? Active
+    {
+        get
+        {
+            return Parent?.Selected;
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Active == null || Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Value = Active.GetValue(Parent.Settings);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the profile content.
+    ///</summary>
+    ///<param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+
+    }
+
+    /// <summary>
+    /// Save profile group.
+    ///</summary>
+    public void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ClearStatus();
+            if (Parent?.Action == CrudAction.Update)
+            {
+                Active.SetValue(Parent.Settings, Value);
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent?.Update();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Parent?.Update();
+    }
+}

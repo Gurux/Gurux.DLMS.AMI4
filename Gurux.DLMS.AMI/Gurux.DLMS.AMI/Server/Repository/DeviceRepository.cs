@@ -453,7 +453,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ClaimsPrincipal User,
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns)
+            Expression<Func<GXDevice, object?>>? columns,
+            bool lateBinding)
         {
             DateTime now = DateTime.Now;
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
@@ -846,6 +847,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Add device parameters.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="device">Device where parameters are added.</param>
         /// <param name="parameters">Added device parameters.</param>
         public Task AddDeviceParameters(IDbTransaction transaction,

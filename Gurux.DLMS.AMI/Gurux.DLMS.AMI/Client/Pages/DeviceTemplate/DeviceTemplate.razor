@@ -18,6 +18,7 @@
 @using System.Text.Json
 @using System.Web;
 @using System.Text.Json.Serialization;
+@using System.Text.Encodings.Web;
 
 @attribute [Authorize(Roles = "Admin, TemplateManager")]
 @inject NavigationManager NavigationManager
@@ -112,14 +113,19 @@
         </table>
         <TabControl>
             <ChildContent>
-                <TabPage Text="Profiles" Icon="oi oi-timer">
+                <TabPage Text="Profiles" Icon="oi oi-data-transfer-download">
                     <div style="position: relative; width: 100%; ">
                         <Profiles Parent="this" @ref="_profiles"></Profiles>
                     </div>
                 </TabPage>
-                <TabPage Text="Ciphering" Icon="oi oi-timer">
+                <TabPage Text="Ciphering" Icon="oi oi-key">
                     <div style="position: relative; width: 100%; ">
                         <Ciphering Parent="this" @ref="_ciphering"></Ciphering>
+                    </div>
+                </TabPage>
+                <TabPage Text="Advanced" Icon="oi oi-cog">
+                    <div style="position: relative; width: 100%; ">
+                        <Advanced Parent="this" @ref="_advanced"></Advanced>
                     </div>
                 </TabPage>
             </ChildContent>
@@ -151,6 +157,7 @@
     private InputHexAscii? _password;
     private GXValidator? _validator;
     private Ciphering? _ciphering;
+    private Advanced? _advanced;
     private Profiles? _profiles;
 
     [CascadingParameter]
@@ -321,6 +328,7 @@
         settings.DeviceSystemTitle = source.ServerSystemTitle;
         settings.DedicatedKey = source.DedicatedKey;
         settings.PreEstablished = source.PreEstablished;
+        settings.IgnoreSNRMWithPreEstablished = source.IgnoreSNRMWithPreEstablished;
         settings.BlockCipherKey = source.BlockCipherKey;
         settings.AuthenticationKey = source.AuthenticationKey;
         settings.InvocationCounter = source.InvocationCounter;
@@ -351,7 +359,11 @@
         settings.HDLCAddressing = (int)source.HDLCAddressing;
         settings.UseLogicalNameReferencing = source.UseLogicalNameReferencing;
         settings.UseProtectedRelease = source.UseProtectedRelease;
-        target.Settings = JsonSerializer.Serialize(settings);
+        var options = new JsonSerializerOptions
+            {
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+            };
+        target.Settings = JsonSerializer.Serialize(settings, options);
     }
 
     /// <summary>
@@ -423,6 +435,7 @@
                 }
                 _profiles?.Update(Settings);
                 _ciphering?.Update(Settings);
+                _advanced?.Update(Settings);
             }
             StateHasChanged();
         }
@@ -466,8 +479,9 @@
                 Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
                 if (Settings != null)
                 {
-                    DevicePassword = Settings?.HexPassword;
+                    DevicePassword = Settings.HexPassword;
                     _ciphering?.Update(Settings);
+                    _advanced?.Update(Settings);
                 }
             }
 
@@ -513,6 +527,7 @@
                 //Check security settings.
                 _ciphering?.Validate(sender, Settings);
                 _profiles?.Validate(sender, Settings);
+                _advanced?.Validate(sender, Settings);
             }
         }
     }
@@ -528,8 +543,28 @@
                 };
             _ciphering?.UpdateSettings(Settings);
             _profiles?.UpdateSettings(Settings);
+            _advanced?.UpdateSettings(Settings);
             Settings.Password = null;
             Settings.HexPassword = _password?.GetByteArray();
+            //Set empty strings to null.
+            @foreach (var it in Settings.GetType().GetProperties())
+            {
+                object value = it.GetValue(Settings);
+                if (value is string str)
+                {
+                    if (str == string.Empty)
+                    {
+                        it.SetValue(Settings, null);
+                    }
+                }
+                if (value is byte[] ba)
+                {
+                    if (ba.Length == 0)
+                    {
+                        it.SetValue(Settings, null);
+                    }
+                }
+            }
             Active.Settings = JsonSerializer.Serialize(Settings, options);
         }
     }

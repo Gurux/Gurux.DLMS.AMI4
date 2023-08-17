@@ -165,6 +165,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
+            if (!users.Any())
+            {
+                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+            }
             Dictionary<string, List<string>> updates = new Dictionary<string, List<string>>();
             foreach (string it in users)
             {
