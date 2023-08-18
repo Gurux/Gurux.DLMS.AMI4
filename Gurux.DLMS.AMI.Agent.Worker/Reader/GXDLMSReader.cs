@@ -385,7 +385,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             InitializeOpticalHead();
             GXReplyData reply = new GXReplyData();
             byte[] data;
-            if (ignoreSNRMWithPreEstablished)
+            if (!ignoreSNRMWithPreEstablished)
             {
                 data = Client.SNRMRequest();
                 if (data != null)

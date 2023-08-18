@@ -94,7 +94,7 @@
             if (string.Compare(Action, "Add", true) != 0)
             {
                 //Get user data.
-                var tmp = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User?id={0}", Id)));
+                var tmp = (await Http.GetAsJsonAsync<GetUserResponse>(string.Format("api/User/{0}", Id)));
                 if (tmp?.Item != null)
                 {
                     Active = tmp.Item;
