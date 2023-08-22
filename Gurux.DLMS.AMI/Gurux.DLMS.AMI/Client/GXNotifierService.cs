@@ -437,7 +437,7 @@ namespace Gurux.DLMS.AMI.Client
                             Name = GXConfigurations.Performance
                         }
                     };
-                    GetUserResponse? ret = await http.GetAsJsonAsync<GetUserResponse>("api/User/");
+                    GetUserResponse? ret = await http.GetAsJsonAsync<GetUserResponse>("api/User");
                     var settings = ret.Item?.Settings?.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
                     if (!string.IsNullOrEmpty(settings?.Value))
                     {

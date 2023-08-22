@@ -192,8 +192,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task UpdateAsync(
-            ClaimsPrincipal User, 
-            IEnumerable<GXConfiguration> configurations, 
+            ClaimsPrincipal User,
+            IEnumerable<GXConfiguration> configurations,
             bool notify)
         {
             GXUpdateArgs update = GXUpdateArgs.UpdateRange(configurations);
@@ -295,7 +295,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     _modified(configurations);
                 }
                 var users = await _userRepository.GetUserIdsInRoleAsync(User, new string[] { GXRoles.Admin });
-                await _eventsNotifier.ConfigurationSave(users, configurations);
+                List<GXConfiguration> tmp = new List<GXConfiguration>();
+                foreach (var it in configurations)
+                {
+                    tmp.Add(new GXConfiguration()
+                    {
+                        Id = it.Id,
+                        Name = it.Name,
+                        Settings = it.Settings,
+                        Updated = it.Updated,
+                    });
+                }
+                //Only IDs are notified for security reasons.
+                await _eventsNotifier.ConfigurationSave(users, tmp);
             }
         }
 
