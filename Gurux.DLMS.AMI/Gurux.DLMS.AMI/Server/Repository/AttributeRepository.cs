@@ -40,12 +40,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.Objects;
-using Org.BouncyCastle.Asn1.Cms;
-using Google.Protobuf.WellKnownTypes;
-using Gurux.DLMS.AMI.Client.Pages.User;
-using System.Collections.Generic;
-using System.Security.Cryptography.Xml;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -149,6 +143,38 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
             if (request != null)
             {
+                if (request.Filter?.Object != null)
+                {
+                    if (request.Filter.Object.Device?.Name is string dn)
+                    {
+                        arg.Where.And<GXDevice>(w => w.Name.Contains(dn));
+                    }
+                    if (request.Filter.Object.Device?.Template?.Name is string dtn)
+                    {
+                        arg.Where.And<GXDeviceTemplate>(w => w.Name.Contains(dtn));
+                    }
+                    bool joiAdded = false;
+                    if (request.Filter.Object.Template?.LogicalName is string otln)
+                    {
+                        joiAdded = true;
+                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                        arg.Where.And<GXObjectTemplate>(w => w.LogicalName.Contains(otln));
+                    }
+                    if (request.Filter.Object.Template?.Name is string otn)
+                    {
+                        if (!joiAdded)
+                        {
+                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                        }
+                        arg.Where.And<GXObjectTemplate>(w => w.Name.Contains(otn));
+                    }
+                    if (request.Filter.Template != null && request.Filter.Template.Index != 0)
+                    {
+                        int index = request.Filter.Template.Index;
+                        arg.Where.And<GXAttributeTemplate>(w => w.Index == index);
+                    }
+                    request.Filter.Object = null;
+                }
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
@@ -179,6 +205,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.OrderBy.Add<GXAttribute>(q => q.Id);
             }
             GXAttribute[] attributes = (await _host.Connection.SelectAsync<GXAttribute>(arg)).ToArray();
+            if (attributes.Any() && request != null)
+            {
+                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                {
+                    arg.Columns.Add<GXDeviceTemplate>();
+                    arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Objects });
+                    arg.Columns.Exclude<GXDevice>(e => new { e.Objects });
+                    arg.Columns.Add<GXDevice>();
+                }
+                else if ((request.Select & TargetType.Device) != 0)
+                {
+                    foreach (var it in attributes)
+                    {
+                        arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template, s.Device });
+                        arg.Columns.Add<GXObject>(s => new { s.Id, s.Template, s.Device });
+                        arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
+                        arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
+                        arg.Columns.Exclude<GXDevice>(e => e.Objects);
+                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+                        arg.Where.And<GXAttribute>(w => w.Id == it.Id);
+                        it.Object = (await _host.Connection.SingleOrDefaultAsync<GXObject>(arg));
+                    }
+                }
+            }
             if (response != null)
             {
                 response.Attributes = attributes;

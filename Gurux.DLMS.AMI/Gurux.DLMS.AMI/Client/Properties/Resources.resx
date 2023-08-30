@@ -1077,4 +1077,22 @@
   <data name="Value" xml:space="preserve">
     <value>Value</value>
   </data>
+  <data name="FilterByDevice" xml:space="preserve">
+    <value>Filter by device name...</value>
+  </data>
+  <data name="FilterByDeviceType" xml:space="preserve">
+    <value>Filter by device type...</value>
+  </data>
+  <data name="FilterByObject" xml:space="preserve">
+    <value>Filter by object...</value>
+  </data>
+  <data name="RemoveAll" xml:space="preserve">
+    <value>Remove all</value>
+  </data>
+  <data name="AddAll" xml:space="preserve">
+    <value>Add all</value>
+  </data>
+  <data name="FilterByAttributeIndex" xml:space="preserve">
+    <value>Filter by attribute index...</value>
+  </data>
 </root>

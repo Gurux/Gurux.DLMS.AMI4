@@ -1077,4 +1077,22 @@
   <data name="Value" xml:space="preserve">
     <value>Arvo</value>
   </data>
+  <data name="FilterByDevice" xml:space="preserve">
+    <value>Suodata laitteen nimen mukaan...</value>
+  </data>
+  <data name="FilterByDeviceType" xml:space="preserve">
+    <value>Suodata laitetyypin mukaan...</value>
+  </data>
+  <data name="FilterByObject" xml:space="preserve">
+    <value>Suodata objektin mukaan...</value>
+  </data>
+  <data name="RemoveAll" xml:space="preserve">
+    <value>Poista kaikki</value>
+  </data>
+  <data name="AddAll" xml:space="preserve">
+    <value>Lisää kaikki</value>
+  </data>
+  <data name="FilterByAttributeIndex" xml:space="preserve">
+    <value>Suodata määriteindeksin mukaan...</value>
+  </data>
 </root>

@@ -4,7 +4,11 @@
 @if (Items != null)
 {
     <div class="selection-status">
-        <h3>(@Title @Items.Count)</h3>
+        <h3>@Title</h3>
+        @if (ButtonContent != null)
+        {
+            @ButtonContent
+        }
         @if (FilterContent != null)
         {
             @if (Filter)
@@ -19,7 +23,7 @@
                     <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox"
-                   @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
+                            @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
                             <label>@Properties.Resources.ShowDataForAllUsers</label>
                         </div>
                     </AuthorizeView>
@@ -37,7 +41,7 @@
         }
         <ul class="dropzone @dropClass"
             ondragover="event.preventDefault();"
-            ondragstart="event.dataTransfer.setData('', event.target.id);"
+        @ondragstart="HandleDragStart"
         @ondrop="HandleDrop"
         @ondragenter="HandleDragEnter"
         @ondragleave="HandleDragLeave">
@@ -45,7 +49,7 @@
             @foreach (var it in GetItems())
             {
                 <CascadingValue Value="this">
-                    <SelectionItem SourceList="@Items" Target="@it" />
+                    <SelectionItem Target="@it" />
                 </CascadingValue>
             }
         </ul>
@@ -56,7 +60,9 @@
             <ul class="pagination justify-content-center">
                 @if (CurrentPage != 0)
                 {
-                    <li @onclick="@(() => SelectPage(0))" style="cursor: pointer;" class="page-link" href="#">&laquo;</li>
+                    <li @onclick="@(() => SelectPage(0))" style="cursor: pointer;">
+                        <span class="page-link" href="#">&laquo;</span>
+                    </li>
                 }
                 @foreach (int pos in Pages)
                 {
@@ -69,7 +75,9 @@
                 }
                 @if (CurrentPage != TotalPages - 1)
                 {
-                    <li @onclick="@(() => SelectPage(TotalPages - 1))" style="cursor: pointer;" class="page-link" href="#">&raquo;</li>
+                    <li @onclick="@(() => SelectPage(TotalPages - 1))" style="cursor: pointer;">
+                        <span class="page-link" href="#">&raquo;</span>
+                    </li>
                 }
             </ul>
         }
@@ -83,6 +91,9 @@
 }
 
 @code {
+    public delegate Task ItemUpdatedEventHandler(IEnumerable<TItem> items);
+
+
     public delegate string? GetNameEventHandler(TItem target);
     public delegate string? GetDescriptionEventHandler(TItem target);
 
@@ -224,12 +235,38 @@
     public bool Filter { get; set; } = false;
 
     /// <summary>
+    /// Button content.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ButtonContent { get; set; }
+
+    /// <summary>
     /// Filter content.
     /// </summary>
     [Parameter]
     public RenderFragment? FilterContent { get; set; }
 
-    string dropClass = "";
+    /// <summary>
+    /// A new item has added for the list.
+    /// </summary>
+    [Parameter]
+    public ItemUpdatedEventHandler? OnAdded { get; set; }
+
+    /// <summary>
+    /// Item has removed from the lists.
+    /// </summary>
+    [Parameter]
+    public ItemUpdatedEventHandler? OnRemoved { get; set; }
+
+    private string dropClass = "";
+
+    private void HandleDragStart(DragEventArgs e)
+    {
+        if (Container != null)
+        {
+            Container.DragSource = this;
+        }
+    }
 
     private void HandleDragEnter()
     {
@@ -245,11 +282,20 @@
     {
         dropClass = "";
         if (Container != null && Container.SourceList != null &&
-            Container.Payload != null && Items != null)
+            Container.Item != null && Items != null)
         {
-            Container.SourceList.Remove(Container.Payload);
-            Items.Add(Container.Payload);
-            await Container.UpdateJobAsync(this, Items);
+            TItem[] items = new TItem[] { Container.Item };
+            Container.SourceList.Remove(Container.Item);
+            Items.Add(Container.Item);
+            OnAdded?.Invoke(items);
+            await Container.ItemAdded(this, items);
+            if (Container.DragSource != null)
+            {
+                Container.DragSource.OnRemoved?.Invoke(items);
+                await Container.ItemRemoved(Container.DragSource, items);
+                await Container.DragSource.RefreshDataAsync();
+                Container.DragSource = null;
+            }
         }
     }
 
@@ -257,7 +303,7 @@
     /// Read values async.
     /// </summary>
     /// <param name="renderOnSuccess">Is UI render after success operation.</param>
-    public async Task RefreshDataAsync(bool renderOnSuccess = true)
+    internal async Task RefreshDataAsync(bool renderOnSuccess = true)
     {
         if (Container != null)
         {
@@ -266,10 +312,10 @@
             CancellationToken cancellationToken = _cts.Token;
             GXItemsProviderRequest req = new GXItemsProviderRequest(ShowAllData ? 0 : CurrentPage * Container.PageSize,
                 ShowAllData ? 0 : Container.PageSize,
-                ShowAllUserData, 
-                false, 
-                null, 
-                false, 
+                ShowAllUserData,
+                false,
+                null,
+                false,
                 null,
                 cancellationToken);
             var result = await ItemsProvider(req);

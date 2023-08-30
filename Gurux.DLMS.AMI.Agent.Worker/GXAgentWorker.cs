@@ -289,10 +289,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             catch (Exception ex)
             {
-                _logger?.LogError("Install new version failed. " + ex.Message);
+                _logger?.LogError(DateTime.Now + "\t" + "Install new version failed. " + ex.Message);
             }
         }
-
         /// <summary>
         /// Get existed tasks.
         /// </summary>
@@ -314,11 +313,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         if (response != null && response.Tasks != null && response.Tasks.Any())
                         {
                             //Read the meter if it's not read at the moment with other thread.                            
-                            await _meterReads.SendAsync(new GXActionBlock()
+                            _meterReads.Post(new GXActionBlock()
                             {
                                 Tasks = response.Tasks,
                                 NewTask = _newTask
                             });
+                            _newTask.Set();
                         }
                     }
                     else
@@ -332,13 +332,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 catch (HttpRequestException ex)
                 {
-                    _logger?.LogError("Get next task failed. " + ex.Message);
+                    _logger?.LogError(DateTime.Now + "\t" + "Get next task failed. " + ex.Message);
                     //Server is closed. Wait 10 seconds before next attempt.
                     _closing.WaitOne(10000);
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogError("Get next task failed. " + ex.Message);
+                    _logger?.LogError(DateTime.Now + "\t" + "Get next task failed. " + ex.Message);
                 }
             }
         }
@@ -607,7 +607,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     task.Result = ex.Message;
                 }
                 await ReportDone(tasks);
-                _logger?.LogError(ex.Message);
+                _logger?.LogError(DateTime.Now + "\t" + ex.Message);
                 action.NewTask?.Set();
                 return null;
             }
@@ -854,7 +854,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             Device = dev,
                             Message = message + " " + ex.Message
                         } };
-            _logger?.LogError(error.Errors[0].Message);
+            _logger?.LogError(DateTime.Now + "\t" + error.Errors[0].Message);
             await client.PostAsJson("/api/DeviceError/Add", error);
         }
 
@@ -1029,7 +1029,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     catch (Exception ex)
                     {
                         //Wait minute before try to re-connect.
-                        _logger?.LogError(ex.Message);
+                        _logger?.LogError(DateTime.Now + "\t" + ex.Message);
                         await System.Threading.Tasks.Task.Delay(1000);
                     }
                 }

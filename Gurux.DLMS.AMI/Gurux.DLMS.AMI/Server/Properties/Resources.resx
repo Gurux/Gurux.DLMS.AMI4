@@ -645,4 +645,7 @@
   <data name="ScriptRebuildFailed" xml:space="preserve">
     <value>Rebuild the script failed. {0}</value>
   </data>
+  <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
+    <value>New groups must be added first.</value>
+  </data>
 </root>

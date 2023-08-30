@@ -40,6 +40,9 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -124,19 +127,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXAgentGroup> list = _host.Connection.Select<GXAgentGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXAgentGroup, List<string>> updates = new Dictionary<GXAgentGroup, List<string>>();
-            foreach (GXAgentGroup it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(User, it.Id);
+                foreach (GXAgentGroup it in list)
+                {
+                    it.Removed = now;
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        await _host.Connection.UpdateAsync(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXAgentGroup>(it.Id));
+                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
                 }
-                else
-                {
-                    await _host.Connection.UpdateAsync(GXUpdateArgs.Update(it, q => q.Removed));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -285,45 +298,53 @@ namespace Gurux.DLMS.AMI.Server.Repository
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXAgentGroup, List<string>> updates = new Dictionary<GXAgentGroup, List<string>>();
-            foreach (GXAgentGroup it in AgentGroups)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            List<GXUserGroup>? defaultGroups = null;
+            var newGroups = AgentGroups.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedGroups = AgentGroups.Where(w => w.Id != Guid.Empty).ToList();
+            try
             {
-                if (string.IsNullOrEmpty(it.Name))
+                foreach (GXAgentGroup it in AgentGroups)
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (it.UserGroups == null || !it.UserGroups.Any())
-                {
-                    //Get default user groups.
-                    it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(User,
-                        ServerHelpers.GetUserId(User));
+                    if (string.IsNullOrEmpty(it.Name))
+                    {
+                        throw new ArgumentException(Properties.Resources.InvalidName);
+                    }
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
-                        throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        if (defaultGroups == null)
+                        {
+                            //Get default user groups.
+                            defaultGroups = await _userGroupRepository.GetDefaultUserGroups(User, ServerHelpers.GetUserId(User));
+                        }
+                        it.UserGroups = defaultGroups;
+                        if (it.UserGroups == null || !it.UserGroups.Any())
+                        {
+                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        }
                     }
                 }
-                if (it.Id == Guid.Empty)
+                if (newGroups.Any())
                 {
-                    it.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
-                    //User groups must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXAgentGroup>(e => new { e.Updated, e.UserGroups, e.Agents, e.DeviceGroups });
-                    _host.Connection.Insert(args);
-                    list.Add(it.Id);
-                    //Add user group to Agent group.
-                    if (it.UserGroups != null)
+                    foreach (var it in newGroups)
                     {
-                        AddAgentGroupToUserGroups(it.Id, it.UserGroups);
+                        it.CreationTime = now;
                     }
-                    if (it.Agents != null)
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
+                    args.Exclude<GXAgentGroup>(e => new
                     {
-                        AddAgentsToAgentGroup(it.Id, it.Agents);
-                    }
-                    if (it.DeviceGroups != null)
+                        e.Updated,
+                        e.Removed,
+                    });
+                    await _host.Connection.InsertAsync(transaction, args);
+                    foreach (var it in newGroups)
                     {
-                        AddDeviceGroupsToAgentGroup(it.Id, it.DeviceGroups);
+                        list.Add(it.Id);
                     }
+                    var first = newGroups.First();
+                    updates[first] = await GetUsersAsync(User, first.Id);
                 }
-                else
+                foreach (var it in updatedGroups)
                 {
                     GXSelectArgs m = GXSelectArgs.Select<GXAgentGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
@@ -344,11 +365,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXUserGroup> addedUserGroups = it.UserGroups.Except(userGroups, comparer).ToList();
                         if (removedUserGroups.Any())
                         {
-                            RemoveAgentGroupFromUserGroups(it.Id, removedUserGroups);
+                            RemoveAgentGroupFromUserGroups(transaction, it.Id, removedUserGroups);
                         }
                         if (addedUserGroups.Any())
                         {
-                            AddAgentGroupToUserGroups(it.Id, addedUserGroups);
+                            AddAgentGroupToUserGroups(transaction, it.Id, addedUserGroups);
                         }
                     }
                     //Map agents to Agent group.
@@ -360,11 +381,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXAgent> addedAgents = it.Agents.Except(agents, comparer).ToList();
                         if (removedAgents.Any())
                         {
-                            RemoveAgentsFromAgentGroup(it.Id, removedAgents);
+                            RemoveAgentsFromAgentGroup(transaction, it.Id, removedAgents);
                         }
                         if (addedAgents.Any())
                         {
-                            AddAgentsToAgentGroup(it.Id, addedAgents);
+                            AddAgentsToAgentGroup(transaction, it.Id, addedAgents);
                         }
                     }
                     //Map device groups to agent group.
@@ -381,15 +402,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXDeviceGroup> addedDeviceGroups = it.DeviceGroups.Except(deviceGroups, comparer).ToList();
                         if (removedDeviceGroups.Any())
                         {
-                            RemoveDeviceGroupsFromAgentGroup(it.Id, removedDeviceGroups);
+                            RemoveDeviceGroupsFromAgentGroup(transaction, it.Id, removedDeviceGroups);
                         }
                         if (addedDeviceGroups.Any())
                         {
-                            AddDeviceGroupsToAgentGroup(it.Id, addedDeviceGroups);
+                            AddDeviceGroupsToAgentGroup(transaction, it.Id, addedDeviceGroups);
                         }
                     }
+                    updates[it] = await GetUsersAsync(User, it.Id);
                 }
-                updates[it] = await GetUsersAsync(User, it.Id);
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -401,9 +428,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map agent group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">User groups where the agent is added.</param>
-        public void AddAgentGroupToUserGroups(Guid agentGroupId, IEnumerable<GXUserGroup> groups)
+        public void AddAgentGroupToUserGroups(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupAgentGroup> list = new List<GXUserGroupAgentGroup>();
@@ -416,15 +444,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agent group and user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">User groups where the agent is removed.</param>
-        public void RemoveAgentGroupFromUserGroups(Guid agentGroupId, IEnumerable<GXUserGroup> groups)
+        public void RemoveAgentGroupFromUserGroups(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXUserGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupAgentGroup>();
             foreach (var it in groups)
@@ -432,15 +461,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXUserGroupAgentGroup>(w => w.UserGroupId == it.Id &&
                     w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map agents to agent group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Added Agents.</param>
-        public void AddAgentsToAgentGroup(Guid agentGroupId, IEnumerable<GXAgent> agents)
+        public void AddAgentsToAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
         {
             DateTime now = DateTime.Now;
             List<GXAgentGroupAgent> list = new List<GXAgentGroupAgent>();
@@ -453,15 +483,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agents and agent group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Removed agents.</param>
-        public void RemoveAgentsFromAgentGroup(Guid agentGroupId, IEnumerable<GXAgent> agents)
+        public void RemoveAgentsFromAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXAgent> agents)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupAgent>();
             foreach (var it in agents)
@@ -469,15 +500,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXAgentGroupAgent>(w => w.AgentId == it.Id &&
                     w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map agents to agent group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="agents">Device groups where the agent is added.</param>
-        public void AddDeviceGroupsToAgentGroup(Guid agentGroupId, IEnumerable<GXDeviceGroup> agents)
+        public void AddDeviceGroupsToAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> agents)
         {
             DateTime now = DateTime.Now;
             List<GXAgentGroupDeviceGroup> list = new List<GXAgentGroupDeviceGroup>();
@@ -490,15 +522,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between agents and agent group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="agentGroupId">Agent group ID.</param>
         /// <param name="groups">Device groups where the agent is removed.</param>
-        public void RemoveDeviceGroupsFromAgentGroup(Guid agentGroupId, IEnumerable<GXDeviceGroup> groups)
+        public void RemoveDeviceGroupsFromAgentGroup(IDbTransaction transaction, Guid agentGroupId, IEnumerable<GXDeviceGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupDeviceGroup>();
             foreach (var it in groups)
@@ -506,7 +539,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXAgentGroupDeviceGroup>(w => w.DeviceGroupId == it.Id &&
                     w.AgentGroupId == agentGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
     }
 }

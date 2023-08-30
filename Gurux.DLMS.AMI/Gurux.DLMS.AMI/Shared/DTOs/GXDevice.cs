@@ -390,6 +390,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Used trace level.
         /// </summary>
         [DataMember]
+        [DefaultValue(System.Diagnostics.TraceLevel.Off)]
         [Description("Used trace level.")]
         [IsRequired]
         public TraceLevel? TraceLevel

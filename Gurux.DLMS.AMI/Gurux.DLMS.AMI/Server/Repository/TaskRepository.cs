@@ -833,12 +833,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             DateTime now = DateTime.Now;
             //Get details for the task.
             if (task != null)
-            {
-                task.Start = now;
-                task.OperatingAgent = agent;
+            {                
                 if (task.Batch != null)
                 {
-                    //Get all tasks that are created with the same batch and are not executed.
+                    task.Start = now;
+                    task.OperatingAgent = agent;                    //Get all tasks that are created with the same batch and are not executed.
                     ListTasks lt = new ListTasks()
                     {
                         Select = TargetType.Device | TargetType.Object | TargetType.Attribute,
@@ -860,6 +859,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     //Read task details.
                     task = await ReadAsync(User, task.Id);
+                    task.Start = now;
+                    task.OperatingAgent = agent;
                     //Reset non-needed information.
                     task.Target = null;
                     task.CreationTime = null;

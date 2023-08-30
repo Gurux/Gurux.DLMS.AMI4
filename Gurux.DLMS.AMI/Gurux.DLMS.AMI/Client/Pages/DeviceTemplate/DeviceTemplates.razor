@@ -44,7 +44,7 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Manufacturer"
                        type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
+                @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
@@ -53,7 +53,7 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Model"
                        type="text"
-                   @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
+                @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
@@ -62,23 +62,23 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Version"
                        type="text"
-                   @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
+                @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                    type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by updated time..."
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </th>
     </FilterContent>
     <MenuContent>
@@ -234,11 +234,11 @@
                 throw new ArgumentException(Properties.Resources.InvalidNotifier);
             }
             Notifier.ClearStatus();
-            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateUpdate), async (deviceTemplate) =>
+            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateUpdate), async (deviceTemplates) =>
             {
                 await Updated();
             });
-            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateDelete), async (deviceTemplate) =>
+            Notifier.On<IEnumerable<GXDeviceTemplate>>(this, nameof(IGXHubEvents.DeviceTemplateDelete), async (deviceTemplates) =>
             {
                 await Updated();
             });
@@ -376,10 +376,11 @@
     /// </summary>
     public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
-        try
+        if (table != null && args.Confirm)
         {
-            if (table != null && args.Confirm)
+            try
             {
+                Notifier.ProgressStart();
                 RemoveDeviceTemplate req = new RemoveDeviceTemplate()
                     {
                         Delete = args.Delete,
@@ -387,14 +388,18 @@
                     };
                 await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", req);
             }
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier.ProgressEnd();
+            }
         }
     }
 

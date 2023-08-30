@@ -45,17 +45,17 @@
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                    type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by updated time..."
                    type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+            @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </th>
     </FilterContent>
     <MenuContent>
@@ -342,10 +342,11 @@
     /// </summary>
     public async Task OnDeleteConfirmation(ConfirmArgs args)
     {
-        try
+        if (table != null && args.Confirm)
         {
-            if (table != null && args.Confirm)
+            try
             {
+                Notifier?.ProgressStart();
                 RemoveDevice req = new RemoveDevice()
                     {
                         Delete = args.Delete,
@@ -353,14 +354,18 @@
                     };
                 await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", req);
             }
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier?.ProgressEnd();
+            }
         }
     }
 

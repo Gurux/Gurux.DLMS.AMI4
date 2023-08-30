@@ -79,10 +79,10 @@
         /// </param>
         public GXItemsProviderRequest(int startIndex,
             int count,
-            bool showAllUserData,
-            bool removed,
-            string? orderBy,
-            bool descending,
+            bool showAllUserData = true,
+            bool removed = false,
+            string? orderBy = null,
+            bool descending = false,
             string? filter = null,
             CancellationToken cancellationToken = default)
         {

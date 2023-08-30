@@ -576,4 +576,76 @@
   <data name="ScheduleUpdated" xml:space="preserve">
     <value>Aikataulu päivitetty.</value>
   </data>
+  <data name="KeyManagementRemoved" xml:space="preserve">
+    <value>Avainhallinta poistettu.</value>
+  </data>
+  <data name="KeyManagementUpdated" xml:space="preserve">
+    <value>Avainhallinta päivitetty.</value>
+  </data>
+  <data name="KeyManagementInstalled" xml:space="preserve">
+    <value>Avainhallinta asennettu.</value>
+  </data>
+  <data name="KeyManagementsDescription" xml:space="preserve">
+    <value>Avainhallinnan avulla salattujen yhteyksien asetukset käsitellään.</value>
+  </data>
+  <data name="InvalidKeyType" xml:space="preserve">
+    <value>Virheellinen avaimen tyyppi.</value>
+  </data>
+  <data name="InvalidKeyData" xml:space="preserve">
+    <value>Virheelliset avaintiedot.</value>
+  </data>
+  <data name="DatabaseType" xml:space="preserve">
+    <value>Tietokannan tyyppi: {0}</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Yhdistäminen: {0}</value>
+  </data>
+  <data name="DatabaseServiceIsDisabled" xml:space="preserve">
+    <value>Tietokantapalvelu on poistettu käytöstä.</value>
+  </data>
+  <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
+    <value>Järjestelmän nimi {0} on jo käytössä.</value>
+  </data>
+  <data name="WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts" xml:space="preserve">
+    <value>Kun skriptit ovat käytössä, työnkulkujen toiminnallisuutta voidaan laajentaa skripteillä.</value>
+  </data>
+  <data name="MaintenanceDescription" xml:space="preserve">
+    <value>Siirrä sivusto offline-tilaan ylläpitoa varten tai palauta se online-tilaan.</value>
+  </data>
+  <data name="ManufacturerDescription" xml:space="preserve">
+    <value>Valmistajien avulla käyttäjille voidaan tarjota uusia laitemalleja.</value>
+  </data>
+  <data name="WorkflowDescription" xml:space="preserve">
+    <value>Kun työnkulut ovat käytössä, käyttäjille voidaan tarjota uusia mukautettuja työnkulkutoimintoja.</value>
+  </data>
+  <data name="TriggerDescription" xml:space="preserve">
+    <value>Kun liipaisimet ovat käytössä, käyttäjille voidaan tarjota uusia mukautettuja toimintoja.</value>
+  </data>
+  <data name="BlockDescription" xml:space="preserve">
+    <value>Kun lohkot ovat käytössä, käyttäjille voidaan tarjota uusia mukautettuja käyttöliittymiä.</value>
+  </data>
+  <data name="ComponentViewDescription" xml:space="preserve">
+    <value>Kun komponenttinäkymät ovat käytössä, käyttäjille voidaan tarjota uusia mukautettuja käyttöliittymiä.</value>
+  </data>
+  <data name="AgentDescription" xml:space="preserve">
+    <value>Asennettavat agenttiversiot.</value>
+  </data>
+  <data name="ModuleDescription" xml:space="preserve">
+    <value>Kun moduulit ovat käytössä, käyttäjille voidaan tarjota uusia mukautettuja toimintoja.</value>
+  </data>
+  <data name="LanguageDescription" xml:space="preserve">
+    <value>Kun käytössä on useita kieliä, käyttöliittymän teksti voidaan kääntää ja rekisteröityneet käyttäjät voivat valita haluamansa kielen.</value>
+  </data>
+  <data name="ScriptDescription" xml:space="preserve">
+    <value>Kun skriptit ovat käytössä, työnkulkujen toiminnallisuutta voidaan laajentaa skripteillä.</value>
+  </data>
+  <data name="ScriptRebuild" xml:space="preserve">
+    <value>Rakenna komentosarja uudelleen.</value>
+  </data>
+  <data name="ScriptRebuildFailed" xml:space="preserve">
+    <value>Komentosarjan uudelleenrakentaminen epäonnistui. {0}</value>
+  </data>
+  <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
+    <value>Uudet ryhmät on lisättävä ensin.</value>
+  </data>
 </root>

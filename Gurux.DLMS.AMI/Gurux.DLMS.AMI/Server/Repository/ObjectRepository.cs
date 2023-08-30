@@ -161,6 +161,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
             if (request != null)
             {
+                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                {
+                    arg.Columns.Add<GXDeviceTemplate>();
+                    arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Objects });
+                    arg.Columns.Exclude<GXDevice>(e => new { e.Objects });
+                    arg.Columns.Add<GXDevice>();
+                }
+                else if ((request.Select & TargetType.Device) != 0)
+                {
+                    arg.Columns.Add<GXDevice>();
+                    arg.Columns.Exclude<GXDevice>(e => e.Objects);
+                }
                 if (request.Filter?.Device != null)
                 {
                     var dg = request.Filter.Device.DeviceGroups?.FirstOrDefault();
@@ -190,6 +202,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         Guid id = request.Filter.Device.Id;
                         arg.Where.And<GXDevice>(w => w.Id == id);
+                    }
+                    if (request.Filter.Device.Name is string dn)
+                    {
+                        arg.Where.And<GXDevice>(w => w.Name.Contains(dn));
+                    }
+                    if (request.Filter.Device?.Template?.Name is string tn)
+                    {
+                        arg.Where.And<GXDeviceTemplate>(w => w.Name.Contains(tn));
                     }
                     request.Filter.Device = null;
                 }

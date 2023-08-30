@@ -38,14 +38,11 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Server.Models;
 using Gurux.Service.Orm;
-using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Scheduler;
-using Gurux.DLMS.AMI.Client.Pages.Schedule;
 using System.Linq.Expressions;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Client.Pages.User;
+using System.Data;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -53,7 +50,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class ScheduleRepository : IScheduleRepository
     {
         private readonly IGXHost _host;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IServiceProvider _serviceProvider;
         private readonly IScheduleGroupRepository _scheduleGroupRepository;
@@ -64,12 +60,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// </summary>
         public ScheduleRepository(IGXHost host,
             IServiceProvider serviceProvider,
-            UserManager<ApplicationUser> userManager,
             IGXEventsNotifier eventsNotifier,
             IScheduleGroupRepository scheduleGroupRepository)
         {
             _host = host;
-            _userManager = userManager;
             _eventsNotifier = eventsNotifier;
             _serviceProvider = serviceProvider;
             _scheduleGroupRepository = scheduleGroupRepository;
@@ -168,24 +162,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXSchedule> list = _host.Connection.Select<GXSchedule>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXSchedule, List<string>> updates = new Dictionary<GXSchedule, List<string>>();
-            foreach (GXSchedule it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Updated = it.Removed = now;
-                List<string> users = await GetUsersAsync(User, it.Id);
+                foreach (var it in list)
+                {
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        it.Removed = now;
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXSchedule>(it.Id));
+                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
                 }
-                else
-                {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => new { q.Updated, q.Removed }));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
-                GXSchedule tmp = new GXSchedule() { Id = it.Key.Id };
-                await _eventsNotifier.ScheduleDelete(it.Value, new GXSchedule[] { tmp });
+                await _eventsNotifier.ScheduleDelete(it.Value, new GXSchedule[] { it.Key });
             }
             if (!delete)
             {
@@ -311,18 +314,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //Get objects with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template }, q => q.Removed == null);
             arg.Distinct = true;
-            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name });
+            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
             arg.Joins.AddInnerJoin<GXObject, GXScheduleToObject>(s => s.Id, o => o.ObjectId);
             arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template, o => o.Id);
             arg.Where.And<GXScheduleToObject>(w => w.ScheduleId == id && w.Removed == null);
             schedule.Objects = _host.Connection.Select<GXObject>(arg);
             //Get attributes with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXAttribute>(s => new { s.Id, s.Template }, q => q.Removed == null);
+            arg = GXSelectArgs.Select<GXAttribute>(s => new { s.Id, s.Object, s.Template }, q => q.Removed == null);
             arg.Distinct = true;
-            arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
+            arg.Columns.Add<GXObject>(s => new { s.Id, s.Template });
+            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
+            arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name, s.Index });
+            arg.Joins.AddInnerJoin<GXAttribute, GXObject>(s => s.Object, o => o.Id);
+            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template, o => o.Id);
             arg.Joins.AddInnerJoin<GXAttribute, GXScheduleToAttribute>(s => s.Id, o => o.AttributeId);
             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(s => s.Template, o => o.Id);
             arg.Where.And<GXScheduleToAttribute>(w => w.ScheduleId == id && w.Removed == null);
+            arg.Columns.Exclude<GXObject>(e => e.Attributes);
             schedule.Attributes = _host.Connection.Select<GXAttribute>(arg);
             //Get devices with own query. It's faster for some DBs.
             arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Template }, q => q.Removed == null);
@@ -365,6 +373,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Guid> list = new List<Guid>();
             List<GXScheduleToAttribute> list2 = new List<GXScheduleToAttribute>();
             Dictionary<GXSchedule, List<string>> updates = new Dictionary<GXSchedule, List<string>>();
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            List<GXScheduleGroup>? defaultGroups = null;
+            var newGroups = schedulers.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();
+
             foreach (GXSchedule schedule in schedulers)
             {
                 //Verify the name.
@@ -381,9 +394,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     if (schedule.ScheduleGroups == null || !schedule.ScheduleGroups.Any())
                     {
-                        schedule.ScheduleGroups = new List<GXScheduleGroup>();
-                        ListScheduleGroups request = new ListScheduleGroups() { Filter = new GXScheduleGroup() { Default = true } };
-                        schedule.ScheduleGroups.AddRange(await _scheduleGroupRepository.ListAsync(user, request, null, CancellationToken.None));
+                        if (defaultGroups == null)
+                        {
+                            ListScheduleGroups request = new ListScheduleGroups() { Filter = new GXScheduleGroup() { Default = true } };
+                            defaultGroups = new List<GXScheduleGroup>(await _scheduleGroupRepository.ListAsync(user, request, null, CancellationToken.None));
+                        }
+                        schedule.ScheduleGroups = defaultGroups;
                         if (!schedule.ScheduleGroups.Any())
                         {
                             throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
@@ -396,21 +412,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     throw new ArgumentException(string.Format("Invalid start time: '{0}'", schedule.Start));
                 }
-                if (schedule.Id == Guid.Empty)
+            }
+            try
+            {
+                if (newGroups.Any())
                 {
-                    schedule.CreationTime = now;
-                    schedule.Creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
-                    GXInsertArgs args = GXInsertArgs.Insert(schedule);
-                    args.Exclude<GXSchedule>(q => new { q.Updated, q.ExecutionTime, q.ScheduleGroups, q.Objects, q.Removed });
-                    _host.Connection.Insert(args);
-                    list.Add(schedule.Id);
-                    AddScheduleToScheduleGroups(schedule.Id, schedule.ScheduleGroups);
-                    if (schedule.Objects != null && schedule.Objects.Count != 0)
+                    foreach (var it in newGroups)
                     {
-                        AddObjectsToSchedule(schedule.Id, schedule.Objects);
+                        it.CreationTime = now;
+                        it.Creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
                     }
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
+                    args.Exclude<GXSchedule>(e => new
+                    {
+                        e.Updated,
+                        e.Removed,
+                    });
+                    await _host.Connection.InsertAsync(transaction, args);
+                    foreach (var it in newGroups)
+                    {
+                        list.Add(it.Id);
+                    }
+                    var first = newGroups.First();
+                    updates[first] = await GetUsersAsync(user, first.Id);
                 }
-                else
+                foreach (var schedule in updatedGroups)
                 {
                     GXSelectArgs m = GXSelectArgs.Select<GXSchedule>(q => q.ConcurrencyStamp, where => where.Id == schedule.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
@@ -433,7 +459,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.ScriptMethods,
                         q.Creator
                     });
-                    _host.Connection.Update(args);
+                    _host.Connection.Update(transaction, args);
                     //Map schedule groups to schedule.
                     List<GXScheduleGroup> scheduleGroups;
                     using (IServiceScope scope = _serviceProvider.CreateScope())
@@ -448,11 +474,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXScheduleGroup> added = schedule.ScheduleGroups.Except(scheduleGroups, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveSchedulesFromScheduleGroup(schedule.Id, removed);
+                            RemoveSchedulesFromScheduleGroup(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddScheduleToScheduleGroups(schedule.Id, added);
+                            AddScheduleToScheduleGroups(transaction, schedule.Id, added);
                         }
                     }
                     //Map attributes to schedule.
@@ -463,11 +489,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXAttribute> added = schedule.Attributes.Except(attributes, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveAttributesFromSchedule(schedule.Id, removed);
+                            RemoveAttributesFromSchedule(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddAttributesToSchedule(schedule.Id, added);
+                            AddAttributesToSchedule(transaction, schedule.Id, added);
                         }
                     }
 
@@ -479,11 +505,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXObject> added = schedule.Objects.Except(objects, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveObjectsFromSchedule(schedule.Id, removed);
+                            RemoveObjectsFromSchedule(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddObjectsToSchedule(schedule.Id, added);
+                            AddObjectsToSchedule(transaction, schedule.Id, added);
                         }
                     }
                     //Map devices to schedule.
@@ -494,11 +520,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXDevice> added = schedule.Devices.Except(devices, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveDevicesFromSchedule(schedule.Id, removed);
+                            RemoveDevicesFromSchedule(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddDevicesToSchedule(schedule.Id, added);
+                            AddDevicesToSchedule(transaction, schedule.Id, added);
                         }
                     }
                     //Map device groups to schedule.
@@ -509,11 +535,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXDeviceGroup> added = schedule.DeviceGroups.Except(devicegroups, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveDeviceGroupsFromSchedule(schedule.Id, removed);
+                            RemoveDeviceGroupsFromSchedule(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddDeviceGroupsToSchedule(schedule.Id, added);
+                            AddDeviceGroupsToSchedule(transaction, schedule.Id, added);
                         }
                     }
                     //Map scripts to schedule.
@@ -524,15 +550,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXScriptMethod> added = schedule.ScriptMethods.Except(scripts, comparer).ToList();
                         if (removed.Any())
                         {
-                            RemoveScriptMethodsFromSchedule(schedule.Id, removed);
+                            RemoveScriptMethodsFromSchedule(transaction, schedule.Id, removed);
                         }
                         if (added.Any())
                         {
-                            AddScriptMethodsToSchedule(schedule.Id, added);
+                            AddScriptMethodsToSchedule(transaction, schedule.Id, added);
                         }
                     }
+                    updates[schedule] = await GetUsersAsync(user, schedule.Id);
                 }
-                updates[schedule] = await GetUsersAsync(user, schedule.Id);
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -561,9 +593,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Add objects to schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="objects">Objects that are added for the schedule.</param>
-        public void AddObjectsToSchedule(Guid scheduleId, IEnumerable<GXObject> objects)
+        public void AddObjectsToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXObject> objects)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleToObject> list = new List<GXScheduleToObject>();
@@ -576,15 +609,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map objects from schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="objects">Objects that are removed from the schedule.</param>
-        public void RemoveObjectsFromSchedule(Guid scheduleId, IEnumerable<GXObject> objects)
+        public void RemoveObjectsFromSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXObject> objects)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleToObject>();
             foreach (var it in objects)
@@ -592,15 +626,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXScheduleToObject>(w => w.ObjectId == it.Id &&
                     w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Add attributes to schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="attributes">Objects that are added for the schedule.</param>
-        public void AddAttributesToSchedule(Guid scheduleId, IEnumerable<GXAttribute> attributes)
+        public void AddAttributesToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXAttribute> attributes)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleToAttribute> list = new List<GXScheduleToAttribute>();
@@ -613,15 +648,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove attributes from schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="attributes">Objects that are removed from the schedule.</param>
-        public void RemoveAttributesFromSchedule(Guid scheduleId, IEnumerable<GXAttribute> attributes)
+        public void RemoveAttributesFromSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXAttribute> attributes)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleToAttribute>();
             foreach (var it in attributes)
@@ -629,15 +665,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXScheduleToAttribute>(w => w.AttributeId == it.Id &&
                     w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Add devices to schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="devices">Devices that are added for the schedule.</param>
-        public void AddDevicesToSchedule(Guid scheduleId, IEnumerable<GXDevice> devices)
+        public void AddDevicesToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXDevice> devices)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleToDevice> list = new List<GXScheduleToDevice>();
@@ -650,30 +687,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove devices from schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="devices">Devices  that are removed from the schedule.</param>
-        public void RemoveDevicesFromSchedule(Guid scheduleId, IEnumerable<GXDevice> devices)
+        public void RemoveDevicesFromSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXDevice> devices)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleToDevice>();
             foreach (var it in devices)
             {
                 args.Where.Or<GXScheduleToDevice>(w => w.DeviceId == it.Id && w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Add script methods to schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="methods">Script methods that are added for the schedule.</param>
-        public void AddScriptMethodsToSchedule(Guid scheduleId, IEnumerable<GXScriptMethod> methods)
+        public void AddScriptMethodsToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXScriptMethod> methods)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleScript> list = new List<GXScheduleScript>();
@@ -686,30 +725,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove script methods from schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="methods">Script methods that are removed from the schedule.</param>
-        public void RemoveScriptMethodsFromSchedule(Guid scheduleId, IEnumerable<GXScriptMethod> methods)
+        public void RemoveScriptMethodsFromSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXScriptMethod> methods)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleScript>();
             foreach (var it in methods)
             {
                 args.Where.Or<GXScheduleScript>(w => w.ScriptMethodId == it.Id && w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Add devices groups to schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="groups">Devices groups that are added for the schedule.</param>
-        public void AddDeviceGroupsToSchedule(Guid scheduleId, IEnumerable<GXDeviceGroup> groups)
+        public void AddDeviceGroupsToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXDeviceGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleToDeviceGroup> list = new List<GXScheduleToDeviceGroup>();
@@ -722,15 +763,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove device groups from schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="groups">Devices groups that are removed from the schedule.</param>
-        public void RemoveDeviceGroupsFromSchedule(Guid scheduleId, IEnumerable<GXDeviceGroup> groups)
+        public void RemoveDeviceGroupsFromSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXDeviceGroup> groups)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceGroup>();
             foreach (GXDeviceGroup it in groups)
@@ -738,15 +780,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXScheduleToDeviceGroup>(w => w.DeviceGroupId == it.Id &&
                     w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map schedule group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="groups">Schedule groups where the schedule is added.</param>
-        public void AddScheduleToScheduleGroups(Guid scheduleId, IEnumerable<GXScheduleGroup> groups)
+        public void AddScheduleToScheduleGroups(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXScheduleGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXScheduleGroupSchedule> list = new List<GXScheduleGroupSchedule>();
@@ -759,15 +802,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between schedule group and schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="groups">Schedule groups where the schedule is removed.</param>
-        public void RemoveSchedulesFromScheduleGroup(Guid scheduleId, IEnumerable<GXScheduleGroup> groups)
+        public void RemoveSchedulesFromScheduleGroup(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXScheduleGroup> groups)
         {
             var args = GXDeleteArgs.DeleteAll<GXScheduleGroupSchedule>();
             foreach (var it in groups)
@@ -775,7 +819,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXScheduleGroupSchedule>(w => w.ScheduleGroupId == it.Id &&
                     w.ScheduleId == scheduleId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <inheritdoc/>

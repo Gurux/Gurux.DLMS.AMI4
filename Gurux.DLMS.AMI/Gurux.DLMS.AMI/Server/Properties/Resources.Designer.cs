@@ -556,6 +556,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to New groups must be added first..
+        /// </summary>
+        internal static string JoinedGroupsAreNotInserted {
+            get {
+                return ResourceManager.GetString("JoinedGroupsAreNotInserted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Key management installed..
         /// </summary>
         internal static string KeyManagementInstalled {

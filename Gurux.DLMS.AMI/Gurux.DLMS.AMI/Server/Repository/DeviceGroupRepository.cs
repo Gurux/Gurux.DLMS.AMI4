@@ -42,6 +42,8 @@ using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -183,19 +185,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXDeviceGroup> list = _host.Connection.Select<GXDeviceGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
-            foreach (GXDeviceGroup it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(User, it.Id);
+                foreach (var it in list)
+                {
+                    it.Removed = now;
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceGroup>(it.Id));
+                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
                 }
-                else
-                {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -350,47 +362,62 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<string> users;
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
-            foreach (GXDeviceGroup it in deviceGroups)
+            var newGroups = deviceGroups.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedGroups = deviceGroups.Where(w => w.Id != Guid.Empty).ToList();
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                if (string.IsNullOrEmpty(it.Name))
+                foreach (GXDeviceGroup it in deviceGroups)
                 {
-                    throw new ArgumentException(Properties.Resources.InvalidName);
-                }
-                if (it.UserGroups == null || !it.UserGroups.Any())
-                {
-                    //Get default user groups.
-                    if (user != null)
+                    if (string.IsNullOrEmpty(it.Name))
                     {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user, ServerHelpers.GetUserId(user));
+                        throw new ArgumentException(Properties.Resources.InvalidName);
                     }
+                    //Check the agents groups are already inserted.
+                    if (it.AgentGroups != null && it.AgentGroups.Where(w => w.Id == Guid.Empty).Any())
+                    {
+                        throw new ArgumentException(Properties.Resources.JoinedGroupsAreNotInserted);
+                    }
+                    //Check the devices are already inserted.
+                    if (it.Devices != null && it.Devices.Where(w => w.Id == Guid.Empty).Any())
+                    {
+                        throw new ArgumentException(Properties.Resources.JoinedGroupsAreNotInserted);
+                    }
+
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
-                        throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        //Get default user groups.
+                        if (user != null)
+                        {
+                            it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user, ServerHelpers.GetUserId(user));
+                        }
+                        if (it.UserGroups == null || !it.UserGroups.Any())
+                        {
+                            throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
+                        }
                     }
                 }
-                if (it.Id == Guid.Empty)
+                if (newGroups.Any())
                 {
-                    it.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
-                    //User groups must hanlde separetly.
-                    args.Exclude<GXDeviceGroup>(q => new { q.UserGroups, q.Updated, it.Devices, it.AgentGroups });
-                    _host.Connection.Insert(args);
-                    list.Add(it.Id);
-                    //Map user group to device group.
-                    AddDeviceGroupToUserGroups(it.Id, it.UserGroups.Select(s => s.Id).ToArray());
-                    users = await GetUsersAsync(user, it.Id);
-                    if (it.Devices != null)
+                    foreach (var it in newGroups)
                     {
-                        //Add devices to the device group.
-                        AddDevicesToDeviceGroup(it.Id, it.Devices);
+                        it.CreationTime = now;
                     }
-                    if (it.AgentGroups != null)
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
+                    args.Exclude<GXDeviceGroup>(e => new
                     {
-                        //Add agents to the device group.
-                        AddAgentGroupsToDeviceGroup(it.Id, it.AgentGroups);
+                        e.Updated,
+                        e.Removed,
+                    });
+                    await _host.Connection.InsertAsync(transaction, args);
+                    foreach (var it in newGroups)
+                    {
+                        list.Add(it.Id);
                     }
+                    var first = newGroups.First();
+                    updates[first] = await GetUsersAsync(user, first.Id);
                 }
-                else
+                foreach (var it in updatedGroups)
                 {
                     GXSelectArgs m = GXSelectArgs.Select<GXAgentGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
@@ -412,11 +439,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     Guid[] added = tmp.Except(groups).ToArray();
                     if (added.Length != 0)
                     {
-                        AddDeviceGroupToUserGroups(it.Id, added);
+                        AddDeviceGroupToUserGroups(transaction, it.Id, added);
                     }
                     if (removed.Length != 0)
                     {
-                        RemoveDeviceGroupFromUserGroups(it.Id, removed);
+                        RemoveDeviceGroupFromUserGroups(transaction, it.Id, removed);
                     }
                     //Map devices to device group.
                     if (it.Devices != null)
@@ -427,11 +454,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXDevice> addedDevices = it.Devices.Except(devices, comparer2).ToList();
                         if (removedDevices.Any())
                         {
-                            RemoveDevicesFromDeviceGroup(it.Id, removedDevices);
+                            RemoveDevicesFromDeviceGroup(transaction, it.Id, removedDevices);
                         }
                         if (addedDevices.Any())
                         {
-                            AddDevicesToDeviceGroup(it.Id, addedDevices);
+                            AddDevicesToDeviceGroup(transaction, it.Id, addedDevices);
                         }
                     }
                     //Map agent groups to device groups.
@@ -443,15 +470,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         List<GXAgentGroup> addedAgentGroups = it.AgentGroups.Except(agentGroups, comparer2).ToList();
                         if (removedAgentGroups.Any())
                         {
-                            RemoveAgenGroupsFromDeviceGroup(it.Id, removedAgentGroups);
+                            RemoveAgenGroupsFromDeviceGroup(transaction, it.Id, removedAgentGroups);
                         }
                         if (addedAgentGroups.Any())
                         {
-                            AddAgentGroupsToDeviceGroup(it.Id, addedAgentGroups);
+                            AddAgentGroupsToDeviceGroup(transaction, it.Id, addedAgentGroups);
                         }
                     }
+                    updates[it] = users;
                 }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -463,9 +496,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map device group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Group IDs of the device groups where the device is added.</param>
-        public void AddDeviceGroupToUserGroups(Guid deviceGroupId, IEnumerable<Guid> groups)
+        public void AddDeviceGroupToUserGroups(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupDeviceGroup> list = new List<GXUserGroupDeviceGroup>();
@@ -478,28 +512,30 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between device group and user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Group IDs of the device groups where the device is removed.</param>
-        public void RemoveDeviceGroupFromUserGroups(Guid deviceGroupId, IEnumerable<Guid> groups)
+        public void RemoveDeviceGroupFromUserGroups(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<Guid> groups)
         {
             foreach (var ug in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXUserGroupDeviceGroup>(w => w.UserGroupId == ug && w.DeviceGroupId == deviceGroupId));
+                _host.Connection.Delete(transaction, GXDeleteArgs.Delete<GXUserGroupDeviceGroup>(w => w.UserGroupId == ug && w.DeviceGroupId == deviceGroupId));
             }
         }
 
         /// <summary>
         /// Map devices to device group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Group IDs of the device groups where the device is added.</param>
-        public void AddDevicesToDeviceGroup(Guid deviceGroupId, IEnumerable<GXDevice> groups)
+        public void AddDevicesToDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
         {
             DateTime now = DateTime.Now;
             List<GXDeviceGroupDevice> list = new List<GXDeviceGroupDevice>();
@@ -512,15 +548,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between devices and device group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Device groups where the device is removed.</param>
-        public void RemoveDevicesFromDeviceGroup(Guid deviceGroupId, IEnumerable<GXDevice> groups)
+        public void RemoveDevicesFromDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXDevice> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXDeviceGroupDevice>();
             foreach (var it in groups)
@@ -528,15 +565,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXDeviceGroupDevice>(w => w.DeviceId == it.Id &&
                     w.DeviceGroupId == deviceGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
 
         /// <summary>
         /// Map agent groups to device group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Agent groups where the agent is added.</param>
-        public void AddAgentGroupsToDeviceGroup(Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+        public void AddAgentGroupsToDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXAgentGroupDeviceGroup> list = new List<GXAgentGroupDeviceGroup>();
@@ -549,15 +587,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between device groups and agent groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceGroupId">Device group ID.</param>
         /// <param name="groups">Agent groups where the agent is removed.</param>
-        public void RemoveAgenGroupsFromDeviceGroup(Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
+        public void RemoveAgenGroupsFromDeviceGroup(IDbTransaction transaction, Guid deviceGroupId, IEnumerable<GXAgentGroup> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXAgentGroupDeviceGroup>();
             foreach (var it in groups)
@@ -565,7 +604,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXAgentGroupDeviceGroup>(w => w.AgentGroupId == it.Id &&
                     w.DeviceGroupId == deviceGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
     }
 }

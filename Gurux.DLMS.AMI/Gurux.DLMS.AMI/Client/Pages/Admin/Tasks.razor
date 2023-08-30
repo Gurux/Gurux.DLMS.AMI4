@@ -242,12 +242,12 @@
     /// Task status has changed.
     /// </summary>
     /// <param name="tasks">Changed tasks.</param>
-    protected void StateChanged(IEnumerable<GXTask> tasks)
+    protected bool StateChanged(IEnumerable<GXTask> tasks)
     {
         try
         {
             bool updated = false;
-            if (table != null && table.Items != null)
+            if (table?.Items != null)
             {
                 foreach (var it in tasks)
                 {
@@ -265,6 +265,12 @@
                             task.Result = it.Result;
                         }
                     }
+                    else
+                    {
+                        //Unknown task executed.
+                        //This might happen with pagination if task is not in the visible items.
+                        return true;
+                    }
                 }
             }
             if (updated)
@@ -275,6 +281,7 @@
         catch (Exception)
         {
         }
+        return false;
     }
 
     protected override async Task OnInitializedAsync()
@@ -297,9 +304,12 @@
             {
                 await Updated();
             });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
+            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), async (tasks) =>
             {
-                StateChanged(tasks);
+                if (StateChanged(tasks))
+                {
+                    await Updated();
+                }
             });
             Notifier.On<IEnumerable<GXUser>>(this, nameof(IGXHubEvents.TaskClear), async (tasks) =>
             {

@@ -4,6 +4,7 @@
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Components.Web.Virtualization
+@using System.Reflection;
 
 @typeparam TItem
 @implements IGXTable
@@ -18,7 +19,7 @@
             {
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox"
-                   @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
+                    @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
                     <label>@Properties.Resources.ShowDataForAllUsers</label>
                 </div>
             }
@@ -27,7 +28,7 @@
         {
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox"
-               @onchange="@((ChangeEventArgs __e) => Removed = @StatusTile.ToBoolean(__e.Value))" />
+                @onchange="@((ChangeEventArgs __e) => Removed = @StatusTile.ToBoolean(__e.Value))" />
                 <label>@ShowRemovedMessage</label>
             </div>
         }
@@ -67,7 +68,7 @@
                         <th width="1%">
                             <input class="form-check-input" type="checkbox"
                                    checked="@IsAllSelected()"
-                           @onchange="@((ChangeEventArgs __e) => ToggleAllRow(Convert.ToBoolean(__e.Value)))" />
+                            @onchange="@((ChangeEventArgs __e) => ToggleAllRow(Convert.ToBoolean(__e.Value)))" />
                         </th>
                     }
                     @HeaderContent
@@ -90,7 +91,7 @@
                                 <input class="form-check-input" type="checkbox"
                                        disabled="@IsCheckboxDisabled(it)"
                                        checked="@IsSelected(it)"
-                           @onchange="@((ChangeEventArgs __e) => ToggleRow(it, Convert.ToBoolean(__e.Value)))" />
+                                @onchange="@((ChangeEventArgs __e) => ToggleRow(it, Convert.ToBoolean(__e.Value)))" />
                             </td>
                         }
                         @ItemContent(it)
@@ -479,6 +480,50 @@
     [Parameter]
     public RenderFragment<TItem>? ItemContent { get; set; }
 
+    /// <summary>
+    /// Remove items.
+    /// </summary>
+    /// <param name="items">Removed items.</param>
+    public void RemoveItems(IEnumerable<TItem> items)
+    {
+        if (Items != null && items != null && items.Any())
+        {
+            PropertyInfo? pi = typeof(TItem).GetProperty("Id");
+            if (pi != null)
+            {
+                bool updated = false;
+                List<TItem> tmp = new List<TItem>(Items);
+                foreach (var removed in items)
+                {
+                    foreach (var it in tmp)
+                    {
+                        object? value = pi.GetValue(removed);
+                        if (value != null && value.Equals(pi.GetValue(it)))
+                        {
+                            --TotalCount;
+                            _selectedItems.Remove(it);
+                            tmp.Remove(it);
+                            updated = true;
+                            break;
+                        }
+                    }
+                }
+                if (updated)
+                {
+                    Items = tmp;
+                    Pages.Clear();
+                    if (!ShowAllData)
+                    {
+                        for (int pos = 0; pos != TotalPages; ++pos)
+                        {
+                            Pages.Add(pos);
+                        }
+                    }
+                    StateHasChanged();
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Read values async.

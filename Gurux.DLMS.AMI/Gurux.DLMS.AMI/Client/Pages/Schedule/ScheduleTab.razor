@@ -53,6 +53,13 @@
                     </div>
                 </TabPage>
             </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <TabPage Text=@Properties.Resources.Attributes Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <AttributesSelector></AttributesSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
         </ChildContent>
     </TabControl>
 </CascadingValue>

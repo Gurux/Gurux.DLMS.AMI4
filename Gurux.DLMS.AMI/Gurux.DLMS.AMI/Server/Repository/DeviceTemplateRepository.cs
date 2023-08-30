@@ -44,7 +44,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Module;
-using Org.BouncyCastle.Ocsp;
+using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -111,29 +112,57 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-
             GXSelectArgs arg = GXSelectArgs.Select<GXDeviceTemplate>(a => a.Id, q => deviceTemplates.Contains(q.Id));
             List<GXDeviceTemplate> list = _host.Connection.Select<GXDeviceTemplate>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXDeviceTemplate, List<string>> updates = new Dictionary<GXDeviceTemplate, List<string>>();
-            foreach (GXDeviceTemplate it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(user, it.Id);
-                if (delete)
+                if (!delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceTemplate>(it.Id));
+                    foreach (GXDeviceTemplate it in list)
+                    {
+                        List<string> users = await GetUsersAsync(user, it.Id);
+                        it.Removed = now;
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                        updates[it] = users;
+                    }
                 }
                 else
                 {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
+                    foreach (GXDeviceTemplate it in list)
+                    {
+                        updates[it] = await GetUsersAsync(user, it.Id);
+                    }
+                    GXDeleteArgs args1;
+                    //////////////////////////////////////////////////////
+                    //It's faster to remove atribute templates, object templates and device templates with own query than removing just device templates.
+                    //////////////////////////////////////////////////////
+                    //Delete attributes.
+                    arg = GXSelectArgs.Select<GXObjectTemplate>(a => a.Id);
+                    arg.Joins.AddInnerJoin<GXObjectTemplate, GXDeviceTemplate>(j => j.DeviceTemplate, j => j.Id);
+                    arg.Where.And<GXDeviceTemplate>(q => deviceTemplates.Contains(q.Id));
+                    args1 = GXDeleteArgs.Delete<GXAttributeTemplate>(w => GXSql.Exists<GXAttributeTemplate, GXObjectTemplate>(j => j.ObjectTemplate, j => j.Id, arg));
+                    await _host.Connection.DeleteAsync(transaction, args1);
+                    //Delete objects.
+                    arg = GXSelectArgs.Select<GXDeviceTemplate>(a => a.Id, q => deviceTemplates.Contains(q.Id));
+                    args1 = GXDeleteArgs.Delete<GXObjectTemplate>(w => GXSql.Exists<GXObjectTemplate, GXDeviceTemplate>(j => j.DeviceTemplate, j => j.Id, arg));
+                    await _host.Connection.DeleteAsync(transaction, args1);
+                    //Delete device templates
+                    var args = GXDeleteArgs.Delete<GXDeviceTemplate>(q => deviceTemplates.Contains(q.Id));
+                    await _host.Connection.DeleteAsync(transaction, args);
                 }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
-                GXDeviceTemplate tmp = new GXDeviceTemplate() { Id = it.Key.Id };
-                await _eventsNotifier.DeviceTemplateDelete(it.Value, new GXDeviceTemplate[] { tmp });
+                await _eventsNotifier.DeviceTemplateDelete(it.Value, new GXDeviceTemplate[] { it.Key });
             }
         }
 
@@ -415,6 +444,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             isAdmin = user.IsInRole(GXRoles.Admin);
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceTemplate, List<string>> updates = new Dictionary<GXDeviceTemplate, List<string>>();
+            List<GXDeviceTemplateGroup>? defaultGroups = null;
+            var newTemplates = DeviceTemplates.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedTemplates = DeviceTemplates.Where(w => w.Id != Guid.Empty).ToList();
+
             foreach (GXDeviceTemplate it in DeviceTemplates)
             {
                 if (string.IsNullOrEmpty(it.Name))
@@ -423,42 +456,91 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
                 {
-                    ListDeviceTemplateGroups request = new ListDeviceTemplateGroups()
+                    if (defaultGroups == null)
                     {
-                        Filter = new GXDeviceTemplateGroup() { Default = true }
-                    };
-                    it.DeviceTemplateGroups = new List<GXDeviceTemplateGroup>();
-                    it.DeviceTemplateGroups.AddRange(await _deviceTemplateGroupRepository.ListAsync(user, request, null, CancellationToken.None));
+                        ListDeviceTemplateGroups request = new ListDeviceTemplateGroups()
+                        {
+                            Filter = new GXDeviceTemplateGroup() { Default = true }
+                        };
+                        defaultGroups = new List<GXDeviceTemplateGroup>(await _deviceTemplateGroupRepository.ListAsync(user, request, null, CancellationToken.None));
+                    }
+                    it.DeviceTemplateGroups = defaultGroups;
+                    if (it.DeviceTemplateGroups == null || !it.DeviceTemplateGroups.Any())
+                    {
+                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    }
                 }
-                if (it.Id == Guid.Empty)
+            }
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
+            {
+                if (newTemplates.Any())
                 {
-                    if (!it.DeviceTemplateGroups.Any())
+                    List<string>? users = null;
+                    foreach (var dt in newTemplates)
                     {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                        if (dt.Objects == null || !dt.Objects.Any())
+                        {
+                            throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                        }
+                        EncryptPassword(dt);
+                        dt.CreationTime = now;
+
+                        foreach (var ot in dt.Objects)
+                        {
+                            ot.DeviceTemplate = dt;
+                            if (ot.Attributes != null)
+                            {
+                                foreach (var at in ot.Attributes)
+                                {
+                                    at.ObjectTemplate = ot;
+                                }
+                            }
+                        }
                     }
-                    if (it.Objects == null || !it.Objects.Any())
-                    {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                    }
-                    EncryptPassword(it);
-                    it.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
+
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newTemplates);
                     args.Exclude<GXDeviceTemplate>(e => new
                     {
                         e.Updated,
                         e.Removed,
-                        e.DeviceTemplateGroups
+                        e.Objects
                     });
-                    _host.Connection.Insert(args);
-                    list.Add(it.Id);
-                    AddDeviceToDeviceGroups(it.Id, it.DeviceTemplateGroups);
-                }
-                else
-                {
-                    if (it.DeviceTemplateGroups == null)
+                    using IDbTransaction transaction2 = _host.Connection.BeginTransaction();
+                    _host.Connection.Insert(transaction2, args);
+                    //Add object templates.
+                    var objects = newTemplates.SelectMany(s => s.Objects).ToArray();
+                    args = GXInsertArgs.InsertRange(objects);
+                    args.Exclude<GXObjectTemplate>(e => new
                     {
-                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                        e.Updated,
+                        e.Removed,
+                        e.Attributes
+                    });
+                    _host.Connection.Insert(transaction2, args);
+                    //Add attribute templates.
+                    var attributes = objects.SelectMany(s => s.Attributes).ToArray();
+                    args = GXInsertArgs.InsertRange(attributes);
+                    args.Exclude<GXAttributeTemplate>(e => new
+                    {
+                        e.Updated,
+                        e.Removed,
+                    });
+                    _host.Connection.Insert(transaction2, args);
+                    _host.Connection.CommitTransaction(transaction2);
+                    foreach (var it in newTemplates)
+                    {
+                        list.Add(it.Id);
+                        if (users == null)
+                        {
+                            var first = newTemplates.First();
+                            users = await GetUsersAsync(user, first.Id);
+                        }
+                        await _eventsNotifier.DeviceTemplateUpdate(users, new GXDeviceTemplate[] { new GXDeviceTemplate() { Id = it.Id } });
                     }
+                }
+                foreach (var it in updatedTemplates)
+                {
                     GXSelectArgs m = GXSelectArgs.Select<GXDeviceTemplate>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
                     if (!string.IsNullOrEmpty(updated) && updated != it.ConcurrencyStamp)
@@ -483,14 +565,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     List<GXDeviceTemplateGroup> addedDeviceGroups = it.DeviceTemplateGroups.Except(deviceTemplateGroups, comparer).ToList();
                     if (removedDeviceGroups.Any())
                     {
-                        RemoveDevicesFromDeviceGroup(it.Id, removedDeviceGroups);
+                        RemoveDeviceTemplateFromDeviceTemplateGroups(transaction, it.Id, removedDeviceGroups);
                     }
                     if (addedDeviceGroups.Any())
                     {
-                        AddDeviceToDeviceGroups(it.Id, addedDeviceGroups);
+                        AddDeviceTemplateToDeviceTemplateGroups(transaction, it.Id, addedDeviceGroups);
                     }
+                    updates[it] = await GetUsersAsync(user, it.Id);
                 }
-                updates[it] = await GetUsersAsync(user, it.Id);
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -502,9 +590,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map device template to device template groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateId">Device template ID.</param>
         /// <param name="groups">Group IDs of the device template groups where the device template is added.</param>
-        public void AddDeviceToDeviceGroups(Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
+        public void AddDeviceTemplateToDeviceTemplateGroups(IDbTransaction transaction, Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
         {
             DateTime now = DateTime.Now;
             List<GXDeviceTemplateGroupDeviceTemplate> list = new List<GXDeviceTemplateGroupDeviceTemplate>();
@@ -517,19 +606,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove map between device template group and device template.
         /// </summary>
-        /// <param name="deviceTemplateId">Device template ID.</param>
+        /// <param name="transaction">Transaction.</param>
+        /// /// <param name="deviceTemplateId">Device template ID.</param>
         /// <param name="groups">Group IDs of the device template groups where the device template is removed.</param>
-        public void RemoveDevicesFromDeviceGroup(Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
+        public void RemoveDeviceTemplateFromDeviceTemplateGroups(IDbTransaction transaction, Guid deviceTemplateId, IEnumerable<GXDeviceTemplateGroup> groups)
         {
             foreach (var it in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXDeviceTemplateGroupDeviceTemplate>(w => w.DeviceTemplateId == deviceTemplateId && w.DeviceTemplateGroupId == it.Id));
+                var arg = GXDeleteArgs.Delete<GXDeviceTemplateGroupDeviceTemplate>(w => w.DeviceTemplateId == deviceTemplateId && w.DeviceTemplateGroupId == it.Id);
+                _host.Connection.Delete(transaction, arg);
             }
         }
     }

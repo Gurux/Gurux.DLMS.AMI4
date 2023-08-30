@@ -17,7 +17,7 @@
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<SelectionContainer TItem="GXObject" @ref="@_selectionContainer">
+<SelectionContainer TItem="GXAttribute" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
@@ -45,12 +45,16 @@
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByLogicalName"
+                    OnClickAsync="@SearchByObjectLogicalName" />
+            <Search Placeholder="@Properties.Resources.FilterByObject"
+                    OnClickAsync="@SearchByObject" />
             <Search Placeholder="@Properties.Resources.FilterByDevice"
                     OnClickAsync="@SearchByDevice" />
             <Search Placeholder="@Properties.Resources.FilterByDeviceType"
                     OnClickAsync="@SearchByDeviceType" />
-            <Search Placeholder="@Properties.Resources.FilterByUser"
-                    OnClickAsync="@SearchByUser" />
+            <Search Placeholder="@Properties.Resources.FilterByAttributeIndex"
+                    OnClickAsync="@SearchByAttributeIndex" />
         </FilterContent>
         <ButtonContent>
             <div>
@@ -68,34 +72,60 @@
     [CascadingParameter]
     private ScheduleTab? ScheduleParent { get; set; }
 
-    SelectionList<GXObject>? _selected;
-    SelectionList<GXObject>? _available;
-    SelectionContainer<GXObject>? _selectionContainer;
+    SelectionList<GXAttribute>? _selected;
+    SelectionList<GXAttribute>? _available;
+    SelectionContainer<GXAttribute>? _selectionContainer;
     /// <summary>
-    /// Object filter.
+    /// Attribute filter.
     /// </summary>
-    private GXObject filter = new GXObject(null);
+    private readonly GXAttribute filter = new GXAttribute(null)
+        {
+            Template = new GXAttributeTemplate(),
+            Object = new GXObject()
+            {
+                Template = new GXObjectTemplate(),
+                Device = new GXDevice()
+                {
+                    Template = new GXDeviceTemplate()
+                }
+            }
+        };
+
     /// <summary>
-    /// Selected object filter.
+    /// Selected attribute filter.
     /// </summary>
     private string? selectedNameFilter;
 
-    string? GetName(GXObject target)
+
+    string? GetName(GXAttribute target)
     {
         return target.Template?.Name;
     }
 
-    string? GetDescription(GXObject target)
+    string? GetDescription(GXAttribute target)
     {
         StringBuilder sb = new StringBuilder();
-        if (target?.Device?.Name != null)
+        if (target?.Object?.Device?.Name != null)
         {
-            sb.Append(target.Device.Name);
+            sb.Append(target.Object.Device.Name);
             sb.Append(' ');
         }
-        sb.Append(target?.Template?.LogicalName);
-        sb.Append(' ');
+        if (target?.Object?.Template?.LogicalName != null)
+        {
+            sb.Append(target.Object.Template.LogicalName);
+            sb.Append(' ');
+        }
+        if (target?.Object?.Template?.Name != null)
+        {
+            sb.Append(target.Object.Template.Name);
+            sb.Append(' ');
+        }
         sb.Append(target?.Template?.Name);
+        if (target?.Template != null)
+        {
+            sb.Append(':');
+            sb.Append(target?.Template.Index);
+        }
         return sb.ToString();
     }
 
@@ -119,13 +149,16 @@
     {
         try
         {
-            if (_available != null)
+            if (_available != null && filter.Template != null)
             {
-                if (filter.Template == null)
+                if (string.IsNullOrEmpty(name))
                 {
-                    filter.Template = new GXObjectTemplate();
+                    filter.Template.Name = null;
                 }
-                filter.Template.Name = name;
+                else
+                {
+                    filter.Template.Name = name;
+                }
                 Notifier?.ClearStatus();
                 await _available.RefreshDataAsync();
             }
@@ -136,6 +169,32 @@
         }
     }
 
+    protected async Task SearchByAttributeIndex(string? index)
+    {
+        try
+        {
+            if (_available != null && filter.Template != null)
+            {
+                if (string.IsNullOrEmpty(index))
+                {
+                    filter.Template.Index = 0;
+                }
+                else
+                {
+                    filter.Template.Index = int.Parse(index);
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+
     protected async Task SearchByUser(string? userName)
     {
         try
@@ -144,7 +203,10 @@
             {
                 if (string.IsNullOrEmpty(userName))
                 {
-                    filter.Device = null;
+                    if (filter.Object?.Device != null)
+                    {
+                        filter.Object.Device.DeviceGroups = null;
+                    }
                 }
                 else
                 {
@@ -154,8 +216,58 @@
                     GXUserGroup ug = new GXUserGroup();
                     dg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
                     ug.Users = new List<GXUser>(new GXUser[] { user });
-                    filter.Device = new GXDevice();
-                    filter.Device.DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[] { dg });
+                    if (filter.Object?.Device != null)
+                    {
+                        filter.Object.Device.DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[] { dg });
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByObjectLogicalName(string? logicalName)
+    {
+        try
+        {
+            if (_available != null && filter.Object?.Template != null)
+            {
+                if (string.IsNullOrEmpty(logicalName))
+                {
+                    filter.Object.Template.LogicalName = null;
+                }
+                else
+                {
+                    filter.Object.Template.LogicalName = logicalName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByObject(string? objectName)
+    {
+        try
+        {
+            if (_available != null && filter.Object?.Template != null)
+            {
+                if (string.IsNullOrEmpty(objectName))
+                {
+                    filter.Object.Template.Name = null;
+                }
+                else
+                {
+                    filter.Object.Template.Name = objectName;
                 }
                 Notifier?.ClearStatus();
                 await _available.RefreshDataAsync();
@@ -171,18 +283,15 @@
     {
         try
         {
-            if (_available != null)
+            if (_available != null && filter.Object?.Device != null)
             {
                 if (string.IsNullOrEmpty(deviceName))
                 {
-                    filter.Device = null;
+                    filter.Object.Device.Name = null;
                 }
                 else
                 {
-                    filter.Device = new GXDevice()
-                        {
-                            Name = deviceName
-                        };
+                    filter.Object.Device.Name = deviceName;
                 }
                 Notifier?.ClearStatus();
                 await _available.RefreshDataAsync();
@@ -198,22 +307,15 @@
     {
         try
         {
-            if (_available != null)
+            if (_available != null && filter.Object?.Device?.Template != null)
             {
                 if (string.IsNullOrEmpty(deviceType))
                 {
-                    filter.Device.Template = null;
+                    filter.Object.Device.Template.Name = null;
                 }
                 else
                 {
-                    if (filter.Device == null)
-                    {
-                        filter.Device = new GXDevice();
-                    }
-                    filter.Device.Template = new GXDeviceTemplate()
-                        {
-                            Name = deviceType
-                        };
+                    filter.Object.Device.Template.Name = deviceType;
                 }
                 Notifier?.ClearStatus();
                 await _available.RefreshDataAsync();
@@ -255,9 +357,9 @@
     /// <returns></returns>
     private async Task RemoveAll()
     {
-        if (ScheduleParent?.Active.Objects != null)
+        if (ScheduleParent?.Active.Attributes != null)
         {
-            ScheduleParent.Active.Objects.Clear();
+            ScheduleParent.Active.Attributes.Clear();
         }
         if (_selected != null)
         {
@@ -270,13 +372,13 @@
     }
 
     /// <summary>
-    /// New object is added for selection list.
+    /// New attribute is added for selection list.
     /// </summary>
-    public async Task OnAdded(IEnumerable<GXObject> items)
+    public async Task OnAdded(IEnumerable<GXAttribute> items)
     {
-        if (ScheduleParent?.Active?.Objects != null)
+        if (ScheduleParent?.Active?.Attributes != null)
         {
-            ScheduleParent.Active.Objects.InsertRange(0, items);
+            ScheduleParent.Active.Attributes.InsertRange(0, items);
         }
         if (_selected != null)
         {
@@ -287,11 +389,11 @@
     /// <summary>
     /// Item has removed from the lists.
     /// </summary>
-    private async Task Removed(IEnumerable<GXObject> items)
+    private async Task Removed(IEnumerable<GXAttribute> items)
     {
-        if (ScheduleParent?.Active?.Objects != null)
+        if (ScheduleParent?.Active?.Attributes != null)
         {
-            ScheduleParent.Active.Objects.RemoveAll(w => items.Contains(w));
+            ScheduleParent.Active.Attributes.RemoveAll(w => items.Contains(w));
         }
         if (_selected != null)
         {
@@ -304,24 +406,24 @@
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    private ValueTask<ItemsProviderResult<GXObject>> GetSelectedItems(GXItemsProviderRequest request)
+    private ValueTask<ItemsProviderResult<GXAttribute>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        var objects = ScheduleParent.Active.Objects;
-        int total = ScheduleParent.Active.Objects.Count;
+        var objects = ScheduleParent.Active.Attributes;
+        int total = ScheduleParent.Active.Attributes.Count;
         if (!string.IsNullOrEmpty(selectedNameFilter))
         {
             objects = objects.Where(w => w.Template.Name.ToLower().Contains(selectedNameFilter.ToLower())).ToList();
         }
-        return new(new ItemsProviderResult<GXObject>(objects.Skip(request.StartIndex).Take(request.Count),total));
+        return new(new ItemsProviderResult<GXAttribute>(objects.Skip(request.StartIndex).Take(request.Count), total));
     }
 
-    private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
+    private async ValueTask<ItemsProviderResult<GXAttribute>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
         {
-            ListObjects req = new ListObjects()
+            ListAttributes req = new ListAttributes()
                 {
                     Index = (UInt64)request.StartIndex,
                     Count = (UInt64)request.Count,
@@ -329,12 +431,12 @@
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     Select = TargetType.Device,
-                    Exclude = ScheduleParent?.Active?.Objects?.Select(s => s.Id).ToArray()
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
                 };
-            var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
-            if (ret?.Objects != null && _selected != null)
+            var ret = await Http.PostAsJson<ListAttributesResponse>("api/Attribute/List", req, request.CancellationToken);
+            if (ret?.Attributes != null && _selected != null)
             {
-                return new ItemsProviderResult<GXObject>(ret.Objects, ret.Count);
+                return new ItemsProviderResult<GXAttribute>(ret.Attributes, ret.Count);
             }
         }
         catch (TaskCanceledException)
@@ -365,7 +467,7 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (ScheduleParent?.Active?.Objects == null)
+            if (ScheduleParent?.Active?.Attributes == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }

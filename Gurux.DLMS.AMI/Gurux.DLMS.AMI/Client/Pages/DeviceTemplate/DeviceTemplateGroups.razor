@@ -170,9 +170,9 @@
             {
                 await Updated();
             });
-            Notifier.On<IEnumerable<GXDeviceTemplateGroup>>(this, nameof(IGXHubEvents.DeviceTemplateGroupDelete), async (groups) =>
+            Notifier.On<IEnumerable<GXDeviceTemplateGroup>>(this, nameof(IGXHubEvents.DeviceTemplateGroupDelete), (groups) =>
             {
-                await Updated();
+                table?.RemoveItems(groups);
             });
             Notifier.Clear();
             Notifier.UpdateButtons();

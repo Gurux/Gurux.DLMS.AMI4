@@ -303,69 +303,7 @@
         get;
         set;
     }
-
-    /// <summary>
-    /// Copy meter settings.
-    /// </summary>
-    /// <param name="target"></param>
-    /// <param name="source"></param>
-    public static void Copy(GXDeviceTemplate target, GXDLMSDevice source)
-    {
-        target.WaitTime = source.WaitTime;
-        target.ResendCount = source.ResendCount;
-        target.Type = source.Name;
-        target.MediaType = source.MediaType;
-        target.MediaSettings = source.MediaSettings;
-        var settings = new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings();
-        settings.MaximumBaudRate = source.MaximumBaudRate;
-        settings.Authentication = (byte)source.Authentication;
-        settings.AuthenticationName = source.AuthenticationName;
-        settings.Standard = (byte)source.Standard;
-        settings.Password = source.Password;
-        settings.HexPassword = source.HexPassword;
-        settings.Security = (byte)source.Security;
-        settings.ClientSystemTitle = source.SystemTitle;
-        settings.DeviceSystemTitle = source.ServerSystemTitle;
-        settings.DedicatedKey = source.DedicatedKey;
-        settings.PreEstablished = source.PreEstablished;
-        settings.IgnoreSNRMWithPreEstablished = source.IgnoreSNRMWithPreEstablished;
-        settings.BlockCipherKey = source.BlockCipherKey;
-        settings.AuthenticationKey = source.AuthenticationKey;
-        settings.InvocationCounter = source.InvocationCounter;
-        settings.FrameCounter = source.FrameCounter;
-        settings.Challenge = source.Challenge;
-        settings.Profiles.Add(new GXCommunicationProfile()
-            {
-                InterfaceType = (int)source.InterfaceType,
-                ClientAddress = source.ClientAddress,
-                PhysicalAddress = source.PhysicalAddress,
-                LogicalAddress = source.LogicalAddress
-            });
-        settings.UtcTimeZone = source.UtcTimeZone;
-        settings.UseRemoteSerial = source.UseRemoteSerial;
-        settings.MaxInfoTX = source.MaxInfoTX;
-        settings.MaxInfoRX = source.MaxInfoRX;
-        settings.WindowSizeTX = source.WindowSizeTX;
-        settings.WindowSizeRX = source.WindowSizeRX;
-        settings.PduSize = source.PduSize;
-        settings.UserId = source.UserId;
-        settings.NetworkId = source.NetworkId;
-        settings.InactivityTimeout = source.InactivityTimeout;
-        settings.ServiceClass = (byte)source.ServiceClass;
-        settings.Priority = (byte)source.Priority;
-        settings.ServerAddressSize = source.ServerAddressSize;
-        settings.Conformance = source.Conformance;
-        settings.Manufacturer = source.Manufacturer;
-        settings.HDLCAddressing = (int)source.HDLCAddressing;
-        settings.UseLogicalNameReferencing = source.UseLogicalNameReferencing;
-        settings.UseProtectedRelease = source.UseProtectedRelease;
-        var options = new JsonSerializerOptions
-            {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-            };
-        target.Settings = JsonSerializer.Serialize(settings, options);
-    }
-
+    
     /// <summary>
     /// Get device templates from the XML.
     /// </summary>

@@ -34,22 +34,39 @@
     [Parameter]
     public int Spread { get; set; } = 2;
 
+    /// <summary>
+    /// List where item is dragged.
+    /// </summary>
+    internal SelectionList<TItem>? DragSource;
+
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
     /// <summary>
-    /// Item has moved between the lists.
+    /// A new item has added for the list.
     /// </summary>
     [Parameter]
-    public EventCallback<TItem> OnUpdated { get; set; }
+    public EventCallback<IEnumerable<TItem>> OnAdded { get; set; }
+
+    /// <summary>
+    /// Item has removed from the lists.
+    /// </summary>
+    [Parameter]
+    public EventCallback<IEnumerable<TItem>> OnRemoved { get; set; }
 
     public List<TItem>? SourceList { get; set; }
 
-    public TItem? Payload { get; set; }
+    public TItem? Item { get; set; }
 
-    public async Task UpdateJobAsync(SelectionList<TItem> list, List<TItem> added)
+    internal async Task ItemAdded(SelectionList<TItem> target, IEnumerable<TItem> list)
     {
+        await OnAdded.InvokeAsync(list);
         StateHasChanged();
-        await OnUpdated.InvokeAsync(Payload);
+    }
+
+    internal async Task ItemRemoved(SelectionList<TItem> target, IEnumerable<TItem> list)
+    {
+        await OnRemoved.InvokeAsync(list);
+        StateHasChanged();
     }
 }

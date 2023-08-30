@@ -43,7 +43,6 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using System.Data;
-using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -98,19 +97,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXUserGroup> list = _host.Connection.Select<GXUserGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
-            foreach (GXUserGroup it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(User, it.Id);
+                foreach (GXUserGroup it in list)
+                {
+                    it.Removed = now;
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXUserGroup>(it.Id));
+                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
                 }
-                else
-                {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -315,6 +324,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         AddUsersToGroup(transaction, new string[] { userId }, userGroup.Id);
                     }
                     updates[userGroup] = await GetUsersAsync(user, userGroup.Id);
+                    if (userId != null)
+                    {
+                        updates[userGroup].Add(userId);                        
+                    }
                 }
                 foreach (GXUserGroup userGroup in updatedGroups)
                 {
@@ -482,6 +495,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map schedule group to user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added schedule groups.</param>
         public void AddScheduleGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
@@ -503,6 +517,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between schedule group and user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Removed schedule groups.</param>
         public void RemoveScheduleGroupsFromUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXScheduleGroup> groups)
@@ -519,6 +534,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map device group to user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added device groups.</param>
         public void AddDeviceGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
@@ -540,6 +556,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between device group and user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Removed device groups.</param>
         public void RemoveDeviceGroupsFromUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceGroup> groups)
@@ -556,6 +573,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map device template group to user group.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="userGroupId">User group ID.</param>
         /// <param name="groups">Added device template groups.</param>
         public void AddDeviceTemplateGroupToUserGroup(IDbTransaction transaction, Guid userGroupId, IEnumerable<GXDeviceTemplateGroup> groups)

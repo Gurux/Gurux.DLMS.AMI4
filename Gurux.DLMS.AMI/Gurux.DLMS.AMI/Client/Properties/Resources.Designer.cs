@@ -142,6 +142,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Add all.
+        /// </summary>
+        internal static string AddAll {
+            get {
+                return ResourceManager.GetString("AddAll", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Administrator settings.
         /// </summary>
         internal static string AdministratorSettings {
@@ -997,6 +1006,33 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Filter by attribute index....
+        /// </summary>
+        internal static string FilterByAttributeIndex {
+            get {
+                return ResourceManager.GetString("FilterByAttributeIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by device name....
+        /// </summary>
+        internal static string FilterByDevice {
+            get {
+                return ResourceManager.GetString("FilterByDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by device type....
+        /// </summary>
+        internal static string FilterByDeviceType {
+            get {
+                return ResourceManager.GetString("FilterByDeviceType", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Filter by logical name....
         /// </summary>
         internal static string FilterByLogicalName {
@@ -1011,6 +1047,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string FilterByName {
             get {
                 return ResourceManager.GetString("FilterByName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by object....
+        /// </summary>
+        internal static string FilterByObject {
+            get {
+                return ResourceManager.GetString("FilterByObject", resourceCulture);
             }
         }
         
@@ -2046,6 +2091,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Remove {
             get {
                 return ResourceManager.GetString("Remove", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Remove all.
+        /// </summary>
+        internal static string RemoveAll {
+            get {
+                return ResourceManager.GetString("RemoveAll", resourceCulture);
             }
         }
         

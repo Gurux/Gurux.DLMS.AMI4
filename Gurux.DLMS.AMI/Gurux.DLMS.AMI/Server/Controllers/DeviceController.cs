@@ -67,7 +67,11 @@ namespace Gurux.DLMS.AMI.Server.Controllers
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }
             UpdateDeviceResponse ret = new UpdateDeviceResponse();
-            ret.Ids = (await _deviceRepository.UpdateAsync(User, request.Devices, cancellationToken));
+            ret.Ids = (await _deviceRepository.UpdateAsync(User,
+                request.Devices,
+                cancellationToken,
+                null,
+                request.LateBinding));
             return ret;
         }
 
@@ -79,7 +83,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
         [HttpPost("List")]
         [Authorize(Policy = GXDevicePolicies.View)]
         public async Task<ActionResult<ListDevicesResponse>> Post(
-            ListDevices request, 
+            ListDevices request,
             CancellationToken cancellationToken)
         {
             ListDevicesResponse ret = new ListDevicesResponse();

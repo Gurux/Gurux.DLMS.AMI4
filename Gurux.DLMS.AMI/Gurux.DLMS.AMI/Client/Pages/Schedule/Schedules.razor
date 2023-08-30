@@ -191,9 +191,9 @@
             {
                 await Updated();
             });
-            Notifier.On<IEnumerable<GXSchedule>>(this, nameof(IGXHubEvents.ScheduleDelete), async (schedule) =>
+            Notifier.On<IEnumerable<GXSchedule>>(this, nameof(IGXHubEvents.ScheduleDelete), (schedules) =>
             {
-                await Updated();
+                table?.RemoveItems(schedules);
             });
             //Clear buttons.
             Notifier.Clear();

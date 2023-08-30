@@ -20,11 +20,21 @@
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
                    GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   GetDescription="@GetDescription"
+                   OnAdded="OnAdded"
+                   OnRemoved="@Removed">
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => RemoveAll())">
+                    &raquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
                    ItemsProvider="@GetItems"
@@ -36,6 +46,14 @@
             <Search Placeholder="@Properties.Resources.FilterByUser"
                     OnClickAsync="@SearchByUser" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => AddAll())">
+                    &laquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
 </SelectionContainer>
 
@@ -54,6 +72,11 @@
     /// </summary>
     private GXDevice filter = new GXDevice(null);
 
+    /// <summary>
+    /// Selected device filter.
+    /// </summary>
+    private GXDevice selectedFilter = new GXDevice(null);
+
     string? GetName(GXDevice target)
     {
         return target.Name;
@@ -64,25 +87,17 @@
         return target.Name;
     }
 
+    /// <summary>
+    /// Search selected items by name.
+    /// </summary>
+    /// <param name="name">Name to search.</param>
     protected async Task SearchSelectedByName(string? name)
     {
         try
         {
-            if (_selected?.Items != null)
+            if (_selected != null)
             {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                Notifier?.ClearStatus();
+                selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
@@ -149,18 +164,97 @@
     }
 
     /// <summary>
+    /// Add all objects to selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task AddAll()
+    {
+        int max = 0;
+        //max 1000 items are added at the one time.
+        if (_available != null && _available.TotalCount > 1000)
+        {
+            max = 1000;
+        }
+        var ret = await GetItems(new GXItemsProviderRequest(0, max));
+        await OnAdded(ret.Items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Remove all objects from selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task RemoveAll()
+    {
+        List<GXDevice> devs = GetDevices();
+        devs.Clear();
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// New device is added for selection list.
+    /// </summary>
+    public async Task OnAdded(IEnumerable<GXDevice> items)
+    {
+        List<GXDevice> devs = GetDevices();
+        devs.InsertRange(0, items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Device has removed from the lists.
+    /// </summary>
+    private async Task Removed(IEnumerable<GXDevice> items)
+    {
+        List<GXDevice> devs = GetDevices();
+        devs.RemoveAll(w => items.Contains(w));
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    private List<GXDevice> GetDevices()
+    {
+        if (DeviceGropParent?.Active?.Devices != null)
+        {
+            return DeviceGropParent.Active.Devices;
+        }
+        return ScheduleParent?.Active?.Devices;
+    }
+
+    /// <summary>
     /// Filter is done when SearchSelectedByName is called.
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXDevice>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        if (_selected?.Items == null)
+        var devs = GetDevices();
+        int total = devs.Count;
+        if (!string.IsNullOrEmpty(selectedFilter.Name))
         {
-            return default;
+            devs = devs.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
         }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXDevice>(_selected.Items.ToArray(), _selected.Items.Count));
+        return new(new ItemsProviderResult<GXDevice>(
+        devs.Skip(request.StartIndex).Take(request.Count), total));
     }
 
     private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
@@ -176,7 +270,7 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Exclude = ScheduleParent?.Active.Devices?.Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
             if (ret?.Devices != null && _selected != null)
@@ -208,23 +302,14 @@
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (_selected != null && DeviceGropParent?.Active?.Devices != null)
-            {
-                _selected.Items = DeviceGropParent.Active.Devices;
-            }
-            else if (_selected != null && ScheduleParent?.Active?.Devices != null)
-            {
-                //Get selected devices.
-                _selected.Items = ScheduleParent.Active.Devices;
-            }
-            else
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
             //Read available items.
             if (_available != null)
             {
                 await _available.RefreshDataAsync();
+            }
+            if (_selected != null)
+            {
+                await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)

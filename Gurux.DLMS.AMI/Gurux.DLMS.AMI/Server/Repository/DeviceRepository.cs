@@ -45,6 +45,7 @@ using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
+using System.Diagnostics;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -122,19 +123,47 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXDevice> list = _host.Connection.Select<GXDevice>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
-            foreach (GXDevice it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = await GetUsersAsync(User, it.Id);
+                foreach (var it in list)
+                {
+                    it.Removed = now;
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDevice>(it.Id));
+                    GXDeleteArgs args1;
+                    //////////////////////////////////////////////////////
+                    //It's faster to remove atribute templates, object templates and device templates with own query than removing just device templates.
+                    //////////////////////////////////////////////////////
+                    //Delete attributes.
+                    arg = GXSelectArgs.Select<GXObject>(a => a.Id);
+                    arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+                    arg.Where.And<GXDevice>(q => devices.Contains(q.Id));
+                    args1 = GXDeleteArgs.Delete<GXAttribute>(w => GXSql.Exists<GXAttribute, GXObject>(j => j.Object, j => j.Id, arg));
+                    await _host.Connection.DeleteAsync(transaction, args1);
+                    //Delete objects.
+                    arg = GXSelectArgs.Select<GXDevice>(a => a.Id, q => devices.Contains(q.Id));
+                    args1 = GXDeleteArgs.Delete<GXObject>(w => GXSql.Exists<GXObject, GXDevice>(j => j.Device, j => j.Id, arg));
+                    await _host.Connection.DeleteAsync(transaction, args1);
+                    //Delete devices.
+                    var args = GXDeleteArgs.Delete<GXDevice>(q => devices.Contains(q.Id));
+                    await _host.Connection.DeleteAsync(transaction, args);
+                    // var args = GXDeleteArgs.DeleteRange(list);
+                    // await _host.Connection.DeleteAsync(transaction, args);
                 }
-                else
-                {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
@@ -460,6 +489,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
             List<Guid> updated = new List<Guid>();
+            var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXDeviceGroup>? defaultGroups = null;
             try
@@ -467,15 +498,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 List<GXKeyManagement> keys = new List<GXKeyManagement>();
                 foreach (GXDevice device in devices)
                 {
-                    bool newDevice = device.Id == Guid.Empty;
                     if (string.IsNullOrEmpty(device.Name) && (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.Name))))
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
                     }
-
-                    if (newDevice && device.Template == null)
+                    bool newDevice = device.Id == Guid.Empty;
+                    if (newDevice && (device.Template == null || device.Template.Id == Guid.Empty))
                     {
-                        throw new ArgumentException("Device template identifier is unknown.");
+                        throw new ArgumentException("Invalid device template identifier.");
                     }
                     GXKeyManagement[]? tmp = null;
                     //Get device keys and save them to key manager table.
@@ -586,207 +616,253 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             device.Settings = JsonSerializer.Serialize(s);
                         }
                     }
-                    if (newDevice)
-                    {
-                        if (device.DeviceGroups == null || !device.DeviceGroups.Any())
-                        {
-                            if (defaultGroups == null)
-                            {
-                                //Get default device groups.
-                                ListDeviceGroups request = new ListDeviceGroups()
-                                {
-                                    Filter = new GXDeviceGroup() { Default = true }
-                                };
-                                defaultGroups = new List<GXDeviceGroup>();
-                                defaultGroups.AddRange(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
-                            }
-                            device.DeviceGroups = new List<GXDeviceGroup>();
-                            device.DeviceGroups.AddRange(defaultGroups);
-                        }
-                        if (!device.DeviceGroups.Any())
-                        {
-                            throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                        }
-                        //Add new device.
-                        device.Type = device.Template.Type;
-                        GXInsertArgs args = GXInsertArgs.Insert(device);
-                        args.Exclude<GXDevice>(q => new
-                        {
-                            q.Objects,
-                            q.DeviceGroups,
-                            q.Updated,
-                            q.Parameters
-                        });
-                        device.Creator = creator;
-                        device.CreationTime = now;
-                        await _host.Connection.InsertAsync(transaction, args, cancellationToken);
-                        GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(q => q.Removed == null);
-                        arg.Distinct = true;
-                        arg.Columns.Add<GXAttributeTemplate>();
-                        arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate);
-                        arg.Joins.AddLeftJoin<GXObjectTemplate, GXDeviceTemplate>(o => o.DeviceTemplate, a => a.Id);
-                        arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
-                        arg.Where.And<GXDeviceTemplate>(q => q.Removed == null && q.Id == device.Template.Id);
-                        arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
-                        List<GXObjectTemplate> l = await _host.Connection.SelectAsync<GXObjectTemplate>(arg, cancellationToken);
-                        foreach (GXObjectTemplate it in l)
-                        {
-                            GXObject obj = new GXObject(it)
-                            {
-                                CreationTime = now,
-                                Device = device,
-                            };
-                            await _host.Connection.InsertAsync(transaction, GXInsertArgs.Insert(obj), cancellationToken);
-                            foreach (GXAttributeTemplate ait in it.Attributes)
-                            {
-                                GXAttribute a = new GXAttribute();
-                                a.Object = obj;
-                                a.Template = ait;
-                                a.CreationTime = now;
-                                a.ExpirationTime = ait.ExpirationTime;
-                                obj.Attributes.Add(a);
-                            };
-                            //Update object values e.g. logical device name.
-                            if (device.Objects != null)
-                            {
-                                foreach (var it2 in device.Objects)
-                                {
-                                    if (obj?.Template?.LogicalName == it2?.Template?.LogicalName &&
-                                        it2?.Attributes != null)
-                                    {
-                                        foreach (var att in it2.Attributes)
-                                        {
-                                            if (!string.IsNullOrEmpty(att.Value))
-                                            {
-                                                var tmp3 = obj.Attributes.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
-                                                if (tmp3 != null)
-                                                {
-                                                    tmp3.Value = att.Value;
-                                                }
-                                            }
-                                        }
-                                        break;
-                                    }
-                                }
-                            }
+                }
 
-                            await _host.Connection.InsertAsync(transaction,
-                                GXInsertArgs.InsertRange(obj.Attributes),
-                                cancellationToken);
-                        }
-                        //Add device parameters.
-                        await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
-                        //Add device to the default device group.
-                        await AddDeviceToDeviceGroups(transaction, device.Id, device.DeviceGroups, cancellationToken);
-                        //Only creator is notified.
-                        List<string> users = new List<string>
+                if (newDevices.Any())
+                {
+                    if (lateBinding)
+                    {
+                        foreach (var device in newDevices)
                         {
-                            creator.Id
-                        };
-                        updates[device] = users;
+                            if (device.TraceLevel == null)
+                            {
+                                device.TraceLevel = TraceLevel.Off;
+                            }
+                            device.Creator = creator;
+                            device.CreationTime = now;
+                            if (device.DeviceGroups == null || !device.DeviceGroups.Any())
+                            {
+                                if (defaultGroups == null)
+                                {
+                                    //Get default device groups.
+                                    ListDeviceGroups request = new ListDeviceGroups()
+                                    {
+                                        Filter = new GXDeviceGroup() { Default = true }
+                                    };
+                                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
+                                }
+                                device.DeviceGroups = defaultGroups;
+                            }
+                            if (!device.DeviceGroups.Any())
+                            {
+                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                            }
+                        }
+                        GXInsertArgs args = GXInsertArgs.InsertRange(newDevices);
+                        args.Exclude<GXDevice>(e => new
+                        {
+                            e.Objects,
+                            e.Updated,
+                            e.Removed,
+                        });
+                        await _host.Connection.InsertAsync(transaction, args);
+                        updated = newDevices.Select(s => s.Id).ToList();
+                        var first = newDevices.First();
+                        updates[first] = await GetUsersAsync(User, first.Id);
                     }
                     else
                     {
-                        if ((device.DeviceGroups == null || !device.DeviceGroups.Any()) &&
-                            (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups))))
+                        foreach (GXDevice device in newDevices)
                         {
-                            throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                        }
-                        device.Updated = DateTime.Now;
-                        GXUpdateArgs args = GXUpdateArgs.Update(device, columns);
-                        args.Exclude<GXDevice>(q => new
-                        {
-                            q.Objects,
-                            q.CreationTime,
-                            q.DeviceGroups,
-                            device.Type,
-                            q.Parameters,
-                            q.Template,
-                            q.Creator
-                        });
-                        _host.Connection.Update(args);
-                        //Update objects if exists.
-                        if (device.Objects != null)
-                        {
-                            GXAttribute a = new GXAttribute();
-                            foreach (var obj in device.Objects)
+                            if (device.DeviceGroups == null || !device.DeviceGroups.Any())
                             {
-                                if (obj.Attributes != null)
+                                if (defaultGroups == null)
                                 {
-                                    await _attributeRepository.UpdateAsync(User,
-                                        obj.Attributes,
-                                        c => a.Value);
-                                }
-                            }
-                        }
-                        {
-                            //Update device parameters.
-                            if (device.Parameters == null)
-                            {
-                                if (ServerHelpers.Contains(columns, nameof(GXDevice.Parameters)))
-                                {
-                                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                                }
-                            }
-                            else
-                            {
-                                GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
-                                var deviceParameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
-                                var comparer = new UniqueComparer<GXDeviceParameter, Guid>();
-                                List<GXDeviceParameter> removedDeviceParameters = deviceParameters.Except(device.Parameters, comparer).ToList();
-                                List<GXDeviceParameter> addedDeviceGroupParameters = device.Parameters.Except(deviceParameters, comparer).ToList();
-                                List<GXDeviceParameter> updatedDeviceGroupParameters = device.Parameters.Union(deviceParameters, comparer).ToList();
-                                if (removedDeviceParameters.Any())
-                                {
-                                    RemoveDeviceParameters(device, removedDeviceParameters);
-                                }
-                                if (addedDeviceGroupParameters.Any())
-                                {
-                                    await AddDeviceParameters(transaction, device, addedDeviceGroupParameters, cancellationToken);
-                                }
-                                if (updatedDeviceGroupParameters.Any())
-                                {
-                                    foreach (var it in updatedDeviceGroupParameters)
+                                    //Get default device groups.
+                                    ListDeviceGroups request = new ListDeviceGroups()
                                     {
-                                        GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
-                                        await _host.Connection.UpdateAsync(u);
+                                        Filter = new GXDeviceGroup() { Default = true }
+                                    };
+                                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
+                                }
+                                device.DeviceGroups = defaultGroups;
+                            }
+                            if (!device.DeviceGroups.Any())
+                            {
+                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                            }
+                            //Add new device.
+                            if (device.TraceLevel == null)
+                            {
+                                device.TraceLevel = TraceLevel.Off;
+                            }
+                            device.Type = device.Template.Type;
+                            GXInsertArgs args = GXInsertArgs.Insert(device);
+                            args.Exclude<GXDevice>(q => new
+                            {
+                                q.Objects,
+                                q.DeviceGroups,
+                                q.Updated,
+                                q.Parameters
+                            });
+                            device.Creator = creator;
+                            device.CreationTime = now;
+                            await _host.Connection.InsertAsync(transaction, args, cancellationToken);
+                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(q => q.Removed == null);
+                            arg.Distinct = true;
+                            arg.Columns.Add<GXAttributeTemplate>();
+                            arg.Joins.AddLeftJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate);
+                            arg.Joins.AddLeftJoin<GXObjectTemplate, GXDeviceTemplate>(o => o.DeviceTemplate, a => a.Id);
+                            arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+                            arg.Where.And<GXDeviceTemplate>(q => q.Removed == null && q.Id == device.Template.Id);
+                            arg.Where.And<GXAttributeTemplate>(q => q.Removed == null);
+                            List<GXObjectTemplate> l = await _host.Connection.SelectAsync<GXObjectTemplate>(arg, cancellationToken);
+                            foreach (GXObjectTemplate it in l)
+                            {
+                                GXObject obj = new GXObject(it)
+                                {
+                                    CreationTime = now,
+                                    Device = device,
+                                };
+                                await _host.Connection.InsertAsync(transaction, GXInsertArgs.Insert(obj), cancellationToken);
+                                foreach (GXAttributeTemplate ait in it.Attributes)
+                                {
+                                    GXAttribute a = new GXAttribute();
+                                    a.Object = obj;
+                                    a.Template = ait;
+                                    a.CreationTime = now;
+                                    a.ExpirationTime = ait.ExpirationTime;
+                                    obj.Attributes.Add(a);
+                                };
+                                //Update object values e.g. logical device name.
+                                if (device.Objects != null)
+                                {
+                                    foreach (var it2 in device.Objects)
+                                    {
+                                        if (obj?.Template?.LogicalName == it2?.Template?.LogicalName &&
+                                            it2?.Attributes != null)
+                                        {
+                                            foreach (var att in it2.Attributes)
+                                            {
+                                                if (!string.IsNullOrEmpty(att.Value))
+                                                {
+                                                    var tmp3 = obj.Attributes.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
+                                                    if (tmp3 != null)
+                                                    {
+                                                        tmp3.Value = att.Value;
+                                                    }
+                                                }
+                                            }
+                                            break;
+                                        }
                                     }
                                 }
+
+                                await _host.Connection.InsertAsync(transaction,
+                                    GXInsertArgs.InsertRange(obj.Attributes),
+                                    cancellationToken);
                             }
+                            //Add device parameters.
+                            await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
+                            //Add device to the default device group.
+                            await AddDeviceToDeviceGroups(transaction, device.Id, device.DeviceGroups, cancellationToken);
+                            //Only creator is notified.
+                            List<string> users = new List<string> { creator.Id };
+                            updates[device] = users;
+                            updated.Add(device.Id);
                         }
-                        //Map device groups to device.
-                        {
-                            var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
-                            if (device.DeviceGroups == null)
-                            {
-                                if (ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups)))
-                                {
-                                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                                }
-                            }
-                            else
-                            {
-                                List<GXDeviceGroup> deviceGroups;
-                                using (IServiceScope scope = _serviceProvider.CreateScope())
-                                {
-                                    IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                                    deviceGroups = await deviceGroupRepository.GetDeviceGroupsByDeviceId(User, device.Id);
-                                }
-                                List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(device.DeviceGroups, comparer).ToList();
-                                List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups, comparer).ToList();
-                                if (removedDeviceGroups.Any())
-                                {
-                                    RemoveDevicesFromDeviceGroup(device.Id, removedDeviceGroups);
-                                }
-                                if (addedDeviceGroups.Any())
-                                {
-                                    await AddDeviceToDeviceGroups(transaction, device.Id, addedDeviceGroups, cancellationToken);
-                                }
-                            }
-                        }
-                        updates[device] = await GetUsersAsync(User, device.Id);
                     }
-                    updated.Add(device.Id);
+                }
+                foreach (GXDevice device in updatedDevices)
+                {
+                    if ((device.DeviceGroups == null || !device.DeviceGroups.Any()) &&
+                        (columns == null || ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups))))
+                    {
+                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    }
+                    device.Updated = DateTime.Now;
+                    GXUpdateArgs args = GXUpdateArgs.Update(device, columns);
+                    args.Exclude<GXDevice>(q => new
+                    {
+                        q.Objects,
+                        q.CreationTime,
+                        q.DeviceGroups,
+                        device.Type,
+                        q.Parameters,
+                        q.Template,
+                        q.Creator
+                    });
+                    _host.Connection.Update(transaction, args);
+                    //Update objects if exists.
+                    if (device.Objects != null)
+                    {
+                        GXAttribute a = new GXAttribute();
+                        foreach (var obj in device.Objects)
+                        {
+                            if (obj.Attributes != null)
+                            {
+                                await _attributeRepository.UpdateAsync(User,
+                                    obj.Attributes,
+                                    c => a.Value);
+                            }
+                        }
+                    }
+                    {
+                        //Update device parameters.
+                        if (device.Parameters == null)
+                        {
+                            if (ServerHelpers.Contains(columns, nameof(GXDevice.Parameters)))
+                            {
+                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                            }
+                        }
+                        else
+                        {
+                            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceParameter>(w => w.Device == device && w.Removed == null);
+                            var deviceParameters = await _host.Connection.SelectAsync<GXDeviceParameter>(arg);
+                            var comparer = new UniqueComparer<GXDeviceParameter, Guid>();
+                            List<GXDeviceParameter> removedDeviceParameters = deviceParameters.Except(device.Parameters, comparer).ToList();
+                            List<GXDeviceParameter> addedDeviceGroupParameters = device.Parameters.Except(deviceParameters, comparer).ToList();
+                            List<GXDeviceParameter> updatedDeviceGroupParameters = device.Parameters.Union(deviceParameters, comparer).ToList();
+                            if (removedDeviceParameters.Any())
+                            {
+                                RemoveDeviceParameters(transaction, device, removedDeviceParameters);
+                            }
+                            if (addedDeviceGroupParameters.Any())
+                            {
+                                await AddDeviceParameters(transaction, device, addedDeviceGroupParameters, cancellationToken);
+                            }
+                            if (updatedDeviceGroupParameters.Any())
+                            {
+                                foreach (var it in updatedDeviceGroupParameters)
+                                {
+                                    GXUpdateArgs u = GXUpdateArgs.Update(it, c => new { c.Settings, c.Updated });
+                                    await _host.Connection.UpdateAsync(u);
+                                }
+                            }
+                        }
+                    }
+                    //Map device groups to device.
+                    {
+                        var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
+                        if (device.DeviceGroups == null)
+                        {
+                            if (ServerHelpers.Contains(columns, nameof(GXDevice.DeviceGroups)))
+                            {
+                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                            }
+                        }
+                        else
+                        {
+                            List<GXDeviceGroup> deviceGroups;
+                            using (IServiceScope scope = _serviceProvider.CreateScope())
+                            {
+                                IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
+                                deviceGroups = await deviceGroupRepository.GetDeviceGroupsByDeviceId(User, device.Id);
+                            }
+                            List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(device.DeviceGroups, comparer).ToList();
+                            List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups, comparer).ToList();
+                            if (removedDeviceGroups.Any())
+                            {
+                                RemoveDevicesFromDeviceGroup(transaction, device.Id, removedDeviceGroups);
+                            }
+                            if (addedDeviceGroups.Any())
+                            {
+                                await AddDeviceToDeviceGroups(transaction, device.Id, addedDeviceGroups, cancellationToken);
+                            }
+                        }
+                    }
+                    updates[device] = await GetUsersAsync(User, device.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
                 if (keys != null)
@@ -802,7 +878,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             foreach (var it in updates)
             {
-                await _eventsNotifier.DeviceUpdate(it.Value, new GXDevice[] { it.Key });
+                await _eventsNotifier.DeviceUpdate(it.Value, new GXDevice[] { new GXDevice() { Id = it.Key.Id, Name = it.Key.Name } });
             }
             return updated.ToArray();
         }
@@ -810,6 +886,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Map device template to device groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateId">Device ID.</param>
         /// <param name="groups">Device groups where the device is added.</param>
         public Task AddDeviceToDeviceGroups(IDbTransaction transaction,
@@ -834,13 +911,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove map between device group and device.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateId">Device template ID.</param>
         /// <param name="groups">Device template groups where the device template is removed.</param>
-        public void RemoveDevicesFromDeviceGroup(Guid deviceTemplateId, IEnumerable<GXDeviceGroup> groups)
+        public void RemoveDevicesFromDeviceGroup(IDbTransaction transaction, Guid deviceTemplateId, IEnumerable<GXDeviceGroup> groups)
         {
             foreach (var it in groups)
             {
-                _host.Connection.Delete(GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => w.DeviceId == deviceTemplateId && w.DeviceGroupId == it.Id));
+                _host.Connection.Delete(transaction, GXDeleteArgs.Delete<GXDeviceGroupDevice>(w => w.DeviceId == deviceTemplateId && w.DeviceGroupId == it.Id));
             }
         }
 
@@ -871,13 +949,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Remove device parameters from the device.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="device">Device where parameters are removed.</param>
         /// <param name="parameters">Removed device parameters.</param>
-        public void RemoveDeviceParameters(GXDevice device, IEnumerable<GXDeviceParameter> parameters)
+        public void RemoveDeviceParameters(IDbTransaction transaction, GXDevice device, IEnumerable<GXDeviceParameter> parameters)
         {
             foreach (GXDeviceParameter it in parameters)
             {
-                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXDeviceParameter>(it.Id));
+                _host.Connection.Delete(transaction, GXDeleteArgs.DeleteById<GXDeviceParameter>(it.Id));
             }
             //_host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
         }

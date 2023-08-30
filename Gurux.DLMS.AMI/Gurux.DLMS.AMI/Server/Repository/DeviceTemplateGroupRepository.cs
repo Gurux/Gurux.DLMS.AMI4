@@ -43,7 +43,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared;
-using Org.BouncyCastle.Ocsp;
+using System.Data;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -51,7 +51,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
     public class DeviceTemplateGroupRepository : IDeviceTemplateGroupRepository
     {
         private readonly IGXHost _host;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
         private readonly IUserGroupRepository _userGroupRepository;
@@ -62,13 +61,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public DeviceTemplateGroupRepository(
             IGXHost host,
             IUserRepository userRepository,
-            UserManager<ApplicationUser> userManager,
             IGXEventsNotifier eventsNotifier,
             IUserGroupRepository userGroupRepository)
         {
             _host = host;
             _userRepository = userRepository;
-            _userManager = userManager;
             _eventsNotifier = eventsNotifier;
             _userGroupRepository = userGroupRepository;
         }
@@ -137,43 +134,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return ret;
         }
 
-        /// <summary>
-        /// Get all users that can access this device template group. 
-        /// </summary>
-        /// <returns></returns>
-        List<string> GetUsers(string userId, Guid groupId, bool isAdmin)
-        {
-            GXSelectArgs args;
-            //Check that user can access this group.
-            if (!isAdmin)
-            {
-                args = GXSelectArgs.Select<GXUserGroupUser>(a => a.UserId);
-                args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-                args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
-                args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
-                args.Where.And<GXUserGroup>(q => q.Removed == null);
-                args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null && q.Id == groupId);
-                if (_host.Connection.SingleOrDefault<bool>(GXSelectArgs.Select<GXUserGroupUser>(q => GXSql.IsEmpty(q), where => where.UserId == userId)))
-                {
-                    throw new UnauthorizedAccessException();
-                }
-            }
-            //Get users who can access this group.
-            args = GXSelectArgs.Select<GXUserGroupUser>(a => a.UserId);
-            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
-            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupDeviceTemplateGroup>(a => a.Id, b => b.UserGroupId);
-            args.Joins.AddInnerJoin<GXUserGroupDeviceTemplateGroup, GXDeviceTemplateGroup>(a => a.DeviceTemplateGroupId, b => b.Id);
-            args.Where.And<GXUserGroup>(q => q.Removed == null);
-            args.Where.And<GXDeviceTemplateGroup>(q => q.Removed == null && q.Id == groupId);
-            List<GXUserGroupUser> users = _host.Connection.Select<GXUserGroupUser>(args);
-            List<string> list = users.Select(s => s.UserId).ToList();
-            if (isAdmin)
-            {
-                list.Add(userId);
-            }
-            return list;
-        }
-
         /// <inheritdoc />
         public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<Guid> deviceTemplateGrouprs,
@@ -187,26 +147,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXDeviceTemplateGroup> list = _host.Connection.Select<GXDeviceTemplateGroup>(arg);
             DateTime now = DateTime.Now;
             Dictionary<GXDeviceTemplateGroup, List<string>> updates = new Dictionary<GXDeviceTemplateGroup, List<string>>();
-            string userId = _userManager.GetUserId(User);
-            bool isAdmin = User.IsInRole(GXRoles.Admin);
-            foreach (GXDeviceTemplateGroup it in list)
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                it.Removed = now;
-                List<string> users = GetUsers(userId, it.Id, isAdmin);
+                foreach (var it in list)
+                {
+                    List<string> users = await GetUsersAsync(User, it.Id);
+                    if (!delete)
+                    {
+                        it.Removed = now;
+                        _host.Connection.Update(transaction, GXUpdateArgs.Update(it, q => q.Removed));
+                    }
+                    updates[it] = users;
+                }
                 if (delete)
                 {
-                    await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXDeviceTemplateGroup>(it.Id));
+                    await _host.Connection.DeleteAsync(transaction, GXDeleteArgs.DeleteRange(list));
                 }
-                else
-                {
-                    _host.Connection.Update(GXUpdateArgs.Update(it, q => q.Removed));
-                }
-                updates[it] = users;
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
-                GXDeviceTemplateGroup tmp = new GXDeviceTemplateGroup() { Id = it.Key.Id, Name = it.Key.Name };
-                await _eventsNotifier.DeviceTemplateGroupDelete(it.Value, new GXDeviceTemplateGroup[] { tmp });
+                await _eventsNotifier.DeviceTemplateGroupDelete(it.Value, new GXDeviceTemplateGroup[] { it.Key });
             }
         }
         /// <inheritdoc />
@@ -336,46 +303,63 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXDeviceTemplateGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            bool isAdmin = true;
-            string userId;
-            if (User != null)
-            {
-                userId = _userManager.GetUserId(User);
-                isAdmin = User.IsInRole(GXRoles.Admin);
-            }
+            string userId = ServerHelpers.GetUserId(User);
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceTemplateGroup, List<string>> updates = new Dictionary<GXDeviceTemplateGroup, List<string>>();
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            List<GXUserGroup>? defaultGroups = null;
+            var newGroups = DeviceTemplateGroups.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedGroups = DeviceTemplateGroups.Where(w => w.Id != Guid.Empty).ToList();
             foreach (GXDeviceTemplateGroup it in DeviceTemplateGroups)
             {
                 if (string.IsNullOrEmpty(it.Name))
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
+                //Check the device templates are already inserted.
+                if (it.DeviceTemplates != null && it.DeviceTemplates.Where(w => w.Id == Guid.Empty).Any())
+                {
+                    throw new ArgumentException(Properties.Resources.JoinedGroupsAreNotInserted);
+                }
+
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
                     //Get default user groups.
-                    if (User != null)
+                    if (defaultGroups == null)
                     {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(User,
-                            ServerHelpers.GetUserId(User));
+                        defaultGroups = await _userGroupRepository.GetDefaultUserGroups(User, userId);
                     }
+                    it.UserGroups = defaultGroups;
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
                         throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
                     }
                 }
-                if (it.Id == Guid.Empty)
+            }
+            try
+            {
+                if (newGroups.Any())
                 {
-                    it.CreationTime = now;
-                    GXInsertArgs args = GXInsertArgs.Insert(it);
-                    //User groups must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXDeviceTemplateGroup>(e => e.UserGroups);
-                    _host.Connection.Insert(args);
-                    list.Add(it.Id);
-                    //Add user group to DeviceTemplate group.
-                    AddDeviceTemplateGroupToUserGroups(it.Id, it.UserGroups.Select(s => s.Id).ToArray());
+                    foreach (var it in newGroups)
+                    {
+                        it.CreationTime = now;
+                    }
+                    GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
+                    args.Exclude<GXDeviceTemplate>(e => new
+                    {
+                        e.Updated,
+                        e.Removed,
+                    });
+                    await _host.Connection.InsertAsync(transaction, args);
+                    foreach (var it in newGroups)
+                    {
+                        list.Add(it.Id);
+                    }
+                    var first = newGroups.First();
+                    updates[first] = await GetUsersAsync(User, first.Id);
                 }
-                else
+
+                foreach (var it in updatedGroups)
                 {
                     GXSelectArgs m = GXSelectArgs.Select<GXDeviceTemplateGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
                     string updated = _host.Connection.SingleOrDefault<string>(m);
@@ -400,11 +384,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         Guid[] added = tmp.Except(groups).ToArray();
                         if (added.Length != 0)
                         {
-                            AddDeviceTemplateGroupToUserGroups(it.Id, added);
+                            AddDeviceTemplateGroupToUserGroups(transaction, it.Id, added);
                         }
                         if (removed.Length != 0)
                         {
-                            RemoveDeviceTemplateGroupFromUserGroups(it.Id, removed);
+                            RemoveDeviceTemplateGroupFromUserGroups(transaction, it.Id, removed);
                         }
                     }
                     //Map device templates to device template group.
@@ -417,19 +401,27 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         Guid[] added = tmp.Except(groups).ToArray();
                         if (added.Length != 0)
                         {
-                            AddDeviceTemplateGroupsToDeviceTemplate(it.Id, added);
+                            AddDeviceTemplateGroupsToDeviceTemplate(transaction, it.Id, added);
                         }
                         if (removed.Length != 0)
                         {
-                            RemoveDeviceTemplateGroupsFromDeviceTemplate(it.Id, removed);
+                            RemoveDeviceTemplateGroupsFromDeviceTemplate(transaction, it.Id, removed);
                         }
                     }
+                    updates[it] = await GetUsersAsync(User, it.Id);
                 }
-                updates[it] = await GetUsersAsync(User, it.Id);
+                _host.Connection.CommitTransaction(transaction);
+            }
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
             }
             foreach (var it in updates)
             {
-                await _eventsNotifier.DeviceTemplateGroupUpdate(it.Value, new GXDeviceTemplateGroup[] { it.Key });
+                await _eventsNotifier.DeviceTemplateGroupUpdate(it.Value,
+                     new GXDeviceTemplateGroup[] { new GXDeviceTemplateGroup() { Id = it.Key.Id, Name = it.Key.Name }
+});
             }
             return list.ToArray();
         }
@@ -437,9 +429,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Add DeviceTemplate group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="DeviceTemplateGroupId">DeviceTemplate group ID.</param>
         /// <param name="groups">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
-        public void AddDeviceTemplateGroupToUserGroups(Guid DeviceTemplateGroupId, IEnumerable<Guid> groups)
+        public void AddDeviceTemplateGroupToUserGroups(IDbTransaction transaction, Guid DeviceTemplateGroupId, IEnumerable<Guid> groups)
         {
             DateTime now = DateTime.Now;
             List<GXUserGroupDeviceTemplateGroup> list = new List<GXUserGroupDeviceTemplateGroup>();
@@ -452,15 +445,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove DeviceTemplate group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateGroupId">DeviceTemplate group ID.</param>
         /// <param name="groups">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
-        public void RemoveDeviceTemplateGroupFromUserGroups(Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
+        public void RemoveDeviceTemplateGroupFromUserGroups(IDbTransaction transaction, Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXUserGroupDeviceTemplateGroup>();
             foreach (var it in groups)
@@ -468,14 +462,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXUserGroupDeviceTemplateGroup>(w => w.UserGroupId == it &&
                     w.DeviceTemplateGroupId == deviceTemplateGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
         /// <summary>
         /// Add DeviceTemplate group to user groups.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="deviceTemplateGroupId">DeviceTemplate group ID.</param>
-        /// <param name="group">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
-        public void AddDeviceTemplateGroupsToDeviceTemplate(Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
+        /// <param name="groups">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
+        public void AddDeviceTemplateGroupsToDeviceTemplate(IDbTransaction transaction, Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
         {
             DateTime now = DateTime.Now;
             List<GXDeviceTemplateGroupDeviceTemplate> list = new List<GXDeviceTemplateGroupDeviceTemplate>();
@@ -488,15 +483,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(GXInsertArgs.InsertRange(list));
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
         /// Remove DeviceTemplate group to user groups.
         /// </summary>
-        /// <param name="DeviceTemplateGroupId">DeviceTemplate group ID.</param>
-        /// <param name="group">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
-        public void RemoveDeviceTemplateGroupsFromDeviceTemplate(Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="deviceTemplateGroupId">DeviceTemplate group ID.</param>
+        /// <param name="groups">Group IDs of the DeviceTemplate groups where the DeviceTemplate is added.</param>
+        public void RemoveDeviceTemplateGroupsFromDeviceTemplate(IDbTransaction transaction, Guid deviceTemplateGroupId, IEnumerable<Guid> groups)
         {
             GXDeleteArgs args = GXDeleteArgs.DeleteAll<GXDeviceTemplateGroupDeviceTemplate>();
             foreach (var it in groups)
@@ -504,7 +500,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 args.Where.Or<GXDeviceTemplateGroupDeviceTemplate>(w => w.DeviceTemplateId == it &&
                     w.DeviceTemplateGroupId == deviceTemplateGroupId);
             }
-            _host.Connection.Delete(args);
+            _host.Connection.Delete(transaction, args);
         }
     }
 }

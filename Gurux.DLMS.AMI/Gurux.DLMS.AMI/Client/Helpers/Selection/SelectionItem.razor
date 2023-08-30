@@ -22,7 +22,7 @@
             {
                 return null;
             }
-            return List.GetName(Target);
+            return List?.GetName(Target);
         }
     }
     public string? Description
@@ -33,15 +33,12 @@
         }
     }
 
-    [Parameter]
-    public List<TItem>? SourceList { get; set; }
-
     private void HandleDragStart(TItem target)
     {
-        if (Container != null)
+        if (Container != null && List != null)
         {
-            Container.SourceList = SourceList;
-            Container.Payload = target;
+            Container.SourceList = List.Items;
+            Container.Item = target;
         }
     }
 }
