@@ -135,6 +135,17 @@ namespace Gurux.DLMS.AMI.Shared
             set;
         }
 
+        /// <summary>
+        /// How long the the connection is keeped up in seconds.
+        /// </summary>
+        /// <remarks>
+        /// Auto connect devices can use this so 
+        /// connection is not closed right after meter has read.
+        /// If value is zero, the connection is closed without delay.
+        /// If value is -1 the connection is not closed.
+        /// </remarks>
+        public int? ConnectionUpTime { get; set; }
+
         /// <inheritdoc/>
         public override string ToString()
         {
