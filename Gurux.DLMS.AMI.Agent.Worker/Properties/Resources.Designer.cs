@@ -70,6 +70,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Unknown device..
+        /// </summary>
+        internal static string UnknownDevice {
+            get {
+                return ResourceManager.GetString("UnknownDevice", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Unknown device for system title {0}..
         /// </summary>
         internal static string UnknownDeviceForSystemTitle {

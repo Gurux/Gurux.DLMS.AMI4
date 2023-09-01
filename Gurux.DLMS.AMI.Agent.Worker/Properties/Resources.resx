@@ -126,4 +126,7 @@
   <data name="NoExecutedTasks" xml:space="preserve">
     <value>No executed tasks.</value>
   </data>
+  <data name="UnknownDevice" xml:space="preserve">
+    <value>Unknown device.</value>
+  </data>
 </root>

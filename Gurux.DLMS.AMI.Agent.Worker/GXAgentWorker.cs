@@ -576,6 +576,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         }
 
         internal static async Task<GXDevice?> ReadMeter(GXActionBlock action,
+            bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
         {
             GXDLMSSecureClient cl;
@@ -812,7 +813,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     }
                     //Close connection after last task is executed.
                     //This must done because there might be new task to execute.
-                    if (count == pos)
+                    if (!autoConnect && count == pos)
                     {
                         try
                         {

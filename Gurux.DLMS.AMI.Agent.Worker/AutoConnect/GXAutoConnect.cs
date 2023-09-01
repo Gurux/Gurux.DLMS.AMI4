@@ -149,7 +149,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         } };
                     await client.PostAsJson("/api/AgentLog/Add", log);
                 }
-                if (_deviceId == null || _deviceId == Guid.Empty && settings != null && settings.IdentifyWaitTime == 0)
+                if (settings != null && !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty && settings.IdentifyWaitTime == 0))
                 {
                     GXDLMSObjectCollection objects = new GXDLMSObjectCollection();
                     GXDLMSData ldn = new GXDLMSData("0.0.42.0.0.255");
@@ -193,10 +193,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     }
                     _deviceId = ret.Devices[0].Id;
                 }
-                if (_deviceId == null || _deviceId == Guid.Empty)
+                if (settings != null && !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty))
                 {
                     //If unknown device.
-                    throw new GXAMIUnknownDeviceException("Unknown device.");
+                    throw new GXAMIUnknownDeviceException(Properties.Resources.UnknownDevice);
                 }
                 DateTime start = DateTime.Now;
                 GXDevice? dev = null;
@@ -207,7 +207,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     req2.AgentId = Options.Id;
                     req2.DeviceId = _deviceId;
                     req2.Listener = true;
-                    GetNextTaskResponse? response = await GXAgentWorker.client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", req2);
+                    GetNextTaskResponse? response = await client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", req2);
                     if (response != null && response.Tasks != null && response.Tasks.Any())
                     {
                         GXActionBlock ab = new GXActionBlock()
@@ -215,7 +215,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             Tasks = response.Tasks,
                             Media = _media
                         };
-                        dev = await GXAgentWorker.ReadMeter(ab, settings);
+                        dev = await GXAgentWorker.ReadMeter(ab, true, settings);
                     }
                     else if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
                     {
@@ -244,7 +244,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
 
                     }
                 }
-                while (dev != null && (dev.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < dev.ConnectionUpTime));
+                while ((settings != null && (settings.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < settings.ConnectionUpTime)) ||
+                (dev != null && (dev.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < dev.ConnectionUpTime)));
             }
             catch (Exception ex)
             {
