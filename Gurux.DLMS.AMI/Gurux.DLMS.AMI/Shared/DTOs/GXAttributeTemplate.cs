@@ -158,7 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// User has modified the attribute templates.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]

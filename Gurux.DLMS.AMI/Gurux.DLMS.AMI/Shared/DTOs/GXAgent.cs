@@ -67,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Logs = new List<GXAgentLog>();
             Versions = new List<GXAgentVersion>();
             ScriptMethods = new List<GXScriptMethod>();
+            Concurrently = true;
         }
 
         /// <summary>
@@ -117,7 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Agent template settings are used to show download information.
+        /// Agent template settings are used to shown download information.
         /// </summary>
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
@@ -231,7 +232,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// User has modified the agent.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -385,6 +386,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+        /// <summary>
+        /// Is concurrently reading used.
+        /// </summary>
+        [DefaultValue(true)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? Concurrently { get; set; }
 
         /// <summary>
         /// Update creation time before update.

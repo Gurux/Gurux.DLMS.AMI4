@@ -142,7 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the item.
+        /// User has modified the schedule group.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -199,7 +199,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }        
+        }
 
         /// <summary>
         /// Update creation time before update.

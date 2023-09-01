@@ -211,7 +211,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-      
+
         /// <summary>
         /// Creation time.
         /// </summary>
@@ -237,7 +237,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the item.
+        /// User has modified the schedule.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -300,7 +300,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }       
+        }
 
         /// <summary>
         /// Update creation time before update.

@@ -176,7 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// User has modified the manufacturer.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]

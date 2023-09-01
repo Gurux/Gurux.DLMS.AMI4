@@ -53,7 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXObject(GXObjectTemplate template)
+        public GXObject(GXObjectTemplate? template)
         {
             Template = template;
             Attributes = new();

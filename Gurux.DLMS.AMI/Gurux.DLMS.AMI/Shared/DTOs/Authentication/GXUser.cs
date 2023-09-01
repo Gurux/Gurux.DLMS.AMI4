@@ -324,7 +324,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// User has modified the user settings.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]

@@ -189,7 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the schedule group.
+        /// User has modified the agent group.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
