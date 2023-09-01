@@ -46,7 +46,6 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -492,22 +491,47 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Guid> updated = new List<Guid>();
             var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
             var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
+            Dictionary<GXDevice, List<GXDeviceGroup>> deviceGroups = new Dictionary<GXDevice, List<GXDeviceGroup>>();
+            List<GXDeviceGroup>? defaultGroups = null;
             //Get notified users.
             if (newDevices.Any())
             {
                 var first = newDevices.First();
                 var users = await GetUsersAsync(User, first.Id);
-                foreach(var it in newDevices)
+                if (defaultGroups == null)
+                {
+                    //Get default device groups.
+                    ListDeviceGroups request = new ListDeviceGroups()
+                    {
+                        Filter = new GXDeviceGroup() { Default = true }
+                    };
+                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
+                    if (!defaultGroups.Any())
+                    {
+                        throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                    }
+                }
+                foreach (var it in newDevices)
                 {
                     updates[it] = users;
+                    it.DeviceGroups = defaultGroups;
                 }
             }
             foreach (var it in updatedDevices)
             {
                 updates[it] = await GetUsersAsync(User, it.Id);
+                //Get mapped device groups.
+                ListDeviceGroups request = new ListDeviceGroups()
+                {
+                    Filter = new GXDeviceGroup() { Default = true }
+                };
+                deviceGroups.Add(it, await _deviceGroupRepository.GetDeviceGroupsByDeviceId(User, it.Id));
+                if (!deviceGroups[it].Any())
+                {
+                    throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
+                }
             }
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
-            List<GXDeviceGroup>? defaultGroups = null;
             try
             {
                 List<GXKeyManagement> keys = new List<GXKeyManagement>();
@@ -645,23 +669,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             }
                             device.Creator = creator;
                             device.CreationTime = now;
-                            if (device.DeviceGroups == null || !device.DeviceGroups.Any())
-                            {
-                                if (defaultGroups == null)
-                                {
-                                    //Get default device groups.
-                                    ListDeviceGroups request = new ListDeviceGroups()
-                                    {
-                                        Filter = new GXDeviceGroup() { Default = true }
-                                    };
-                                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
-                                }
-                                device.DeviceGroups = defaultGroups;
-                            }
-                            if (!device.DeviceGroups.Any())
-                            {
-                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                            }
                         }
                         GXInsertArgs args = GXInsertArgs.InsertRange(newDevices);
                         args.Exclude<GXDevice>(e => new
@@ -672,30 +679,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         });
                         await _host.Connection.InsertAsync(transaction, args);
                         updated = newDevices.Select(s => s.Id).ToList();
-                        var first = newDevices.First();
-                        updates[first] = await GetUsersAsync(User, first.Id);
                     }
                     else
                     {
                         foreach (GXDevice device in newDevices)
                         {
-                            if (device.DeviceGroups == null || !device.DeviceGroups.Any())
-                            {
-                                if (defaultGroups == null)
-                                {
-                                    //Get default device groups.
-                                    ListDeviceGroups request = new ListDeviceGroups()
-                                    {
-                                        Filter = new GXDeviceGroup() { Default = true }
-                                    };
-                                    defaultGroups = new List<GXDeviceGroup>(await _deviceGroupRepository.ListAsync(User, request, null, CancellationToken.None));
-                                }
-                                device.DeviceGroups = defaultGroups;
-                            }
-                            if (!device.DeviceGroups.Any())
-                            {
-                                throw new ArgumentNullException(Properties.Resources.ArrayIsEmpty);
-                            }
                             //Add new device.
                             if (device.TraceLevel == null)
                             {
@@ -771,9 +759,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
                             //Add device to the default device group.
                             await AddDeviceToDeviceGroups(transaction, device.Id, device.DeviceGroups, cancellationToken);
-                            //Only creator is notified.
-                            List<string> users = new List<string> { creator.Id };
-                            updates[device] = users;
                             updated.Add(device.Id);
                         }
                     }
@@ -859,14 +844,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         else
                         {
-                            List<GXDeviceGroup> deviceGroups;
-                            using (IServiceScope scope = _serviceProvider.CreateScope())
-                            {
-                                IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                                deviceGroups = await deviceGroupRepository.GetDeviceGroupsByDeviceId(User, device.Id);
-                            }
-                            List<GXDeviceGroup> removedDeviceGroups = deviceGroups.Except(device.DeviceGroups, comparer).ToList();
-                            List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups, comparer).ToList();
+                            List<GXDeviceGroup> removedDeviceGroups = deviceGroups[device].Except(device.DeviceGroups, comparer).ToList();
+                            List<GXDeviceGroup> addedDeviceGroups = device.DeviceGroups.Except(deviceGroups[device], comparer).ToList();
                             if (removedDeviceGroups.Any())
                             {
                                 RemoveDevicesFromDeviceGroup(transaction, device.Id, removedDeviceGroups);
@@ -877,7 +856,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             }
                         }
                     }
-                    updates[device] = await GetUsersAsync(User, device.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
                 if (keys != null)
