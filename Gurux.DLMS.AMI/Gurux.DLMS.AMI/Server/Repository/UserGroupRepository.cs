@@ -288,19 +288,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXUserGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string? userId = null;
-            //User is null if framework creates the user group.
-            if (user != null)
-            {
-                userId = _userManager.GetUserId(user);
-            }
+            string userId = _userManager.GetUserId(user);
             List<Guid> list = new List<Guid>();
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
+            var newGroups = userGroups.Where(w => w.Id == Guid.Empty).ToList();
+            var updatedGroups = userGroups.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(user, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(user, it.Id);
+            }
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
             try
             {
-                var newGroups = userGroups.Where(w => w.Id == Guid.Empty).ToList();
-                var updatedGroups = userGroups.Where(w => w.Id != Guid.Empty).ToList();
                 foreach (GXUserGroup userGroup in newGroups)
                 {
                     if (string.IsNullOrEmpty(userGroup.Name))
@@ -322,11 +331,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         //Add creator to user group.
                         AddUsersToGroup(transaction, new string[] { userId }, userGroup.Id);
-                    }
-                    updates[userGroup] = await GetUsersAsync(user, userGroup.Id);
-                    if (userId != null)
-                    {
-                        updates[userGroup].Add(userId);                        
                     }
                 }
                 foreach (GXUserGroup userGroup in updatedGroups)
@@ -369,7 +373,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             await _host.Connection.DeleteAsync(GXDeleteArgs.Delete<GXUserGroupUser>(w => w.UserGroupId == userGroup.Id && w.UserId == it));
                         }
                     }
-                    updates[userGroup] = users;
                 }
                 foreach (GXUserGroup userGroup in userGroups)
                 {

@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using System.Data;
 using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -352,18 +353,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXDeviceGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string userId = null;
-            bool isAdmin = true;
-            if (user != null)
-            {
-                isAdmin = user.IsInRole(GXRoles.Admin);
-                userId = _userManager.GetUserId(user);
-            }
-            List<string> users;
+            string userId = ServerHelpers.GetUserId(user);
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
             var newGroups = deviceGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = deviceGroups.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(user, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(user, it.Id);
+            }
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
             try
             {
@@ -420,13 +428,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             AddDeviceGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
                         }
                     }
-
                     foreach (var it in newGroups)
                     {
                         list.Add(it.Id);
-                    }
-                    var first = newGroups.First();
-                    updates[first] = await GetUsersAsync(user, first.Id);
+                    }                    
                 }
                 foreach (var it in updatedGroups)
                 {
@@ -436,7 +441,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException(Properties.Resources.ContentEdited);
                     }
-                    users = await GetUsersAsync(user, it.Id);
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
@@ -488,7 +492,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             AddAgentGroupsToDeviceGroup(transaction, it.Id, addedAgentGroups);
                         }
                     }
-                    updates[it] = users;
                 }
                 _host.Connection.CommitTransaction(transaction);
             }

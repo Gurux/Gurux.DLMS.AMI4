@@ -46,6 +46,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -491,6 +492,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Guid> updated = new List<Guid>();
             var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
             var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newDevices.Any())
+            {
+                var first = newDevices.First();
+                var users = await GetUsersAsync(User, first.Id);
+                foreach(var it in newDevices)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedDevices)
+            {
+                updates[it] = await GetUsersAsync(User, it.Id);
+            }
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXDeviceGroup>? defaultGroups = null;
             try

@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared;
 using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -306,10 +307,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
             string userId = ServerHelpers.GetUserId(User);
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceTemplateGroup, List<string>> updates = new Dictionary<GXDeviceTemplateGroup, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXUserGroup>? defaultGroups = null;
             var newGroups = DeviceTemplateGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = DeviceTemplateGroups.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(User, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(User, it.Id);
+            }
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             foreach (GXDeviceTemplateGroup it in DeviceTemplateGroups)
             {
                 if (string.IsNullOrEmpty(it.Name))
@@ -365,10 +380,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         list.Add(it.Id);
                     }
-                    var first = newGroups.First();
-                    updates[first] = await GetUsersAsync(User, first.Id);
                 }
-
                 foreach (var it in updatedGroups)
                 {
                     GXSelectArgs m = GXSelectArgs.Select<GXDeviceTemplateGroup>(q => q.ConcurrencyStamp, where => where.Id == it.Id);
@@ -418,7 +430,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             RemoveDeviceTemplateGroupsFromDeviceTemplate(transaction, it.Id, removed);
                         }
                     }
-                    updates[it] = await GetUsersAsync(User, it.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
             }
@@ -430,8 +441,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in updates)
             {
                 await _eventsNotifier.DeviceTemplateGroupUpdate(it.Value,
-                     new GXDeviceTemplateGroup[] { new GXDeviceTemplateGroup() { Id = it.Key.Id, Name = it.Key.Name }
-});
+                     new GXDeviceTemplateGroup[] {
+                         new GXDeviceTemplateGroup()
+                         {
+                             Id = it.Key.Id,
+                             Name = it.Key.Name
+                         }
+                     });
             }
             return list.ToArray();
         }

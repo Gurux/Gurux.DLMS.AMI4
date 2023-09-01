@@ -447,7 +447,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXDeviceTemplateGroup>? defaultGroups = null;
             var newTemplates = DeviceTemplates.Where(w => w.Id == Guid.Empty).ToList();
             var updatedTemplates = DeviceTemplates.Where(w => w.Id != Guid.Empty).ToList();
-
+            //Get notified users.
+            if (newTemplates.Any())
+            {
+                var first = newTemplates.First();
+                var users = await GetUsersAsync(user, first.Id);
+                foreach (var it in newTemplates)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedTemplates)
+            {
+                updates[it] = await GetUsersAsync(user, it.Id);
+            }
             foreach (GXDeviceTemplate it in DeviceTemplates)
             {
                 if (string.IsNullOrEmpty(it.Name))
@@ -476,7 +489,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 if (newTemplates.Any())
                 {
-                    List<string>? users = null;
                     foreach (var dt in newTemplates)
                     {
                         if (dt.Objects == null || !dt.Objects.Any())
@@ -485,7 +497,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         EncryptPassword(dt);
                         dt.CreationTime = now;
-
                         foreach (var ot in dt.Objects)
                         {
                             ot.DeviceTemplate = dt;
@@ -531,12 +542,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var it in newTemplates)
                     {
                         list.Add(it.Id);
-                        if (users == null)
-                        {
-                            var first = newTemplates.First();
-                            users = await GetUsersAsync(user, first.Id);
-                        }
-                        await _eventsNotifier.DeviceTemplateUpdate(users, new GXDeviceTemplate[] { new GXDeviceTemplate() { Id = it.Id } });
                     }
                 }
                 foreach (var it in updatedTemplates)
@@ -571,7 +576,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         AddDeviceTemplateToDeviceTemplateGroups(transaction, it.Id, addedDeviceGroups);
                     }
-                    updates[it] = await GetUsersAsync(user, it.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
             }

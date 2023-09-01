@@ -41,6 +41,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -320,10 +321,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXScheduleGroup, List<string>> updates = new Dictionary<GXScheduleGroup, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXUserGroup>? defaultGroups = null;
             var newGroups = scheduleGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = scheduleGroups.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(user, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(user, it.Id);
+            }
+
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             try
             {
                 foreach (var it in scheduleGroups)
@@ -397,8 +413,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             AddScheduleGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
                         }
                     }
-                    var first = newGroups.First();
-                    updates[first] = await GetUsersAsync(user, first.Id);
                 }
                 foreach (var it in updatedGroups)
                 {
@@ -444,7 +458,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             RemoveSchedulesFromScheduleGroup(transaction, it.Id, removed);
                         }
                     }
-                    updates[it] = await GetUsersAsync(user, it.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
             }

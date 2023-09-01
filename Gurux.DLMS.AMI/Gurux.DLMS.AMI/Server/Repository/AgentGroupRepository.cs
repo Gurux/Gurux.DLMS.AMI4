@@ -41,8 +41,6 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using System.Data;
-using Gurux.DLMS.AMI.Client.Pages.Schedule;
-using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -295,13 +293,29 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXAgentGroup> AgentGroups,
             Expression<Func<GXAgentGroup, object?>>? columns)
         {
+            string userId = ServerHelpers.GetUserId(User);
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXAgentGroup, List<string>> updates = new Dictionary<GXAgentGroup, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXUserGroup>? defaultGroups = null;
             var newGroups = AgentGroups.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = AgentGroups.Where(w => w.Id != Guid.Empty).ToList();
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(User, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(User, it.Id);
+            }
+
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             try
             {
                 foreach (GXAgentGroup it in AgentGroups)
@@ -350,8 +364,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         list.Add(it.Id);
                     }
-                    var first = newGroups.First();
-                    updates[first] = await GetUsersAsync(User, first.Id);
                 }
                 foreach (var it in updatedGroups)
                 {
