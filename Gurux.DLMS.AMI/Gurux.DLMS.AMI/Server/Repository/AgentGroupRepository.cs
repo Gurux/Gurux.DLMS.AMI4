@@ -335,8 +335,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         e.Updated,
                         e.Removed,
+                        //User groups must hanlde separetly because users are identified with name and not Guid.
+                        e.UserGroups
                     });
                     await _host.Connection.InsertAsync(transaction, args);
+                    foreach (var it in newGroups)
+                    {
+                        if (it.UserGroups != null)
+                        {
+                            AddAgentGroupToUserGroups(transaction, it.Id, it.UserGroups);
+                        }
+                    }
                     foreach (var it in newGroups)
                     {
                         list.Add(it.Id);

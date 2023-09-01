@@ -408,8 +408,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         e.Updated,
                         e.Removed,
+                        //User groups must hanlde separetly.
+                        e.UserGroups
                     });
                     await _host.Connection.InsertAsync(transaction, args);
+                    //Map user group to device group.
+                    foreach (var it in newGroups)
+                    {
+                        if (it.UserGroups != null)
+                        {
+                            AddDeviceGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
+                        }
+                    }
+
                     foreach (var it in newGroups)
                     {
                         list.Add(it.Id);

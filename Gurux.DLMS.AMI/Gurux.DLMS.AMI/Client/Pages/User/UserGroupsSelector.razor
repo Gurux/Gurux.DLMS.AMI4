@@ -78,7 +78,7 @@
     private KeyManagementGroupTab? KeyManagementParent { get; set; }
 
     [CascadingParameter]
-    private UserGroupTab? UserGroupParent { get; set; }
+    private ScheduleGroupTab? ScheduleGroupParent { get; set; }
 
     SelectionList<GXUserGroup>? _selected;
     SelectionList<GXUserGroup>? _available;
@@ -245,10 +245,10 @@
             }
             CrudAction action;
             //Get selected user groups.
-            if (DeviceGroupParent?.Active?.UserGroups != null)
+            if (ScheduleGroupParent?.Active?.UserGroups != null)
             {
-                _selected.Items = DeviceGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(UserGroupParent.Action);
+                _selected.Items = ScheduleGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(ScheduleGroupParent.Action);
             }
             else if (DeviceTemplateParent?.Active?.UserGroups != null)
             {

@@ -345,12 +345,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         it.CreationTime = now;
                     }
                     GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
-                    args.Exclude<GXDeviceTemplate>(e => new
+                    args.Exclude<GXDeviceTemplateGroup>(e => new
                     {
                         e.Updated,
                         e.Removed,
+                        //User groups must hanlde separetly because users are identified with name and not Guid.
+                        e.UserGroups
                     });
                     await _host.Connection.InsertAsync(transaction, args);
+                    //Add user group to DeviceTemplate group.
+                    foreach (var it in newGroups)
+                    {
+                        if (it.UserGroups != null)
+                        {
+                            AddDeviceTemplateGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
+                        }
+                    }
                     foreach (var it in newGroups)
                     {
                         list.Add(it.Id);

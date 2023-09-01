@@ -367,17 +367,35 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var it in newGroups)
                     {
                         it.CreationTime = now;
+                        if (it.Schedules != null)
+                        {
+                            //Update creator and creation time for all schedules.
+                            foreach (var schedule in it.Schedules)
+                            {
+                                schedule.CreationTime = now;
+                                schedule.Creator = new GXUser() { Id = userId };
+                            }
+                        }
                     }
                     GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
                     args.Exclude<GXScheduleGroup>(e => new
                     {
                         e.Updated,
                         e.Removed,
+                        //User groups must hanlde separetly because users are identified with name and not Guid.
+                        e.UserGroups
                     });
                     await _host.Connection.InsertAsync(transaction, args);
                     foreach (GXScheduleGroup it in newGroups)
                     {
                         list.Add(it.Id);
+                    }
+                    foreach (var it in newGroups)
+                    {
+                        if (it.UserGroups != null)
+                        {
+                            AddScheduleGroupToUserGroups(transaction, it.Id, it.UserGroups.Select(s => s.Id).ToArray());
+                        }
                     }
                     var first = newGroups.First();
                     updates[first] = await GetUsersAsync(user, first.Id);
@@ -430,7 +448,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 _host.Connection.CommitTransaction(transaction);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _host.Connection.RollbackTransaction(transaction);
                 throw;
