@@ -48,6 +48,11 @@
             @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
+            <input class="form-control" placeholder="@Properties.Resources.Type"
+                   type="text"
+            @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
             @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
@@ -67,6 +72,7 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="Name">@Properties.Resources.Type</Th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <Th Id="Updated">@Properties.Resources.Updated</Th>
         <Th Id="LastRead">@Properties.Resources.LastRead</Th>
@@ -74,6 +80,7 @@
     </HeaderContent>
     <ItemContent>
         <Td Link=@("Objects/" + device.Id)>@device.Name</Td>
+        <td>@device.Template?.Name</td>
         <td>@device.CreationTime</td>
         <td>@device.Updated</td>
         <td>@device.LastRead</td>
@@ -151,7 +158,7 @@
     /// <summary>
     /// Device filter.
     /// </summary>
-    private GXDevice filter = new GXDevice();
+    private GXDevice filter = new GXDevice() { Template = new GXDeviceTemplate() };
     /// <summary>
     /// User is verified before schedule is removed.
     /// </summary>

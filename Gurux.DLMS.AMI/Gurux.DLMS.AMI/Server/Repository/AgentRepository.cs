@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Client.Pages.Agent;
+using System;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -344,6 +345,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new GXAmiNotFoundException(Properties.Resources.Agent + " " + Properties.Resources.Id + " " + id.ToString());
             }
             agent.Versions = await GetAgentVersionsByAgentIdAsync(User, agent);
+            if (agent.AgentGroups == null)
+            {
+                agent.AgentGroups = new List<GXAgentGroup>();
+            }
             return agent;
         }
 

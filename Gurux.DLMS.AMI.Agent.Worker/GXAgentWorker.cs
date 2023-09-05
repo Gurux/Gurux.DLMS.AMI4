@@ -993,8 +993,15 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             _logger?.LogInformation(string.Format("Agent version {0} upgraded to version {1}.", Options.Version, agent.UpdateVersion));
                             await InstallNewVersion();
                         }
+                        //Read tasks if agent mapping is changed.
+                        _newTask.Set();
                     }
                 }
+            });
+            _hubConnection.On<IEnumerable<GXAgentGroup>>("AgentGroupUpdate", (groups) =>
+            {
+                //Read tasks if agent mapping is changed.
+                _newTask.Set();
             });
             _hubConnection.Reconnecting += _hubConnection_Reconnecting;
             _hubConnection.Reconnected += _hubConnection_Reconnected;

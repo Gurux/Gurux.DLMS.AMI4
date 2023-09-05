@@ -270,7 +270,7 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = ScheduleParent?.Active.Devices?.Select(s => s.Id).ToArray()
+                    Exclude = GetDevices().Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
             if (ret?.Devices != null && _selected != null)
@@ -302,14 +302,14 @@
         {
             Notifier.ProgressStart();
             Notifier.ClearStatus();
+            if (_selected != null)
+            {
+                await _selected.RefreshDataAsync();
+            }
             //Read available items.
             if (_available != null)
             {
                 await _available.RefreshDataAsync();
-            }
-            if (_selected != null)
-            {
-                await _selected.RefreshDataAsync();
             }
         }
         catch (Exception ex)

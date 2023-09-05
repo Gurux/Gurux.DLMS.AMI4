@@ -21,11 +21,21 @@
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
                    GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   GetDescription="@GetDescription"
+                   OnAdded="OnAdded"
+                   OnRemoved="@Removed">
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => RemoveAll())">
+                    &raquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
                    ItemsProvider="@GetItems"
@@ -37,6 +47,14 @@
             <Search Placeholder="@Properties.Resources.FilterByUser"
                     OnClickAsync="@SearchByUser" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => AddAll())">
+                    &laquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
 </SelectionContainer>
 
@@ -59,6 +77,10 @@
     /// Device group filter.
     /// </summary>
     private GXDeviceGroup filter = new GXDeviceGroup(null);
+    /// <summary>
+    /// Selected device group filter.
+    /// </summary>
+    private GXDeviceGroup selectedFilter = new GXDeviceGroup();
 
     public string? GetName(GXDeviceGroup target)
     {
@@ -74,21 +96,9 @@
     {
         try
         {
-            if (_selected?.Items != null)
+            if (_selected != null)
             {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                Notifier?.ClearStatus();
+                selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
@@ -153,18 +163,101 @@
     }
 
     /// <summary>
+    /// Add all objects to selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task AddAll()
+    {
+        int max = 0;
+        //max 1000 items are added at the one time.
+        if (_available != null && _available.TotalCount > 1000)
+        {
+            max = 1000;
+        }
+        var ret = await GetItems(new GXItemsProviderRequest(0, max));
+        await OnAdded(ret.Items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Remove all objects from selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task RemoveAll()
+    {
+        List<GXDeviceGroup> groups = GetDeviceGroups();
+        groups.Clear();
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// New device is added for selection list.
+    /// </summary>
+    public async Task OnAdded(IEnumerable<GXDeviceGroup> items)
+    {
+        List<GXDeviceGroup> groups = GetDeviceGroups();
+        groups.InsertRange(0, items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Device has removed from the lists.
+    /// </summary>
+    private async Task Removed(IEnumerable<GXDeviceGroup> items)
+    {
+        List<GXDeviceGroup> groups = GetDeviceGroups();
+        groups.RemoveAll(w => items.Contains(w));
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    private List<GXDeviceGroup> GetDeviceGroups()
+    {
+        if (UserGroupParent?.Active?.DeviceGroups != null)
+        {
+            return UserGroupParent.Active.DeviceGroups;
+        }
+        if (DeviceParent?.Active?.DeviceGroups != null)
+        {
+            return DeviceParent.Active.DeviceGroups;
+        }
+        return AgentGroupParent?.Active?.DeviceGroups;
+    }
+
+    /// <summary>
     /// Filter is done when SearchSelectedByName is called.
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXDeviceGroup>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        if (_selected?.Items == null)
+        var groups = GetDeviceGroups();
+        int total = groups.Count;
+        if (!string.IsNullOrEmpty(selectedFilter.Name))
         {
-            return default;
+            groups = groups.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
         }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXDeviceGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+        return new(new ItemsProviderResult<GXDeviceGroup>(
+        groups.Skip(request.StartIndex).Take(request.Count), total));
     }
 
     private async ValueTask<ItemsProviderResult<GXDeviceGroup>> GetItems(GXItemsProviderRequest request)
@@ -180,7 +273,7 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Exclude = GetDeviceGroups().Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req, request.CancellationToken);
             if (ret?.DeviceGroups != null && _selected != null)
@@ -216,48 +309,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            CrudAction action;
-            if (UserGroupParent?.Active?.DeviceGroups != null)
+            if (_selected != null)
             {
-                //Get selected device groups.
-                _selected.Items = UserGroupParent.Active.DeviceGroups;
-                action = ClientHelpers.GetAction(UserGroupParent.Action);
-
-            }
-            else if (DeviceParent?.Active?.DeviceGroups != null)
-            {
-                //Get selected device groups.
-                _selected.Items = DeviceParent.Active.DeviceGroups;
-                action = ClientHelpers.GetAction(DeviceParent.Action);
-            }
-            else if (AgentGroupParent?.Active?.DeviceGroups != null)
-            {
-                //Get selected device groups.
-                _selected.Items = AgentGroupParent.Active.DeviceGroups;
-                action = ClientHelpers.GetAction(AgentGroupParent.Action);
-            }
-            else
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
-            if (addDefaultGroups)
-            {
-                //Show default groups when new group is added.
-                ListDeviceGroups req = new ListDeviceGroups()
-                    {
-                        Filter = new GXDeviceGroup()
-                        {
-                            Default = true
-                        },
-                        Count = _selectionContainer.PageSize,
-                        Exclude = _selected.Items.Select(s => s.Id).ToArray()
-                    };
-                var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req);
-                if (ret?.DeviceGroups != null)
-                {
-                    _selected.Items.AddRange(ret.DeviceGroups);
-                }
+                await _selected.RefreshDataAsync();
             }
             //Read available items.
             if (_available != null)

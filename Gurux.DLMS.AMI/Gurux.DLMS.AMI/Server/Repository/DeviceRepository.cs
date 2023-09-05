@@ -190,6 +190,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string userId = ServerHelpers.GetUserId(User);
                 arg = GXQuery.GetDevicesByUser(userId, Guid.Empty);
             }
+            arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Type, s.Name });
+            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
             //If devices are filtered by user.
             if (request?.Filter?.DeviceGroups != null &&
                 request.Filter.DeviceGroups.SingleOrDefault() is GXDeviceGroup dg)
@@ -220,13 +222,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 //If devices are filtered by attribute. E.g. logical device name.
                 request.Filter.Objects = null;
-                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
                 arg.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
                 arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
                 arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
                 arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
                 arg.Where.And<GXObjectTemplate>(w => w.LogicalName == ldn);
                 arg.Where.And<GXAttribute>(w => w.Value == att);
+            }
+            else if (request?.Filter?.Template != null)
+            {
+                arg.Where.FilterBy(request.Filter.Template);
+                request.Filter.Template = null;
             }
             if (request != null && (request.Select & TargetType.DeviceTemplate) != 0)
             {

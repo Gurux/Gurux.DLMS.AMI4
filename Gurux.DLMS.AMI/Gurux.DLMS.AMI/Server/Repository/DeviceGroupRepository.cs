@@ -43,8 +43,6 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using System.Data;
-using Gurux.DLMS.AMI.Client.Pages.Schedule;
-using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {

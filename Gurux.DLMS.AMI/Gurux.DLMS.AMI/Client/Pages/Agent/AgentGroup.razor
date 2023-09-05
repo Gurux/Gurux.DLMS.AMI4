@@ -25,6 +25,11 @@
                            @bind-Value="Active.Name" />
             </div>
             <div class="form-group">
+                <InputNullableSwitch Text="@Properties.Resources.Active"
+                                     @bind-Value="Active.Active" />
+                <br />
+            </div>
+            <div class="form-group">
                 <InputNullableSwitch Text="@Properties.Resources.DefaultGroup"
                                      @bind-Value="Active.Default" />
                 <br />

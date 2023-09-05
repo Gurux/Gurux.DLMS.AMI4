@@ -21,11 +21,21 @@
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
                    GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   GetDescription="@GetDescription"
+                   OnAdded="OnAdded"
+                   OnRemoved="@Removed">
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => RemoveAll())">
+                    &raquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
                    ItemsProvider="@GetItems"
@@ -37,6 +47,14 @@
             <Search Placeholder="@Properties.Resources.FilterByUser"
                     OnClickAsync="@SearchByUser" />
         </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => AddAll())">
+                    &laquo;
+                </button>
+            </div>
+        </ButtonContent>
     </SelectionList>
 </SelectionContainer>
 
@@ -54,7 +72,15 @@
     /// <summary>
     /// Agent group filter.
     /// </summary>
-    private GXAgentGroup filter = new GXAgentGroup(null);
+    private GXAgentGroup filter = new GXAgentGroup()
+        {
+            UserGroups = new List<GXUserGroup>()
+        };
+
+    /// <summary>
+    /// Selected agent group filter.
+    /// </summary>
+    private GXAgentGroup selectedFilter = new GXAgentGroup(null);
 
     public string? GetName(GXAgentGroup target)
     {
@@ -69,21 +95,9 @@
     {
         try
         {
-            if (_selected?.Items != null)
+            if (_selected != null)
             {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                Notifier?.ClearStatus();
+                selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
@@ -148,18 +162,101 @@
     }
 
     /// <summary>
+    /// Add all objects to selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task AddAll()
+    {
+        int max = 0;
+        //max 1000 items are added at the one time.
+        if (_available != null && _available.TotalCount > 1000)
+        {
+            max = 1000;
+        }
+        var ret = await GetItems(new GXItemsProviderRequest(0, max));
+        await OnAdded(ret.Items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Remove all objects from selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task RemoveAll()
+    {
+        List<GXAgentGroup> devs = GetGroups();
+        devs.Clear();
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// New device is added for selection list.
+    /// </summary>
+    public async Task OnAdded(IEnumerable<GXAgentGroup> items)
+    {
+        List<GXAgentGroup> devs = GetGroups();
+        devs.InsertRange(0, items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Device has removed from the lists.
+    /// </summary>
+    private async Task Removed(IEnumerable<GXAgentGroup> items)
+    {
+        List<GXAgentGroup> devs = GetGroups();
+        devs.RemoveAll(w => items.Contains(w));
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    List<GXAgentGroup>? GetGroups()
+    {
+        if (DeviceGroupParent?.Active != null)
+        {
+            return DeviceGroupParent.Active.AgentGroups;
+        }
+        return AgentParent?.Active.AgentGroups;
+    }
+
+    /// <summary>
     /// Filter is done when SearchSelectedByName is called.
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXAgentGroup>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        if (_selected?.Items == null)
+        var groups = GetGroups();
+        if (groups == null)
         {
-            return default;
+            return new(new ItemsProviderResult<GXAgentGroup>(new GXAgentGroup[0], 0));
         }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXAgentGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+        int total = groups.Count;
+        if (!string.IsNullOrEmpty(selectedFilter.Name))
+        {
+            groups = groups.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
+        }
+        return new(new ItemsProviderResult<GXAgentGroup>(
+        groups.Skip(request.StartIndex).Take(request.Count), total));
     }
 
     private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(GXItemsProviderRequest request)
@@ -211,41 +308,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            CrudAction action;
-            if (DeviceGroupParent?.Active?.AgentGroups != null)
+            if (_selected != null)
             {
-                //Get selected agent groups.
-                _selected.Items = DeviceGroupParent.Active.AgentGroups;
-                action = ClientHelpers.GetAction(DeviceGroupParent.Action);
-            }
-            else if (AgentParent?.Active?.AgentGroups != null)
-            {
-                //Get selected agent groups.
-                _selected.Items = AgentParent.Active.AgentGroups;
-                action = ClientHelpers.GetAction(AgentParent.Action);
-            }
-            else
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            bool addDefaultBlocks = action == CrudAction.Create && !_selected.Items.Any();
-            if (addDefaultBlocks)
-            {
-                //Show default groups when new group is added.
-                ListAgentGroups req = new ListAgentGroups()
-                    {
-                        Filter = new GXAgentGroup()
-                        {
-                            Default = true
-                        },
-                        Count = _selectionContainer.PageSize,
-                        Exclude = _selected?.Items.Select(s => s.Id).ToArray()
-                    };
-                var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req);
-                if (ret?.AgentGroups != null)
-                {
-                    _selected.Items.AddRange(ret.AgentGroups);
-                }
+                await _selected.RefreshDataAsync();
             }
             //Read available items.
             if (_available != null)

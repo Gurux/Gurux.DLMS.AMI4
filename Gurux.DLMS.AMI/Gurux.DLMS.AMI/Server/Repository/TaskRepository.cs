@@ -802,8 +802,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.And<GXDevice>(q => q.Removed == null && q.Dynamic == false);
             }
             // Don't get meters that are read by other agents.
-            GXSelectArgs onProgress = GXSelectArgs.Select<GXTask>(c => c.Id, q => q.Ready == null && q.OperatingAgent != null);
-            arg.Where.And<GXTask>(q => !GXSql.Exists(onProgress));
+            GXSelectArgs onDeviceProgress = GXSelectArgs.Select<GXDevice>(c => c.Id);
+            onDeviceProgress.Where.And<GXTask>(q => q.Ready == null && q.OperatingAgent != null);
+            arg.Where.And<GXDevice>(q => !GXSql.Exists<GXTask, GXDevice>(j => j.TargetDevice, j => j.Id, onDeviceProgress));
             //Don't select tasks assigned for the given agent group and the agent doesn't belong to that.
             //Check are device groups assigned for the agent group.
             //This is faster to check with own query.
@@ -833,11 +834,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             DateTime now = DateTime.Now;
             //Get details for the task.
             if (task != null)
-            {                
+            {
                 if (task.Batch != null)
                 {
                     task.Start = now;
-                    task.OperatingAgent = agent;                    //Get all tasks that are created with the same batch and are not executed.
+                    task.OperatingAgent = agent;
+                    //Get all tasks that are created with the same batch and are not executed.
                     ListTasks lt = new ListTasks()
                     {
                         Select = TargetType.Device | TargetType.Object | TargetType.Attribute,

@@ -43,6 +43,8 @@ using Gurux.DLMS.AMI.Scheduler;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -373,10 +375,35 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<Guid> list = new List<Guid>();
             List<GXScheduleToAttribute> list2 = new List<GXScheduleToAttribute>();
             Dictionary<GXSchedule, List<string>> updates = new Dictionary<GXSchedule, List<string>>();
-            using IDbTransaction transaction = _host.Connection.BeginTransaction();
             List<GXScheduleGroup>? defaultGroups = null;
             var newGroups = schedulers.Where(w => w.Id == Guid.Empty).ToList();
             var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();
+
+            //Map schedule groups to schedule.
+            Dictionary<GXSchedule, List<GXScheduleGroup>> scheduleGroups = new Dictionary<GXSchedule, List<GXScheduleGroup>>();
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                IScheduleGroupRepository scheduleGroupRepository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
+                foreach(var it in updatedGroups)
+                {
+                    scheduleGroups.Add(it, await scheduleGroupRepository.GetJoinedScheduleGroups(user, it.Id));
+                }
+            }
+            //Get notified users.
+            if (newGroups.Any())
+            {
+                var first = newGroups.First();
+                var users = await GetUsersAsync(user, first.Id);
+                foreach (var it in newGroups)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedGroups)
+            {
+                updates[it] = await GetUsersAsync(user, it.Id);
+            }
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
 
             foreach (GXSchedule schedule in schedulers)
             {
@@ -433,8 +460,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         list.Add(it.Id);
                     }
-                    var first = newGroups.First();
-                    updates[first] = await GetUsersAsync(user, first.Id);
                 }
                 foreach (var schedule in updatedGroups)
                 {
@@ -460,18 +485,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.Creator
                     });
                     _host.Connection.Update(transaction, args);
-                    //Map schedule groups to schedule.
-                    List<GXScheduleGroup> scheduleGroups;
-                    using (IServiceScope scope = _serviceProvider.CreateScope())
-                    {
-                        IScheduleGroupRepository scheduleGroupRepository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                        scheduleGroups = await scheduleGroupRepository.GetJoinedScheduleGroups(user, schedule.Id);
-                    }
                     //Map schedule to schedule groups.
                     {
                         var comparer = new UniqueComparer<GXScheduleGroup, Guid>();
-                        List<GXScheduleGroup> removed = scheduleGroups.Except(schedule.ScheduleGroups, comparer).ToList();
-                        List<GXScheduleGroup> added = schedule.ScheduleGroups.Except(scheduleGroups, comparer).ToList();
+                        List<GXScheduleGroup> removed = scheduleGroups[schedule].Except(schedule.ScheduleGroups, comparer).ToList();
+                        List<GXScheduleGroup> added = schedule.ScheduleGroups.Except(scheduleGroups[schedule], comparer).ToList();
                         if (removed.Any())
                         {
                             RemoveSchedulesFromScheduleGroup(transaction, schedule.Id, removed);
@@ -557,7 +575,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             AddScriptMethodsToSchedule(transaction, schedule.Id, added);
                         }
                     }
-                    updates[schedule] = await GetUsersAsync(user, schedule.Id);
                 }
                 _host.Connection.CommitTransaction(transaction);
             }
