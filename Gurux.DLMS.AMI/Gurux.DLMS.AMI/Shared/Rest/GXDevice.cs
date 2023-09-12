@@ -340,4 +340,31 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class RemoveDeviceResponse
     {
     }
+
+    /// <summary>
+    /// Update device state.
+    /// </summary>
+    [DataContract]
+    public class UpdateDeviceStatus
+    {
+        /// <summary>
+        /// Device ID.
+        /// </summary>
+        [DataMember]
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Device status.
+        /// </summary>
+        [DataMember]
+        public DTOs.Enums.DeviceStatus Status
+        {
+            get;
+            set;
+        }
+    }
 }
