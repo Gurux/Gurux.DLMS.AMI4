@@ -96,6 +96,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Unique gateway identifier.
         /// </summary>
         [StringLength(128)]
+        [Index]
+        [Filter(FilterType.Equals)]
         public string? Identifier
         {
             get;
