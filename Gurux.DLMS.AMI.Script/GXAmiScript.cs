@@ -45,8 +45,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.Loader;
 using System.Runtime.ExceptionServices;
-using System.Collections.Generic;
-using System.Collections;
 
 namespace Gurux.DLMS.AMI.Script
 {
@@ -124,7 +122,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXDevice d)
             {
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None);
+                d.Id = (await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None))[0];
             }
             else if (value is GXObject o)
             {
@@ -139,7 +137,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXTask t)
             {
                 ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                await repository.AddAsync(Claims, new GXTask[] { t });
+                t.Id = (await repository.AddAsync(Claims, new GXTask[] { t }))[0];
             }
             else if (value is GXDeviceAction da)
             {
@@ -204,12 +202,20 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXDeviceGroup> dgList)
             {
                 IDeviceGroupRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                await repository.UpdateAsync(Claims, dgList);
+                var ret = await repository.UpdateAsync(Claims, dgList);
+                for (int pos = 0; pos < ret.Length; ++pos)
+                {
+                    dgList.ElementAt(pos).Id = ret[pos];
+                }
             }
             else if (value is IEnumerable<GXDevice> dList)
             {
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                await repository.UpdateAsync(Claims, dList, default);
+                var ret  = await repository.UpdateAsync(Claims, dList, default);
+                for (int pos = 0; pos < ret.Length; ++pos)
+                {
+                    dList.ElementAt(pos).Id = ret[pos];
+                }
             }
             else if (value is IEnumerable<GXObject> oList)
             {
@@ -275,6 +281,34 @@ namespace Gurux.DLMS.AMI.Script
             {
                 IAgentLogRepository repository = scope.ServiceProvider.GetRequiredService<IAgentLogRepository>();
                 await repository.AddAsync(Claims, aeList);
+            }
+            else if (value is IEnumerable<GXGatewayGroup> gwgList)
+            {
+                IGatewayGroupRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
+                var ret = await repository.UpdateAsync(Claims, gwgList);
+                for (int pos = 0; pos < ret.Length; ++pos)
+                {
+                    gwgList.ElementAt(pos).Id = ret[pos];
+                }
+            }
+            else if (value is IEnumerable<GXGateway> gwList)
+            {
+                IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                var ret = await repository.UpdateAsync(Claims, gwList);
+                for (int pos = 0; pos < ret.Length; ++pos)
+                {
+                    gwList.ElementAt(pos).Id = ret[pos];
+                }
+            }
+            else if (value is GXGateway gw)
+            {
+                IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                gw.Id = (await repository.UpdateAsync(Claims, new GXGateway[] { gw }))[0];
+            }
+            else if (value is IEnumerable<GXGatewayLog> gwlList)
+            {
+                IGatewayLogRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayLogRepository>();
+                await repository.AddAsync(Claims, gwlList);
             }
             else
             {
@@ -406,6 +440,21 @@ namespace Gurux.DLMS.AMI.Script
                 {
                     IUserErrorRepository repository = scope.ServiceProvider.GetRequiredService<IUserErrorRepository>();
                     await repository.CloseAsync(Claims, ueList.Select(s => s.Id).ToList());
+                }
+                else if (value is IEnumerable<GXGatewayGroup> gwgList)
+                {
+                    IGatewayGroupRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
+                    await repository.DeleteAsync(Claims, gwgList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXGateway> gwList)
+                {
+                    IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                    await repository.DeleteAsync(Claims, gwList.Select(s => s.Id).ToList(), delete);
+                }
+                else if (value is IEnumerable<GXGatewayLog> gwlList)
+                {
+                    IGatewayLogRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayLogRepository>();
+                    await repository.CloseAsync(Claims, gwlList.Select(s => s.Id).ToList());
                 }
                 else
                 {
@@ -680,6 +729,27 @@ namespace Gurux.DLMS.AMI.Script
                     request.Filter = filter as GXUserError;
                     return (await repository.ListAsync(Claims, request, null, CancellationToken.None)) as T[];
                 }
+                else if (typeof(T) == typeof(GXGatewayGroup))
+                {
+                    IGatewayGroupRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
+                    ListGatewayGroups request = new ListGatewayGroups();
+                    request.Filter = filter as GXGatewayGroup;
+                    return (await repository.ListAsync(Claims, request, null, CancellationToken.None)) as T[];
+                }
+                else if (typeof(T) == typeof(GXGateway))
+                {
+                    IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                    ListGateways request = new ListGateways();
+                    request.Filter = filter as GXGateway;
+                    return (await repository.ListAsync(Claims, request, null, CancellationToken.None)) as T[];
+                }
+                else if (typeof(T) == typeof(GXGatewayLog))
+                {
+                    IGatewayLogRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayLogRepository>();
+                    ListGatewayLogs request = new ListGatewayLogs();
+                    request.Filter = filter as GXGatewayLog;
+                    return (await repository.ListAsync(Claims, request, null, CancellationToken.None)) as T[];
+                }
                 else
                 {
                     throw new ArgumentException("Add script failed. Unknown target.");
@@ -781,6 +851,29 @@ namespace Gurux.DLMS.AMI.Script
                     IUserErrorRepository repository = scope.ServiceProvider.GetRequiredService<IUserErrorRepository>();
                     ret = await repository.ReadAsync(Claims, ue.Id);
                 }
+                else if (value is GXGatewayGroup gwg)
+                {
+                    IGatewayGroupRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
+                    ret = await repository.ReadAsync(Claims, gwg.Id);
+                }
+                else if (value is GXGateway gw)
+                {
+                    IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                    ListGateways request = new ListGateways()
+                    {
+                        Filter = gw
+                    };
+                    var gateways = await repository.ListAsync(Claims, request, null, CancellationToken.None);
+                    if (gateways != null && gateways.Length == 1)
+                    {
+                        ret = gateways[0];
+                    }
+                }
+                else if (value is GXGatewayLog gwl)
+                {
+                    IGatewayLogRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayLogRepository>();
+                    ret = await repository.ReadAsync(Claims, gwl.Id);
+                }
                 else
                 {
                     throw new ArgumentException("Add script failed. Unknown target.");
@@ -807,7 +900,7 @@ namespace Gurux.DLMS.AMI.Script
             UpdateAsync(value).Wait();
         }
 
-        /// <inheritdoc cref="IGXAmi.ClearAsync"/>
+        /// <inheritdoc />
         public async Task ClearAsync<T>(IEnumerable<T>? items)
         {
             if (_serviceProvider == null)
@@ -888,7 +981,7 @@ namespace Gurux.DLMS.AMI.Script
             }
         }
 
-        /// <inheritdoc cref="IGXAmi.Clear"/>
+        /// <inheritdoc />
         public void Clear<T>(IEnumerable<T>? items)
         {
             ClearAsync(items).Wait();
