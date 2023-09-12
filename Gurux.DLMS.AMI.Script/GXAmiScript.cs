@@ -211,7 +211,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is IEnumerable<GXDevice> dList)
             {
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                var ret  = await repository.UpdateAsync(Claims, dList, default);
+                var ret = await repository.UpdateAsync(Claims, dList, default);
                 for (int pos = 0; pos < ret.Length; ++pos)
                 {
                     dList.ElementAt(pos).Id = ret[pos];
@@ -293,6 +293,13 @@ namespace Gurux.DLMS.AMI.Script
             }
             else if (value is IEnumerable<GXGateway> gwList)
             {
+                if (Sender is GXAgent agent)
+                {
+                    foreach (var gw in gwList)
+                    {
+                        gw.Agent = new GXAgent() { Id = agent.Id };
+                    }
+                }
                 IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
                 var ret = await repository.UpdateAsync(Claims, gwList);
                 for (int pos = 0; pos < ret.Length; ++pos)
@@ -302,6 +309,10 @@ namespace Gurux.DLMS.AMI.Script
             }
             else if (value is GXGateway gw)
             {
+                if (Sender is GXAgent agent)
+                {
+                    gw.Agent = new GXAgent() { Id = agent.Id };
+                }
                 IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
                 gw.Id = (await repository.UpdateAsync(Claims, new GXGateway[] { gw }))[0];
             }
