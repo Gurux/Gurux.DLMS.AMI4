@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -305,6 +306,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Detected
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Device Status.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(DeviceStatus.DIsconnected)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public DeviceStatus? Status
         {
             get;
             set;

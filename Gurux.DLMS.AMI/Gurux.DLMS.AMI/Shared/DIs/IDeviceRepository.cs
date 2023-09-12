@@ -33,6 +33,7 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
@@ -105,5 +106,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceIds">Device Ids.</param>
         /// <returns>List of users.</returns>
         Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid> deviceIds);
+
+        /// <summary>
+        /// Updates the device status.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="deviceId">Device ID.</param>
+        /// <param name="status">Device status</param>
+        Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status);
     }
 }
