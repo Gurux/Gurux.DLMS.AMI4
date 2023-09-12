@@ -103,5 +103,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="gatewayId">Gateway ID.</param>
         /// <param name="status">Gateway status</param>
         Task UpdateStatusAsync(ClaimsPrincipal User, Guid gatewayId, GatewayStatus status);
+
+        /// <summary>
+        /// Reset gateways to offline.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="gateways">Resetted gateway(s).</param>
+        Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> gateways);
     }
 }

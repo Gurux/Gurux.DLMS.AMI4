@@ -114,5 +114,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="deviceId">Device ID.</param>
         /// <param name="status">Device status</param>
         Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status);
+
+        /// <summary>
+        /// Reset devices to disconnected state.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="devices">Resetted device(s).</param>
+        Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> devices);
     }
 }

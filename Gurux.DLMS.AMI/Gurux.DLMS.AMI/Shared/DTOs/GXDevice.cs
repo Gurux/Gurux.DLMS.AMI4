@@ -315,7 +315,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Device Status.
         /// </summary>
         [DataMember]
-        [DefaultValue(DeviceStatus.DIsconnected)]
+        [DefaultValue(DeviceStatus.Disconnected)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public DeviceStatus? Status
