@@ -40,14 +40,14 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// UI Blocks.
+    /// Gateway.
     /// </summary>
-    public class GXBlock : GXTableBase, IUnique<Guid>
+    public class GXGateway : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXBlock()
+        public GXGateway()
         {
         }
 
@@ -55,17 +55,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Constructor.
         /// </summary>
         /// <remarks>
-        /// This constuctor is called when a new block is created. It will create all needed lists.
+        /// This constuctor is called when a new gateway is created. It will create all needed lists.
         /// </remarks>
-        /// <param name="name">Block name.</param>
-        public GXBlock(string? name)
+        /// <param name="name">Gateway name.</param>
+        public GXGateway(string? name)
         {
             Active = true;
             Name = name;
-            BlockGroups = new List<GXBlockGroup>();
+            GatewayGroups = new List<GXGatewayGroup>();
+            Logs = new List<GXGatewayLog>();
+            DeviceGroups = new List<GXDeviceGroup>();
+            Devices = new List<GXDevice>();
         }
+
         /// <summary>
-        /// Block ID.
+        /// Gateway ID.
         /// </summary>
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
@@ -77,17 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Block Title.
-        /// </summary>
-        [StringLength(128)]
-        public string? Title
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Block Name.
+        /// Gateway Name.
         /// </summary>
         [StringLength(128)]
         [Index(false)]
@@ -99,28 +93,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Block type.
+        /// Unique gateway identifier.
         /// </summary>
-        public BlockType BlockType
+        [StringLength(128)]
+        public string? Identifier
         {
             get;
             set;
         }
 
         /// <summary>
-        /// GXComponent view that this block uses.
+        /// Gateway Status.
         /// </summary>
-        [DefaultValue(null)]
-        [ForeignKey(typeof(GXComponentView), OnDelete = ForeignKeyDelete.Cascade)]
-        public GXComponentView? ComponentView
+        [DataMember]
+        [DefaultValue(AgentStatus.Offline)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public GatewayStatus? Status
         {
             get;
             set;
         }
 
-
         /// <summary>
-        /// Script method that this block uses.
+        /// Script method that this gateway uses.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
@@ -131,89 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// CSS class name.
-        /// </summary>
-        [StringLength(128)]
-        [DefaultValue(null)]
-        public string? CssClass
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// CSS role name.
-        /// </summary>
-        [StringLength(128)]
-        [DefaultValue(null)]
-        public string? CssRole
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// CSS role name.
-        /// </summary>
-        [StringLength(256)]
-        [DefaultValue(null)]
-        public string? Style
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// HTML Body or component settings are saved here.
-        /// </summary>
-        public string? Body
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Pages where block is shown.
-        /// </summary>
-        public BlockShown Shown
-        {
-            get;
-            set;
-        }
-
-
-        /// <summary>
-        /// Logaction where block is shown.
-        /// </summary>
-        /// <seealso cref="LocationOrder"/>
-        public BlockLocation Location
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Locaction order index.
-        /// </summary>
-        /// <seealso cref="Location"/>
-        public int LocationOrder
-        {
-            get;
-            set;
-        }
-
-
-        /// <summary>
-        /// List of pages where block is shown.
-        /// </summary>
-        public string? Pages
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Is block active.
+        /// Is gateway active.
         /// </summary>
         [DefaultValue(true)]
         [Filter(FilterType.Exact)]
@@ -221,35 +135,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public bool? Active { get; set; }
 
         /// <summary>
-        /// Can user close the block.
+        /// List of device groups that this gateway can access.
         /// </summary>
-        /// <remarks>
-        /// If block is closed it's not shown for the user.
-        /// </remarks>
-        [DefaultValue(false)]
-        public bool Closable
+        [DataMember]
+        [ForeignKey(typeof(GXDeviceGroup), typeof(GXGatewayDeviceGroup))]
+        public List<GXDeviceGroup>? DeviceGroups
         {
             get;
             set;
         }
 
         /// <summary>
-        /// List of block groups where this block belongs.
+        /// List of devices that this gateway can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXBlockGroupBlock))]
-        [Filter(FilterType.Contains)]
-        public List<GXBlockGroup>? BlockGroups
+        [DataMember]
+        [ForeignKey(typeof(GXDevice), typeof(GXGatewayDevice))]
+        public List<GXDevice>? Devices
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Block settings for the user.
+        /// List of gateway groups where this gateway belongs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXUser), typeof(GXUserBlockSettings))]
+        [DataMember, ForeignKey(typeof(GXGatewayGroup), typeof(GXGatewayGroupGateway))]
         [Filter(FilterType.Contains)]
-        public GXUser? User
+        public List<GXGatewayGroup>? GatewayGroups
         {
             get;
             set;
@@ -269,7 +181,32 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Time when block was removed.
+        /// The creator of the gateway.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// When the gateway is detected for the last time.
+        /// </summary>
+        [Description("When the gateway is detected for the last time.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        [DefaultValue(null)]
+        public DateTimeOffset? Detected
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Time when gateway was removed.
         /// </summary>
         /// <remarks>
         /// In filter if the removed time is set it will return values that are not null.
@@ -285,34 +222,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When the block is updated for the last time.
+        /// When the gateway is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// When block is published.
-        /// </summary>
-        /// <seealso cref="EndTime"/>/>
-        [DataMember]
-        [DefaultValue(null)]
-        public DateTimeOffset? PublishTime
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// When block is not shown anymore.
-        /// </summary>
-        /// <seealso cref="PublishTime"/>/>
-        [DataMember]
-        [DefaultValue(null)]
-        public DateTimeOffset? EndTime
         {
             get;
             set;
@@ -330,34 +243,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
-
         /// <summary>
-        /// Localized strings for this block.
+        /// Gateway logs.
         /// </summary>
-        /// <remarks>
-        /// This is used only for database and it's not send for the user.
-        /// </remarks>
-        [DataMember]
-        [JsonIgnore]
-        public GXLocalizedResource[]? Resources
+        [DataMember, ForeignKey(typeof(GXGatewayLog))]
+        [Filter(FilterType.Contains)]
+        public List<GXGatewayLog>? Logs
         {
             get;
             set;
         }
 
-        /// <summary>
-        /// Localized resources for this block.
-        /// </summary>
-        /// <remarks>
-        /// Localized resources are return with this.
-        /// </remarks>
-        [DataMember]
-        [Ignore(IgnoreType.Db)]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
 
         /// <summary>
         /// Concurrency stamp.
@@ -393,17 +289,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Updated = DateTime.Now;
         }
 
+
         /// <inheritdoc/>
         public override string ToString()
         {
-            string str = Name;
+            string? str = Name;
             if (Active.HasValue && Active.Value)
             {
                 str += ", Active";
             }
-            if (Closable)
+            if (string.IsNullOrEmpty(str))
             {
-                str += ", Closable";
+                str = nameof(GXGateway);
             }
             return str;
         }

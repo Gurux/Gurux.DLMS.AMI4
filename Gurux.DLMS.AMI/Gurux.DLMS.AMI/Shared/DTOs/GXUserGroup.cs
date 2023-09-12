@@ -225,11 +225,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        ///List of readers that this user group can access.
+        ///List of agent groups that this user group can access.
         /// </summary>     
         [DataMember, ForeignKey(typeof(GXAgentGroup), typeof(GXUserGroupAgentGroup))]
         [DefaultValue(null)]
         public List<GXAgentGroup>? AgentGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        ///List of gateway groups that this user group can access.
+        /// </summary>     
+        [DataMember, ForeignKey(typeof(GXGatewayGroup), typeof(GXUserGroupGatewayGroup))]
+        [DefaultValue(null)]
+        public List<GXGatewayGroup>? GatewayGroups
         {
             get;
             set;

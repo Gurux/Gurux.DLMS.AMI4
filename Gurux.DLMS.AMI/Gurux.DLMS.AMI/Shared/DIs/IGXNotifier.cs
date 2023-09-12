@@ -159,7 +159,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Listen event notifications.
         /// </summary>
-        /// <typeparam name="T1">Notification parameter type.</typeparam>
         /// <param name="listener">Listener.</param>
         /// <param name="methodName">Method name.</param>
         /// <param name="handler">Handler.</param>

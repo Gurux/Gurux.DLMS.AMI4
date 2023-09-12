@@ -29,12 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -190,15 +187,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent identifier.
         /// </summary>
-        /// <remarks>
-        /// If device identifier is given, all tasks for that device are retreaved.
-        /// </remarks>
         [DataMember]
         public Guid AgentId
         {
             get;
             set;
         }
+
+        /// <summary>
+        /// Gateway identifier.
+        /// </summary>
+        /// <remarks>
+        /// If gateway identifier is given, all tasks for that gateway are retreaved.
+        /// </remarks>
+        [DataMember]
+        public Guid? GatewayId
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Device identifier.
         /// </summary>
@@ -243,7 +251,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks. Null if there are no operations to execute.
         /// </summary>
         [DataMember]
-        public GXTask[] Tasks
+        public GXTask[]? Tasks
         {
             get;
             set;

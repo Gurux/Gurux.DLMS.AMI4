@@ -29,24 +29,29 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
-using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get workflow log.
+    /// Get gateway group.
     /// </summary>
-    public class GetWorkflowLogResponse
+    public class GetGatewayGroupResponse
     {
         /// <summary>
-        /// Workflow log information.
+        /// Gateway group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Item
+        [IncludeSwagger(typeof(GXGateway),nameof(GXGateway.Id),
+                nameof(GXGateway.Name))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+                nameof(GXUserGroup.Name))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+                nameof(GXDeviceGroup.Name))]
+        public GXGatewayGroup? Item
         {
             get;
             set;
@@ -54,44 +59,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get list from workflow logs.
+    /// Get gateway group list.
     /// </summary>
     [DataContract]
-    public class ListWorkflowLogs : IGXRequest<ListWorkflowLogsResponse>
+    public class ListGatewayGroups : IGXRequest<ListGatewayGroupsResponse>
     {
-        /// <summary>
-        /// Filter can be used to filter log example by date.
-        /// </summary>
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
-             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
-             nameof(GXWorkflow.User),
-             nameof(GXWorkflow.UserGroup),
-             nameof(GXWorkflow.Device),
-             nameof(GXWorkflow.DeviceGroup),
-             nameof(GXWorkflow.ScriptMethods),
-             nameof(GXWorkflow.Modules),
-             nameof(GXWorkflow.WorkflowGroups),
-             nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Filter
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Admin user can access errors from all users.
-        /// </summary>
-        /// <remarks>
-        /// If true, errors from all users are retreaved, not just current user. 
-        /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
-
-
         /// <summary>
         /// Start index.
         /// </summary>
@@ -99,12 +71,36 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
+
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the gateway groups to retreave.
         /// </summary>
         public int Count
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Filter can be used to filter gateway groups.
+        /// </summary>
+        [ExcludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
+            nameof(GXGatewayGroup.UserGroups))]
+        public GXGatewayGroup? Filter
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Admin user can access groups from all users.
+        /// </summary>
+        /// <remarks>
+        /// If true, groups from all users are retreaved, not just current user. 
+        /// </remarks>
+        public bool AllUsers
         {
             get;
             set;
@@ -121,7 +117,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-
         /// <summary>
         /// Order by name.
         /// </summary>
@@ -159,35 +154,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get workflow logs response.
+    /// Get gateway groups response.
     /// </summary>
     [DataContract]
-    public class ListWorkflowLogsResponse
+    public class ListGatewayGroupsResponse
     {
         /// <summary>
-        /// List of Workflow logs.
+        /// List of gateway groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
-             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
-             nameof(GXWorkflow.User),
-             nameof(GXWorkflow.UserGroup),
-             nameof(GXWorkflow.Device),
-             nameof(GXWorkflow.DeviceGroup),
-             nameof(GXWorkflow.ScriptMethods),
-             nameof(GXWorkflow.Modules),
-             nameof(GXWorkflow.WorkflowGroups),
-             nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog[]? Logs
+        [ExcludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
+            nameof(GXGatewayGroup.UserGroups))]
+        public GXGatewayGroup[]? GatewayGroups
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Total amount of the logs.
+        /// Total count of the gateway groups.
         /// </summary>
+        [DataMember]
         public int Count
         {
             get;
@@ -196,18 +183,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new workflow log.
+    /// Add new gateway group.
     /// </summary>
     [DataContract]
-    public class AddWorkflowLog : IGXRequest<AddWorkflowLogResponse>
+    public class AddGatewayGroup : IGXRequest<AddGatewayGroupResponse>
     {
         /// <summary>
-        /// New workflow log(s).
+        /// New gateway group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        [ExcludeSwagger(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
-        public GXWorkflowLog[] Logs
+        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        public GXGatewayGroup[] GatewayGroups
         {
             get;
             set;
@@ -215,24 +203,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new workflow log response.
+    /// Add new gateway group response.
     /// </summary>
     [DataContract]
-    public class AddWorkflowLogResponse
-    {
-    }
-
-    /// <summary>
-    /// Clear logs. All logs are removed from the given user.
-    /// </summary>
-    [DataContract]
-    public class ClearWorkflowLogs : IGXRequest<ClearWorkflowLogsResponse>
+    public class AddGatewayGroupResponse
     {
         /// <summary>
-        /// Workflow identifiers where logs are removed.
+        /// New gateway groups.
         /// </summary>
-        [DataMember]
-        public Guid[]? Workflows
+        public Guid[]? Ids
         {
             get;
             set;
@@ -240,26 +219,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Clear logs response.
+    /// Remove gateway group.
     /// </summary>
     [DataContract]
-    public class ClearWorkflowLogsResponse
-    {
-    }
-
-    /// <summary>
-    /// Close logs.
-    /// </summary>
-    [DataContract]
-    public class CloseWorkflowLog : IGXRequest<CloseWorkflowLogResponse>
+    public class RemoveGatewayGroup : IGXRequest<RemoveGatewayGroupResponse>
     {
         /// <summary>
-        /// Closed logs.
+        /// Gateway group Ids to remove.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Logs
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[] Ids
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Items are removed from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, the Removed date is set for the items, but items are kept on the database.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete
         {
             get;
             set;
@@ -267,10 +250,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Close logs response.
+    /// Remove gateway group response.
     /// </summary>
     [DataContract]
-    public class CloseWorkflowLogResponse
+    public class RemoveGatewayGroupResponse
     {
     }
 }

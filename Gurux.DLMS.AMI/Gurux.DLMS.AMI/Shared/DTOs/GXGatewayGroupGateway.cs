@@ -30,60 +30,76 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// Role claims table.
+    /// A data contract class representing User Group to User binding object.
     /// </summary>
-    [DataContract(Name = "GXRoleClaim"), Serializable]
-    public class GXRoleClaim : IUnique<int>
+    [DataContract(Name = "GXGatewayGroupGateway"), Serializable]
+    [IndexCollection(true, nameof(GatewayGroupId), nameof(GatewayId), Clustered = true)]
+    public class GXGatewayGroupGateway : GXTableBase
     {
         /// <summary>
-        ///Identifier. 
+        /// The database ID of the gateway group.
         /// </summary>
-        [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
-        public int Id
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Role ID.
-        /// </summary>
-        [DataMember]
-        [StringLength(36)]
-        [Index]
+        [DataMember(Name = "GatewayGroupID")]
+        [ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
-        public string RoleId
+        public Guid GatewayGroupId
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Claim type.
+        /// The database ID of the gateway.
         /// </summary>
-        [DataMember]
-        public string ClaimType
+        [DataMember(Name = "GatewayID")]
+        [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.Cascade)]
+        [IsRequired]
+        public Guid GatewayId
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Claim value.
-        /// </summary>
-        [DataMember]
-        public string ClaimValue
+		/// Creation time.
+		/// The time when the gateway was added to the gateway group.
+		/// </summary>
+		[DataMember]
+        [Description("Creation time.")]
+        [Index(false, Descend = true)]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTime CreationTime
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Time when gateway was removed from gateway group.
+        /// </summary>
+        [DataMember]
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Update Creation time.
+        /// </summary>
+        public override void BeforeAdd()
+        {
+            CreationTime = DateTime.Now;
         }
     }
 }

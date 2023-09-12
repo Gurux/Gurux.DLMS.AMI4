@@ -29,61 +29,40 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
-using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+using System.Xml.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
 {
     /// <summary>
-    /// Role claims table.
+    /// Gateway state.
     /// </summary>
-    [DataContract(Name = "GXRoleClaim"), Serializable]
-    public class GXRoleClaim : IUnique<int>
+    public enum GatewayStatus : byte
     {
         /// <summary>
-        ///Identifier. 
+        /// Gateway is disconnected.
         /// </summary>
-        [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
-        public int Id
-        {
-            get;
-            set;
-        }
-
+        [XmlEnum("0")]
+        Offline = 0,
         /// <summary>
-        /// Role ID.
+        /// Gateway is connected.
         /// </summary>
-        [DataMember]
-        [StringLength(36)]
-        [Index]
-        [IsRequired]
-        [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
-        public string RoleId
-        {
-            get;
-            set;
-        }
-
+        [XmlEnum("1")]
+        Connected = 1,
         /// <summary>
-        /// Claim type.
+        /// Gateway is idle.
         /// </summary>
-        [DataMember]
-        public string ClaimType
-        {
-            get;
-            set;
-        }
-
+        [XmlEnum("2")]
+        Idle = 2,
         /// <summary>
-        /// Claim value.
+        /// Gateway is processing the task.
         /// </summary>
-        [DataMember]
-        public string ClaimValue
-        {
-            get;
-            set;
-        }
+        [XmlEnum("3")]
+        Process = 3,
+        /// <summary>
+        /// Gateway is on error state.
+        /// </summary>
+        [XmlEnum("4")]
+        Error = 4
     }
 }

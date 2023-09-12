@@ -56,6 +56,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// Key version.
+        /// </summary>
         [DataMember]
         public int Version
         {
@@ -82,6 +85,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// Key algorithm.
+        /// </summary>
         [DataMember]
         [StringLength(100)]
         public string? Algorithm

@@ -30,23 +30,24 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get workflow log.
+    /// Get Gateway log.
     /// </summary>
-    public class GetWorkflowLogResponse
+    public class GetGatewayLogResponse
     {
         /// <summary>
-        /// Workflow log information.
+        /// Gateway log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Item
+        [IncludeSwagger(typeof(GXGateway),
+                nameof(GXGateway.Id),
+                nameof(GXGateway.Name))]
+        public GXGatewayLog? Item
         {
             get;
             set;
@@ -54,26 +55,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get list from workflow logs.
+    /// Get list from Gateway logs.
     /// </summary>
     [DataContract]
-    public class ListWorkflowLogs : IGXRequest<ListWorkflowLogsResponse>
+    public class ListGatewayLogs
     {
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
-             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
-             nameof(GXWorkflow.User),
-             nameof(GXWorkflow.UserGroup),
-             nameof(GXWorkflow.Device),
-             nameof(GXWorkflow.DeviceGroup),
-             nameof(GXWorkflow.ScriptMethods),
-             nameof(GXWorkflow.Modules),
-             nameof(GXWorkflow.WorkflowGroups),
-             nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Filter
+        [IncludeSwagger(typeof(GXGateway),
+                nameof(GXGateway.Id),
+                nameof(GXGateway.Name))]
+        public GXGatewayLog? Filter
         {
             get;
             set;
@@ -90,7 +83,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-
 
         /// <summary>
         /// Start index.
@@ -121,7 +113,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-
         /// <summary>
         /// Order by name.
         /// </summary>
@@ -159,32 +150,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get workflow logs response.
+    /// Get Gateway logs response.
     /// </summary>
     [DataContract]
-    public class ListWorkflowLogsResponse
+    public class ListGatewayLogsResponse
     {
         /// <summary>
-        /// List of Workflow logs.
+        /// List of Gateway logs.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
-             nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
-             nameof(GXWorkflow.User),
-             nameof(GXWorkflow.UserGroup),
-             nameof(GXWorkflow.Device),
-             nameof(GXWorkflow.DeviceGroup),
-             nameof(GXWorkflow.ScriptMethods),
-             nameof(GXWorkflow.Modules),
-             nameof(GXWorkflow.WorkflowGroups),
-             nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog[]? Logs
+        [IncludeSwagger(typeof(GXGateway),
+                nameof(GXGateway.Id),
+                nameof(GXGateway.Name))]
+        public GXGatewayLog[]? Logs
         {
             get;
             set;
         }
-
         /// <summary>
         /// Total amount of the logs.
         /// </summary>
@@ -196,18 +178,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new workflow log.
+    /// Add new Gateway log.
     /// </summary>
     [DataContract]
-    public class AddWorkflowLog : IGXRequest<AddWorkflowLogResponse>
+    public class AddGatewayLog
     {
         /// <summary>
-        /// New workflow log(s).
+        /// New Gateway log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        [ExcludeSwagger(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
-        public GXWorkflowLog[] Logs
+        [IncludeSwagger(typeof(GXGateway),
+                nameof(GXGateway.Id))]
+        public GXGatewayLog[] Logs
         {
             get;
             set;
@@ -215,10 +197,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new workflow log response.
+    /// Add new Gateway log response.
     /// </summary>
     [DataContract]
-    public class AddWorkflowLogResponse
+    public class AddGatewayLogResponse
     {
     }
 
@@ -226,13 +208,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Clear logs. All logs are removed from the given user.
     /// </summary>
     [DataContract]
-    public class ClearWorkflowLogs : IGXRequest<ClearWorkflowLogsResponse>
+    public class ClearGatewayLogs
     {
         /// <summary>
-        /// Workflow identifiers where logs are removed.
+        /// Gateway identifiers where logs are removed.
         /// </summary>
         [DataMember]
-        public Guid[]? Workflows
+        public Guid[]? Gateways
         {
             get;
             set;
@@ -243,7 +225,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Clear logs response.
     /// </summary>
     [DataContract]
-    public class ClearWorkflowLogsResponse
+    public class ClearGatewayLogsResponse
     {
     }
 
@@ -251,7 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Close logs.
     /// </summary>
     [DataContract]
-    public class CloseWorkflowLog : IGXRequest<CloseWorkflowLogResponse>
+    public class CloseGatewayLog
     {
         /// <summary>
         /// Closed logs.
@@ -270,7 +252,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// Close logs response.
     /// </summary>
     [DataContract]
-    public class CloseWorkflowLogResponse
+    public class CloseGatewayLogResponse
     {
     }
 }

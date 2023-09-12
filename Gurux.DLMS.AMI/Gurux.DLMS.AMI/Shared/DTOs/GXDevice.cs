@@ -72,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             DeviceGroups = new List<GXDeviceGroup>();
             Tasks = new List<GXTask>();
             Keys = new List<GXKeyManagement>();
+            Gateways = new List<GXGateway>(); 
         }
 
         /// <summary>
@@ -467,6 +468,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+        /// <summary>
+        /// List of gateways that are allower to read this device.
+        /// </summary>
+        [DataMember(IsRequired = false)]
+        [ForeignKey(typeof(GXGateway), typeof(GXGatewayDevice))]
+        public List<GXGateway>? Gateways
+        {
+            get;
+            set;
+        }
+
 
         /// <summary>
         /// Latitude and Longitude.

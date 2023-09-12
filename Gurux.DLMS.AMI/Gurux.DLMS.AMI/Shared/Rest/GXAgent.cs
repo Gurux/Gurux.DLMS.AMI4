@@ -35,7 +35,6 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {

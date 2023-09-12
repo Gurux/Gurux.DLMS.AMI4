@@ -74,10 +74,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             Expression<Func<GXAgentGroup, object?>>? columns = null);
 
         /// <summary>
-        /// Delete user group(s).
+        /// Delete agent group(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">User groups to delete.</param>
+        /// <param name="groups">User agent to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
 

@@ -174,12 +174,16 @@ namespace Gurux.DLMS.AMI.Shared
         /// and all meters are using the same device template type.
         /// </remarks>
         public Guid? DefaultDeviceTemplate { get; set; }
-        
+
         /// <summary>
-        /// Listener script is used to establish the connection for the meter 
-        /// and read values from the meter.
+        /// Listener script is used to identify the connecting meter.
         /// </summary>
         public Guid? ScriptMethod { get; set; }
+
+        /// <summary>
+        /// Gateway script is used to identify the connecting gateway.
+        /// </summary>
+        public Guid? GatewayScriptMethod { get; set; }
 
         /// <summary>
         /// How long the the connection is keeped up in seconds.

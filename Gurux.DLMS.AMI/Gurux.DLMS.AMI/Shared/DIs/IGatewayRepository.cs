@@ -33,58 +33,75 @@
 using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to hanfle workflow group.
+    /// This interface is used to handle gateways.
     /// </summary>
-    public interface IWorkflowGroupRepository
+    public interface IGatewayRepository
     {
         /// <summary>
-        /// List workflow groups.
+        /// List gateways.
         /// </summary>
-        /// <returns>User groups.</returns>
-        Task<GXWorkflowGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListWorkflowGroups? request, 
-            ListWorkflowGroupsResponse? response,
+        /// <returns>Gateways.</returns>
+        Task<GXGateway[]> ListAsync(
+            ClaimsPrincipal User,
+            ListGateways? request,
+            ListGatewaysResponse? response,
             CancellationToken cancellationToken);
 
         /// <summary>
-        /// Read workflow group information.
+        /// Read gateway.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="id">Workflow group id.</param>
+        /// <param name="id">Gateway id.</param>
         /// <returns></returns>
-        Task<GXWorkflowGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXGateway> ReadAsync(ClaimsPrincipal User, Guid id);
 
         /// <summary>
-        /// Update workflow groups.
+        /// Update gateway(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">Updated workflow groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
+        /// <param name="gateways">Updated gateway(s).</param>
+        /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
-            IEnumerable<GXWorkflowGroup> groups,
-            Expression<Func<GXWorkflowGroup, object?>>? columns = null);
+            ClaimsPrincipal User,
+            IEnumerable<GXGateway> gateways,
+            Expression<Func<GXGateway, object?>>? columns = null);
 
         /// <summary>
-        /// Delete workflow group(s).
+        /// Delete gateway(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">Workflow groups to delete.</param>
+        /// <param name="gateways">Gateway(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> gateways, bool delete);
 
         /// <summary>
-        /// Returns workflow groups list where workflow belongs.
+        /// Get all users that can access this gateway.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="workflowId">Workflow ID</param>
-        /// <returns>List of workflow groups.</returns>
-        Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(ClaimsPrincipal User, Guid workflowId);
+        /// <param name="gatewayId">Gateway id.</param>
+        /// <returns></returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? gatewayId);
+
+        /// <summary>
+        /// Get all users that can access gateways.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="gatewayIds">Gateway ids.</param>
+        /// <returns></returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? gatewayIds);
+
+        /// <summary>
+        /// Gateway updates the status.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="gatewayId">Gateway ID.</param>
+        /// <param name="status">Gateway status</param>
+        Task UpdateStatusAsync(ClaimsPrincipal User, Guid gatewayId, GatewayStatus status);
     }
 }

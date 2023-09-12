@@ -30,57 +30,51 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+namespace Gurux.DLMS.AMI.Shared.DTOs
 {
-    /// <summary>
-    /// Role claims table.
-    /// </summary>
-    [DataContract(Name = "GXRoleClaim"), Serializable]
-    public class GXRoleClaim : IUnique<int>
+    [DataContract(Name = nameof(GXUserGroupGatewayGroup)), Serializable]
+    [IndexCollection(true, nameof(UserGroupId), nameof(GatewayGroupId), Clustered = true)]
+    public class GXUserGroupGatewayGroup
     {
-        /// <summary>
-        ///Identifier. 
-        /// </summary>
-        [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
-        public int Id
+        [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        public Guid UserGroupId
+        {
+            get;
+            set;
+        }
+
+        [DataMember(Name = "GatewayGroupID"), ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        public Guid GatewayGroupId
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Role ID.
+        /// Creation time.
+        /// The time when the gateway group was added to the user group.
         /// </summary>
         [DataMember]
-        [StringLength(36)]
-        [Index]
+        [Index(false, Descend = true)]
+        [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
-        public string RoleId
+        public DateTime CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Claim type.
+        /// Time when gateway group was removed from user group.
         /// </summary>
         [DataMember]
-        public string ClaimType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Claim value.
-        /// </summary>
-        [DataMember]
-        public string ClaimValue
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
         {
             get;
             set;

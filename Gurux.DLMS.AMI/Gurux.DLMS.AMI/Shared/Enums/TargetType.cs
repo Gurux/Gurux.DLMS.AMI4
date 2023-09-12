@@ -290,5 +290,15 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         [XmlEnum("281474976710656")]
         KeyManagementKey = 0x1000000000000,
+        /// <summary>
+        /// Gateway is changed.
+        /// </summary>
+        [XmlEnum("562949953421312")]
+        Gateway = 0x2000000000000,
+        /// <summary>
+        /// Gateway group is changed.
+        /// </summary>
+        [XmlEnum("1125899906842624")]
+        GatewayGroup = 0x4000000000000,
     }
 }

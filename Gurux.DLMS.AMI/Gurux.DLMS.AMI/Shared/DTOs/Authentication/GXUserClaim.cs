@@ -42,9 +42,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     [DataContract(Name = "GXUserClaim"), Serializable]
     public class GXUserClaim : IUnique<int>
     {
+        /// <summary>
+        /// Identifier.
+        /// </summary>
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true), AutoIncrement]
-        //Identifier.
         public int Id
         {
             get;

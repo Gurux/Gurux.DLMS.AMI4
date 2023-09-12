@@ -358,6 +358,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User is key management group manager.
         /// </summary>
         public const string KeyManagementGroupManager = "KeyManagementGroupManager";
+
         /// <summary>
         /// User can access key management logs.
         /// </summary>
@@ -366,6 +367,31 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User is key management log manager.
         /// </summary>
         public const string KeyManagementLogManager = "KeyManagementLogManager";
+        /// <summary>
+        /// User can access gateway groups.
+        /// </summary>
+        public const string GatewayGroup = "GatewayGroup";
+        /// <summary>
+        /// User is gateway group manager.
+        /// </summary>
+        public const string GatewayGroupManager = "GatewayGroupManager";
+        /// <summary>
+        /// User can access gateways.
+        /// </summary>
+        public const string Gateway = "Gateway";
+        /// <summary>
+        /// User is gateway manager.
+        /// </summary>
+        public const string GatewayManager = "GatewayManager";
+        /// <summary>
+        /// User can access gateway logs.
+        /// </summary>
+        public const string GatewayLog = "GatewayLog";
+
+        /// <summary>
+        /// User is gateway log manager.
+        /// </summary>
+        public const string GatewayLogManager = "GatewayLogManager";
 
         public static string ToString(string param1)
         {

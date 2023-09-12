@@ -56,6 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXDeviceGroup.Name))]
         [ExcludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.DeviceTemplateGroups),
             nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.GatewayGroups),
             nameof(GXUserGroup.ModuleGroups),
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
@@ -105,6 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.ScheduleGroups),
             nameof(GXUserGroup.DeviceTemplateGroups),
             nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.GatewayGroups),
             nameof(GXUserGroup.ModuleGroups),
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
@@ -195,6 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.ScheduleGroups),
             nameof(GXUserGroup.DeviceTemplateGroups),
             nameof(GXUserGroup.AgentGroups),
+            nameof(GXUserGroup.GatewayGroups),
             nameof(GXUserGroup.ModuleGroups),
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
@@ -235,6 +238,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
         [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
         [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
         [IncludeSwagger(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
         [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
         [IncludeSwagger(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]

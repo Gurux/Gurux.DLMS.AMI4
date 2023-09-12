@@ -75,6 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             get;
             set;
         }
+
         [DataMember]
         [StringLength(200)]
         public string? SubjectId

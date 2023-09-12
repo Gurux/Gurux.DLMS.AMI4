@@ -32,46 +32,83 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get device group.
+    /// Get gateway.
     /// </summary>
-    public class GetDeviceGroupResponse
+    public class GetGatewayResponse
     {
         /// <summary>
-        /// Agent group information.
+        /// Gateway information.
         /// </summary>
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id),
-                nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
-                nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id),
-                nameof(GXAgentGroup.Name))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id),
-                nameof(GXGatewayGroup.Name))]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id),
-                nameof(GXKeyManagement.Name))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
-        [ExcludeSwagger(typeof(GXDeviceGroupParameter), nameof(GXDeviceGroupParameter.DeviceGroup),
-                nameof(GXDeviceGroupParameter.Module))]
-        public GXDeviceGroup? Item
+        [ExcludeSwagger(typeof(GXGateway),
+                nameof(GXGateway.Logs))]
+        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id)
+            , nameof(GXGatewayGroup.Name)
+            , nameof(GXGatewayGroup.Description))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        public GXGateway? Item
         {
             get;
             set;
         }
     }
 
-
     /// <summary>
-    /// Get device group list.
+    /// Update gateway.
     /// </summary>
     [DataContract]
-    public class ListDeviceGroups : IGXRequest<ListDeviceGroupsResponse>
+    public class UpdateGateway : IGXRequest<UpdateGatewayResponse>
+    {
+        /// <summary>
+        /// Gateway to add.
+        /// </summary>
+        [DataMember]
+        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.Logs), nameof(GXGateway.Detected)
+            , nameof(GXGateway.CreationTime), nameof(GXGateway.Updated))]
+        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [Required]
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXGateway[] Gateways
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Update reader gateway.
+    /// </summary>
+    [DataContract]
+    public class UpdateGatewayResponse
+    {
+        /// <summary>
+        /// New gateway identifiers.
+        /// </summary>
+        [DataMember]
+        public Guid[]? GatewayIds
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Get list from gateways.
+    /// </summary>
+    [DataContract]
+    public class ListGateways : IGXRequest<ListGatewaysResponse>
     {
         /// <summary>
         /// Start index.
@@ -84,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the device groups to retreave.
+        /// Amount of the gateways to retreave.
         /// </summary>
         public int Count
         {
@@ -93,24 +130,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Filter can be used to filter device groups.
+        /// Filter can be used to filter gateways.
         /// </summary>
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
-        nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups), 
-            nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys), 
-            nameof(GXDeviceGroup.Parameters))]
-        public GXDeviceGroup? Filter
+        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        public GXGateway? Filter
         {
             get;
             set;
         }
 
-
         /// <summary>
-        /// Admin user can access groups from all users.
+        /// Admin user can access gateways from all users.
         /// </summary>
         /// <remarks>
-        /// If true, groups from all users are retreaved, not just current user. 
+        /// If true, gateways from all users are retreaved, not just current user. 
         /// </remarks>
         public bool AllUsers
         {
@@ -167,27 +203,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get device groups response.
+    /// List gateways response.
     /// </summary>
     [DataContract]
-    public class ListDeviceGroupsResponse
+    public class ListGatewaysResponse
     {
         /// <summary>
-        /// List of device groups.
+        /// List of gateways.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
-        nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups), 
-            nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys), 
-            nameof(GXDeviceGroup.Parameters))]
-        public GXDeviceGroup[]? DeviceGroups
+        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs)
+            , nameof(GXGateway.DeviceGroups), nameof(GXGateway.Devices))]
+        public GXGateway[]? Gateways
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Total count of the device groups.
+        /// Total count of the gateways.
         /// </summary>
         [DataMember]
         public int Count
@@ -195,63 +230,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-    }
+    }    
 
     /// <summary>
-    /// Add new device group.
+    /// Remove gateways.
     /// </summary>
     [DataContract]
-    public class AddDeviceGroup : IGXRequest<AddDeviceGroupResponse>
+    public class RemoveGateway : IGXRequest<RemoveGatewayResponse>
     {
         /// <summary>
-        /// New device group(s).
+        /// Gateway identifiers to remove.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Keys))]
-        [ExcludeSwagger(typeof(GXDeviceGroupParameter),
-            nameof(GXDeviceGroupParameter.Removed),
-            nameof(GXDeviceGroupParameter.Updated),
-            nameof(GXDeviceGroupParameter.CreationTime),
-            nameof(GXDeviceGroupParameter.DeviceGroup),
-            nameof(GXDeviceGroupParameter.Module))]
-        public GXDeviceGroup[]? DeviceGroups
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Add new device group response.
-    /// </summary>
-    [DataContract]
-    public class AddDeviceGroupResponse
-    {
-        /// <summary>
-        /// New device groups.
-        /// </summary>
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Remove device group.
-    /// </summary>
-    [DataContract]
-    public class RemoveDeviceGroup : IGXRequest<RemoveDeviceGroupResponse>
-    {
-        /// <summary>
-        /// User group Ids to remove.
-        /// </summary>
-        [DataMember]
+        [Required]
         public Guid[]? Ids
         {
             get;
@@ -274,10 +265,37 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Remove device group response.
+    /// Remove gateway response.
     /// </summary>
     [DataContract]
-    public class RemoveDeviceGroupResponse
+    public class RemoveGatewayResponse
     {
+    }
+
+    /// <summary>
+    /// Update gateway state.
+    /// </summary>
+    [DataContract]
+    public class UpdateGatewayStatus
+    {
+        /// <summary>
+        /// Gateway ID.
+        /// </summary>
+        [DataMember]
+        public Guid Id
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gateway Status.
+        /// </summary>
+        [DataMember]
+        public DTOs.Enums.GatewayStatus Status
+        {
+            get;
+            set;
+        }
     }
 }

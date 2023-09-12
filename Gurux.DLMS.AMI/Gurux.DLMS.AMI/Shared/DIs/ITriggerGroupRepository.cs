@@ -72,10 +72,10 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             Expression<Func<GXTriggerGroup, object?>>? columns = null);
 
         /// <summary>
-        /// Delete user group(s).
+        /// Delete trigger group(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">User groups to delete.</param>
+        /// <param name="groups">Trigger groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
 

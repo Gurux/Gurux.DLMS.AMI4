@@ -90,7 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             Guid deviceId);
 
         /// <summary>
-        /// Returns device groups where agent belongs.
+        /// Returns device groups where agent group belongs.
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="agentGroupId">Agent group ID</param>
@@ -98,6 +98,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<List<GXDeviceGroup>> GetDeviceGroupsByAgentId(
             ClaimsPrincipal user, 
             Guid agentGroupId);
+
+        /// <summary>
+        /// Returns device groups where gateway group belongs.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="agentGroupId">Gateway group ID</param>
+        /// <returns>List of device groups where agent group id belongs.</returns>
+        Task<List<GXDeviceGroup>> GetDeviceGroupsByGatewayId(
+            ClaimsPrincipal user,
+            Guid agentGroupId);
+
 
         /// <summary>
         /// Returns list of users that can access this device group.

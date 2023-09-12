@@ -38,53 +38,62 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to hanfle workflow group.
+    /// This interface is used to handle gateway groups.
     /// </summary>
-    public interface IWorkflowGroupRepository
+    public interface IGatewayGroupRepository
     {
         /// <summary>
-        /// List workflow groups.
+        /// List gateway groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXWorkflowGroup[]> ListAsync(
+        Task<GXGatewayGroup[]> ListAsync(
             ClaimsPrincipal User, 
-            ListWorkflowGroups? request, 
-            ListWorkflowGroupsResponse? response,
+            ListGatewayGroups? request, 
+            ListGatewayGroupsResponse? response,
             CancellationToken cancellationToken);
 
         /// <summary>
-        /// Read workflow group information.
+        /// Read gateway.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="id">Workflow group id.</param>
+        /// <param name="id">Gateway id.</param>
         /// <returns></returns>
-        Task<GXWorkflowGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXGatewayGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+
 
         /// <summary>
-        /// Update workflow groups.
+        /// Update gateway groups.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">Updated workflow groups.</param>
+        /// <param name="groups">Updated gateway groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
             ClaimsPrincipal User, 
-            IEnumerable<GXWorkflowGroup> groups,
-            Expression<Func<GXWorkflowGroup, object?>>? columns = null);
+            IEnumerable<GXGatewayGroup> groups,
+            Expression<Func<GXGatewayGroup, object?>>? columns = null);
 
         /// <summary>
-        /// Delete workflow group(s).
+        /// Delete gateway group(s).
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">Workflow groups to delete.</param>
+        /// <param name="groups">Gateway groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
-        /// Returns workflow groups list where workflow belongs.
+        /// Get all users that can access this gateway group.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="workflowId">Workflow ID</param>
-        /// <returns>List of workflow groups.</returns>
-        Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(ClaimsPrincipal User, Guid workflowId);
+        /// <param name="gatewayGroupId">Gateway group id.</param>
+        /// <returns></returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? gatewayGroupId);
+
+        /// <summary>
+        /// Get all users that can access gateway groups.
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="gatewayGroupIds">Gateway group ids.</param>
+        /// <returns></returns>
+        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? gatewayGroupIds);
     }
 }

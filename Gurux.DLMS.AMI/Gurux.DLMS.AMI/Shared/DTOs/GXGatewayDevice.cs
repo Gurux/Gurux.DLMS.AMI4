@@ -30,57 +30,54 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
+namespace Gurux.DLMS.AMI.Shared.DTOs
 {
-    /// <summary>
-    /// Role claims table.
-    /// </summary>
-    [DataContract(Name = "GXRoleClaim"), Serializable]
-    public class GXRoleClaim : IUnique<int>
+    [IndexCollection(true, nameof(DeviceId), nameof(GatewayId), Clustered = true)]
+    public class GXGatewayDevice
     {
-        /// <summary>
-        ///Identifier. 
-        /// </summary>
-        [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
-        public int Id
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Role ID.
-        /// </summary>
         [DataMember]
-        [StringLength(36)]
-        [Index]
+        [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
-        public string RoleId
+        public Guid DeviceId
+        {
+            get;
+            set;
+        }
+
+        [DataMember]
+        [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.Cascade)]
+        [IsRequired]
+        public Guid GatewayId
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Claim type.
+        /// Creation time.
+        /// The time when the device group was added to the gateway gateway.
         /// </summary>
         [DataMember]
-        public string ClaimType
+        [Index(false, Descend = true)]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTime CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Claim value.
+        /// Time when device group was removed from gateway group.
         /// </summary>
         [DataMember]
-        public string ClaimValue
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed
         {
             get;
             set;

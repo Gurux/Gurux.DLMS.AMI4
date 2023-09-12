@@ -30,24 +30,22 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// Devices are group to device groups.
+    /// Gateway group.
     /// </summary>
-    [DataContract(Name = "GXDeviceGroup"), Serializable]
-    public class GXDeviceGroup : GXTableBase, IUnique<Guid>
+    public class GXGatewayGroup : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXDeviceGroup()
+        public GXGatewayGroup()
         {
         }
 
@@ -55,24 +53,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Constructor.
         /// </summary>
         /// <remarks>
-        /// This constuctor is called when a new device group is created. It will create all needed lists.
+        /// This constuctor is called when a new gateway group is created. It will create all needed lists.
         /// </remarks>
-        /// <param name="name">Device group name.</param>
-        public GXDeviceGroup(string? name)
+        /// <param name="name">Gateway group name.</param>
+        public GXGatewayGroup(string? name)
         {
             Name = name;
-            Devices = new List<GXDevice>();
+            Active = true;
+            Default = true;
             UserGroups = new List<GXUserGroup>();
-            AgentGroups = new List<GXAgentGroup>();
-            Keys = new List<GXKeyManagement>();
-            Parameters = new();
             Gateways = new List<GXGateway>();
         }
 
         /// <summary>
-        /// Device group ID.
+        /// Gateway group identifier.
         /// </summary>
-        [DataMember(Name = "ID"), Index(Unique = true)]
+        [Description("Gateway group identifier.")]
+        [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
@@ -82,12 +79,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Device group name.
+        /// Gateway group name.
         /// </summary>
-		[DataMember]
-        [DefaultValue(null)]
+        [DataMember]
         [StringLength(64)]
+        [Index(false)]
         [Filter(FilterType.Contains)]
+        [IsRequired]
         public string? Name
         {
             get;
@@ -95,9 +93,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Device group description.
+        /// Description.
         /// </summary>
         [DataMember]
+        [StringLength(256)]
+        [Description("Description.")]
+        //Filter uses default value.
         [DefaultValue(null)]
         public string? Description
         {
@@ -106,23 +107,53 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Creation time.
-        /// Date and time when the device group was created.
+        /// Is gateway group active.
         /// </summary>
-        [DataMember]
-        [Description("Creation time.")]
-        [Index(false, Descend = true)]
-        [Filter(FilterType.GreaterOrEqual)]
+        //Filter uses default value.
+        [DefaultValue(true)]
+        [Filter(FilterType.Exact)]
         [IsRequired]
-        public DateTime CreationTime
+        public bool? Active { get; set; }
+
+
+        /// <summary>
+        /// List of gateways that this gateway group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXGateway), typeof(GXGatewayGroupGateway))]
+        public List<GXGateway>? Gateways
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// User groups that can access this gateway group. 
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupGatewayGroup))]
+        public List<GXUserGroup>? UserGroups
+        {
+            get;
+            set;
+        }
 
         /// <summary>
-        /// Date and time when the device group was removed.
+        /// Creation time.
+        /// </summary>
+        [DataMember]
+        //Filter uses default value.
+        [DefaultValue(null)]
+        [Index(false, Descend = true)]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTime? CreationTime
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Remove time.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
@@ -135,7 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// When was the device group last updated.
+        /// When was the gateway group last updated.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
@@ -147,7 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// User has modified the item.
+        /// User has modified the gateway group.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
@@ -157,7 +188,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
-
 
         /// <summary>
         /// Concurrency stamp.
@@ -175,72 +205,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Device group parameters.
-        /// </summary>
-        [DataMember]
-        [ForeignKey]
-        public List<GXDeviceGroupParameter>? Parameters
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of key managements.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXKeyManagement))]
-        [Filter(FilterType.Contains)]
-        public List<GXKeyManagement>? Keys
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of devices that belongs to this device group.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXDevice), typeof(GXDeviceGroupDevice))]
-        public List<GXDevice>? Devices
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of user groups that can access this device group
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of agent groups that are allower to read this device group.
-        /// </summary>
-        [DataMember(IsRequired = false)]
-        [ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupDeviceGroup))]
-        public List<GXAgentGroup>? AgentGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of gateway that are allower to read this device group.
-        /// </summary>
-        [DataMember(IsRequired = false)]
-        [ForeignKey(typeof(GXGateway), typeof(GXGatewayDeviceGroup))]
-        public List<GXGateway>? Gateways
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// This is default device group where new devices are added automatically when user creates them.
+        /// This is default gateway group where new gateways are added automatically when user creates them.
         /// </summary>
         [DataMember]
         [DefaultValue(false)]
@@ -278,7 +243,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             {
                 return Name;
             }
-            return nameof(GXDeviceGroup);
+            return nameof(GXGatewayGroup);
         }
     }
 }

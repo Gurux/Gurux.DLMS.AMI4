@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Linq.Expressions;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -38,53 +37,53 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to hanfle workflow group.
+    /// This interface is used to handle Gateway logs.
     /// </summary>
-    public interface IWorkflowGroupRepository
+    public interface IGatewayLogRepository
     {
         /// <summary>
-        /// List workflow groups.
+        /// List Gateway logs.
         /// </summary>
-        /// <returns>User groups.</returns>
-        Task<GXWorkflowGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListWorkflowGroups? request, 
-            ListWorkflowGroupsResponse? response,
+        /// <returns>List of Gateway logs.</returns>
+        Task<GXGatewayLog[]> ListAsync(
+            ClaimsPrincipal user, 
+            ListGatewayLogs? request,
+            ListGatewayLogsResponse? response,
             CancellationToken cancellationToken);
 
         /// <summary>
-        /// Read workflow group information.
+        /// Read Gateway log information.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="id">Workflow group id.</param>
-        /// <returns></returns>
-        Task<GXWorkflowGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        /// <param name="id">Gateway log id.</param>
+        /// <returns>Gateway log information.</returns>
+        Task<GXGatewayLog> ReadAsync(ClaimsPrincipal User, Guid id);
 
         /// <summary>
-        /// Update workflow groups.
+        /// Clear Gateway logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="groups">Updated workflow groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
-            IEnumerable<GXWorkflowGroup> groups,
-            Expression<Func<GXWorkflowGroup, object?>>? columns = null);
+        Task ClearAsync(ClaimsPrincipal User, Guid[]? Gateways);
 
         /// <summary>
-        /// Delete workflow group(s).
+        /// Add Gateway logs.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="groups">Workflow groups to delete.</param>
-        /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        /// <param name="logs">New logs.</param>
+        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXGatewayLog> logs);
 
         /// <summary>
-        /// Returns workflow groups list where workflow belongs.
+        /// Add new exception.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="workflowId">Workflow ID</param>
-        /// <returns>List of workflow groups.</returns>
-        Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(ClaimsPrincipal User, Guid workflowId);
+        /// <param name="Gateway">Gateway.</param>
+        /// <param name="ex">Exception.</param>
+        Task<GXGatewayLog> AddAsync(ClaimsPrincipal User, GXGateway Gateway, Exception ex);
+
+        /// <summary>
+        /// Close Gateway log(s).
+        /// </summary>
+        /// <param name="User">Current user.</param>
+        /// <param name="logs">Logs to close.</param>
+        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
     }
 }
