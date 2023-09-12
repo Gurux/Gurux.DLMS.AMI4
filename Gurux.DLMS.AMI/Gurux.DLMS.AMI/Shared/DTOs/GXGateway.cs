@@ -291,6 +291,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Updated = DateTime.Now;
         }
 
+        /// <summary>
+        /// Agent where gateway is connected.
+        /// </summary>
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [Index(false)]
+        [DataMember]
+        [DefaultValue(null)]
+        public GXAgent? Agent
+        {
+            get;
+            set;
+        }
 
         /// <inheritdoc/>
         public override string ToString()
