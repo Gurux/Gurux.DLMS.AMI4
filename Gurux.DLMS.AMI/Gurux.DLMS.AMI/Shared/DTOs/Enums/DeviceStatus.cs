@@ -43,7 +43,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// Device is disconnected.
         /// </summary>
         [XmlEnum("0")]
-        DIsconnected = 0,
+        Disconnected = 0,
         /// <summary>
         /// Device is connected.
         /// </summary>
