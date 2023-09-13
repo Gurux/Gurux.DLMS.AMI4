@@ -145,6 +145,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
+        public async Task<List<GXDeviceGroup>> GetDeviceGroupsByGatewayId(ClaimsPrincipal User, Guid gatewayGroupId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXDeviceGroup>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXDeviceGroup, GXGatewayDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
+            arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXGatewayGroup>(a => a.GatewayId, b => b.Id);
+            arg.Where.And<GXGatewayGroup>(where => where.Removed == null && where.Id == gatewayGroupId);
+            return await _host.Connection.SelectAsync<GXDeviceGroup>(arg);
+        }
+
+        /// <inheritdoc />
         public async Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? groupId)
         {
             GXSelectArgs args = GXQuery.GetUsersByDeviceGroup(ServerHelpers.GetUserId(User), groupId);
@@ -338,7 +348,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Distinct = true;
             arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
             arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+            arg.Where.And<GXDeviceGroup>(q => q.Removed == null);
             arg.Where.And<GXAgentGroupDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
+            group.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
+            ////////////////////////////////////////////////////
+            //Get gateway groups that belong for this device group.
+            arg = GXSelectArgs.Select<GXGatewayGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXGatewayGroup, GXGatewayDeviceGroup>(j => j.Id, j => j.GatewayId);
+            arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+            arg.Where.And<GXDeviceGroup>(q => q.Removed == null);
+            arg.Where.And<GXGatewayDeviceGroup>(q => q.Removed == null && q.DeviceGroupId == id);
             group.AgentGroups = await _host.Connection.SelectAsync<GXAgentGroup>(arg);
             //TODO: Read parameters.
             return group;

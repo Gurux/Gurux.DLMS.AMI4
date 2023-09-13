@@ -1203,4 +1203,72 @@ namespace Gurux.DLMS.AMI.Server.Models
         public const string Clear = "option.clear";
     }
 
+    /// <summary>
+    /// Gateway policies.
+    /// </summary>
+    public static class GXGatewayPolicies
+    {
+        /// <summary>
+        /// User can view the gateway(s).
+        /// </summary>
+        public const string View = "gateway.view";
+        /// <summary>
+        /// User can add new gateway(s).
+        /// </summary>
+        public const string Add = "gateway.add";
+        /// <summary>
+        /// User can edit gateway(s).
+        /// </summary>
+        public const string Edit = "gateway.edit";
+        /// <summary>
+        /// User can delete gateway(s).
+        /// </summary>
+        public const string Delete = "gateway.delete";
+    }
+
+    /// <summary>
+    /// Gateway group policies.
+    /// </summary>
+    public static class GXGatewayGroupPolicies
+    {
+        /// <summary>
+        /// User can view the gateway group information.
+        /// </summary>
+        public const string View = "gateway-group.view";
+        /// <summary>
+        /// User can add a new gateway group.
+        /// </summary>
+        public const string Add = "gateway-group.add";
+        /// <summary>
+        /// User can edit gateway group.
+        /// </summary>
+        public const string Edit = "gateway-group.edit";
+        /// <summary>
+        /// User can delete gateway group.
+        /// </summary>
+        public const string Delete = "gateway-group.delete";
+    }
+
+    /// <summary>
+    /// Gateway log policies.
+    /// </summary>
+    public static class GXGatewayLogPolicies
+    {
+        /// <summary>
+        /// User can view the gateway log.
+        /// </summary>
+        public const string View = "gateway-log.view";
+        /// <summary>
+        /// User can add new gateway log.
+        /// </summary>
+        public const string Add = "gateway-log.add";
+        /// <summary>
+        /// User can clear gateway log.
+        /// </summary>
+        public const string Clear = "gateway-log.clear";
+        /// <summary>
+        /// User can close gateway log.
+        /// </summary>
+        public const string Close = "gateway-log.close";
+    }
 }

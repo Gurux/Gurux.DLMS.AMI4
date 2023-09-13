@@ -1095,4 +1095,28 @@
   <data name="FilterByAttributeIndex" xml:space="preserve">
     <value>Filter by attribute index...</value>
   </data>
+  <data name="Gateways" xml:space="preserve">
+    <value>Gateways</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="GatewayGroups" xml:space="preserve">
+    <value>Gateway groups</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Gateway group</value>
+  </data>
+  <data name="GatewayLogs" xml:space="preserve">
+    <value>Gateway logs</value>
+  </data>
+  <data name="Identifier" xml:space="preserve">
+    <value>Identifier</value>
+  </data>
+  <data name="GatewayIdentificationScript" xml:space="preserve">
+    <value>Gateway identification script</value>
+  </data>
+  <data name="AutoConnectIdentificationScript" xml:space="preserve">
+    <value>Identification script for the auto connect.</value>
+  </data>
 </root>

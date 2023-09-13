@@ -1095,4 +1095,28 @@
   <data name="FilterByAttributeIndex" xml:space="preserve">
     <value>Suodata määriteindeksin mukaan...</value>
   </data>
+  <data name="Gateways" xml:space="preserve">
+    <value>Yhdyskäytävät</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Yhdyskäytävä</value>
+  </data>
+  <data name="GatewayGroups" xml:space="preserve">
+    <value>Yhdyskäytävän ryhmät</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Yhdyskäytävä-ryhmä</value>
+  </data>
+  <data name="GatewayLogs" xml:space="preserve">
+    <value>Yhdyskäytävän lokit</value>
+  </data>
+  <data name="Identifier" xml:space="preserve">
+    <value>Tunniste</value>
+  </data>
+  <data name="GatewayIdentificationScript" xml:space="preserve">
+    <value>Yhdyskäytävän tunnistusskripti</value>
+  </data>
+  <data name="AutoConnectIdentificationScript" xml:space="preserve">
+    <value>Automaattisen yhteyden tunnistusskripti.</value>
+  </data>
 </root>

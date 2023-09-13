@@ -1,0 +1,98 @@
+﻿@page "/Gateway"
+@page "/GatewayGroup"
+@page "/GatewayLog/{Id:guid?}"
+@page "/GatewayLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.GatewayManager + "," + GXRoles.GatewayGroupManager + "," + GXRoles.GatewayLog + "," + GXRoles.GatewayLogManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "GatewayGroup", true) == 0)
+    {
+        <GatewayGroupTab Action="@Action" Id="@Id"></GatewayGroupTab>
+    }
+    else if (string.Compare(Path, "Gateway", true) == 0)
+    {
+        <GatewayTab Action="@Action" Id="@Id"></GatewayTab>
+    }
+    else if (string.Compare(Path, "GatewayLog", true) == 0)
+    {
+        <GatewayLog Id="@Id"></GatewayLog>
+    }    
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayManager)>
+                <TabPage Path="Gateway" Text=@Properties.Resources.Gateways Icon="oi oi-cloud-download">
+                    <div style="position: relative; width: 100%; ">
+                        <Gateways Id="@Id"></Gateways>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayGroupManager)>
+                <TabPage Path="GatewayGroup" Text=@Properties.Resources.GatewayGroups Icon="oi oi-cloud-download">
+                    <div style="position: relative; width: 100%; ">
+                        <GatewayGroups Id="@Id"></GatewayGroups>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLog, GXRoles.GatewayLogManager)>
+                <TabPage Path="GatewayLog" Text=@Properties.Resources.GatewayLogs Icon="oi oi-cloud-download">
+                    <div style="position: relative; width: 100%; ">
+                        <GatewayLogs Id="@Id"></GatewayLogs>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

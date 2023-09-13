@@ -36,7 +36,6 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Server.Cron;
-using Gurux.DLMS.AMI.Server.Repository;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {

@@ -42,8 +42,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.Agent;
-using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Client.Pages.Config;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -410,6 +410,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXSelectArgs arg;
             foreach (GXTask it in tasks)
             {
+                bool dynamic = false;
                 if (it.Index == null)
                 {
                     it.Index = 0;
@@ -424,6 +425,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Device != null)
                 {
+                    dynamic = it.Device.Dynamic.GetValueOrDefault(false);
                     it.TargetDevice = it.Device.Id;
                     //Get device name from the database. Client can send all kind of names.
                     arg = GXSelectArgs.Select<GXDevice>(s => s.Name, w => w.Id == it.Device.Id);
@@ -432,11 +434,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 else if (it.Object != null && it.Object.Id != Guid.Empty)
                 {
                     //Get device ID from the database.
-                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name });
+                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
                     arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
                     arg.Where.And<GXObject>(q => q.Id == it.Object.Id);
                     GXDevice dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg));
                     it.TargetDevice = dev.Id;
+                    dynamic = dev.Dynamic.GetValueOrDefault(false);
                     //Get object name from the database. Client can send all kind of names.
                     arg = GXSelectArgs.Select<GXObjectTemplate>(s => s.Name);
                     arg.Joins.AddInnerJoin<GXObjectTemplate, GXObject>(j => j.Id, j => j.Template);
@@ -454,12 +457,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         throw new ArgumentException("Invalid template");
                     }
                     //Get device ID from the database.
-                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name });
+                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
                     arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
                     arg.Joins.AddInnerJoin<GXObject, GXAttribute>(s => s.Id, o => o.Object);
                     arg.Where.And<GXAttribute>(q => q.Id == it.Attribute.Id);
                     GXDevice dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg));
                     it.TargetDevice = dev.Id;
+                    dynamic = dev.Dynamic.GetValueOrDefault(false);
 
                     //Get attribute and object names from the database. Client can send all kind of names.
                     arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Index, s.Name, s.ObjectTemplate });
@@ -515,6 +519,70 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 it.Creator = creator;
                 it.CreationTime = now;
+                if (dynamic)
+                {
+                    //Get notified agents.
+                    arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id });
+                    arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(j => j.Id, j => j.AgentId);
+                    arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
+                    arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                    arg.Where.And<GXDevice>(w => w.Id == it.TargetDevice);
+                    GXAgent? agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(arg);
+                    if (agent != null)
+                    {
+                        it.TargetAgent = agent.Id;
+                    }
+                    //Get notified agents from gateway devices.
+                    arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Agent });
+                    arg.Columns.Add<GXAgent>(s => s.Id);
+                    arg.Joins.AddInnerJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXGateway, GXGatewayDevice>(j => j.Id, j => j.GatewayId);
+                    arg.Joins.AddInnerJoin<GXGatewayDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                    arg.Where.And<GXGateway>(w => w.Removed == null);
+                    arg.Where.And<GXAgent>(w => w.Removed == null);
+                    arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.TargetDevice);
+                    /*
+                    arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id });
+                    arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(j => j.Id, j => j.AgentId);
+                    arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
+                    arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                    arg.Joins.AddInnerJoin<GXDevice, GXGatewayDevice>(j => j.Id, j => j.DeviceId);
+                    arg.Where.And<GXDevice>(w => w.Id == it.TargetDevice);
+                    */
+                    var gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(arg);
+                    if (gw != null && gw.Agent != null)
+                    {
+                        it.TargetAgent = gw.Agent.Id;
+                        it.TargetGateway = gw.Id;
+                    }
+                    else
+                    {
+                        //Get notified agents from gateway device groups.
+                        arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Agent });
+                        arg.Columns.Add<GXAgent>(s => s.Id);
+                        arg.Joins.AddInnerJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXGateway, GXGatewayDeviceGroup>(j => j.Id, j => j.GatewayId);
+                        arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                        arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                        arg.Where.And<GXGateway>(w => w.Removed == null);
+                        arg.Where.And<GXAgent>(w => w.Removed == null);
+                        arg.Where.And<GXDeviceGroup>(w => w.Removed == null);
+                        arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.TargetDevice);
+                        gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(arg);
+                        if (gw != null && gw.Agent != null)
+                        {
+                            it.TargetAgent = gw.Agent.Id;
+                            it.TargetGateway = gw.Id;
+                        }
+                    }
+                }
             }
 
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(tasks));
@@ -731,7 +799,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="User">Current user.</param>
         /// <param name="tasks">Notified tasks.</param>
         /// <param name="add">Is task added.</param>
-        private async Task NotifyUsers(ClaimsPrincipal User, IEnumerable<GXTask> tasks, bool add = false)
+        private async Task NotifyUsers(ClaimsPrincipal User, IEnumerable<GXTask> tasks,
+            bool add = false)
         {
             List<string> users = new List<string>();
             List<GXTask> list = new List<GXTask>();
@@ -773,6 +842,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ClaimsPrincipal User,
             Guid agentId,
             Guid? DeviceId,
+            Guid? gatewayId,
             bool listener)
         {
             DateTime start = DateTime.Now;
@@ -783,6 +853,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
+            //Update agent detected time.
+            using (IServiceScope scope = _serviceProvider.CreateScope())
+            {
+                IAgentRepository repository = scope.ServiceProvider.GetRequiredService<IAgentRepository>();
+                await repository.UpdateStatusAsync(User, agent.Id, AgentStatus.Idle, null);
+            }
+
             arg = GXSelectArgs.Select<GXTask>(c => new
             {
                 c.Id,
@@ -796,7 +873,36 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 Guid id = DeviceId.Value;
                 arg.Where.And<GXDevice>(q => q.Removed == null && q.Id == id);
+                //Update device detected time.
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
+                    await repository.UpdateStatusAsync(User, id, DeviceStatus.Connected);
+                }
             }
+            else if (gatewayId != null && gatewayId != Guid.Empty)
+            {
+                Guid id = gatewayId.Value;
+                //Update gateway detected time.
+                using (IServiceScope scope = _serviceProvider.CreateScope())
+                {
+                    IGatewayRepository repository = scope.ServiceProvider.GetRequiredService<IGatewayRepository>();
+                    await repository.UpdateStatusAsync(User, id, GatewayStatus.Connected);
+                }
+                //Get devices that are mapped for this gateway.
+                GXSelectArgs onGatewayDevices = GXSelectArgs.Select<GXDevice>(c => c.Id);
+                onGatewayDevices.Joins.AddInnerJoin<GXDevice, GXGatewayDevice>(a => a.Id, b => b.DeviceId);
+                onGatewayDevices.Joins.AddInnerJoin<GXGatewayDevice, GXGateway>(a => a.GatewayId, b => b.Id);
+                onGatewayDevices.Where.And<GXGateway>(q => q.Removed == null && q.Id == id);
+                arg.Where.And<GXDevice>(q => GXSql.Exists<GXTask, GXDevice>(j => j.TargetDevice, j => j.Id, onGatewayDevices));
+                //Get device groups that are mapped for this gateway.
+                GXSelectArgs onGatewayDeviceGroups = GXSelectArgs.Select<GXDeviceGroup>(c => c.Id);
+                onGatewayDeviceGroups.Joins.AddInnerJoin<GXDeviceGroup, GXGatewayDeviceGroup>(a => a.Id, b => b.DeviceGroupId);
+                onGatewayDeviceGroups.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXGateway>(a => a.GatewayId, b => b.Id);
+                onGatewayDeviceGroups.Where.And<GXGateway>(q => q.Removed == null && q.Id == id);
+                arg.Where.And<GXDevice>(q => GXSql.Exists<GXTask, GXDevice>(j => j.TargetDevice, j => j.Id, onGatewayDevices));
+            }
+
             if (!listener)
             {
                 arg.Where.And<GXDevice>(q => q.Removed == null && q.Dynamic == false);

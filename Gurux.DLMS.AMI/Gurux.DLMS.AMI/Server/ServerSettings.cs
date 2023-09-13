@@ -640,6 +640,9 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IKeyManagementRepository, KeyManagementRepository>();
             services.AddTransient<IKeyManagementGroupRepository, KeyManagementGroupRepository>();
             services.AddTransient<IKeyManagementLogRepository, KeyManagementLogRepository>();
+            services.AddTransient<IGatewayGroupRepository, GatewayGroupRepository>();
+            services.AddTransient<IGatewayRepository, GatewayRepository>();
+            services.AddTransient<IGatewayLogRepository, GatewayLogRepository>();
         }
 
         /// <summary>
@@ -892,6 +895,17 @@ namespace Gurux.DLMS.AMI.Server
                     }
                     //https://www.gurux.fi/issue/guruxdlmsami4/21165
                     host.Connection.UpdateTable<GXDevice>();
+                    //Gateways added.
+                    if (!host.Connection.TableExist<GXGatewayGroup>())
+                    {
+                        host.Connection.CreateTable<GXGatewayGroup>(false, false);
+                        host.Connection.CreateTable<GXGateway>(false, false);
+                        host.Connection.CreateTable<GXGatewayLog>(false, false);
+                        host.Connection.CreateTable<GXGatewayDeviceGroup>(false, false);
+                        host.Connection.CreateTable<GXGatewayDevice>(false, false);
+                        host.Connection.CreateTable<GXUserGroupGatewayGroup>(false, false);
+                        host.Connection.CreateTable<GXGatewayGroupGateway>(false, false);                        
+                    }
                 }
             }
             else

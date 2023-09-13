@@ -34,6 +34,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
+using Gurux.DLMS.AMI.Server.Repository;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {
@@ -119,6 +120,21 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             }
             await _deviceRepository.DeleteAsync(User, request.Ids, request.Delete);
             return new RemoveDeviceResponse();
+        }
+
+        /// <summary>
+        /// Update device status.
+        /// </summary>
+        [HttpPost("UpdateStatus")]
+        [Authorize(Policy = GXDevicePolicies.Edit)]
+        public async Task<ActionResult> Post(UpdateDeviceStatus request)
+        {
+            if (request.Id == Guid.Empty)
+            {
+                return BadRequest(Properties.Resources.InvalidId);
+            }
+            await _deviceRepository.UpdateStatusAsync(User, request.Id, request.Status);
+            return Ok();
         }
     }
 }

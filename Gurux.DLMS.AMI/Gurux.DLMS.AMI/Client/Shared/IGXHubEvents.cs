@@ -736,5 +736,59 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// </summary>
         /// <param name="errors">Closed key management logs.</param>
         Task CloseKeyManagementLogs(IEnumerable<GXKeyManagementLog> errors);
+
+        /// <summary>
+        /// Gateway logs are cleared.
+        /// </summary>
+        /// <param name="gateways">List of cleared gateways.</param>
+        Task ClearGatewayLogs(IEnumerable<GXGateway>? gateways);
+
+        /// <summary>
+        /// New gateway logs is added.
+        /// </summary>
+        /// <param name="logs">New gateway logs.</param>
+        Task AddGatewayLogs(IEnumerable<GXGatewayLog> logs);
+
+        /// <summary>
+        /// Gateway log items are closed.
+        /// </summary>
+        /// <param name="gateways">Closed log items.</param>
+        Task CloseGatewayLogs(IEnumerable<GXGatewayLog> gateways);
+
+        /// <summary>
+        /// New gateway is added or modified.
+        /// </summary>
+        /// <param name="gateways">Updated gateways.</param>
+        Task GatewayUpdate(IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// Gateway is deleted.
+        /// </summary>
+        /// <param name="gateways">Deleted gateways.</param>
+        Task GatewayDelete(IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// Gateway status has changed.
+        /// </summary>
+        /// <param name="gateways">Gateways.</param>
+        Task GatewayStatusChange(IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// New gateway group is added or modified.
+        /// </summary>
+        /// <param name="groups">Updated gateway groups.</param>
+        Task GatewayGroupUpdate(IEnumerable<GXGatewayGroup> groups);
+
+        /// <summary>
+        /// Gateway group is deleted.
+        /// </summary>
+        /// <param name="groups">Deleted gateway group.</param>
+        Task GatewayGroupDelete(IEnumerable<GXGatewayGroup> groups);
+
+        /// <summary>
+        /// Device status has changed.
+        /// </summary>
+        /// <param name="devices">Devices.</param>
+        Task DeviceStatusChange(IEnumerable<GXDevice> devices);        
     }
 }

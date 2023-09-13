@@ -57,6 +57,13 @@
                 </NavLink>
             </li>
         </AuthorizeView>
+        <AuthorizeView Roles="Admin, GatewayManager">
+            <li class="nav-item">
+                <NavLink class="nav-link" href="Gateway">
+                    <span class="oi oi-cloud-download" aria-hidden="true"></span>@Properties.Resources.Gateways
+                </NavLink>
+            </li>
+        </AuthorizeView>
         <AuthorizeView Roles="Admin, LogManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="logs">

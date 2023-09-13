@@ -116,12 +116,15 @@ Configure your account by following the steps outlined <a target="_blank" href="
             token.Expiration = TokenExpiration;
             token.Scopes = new string[] { "agent.view","agent.add", "agent.edit",
             "task.view", "task.edit", "object.edit",
-            "device.view", "device-error.add",
+            "device.view", "device.add","device-error.add",
             "agent-log.add", "device-trace.add",
             "device-action.add", "value.add", "attribute.edit", 
             "script.view", 
             "script-log.add",
-            "key-management.view"};
+            "key-management.view",
+            "gateway.view","gateway.add",
+            "gateway-log.add"
+            };
             UpdateToken req = new UpdateToken() { Tokens = new GXPersonalToken[] { token } };
             var ret = await Http.PostAsJson<UpdateTokenResponse>("api/Token/Add", req);
             Token = ret.Token;

@@ -46,6 +46,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -59,6 +61,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
         private readonly IKeyManagementRepository _keyManagementRepository;
         private readonly IAttributeRepository _attributeRepository;
+        private readonly GXPerformanceSettings _performanceSettings;
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -69,7 +73,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository,
             IKeyManagementRepository keyManagementRepository,
-            IAttributeRepository attributeRepository)
+            IAttributeRepository attributeRepository,
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _serviceProvider = serviceProvider;
@@ -78,6 +83,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _userRepository = userRepository;
             _keyManagementRepository = keyManagementRepository;
             _attributeRepository = attributeRepository;
+            _performanceSettings = performanceSettings;
         }
 
         /// <inheritdoc />
@@ -958,6 +964,66 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 _host.Connection.Delete(transaction, GXDeleteArgs.DeleteById<GXDeviceParameter>(it.Id));
             }
             //_host.Connection.Delete(GXDeleteArgs.DeleteRange(parameters));
+        }
+
+        /// <inheritdoc />
+        public async Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, 
+                where => where.Id == deviceId && where.Removed == null);
+            GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(args);
+            if (device == null)
+            {
+                throw new GXAmiNotFoundException(Properties.Resources.Device + " " + 
+                    Properties.Resources.Id + " " + deviceId.ToString());
+            }
+            device.Status = status;
+            device.Detected = DateTime.Now;
+            GXUpdateArgs update;
+            update = GXUpdateArgs.Update(device, c => new { c.Status, c.Detected });
+            await _host.Connection.UpdateAsync(update);
+            //Only part of the device properties are send.
+            GXDevice tmp = new GXDevice()
+            {
+                Id = device.Id,
+                Name = device.Name,
+                Detected = device.Detected,
+                Status = device.Status
+            };
+            if (_performanceSettings.Notify(TargetType.Device))
+            {
+                await _eventsNotifier.DeviceStatusChange(await GetUsersAsync(User, device.Id), new GXDevice[] { tmp });
+            }
+            //Update device state for the device log.
+            GXDeviceError? log = new GXDeviceError(TraceLevel.Info);
+            log.Device = device;
+            switch (status)
+            {
+                case DeviceStatus.Connected:
+                    log.Message = Properties.Resources.Connected;
+                    break;
+                case DeviceStatus.Disconnected:
+                    log.Message = Properties.Resources.Disconnected;
+                    break;
+                case DeviceStatus.Error:
+                    log.Message = Properties.Resources.Error;
+                    break;
+                default:
+                    log = null;
+                    break;
+            }
+            if (log != null)
+            {
+                //Add device log. Idle status is not logged.
+                IDeviceErrorRepository repository = _serviceProvider.GetRequiredService<IDeviceErrorRepository>();
+                await repository.AddAsync(User, new GXDeviceError[] { log });
+            }            
+        }
+
+        /// <inheritdoc />
+        public Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> devices)
+        {
+            throw new NotImplementedException();
         }
     }
 }

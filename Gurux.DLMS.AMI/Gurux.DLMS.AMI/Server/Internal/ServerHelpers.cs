@@ -29,6 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Client.Pages.Gateway;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Services;
@@ -1259,6 +1261,51 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 //Only agent needs this.
                 return Task.CompletedTask;
             }
+
+            public Task GatewayGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
+            {
+                return _hostedService.GatewayGroupUpdate(users, groups);
+            }
+
+            public Task GatewayGroupDelete(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
+            {
+                return _hostedService.GatewayGroupDelete(users, groups);
+            }
+
+            public Task ClearGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGateway>? gateways)
+            {
+                return _hostedService.ClearGatewayLogs(users, gateways);
+            }
+
+            public Task AddGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
+            {
+                return _hostedService.AddGatewayLogs(users, gateways);
+            }
+
+            public Task CloseGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
+            {
+                return _hostedService.CloseGatewayLogs(users, gateways);
+            }
+
+            public Task GatewayUpdate(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+            {
+                return _hostedService.GatewayUpdate(users, gateways);
+            }
+
+            public Task GatewayDelete(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+            {
+                return _hostedService.GatewayDelete(users, gateways);
+            }
+
+            public Task GatewayStatusChange(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+            {
+                return _hostedService.GatewayStatusChange(users, gateways);
+            }
+
+            public Task DeviceStatusChange(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
+            {
+                return _hostedService.DeviceStatusChange(users, devices);
+            }           
         }
 
         /// <summary>

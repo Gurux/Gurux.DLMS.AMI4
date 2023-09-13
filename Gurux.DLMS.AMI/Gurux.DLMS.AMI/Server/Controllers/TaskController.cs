@@ -96,7 +96,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<ActionResult<GetNextTaskResponse>> Post(GetNextTask request)
         {
             GetNextTaskResponse ret = new GetNextTaskResponse();
-            ret.Tasks = await _taskRepository.GetNextAsync(User, request.AgentId, request.DeviceId, request.Listener);
+            ret.Tasks = await _taskRepository.GetNextAsync(User, 
+                request.AgentId, 
+                request.DeviceId,
+                request.GatewayId,
+                request.Listener);
             return ret;
         }
 

@@ -2631,5 +2631,173 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
             return args;
         }
+        /// <summary>
+        /// Get gateway groups that user can access.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="groupId">Gateway group id.</param>
+        /// <returns>List of gateway groups that user can access.</returns>
+        public static GXSelectArgs GetGatewayGroupsByUser(string userId, Guid? groupId = null)
+        {
+            GXSelectArgs userGroups = GetUserGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXUserGroupGatewayGroup>(s => s.GatewayGroupId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXGatewayGroup>();
+            args.Joins.AddInnerJoin<GXUserGroupGatewayGroup, GXGatewayGroup>(j => j.GatewayGroupId, j => j.Id);
+            args.Where.And<GXUserGroupGatewayGroup>(q => GXSql.Exists<GXUserGroupGatewayGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
+            if (groupId != null)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Id == groupId);
+            }
+            args.Where.And<GXGatewayGroup>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the gateway group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupId">Gateway group id.</param>
+        /// <returns>List of users who can access the gateway group.</returns>
+        public static GXSelectArgs GetUsersByGatewayGroup(string userId, Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupGatewayGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupGatewayGroup, GXGatewayGroup>(a => a.GatewayGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupId != null)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed == null && q.Id == groupId);
+            }
+            else
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get gateways that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="gatewayId">Device Id</param>
+        /// <returns>List of gateways that user can access.</returns>
+        public static GXSelectArgs GetGatewaysByUser(string userId, Guid? gatewayId = null)
+        {
+            GXSelectArgs gatewayGroups = GetGatewayGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXGatewayGroupGateway>(s => s.GatewayId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXGateway>();
+            args.Joins.AddInnerJoin<GXGatewayGroupGateway, GXGateway>(j => j.GatewayId, j => j.Id);
+            args.Where.And<GXGatewayGroupGateway>(q => GXSql.Exists<GXGatewayGroupGateway, GXGatewayGroup>(j => j.GatewayGroupId, j => j.Id, gatewayGroups));
+            if (gatewayId != null)
+            {
+                args.Where.And<GXGateway>(q => q.Id == gatewayId);
+            }
+            args.Where.And<GXGateway>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the gateway group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupIds">Gateway group ids.</param>
+        /// <returns>List of users who can access the gateway group.</returns>
+        public static GXSelectArgs GetUsersByGatewayGroups(string userId, IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupGatewayGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupGatewayGroup, GXGatewayGroup>(a => a.GatewayGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupIds != null)
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXGatewayGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the gateway.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="gatewayId">Gateway id.</param>
+        /// <returns>List of users who can access the gateway.</returns>
+        public static GXSelectArgs GetUsersByGateway(string userId, Guid? gatewayId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupGatewayGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupGatewayGroup, GXGatewayGroup>(a => a.GatewayGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXGatewayGroup, GXGatewayGroupGateway>(a => a.Id, b => b.GatewayGroupId);
+            args.Joins.AddInnerJoin<GXGatewayGroupGateway, GXGateway>(a => a.GatewayId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXGatewayGroup>(where => where.Removed == null);
+            args.Where.And<GXGateway>(where => where.Removed == null);
+            if (gatewayId != null && gatewayId != Guid.Empty)
+            {
+                args.Where.And<GXGateway>(where => where.Id == gatewayId);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the gateways.
+        /// </summary>
+        /// <param name="userId">User Id.</param>
+        /// <param name="gatewayIds">Gateway ids.</param>
+        /// <returns>List of users who can access the gateway.</returns>
+        public static GXSelectArgs GetUsersByGateways(string userId, IEnumerable<Guid>? gatewayIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupGatewayGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupGatewayGroup, GXGatewayGroup>(a => a.GatewayGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXGatewayGroup, GXGatewayGroupGateway>(a => a.Id, b => b.GatewayGroupId);
+            args.Joins.AddInnerJoin<GXGatewayGroupGateway, GXGateway>(a => a.GatewayId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXGatewayGroup>(where => where.Removed == null);
+            args.Where.And<GXGateway>(where => where.Removed == null);
+            if (gatewayIds != null)
+            {
+                args.Where.And<GXGateway>(where => gatewayIds.Contains(where.Id));
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get gateway logs that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="gatewayId">Device Id</param>
+        /// <returns>List of gateways that user can access.</returns>
+        public static GXSelectArgs GetGatewayErrorsByUser(string userId, Guid? gatewayId = null)
+        {
+            GXSelectArgs args = GetGatewaysByUser(userId);
+            args.Columns.Clear();
+            args.Columns.Add<GXGatewayLog>();
+            args.Joins.AddInnerJoin<GXGateway, GXGatewayLog>(j => j.Id, j => j.Gateway);
+            return args;
+        }
     }
 }

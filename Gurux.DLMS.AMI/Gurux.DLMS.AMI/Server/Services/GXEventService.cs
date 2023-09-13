@@ -291,6 +291,24 @@ namespace Gurux.DLMS.AMI.Services
         public event Action<IEnumerable<GXKeyManagementLog>>? OnAddKeyManagementLogs;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXKeyManagementLog>>? OnCloseKeyManagementLogs;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGateway>?>? OnClearGatewayErrors;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGatewayLog>>? OnAddGatewayErrors;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGatewayLog>>? OnCloseGatewayErrors;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGateway>>? OnGatewayUpdate;        
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXDevice>>? OnDeviceStatusChange;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGateway>>? OnGatewayDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGateway>>? OnGatewayStatusChange;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGatewayGroup>>? OnGatewayGroupUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXGatewayGroup>>? OnGatewayGroupDelete;
 
         /// <inheritdoc/>
         public async Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
@@ -1158,5 +1176,68 @@ namespace Gurux.DLMS.AMI.Services
             //Only agent needs this.
             return Task.CompletedTask;
         }
+        /// <inheritdoc/>
+        public async Task AddGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
+        {
+            OnAddGatewayErrors?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).AddGatewayLogs(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task ClearGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGateway>? gateways)
+        {
+            OnClearGatewayErrors?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).ClearGatewayLogs(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task CloseGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways)
+        {
+            OnCloseGatewayErrors?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).CloseGatewayLogs(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task GatewayDelete(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+        {
+            OnGatewayDelete?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).GatewayDelete(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task GatewayGroupDelete(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
+        {
+            OnGatewayGroupDelete?.Invoke(groups);
+            await _hubContext.Clients.Users(users).GatewayGroupDelete(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task GatewayGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups)
+        {
+            OnGatewayGroupUpdate?.Invoke(groups);
+            await _hubContext.Clients.Users(users).GatewayGroupUpdate(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task GatewayStatusChange(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+        {
+            OnGatewayStatusChange?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).GatewayStatusChange(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task GatewayUpdate(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways)
+        {
+            OnGatewayUpdate?.Invoke(gateways);
+            await _hubContext.Clients.Users(users).GatewayUpdate(gateways);
+        }
+
+        /// <inheritdoc/>
+        public async Task DeviceStatusChange(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
+        {
+            OnDeviceStatusChange?.Invoke(devices);
+            await _hubContext.Clients.Users(users).DeviceStatusChange(devices);
+        }
+
     }
 }

@@ -3,6 +3,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.ComponentView;
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate;
+@using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.KeyManagement;
 @using Gurux.DLMS.AMI.Client.Pages.Module;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
@@ -79,6 +80,9 @@
 
     [CascadingParameter]
     private ScheduleGroupTab? ScheduleGroupParent { get; set; }
+
+    [CascadingParameter]
+    private GatewayGroupTab? GatewayGroupParent { get; set; }
 
     SelectionList<GXUserGroup>? _selected;
     SelectionList<GXUserGroup>? _available;
@@ -304,6 +308,11 @@
             {
                 _selected.Items = KeyManagementParent.Active.UserGroups;
                 action = ClientHelpers.GetAction(KeyManagementParent.Action);
+            }
+            else if (GatewayGroupParent?.Active?.UserGroups != null)
+            {
+                _selected.Items = GatewayGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(GatewayGroupParent.Action);
             }
             else
             {

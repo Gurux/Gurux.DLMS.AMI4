@@ -394,6 +394,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Disconnected.
+        /// </summary>
+        internal static string Disconnected {
+            get {
+                return ResourceManager.GetString("Disconnected", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Downloading....
         /// </summary>
         internal static string Downloading {
@@ -453,6 +462,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         internal static string ExternalLogins {
             get {
                 return ResourceManager.GetString("ExternalLogins", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway.
+        /// </summary>
+        internal static string Gateway {
+            get {
+                return ResourceManager.GetString("Gateway", resourceCulture);
             }
         }
         

@@ -310,6 +310,13 @@ namespace Gurux.DLMS.AMI.Client.Shared
         Task DeviceDelete(IReadOnlyList<string> users, IEnumerable<GXDevice> devices);
 
         /// <summary>
+        /// Device status has changed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="devices">Devices.</param>
+        Task DeviceStatusChange(IReadOnlyList<string> users, IEnumerable<GXDevice> devices);
+
+        /// <summary>
         /// New device group is added or modified.
         /// </summary>
         /// <param name="users">Notified users.</param>
@@ -874,5 +881,62 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="logs">Closed key management logs.</param>
         Task CloseKeyManagementLogs(IReadOnlyList<string> users, IEnumerable<GXKeyManagementLog> logs);
+
+
+        /// <summary>
+        /// New gateway group is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated gateway groups.</param>
+        Task GatewayGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups);
+
+        /// <summary>
+        /// Gateway group is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Deleted gateway group.</param>
+        Task GatewayGroupDelete(IReadOnlyList<string> users, IEnumerable<GXGatewayGroup> groups);
+
+        /// <summary>
+        /// Gateway logs are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">List of cleared gateways.</param>
+        Task ClearGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGateway>? gateways);
+
+        /// <summary>
+        /// New gateway log item is added.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">New gateway errors.</param>
+        Task AddGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways);
+
+        /// <summary>
+        /// Gateway logs are closed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">Closed errors.</param>
+        Task CloseGatewayLogs(IReadOnlyList<string> users, IEnumerable<GXGatewayLog> gateways);
+
+        /// <summary>
+        /// New gateway is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">Updated gateways.</param>
+        Task GatewayUpdate(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// Gateway is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">Deleted gateways.</param>
+        Task GatewayDelete(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// Gateway status has changed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="gateways">Gateways.</param>
+        Task GatewayStatusChange(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways);
     }
 }

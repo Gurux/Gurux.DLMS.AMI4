@@ -1,0 +1,403 @@
+﻿@page "/GatewayLogs"
+
+@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Models
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, GatewayLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.GatewayLogs</PageTitle>
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLogManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by user name..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Gateway.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by message..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <div>
+                <input class="form-control" type="text" placeholder="Filter by level..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+            </div>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <th>@Properties.Resources.Gateway</th>
+        <Th Id="Message">@Properties.Resources.Message</Th>
+        <Th Id="Level">@Properties.Resources.Level</Th>
+        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("GatewayLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@error.Gateway?.Name</td>
+        <td>@error.Message</td>
+        <td>@ClientHelpers.LevelToString(error.Level)</td>
+        <td>@error.Closed</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
+</Confirm>
+
+<Confirm @ref="CloseConfirmation"
+         ConfirmationChanged="OnCloseConfirmation"
+         ConfirmationTitle="Confirm close"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Close"
+         ConfirmationMessage="Are you sure you want to close selected items?">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected gateway group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.GatewayLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the gateway errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Gateway error filter.
+    /// </summary>
+    private GXGatewayLog filter = new GXGatewayLog()
+        {
+            Gateway = new GXGateway()
+        };
+    /// <summary>
+    /// User is verified before gateway log are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+    /// <summary>
+    /// User is verified before gateway logs are closed.
+    /// </summary>
+    protected ConfirmBase? CloseConfirmation;
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXGatewayLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXGatewayLog>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.On<IEnumerable<GXGateway>?>(this, nameof(IGXHubEvents.ClearGatewayLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXGatewayLog>>(this, nameof(IGXHubEvents.AddGatewayLogs), async (error) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXGatewayLog>>(this, nameof(IGXHubEvents.CloseGatewayLogs), async (error) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXGatewayLog() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXGatewayLog>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {          
+            ListGatewayLogs req = new ListGatewayLogs()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListGatewayLogsResponse>("api/GatewayLog/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXGatewayLog>(ret.Logs, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show gateway log details.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/GatewayLog/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected error.
+    /// </summary>
+    public void OnClose()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public async Task OnCloseConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                CloseGatewayLog req = new CloseGatewayLog()
+                    {
+                        Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<CloseGatewayLogResponse>("api/GatewayLog/Close", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the gateway log list.
+    /// </summary>
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the gateway log list.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                await Http.PostAsJson<ClearGatewayLogsResponse>("api/GatewayLog/Clear", new ClearGatewayLogs());
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

@@ -238,6 +238,13 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     sgs.UserGroups.Add(ug);
                     IScriptGroupRepository scriptGroupRepository = scope.ServiceProvider.GetRequiredService<IScriptGroupRepository>();
                     await scriptGroupRepository.UpdateAsync(User, new GXScriptGroup[] { sgs });
+
+                    //Create default gateway group and add user group to it.
+                    GXGatewayGroup gg = new GXGatewayGroup(groupName) { CreationTime = now};
+                    gg.UserGroups.Add(ug);
+                    IGatewayGroupRepository gatewayGroupRepository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
+                    await gatewayGroupRepository.UpdateAsync(User, new GXGatewayGroup[] { gg }, null);
+
                     //Create default key management group and add user group to it.
                     GXKeyManagementGroup kmg = new GXKeyManagementGroup(groupName) { CreationTime = now, Default = true };
                     kmg.UserGroups.Add(ug);

@@ -349,6 +349,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Identification script for the auto connect..
+        /// </summary>
+        internal static string AutoConnectIdentificationScript {
+            get {
+                return ResourceManager.GetString("AutoConnectIdentificationScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Available version.
         /// </summary>
         internal static string AvailableVersion {
@@ -1078,6 +1087,60 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Gateway.
+        /// </summary>
+        internal static string Gateway {
+            get {
+                return ResourceManager.GetString("Gateway", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway group.
+        /// </summary>
+        internal static string GatewayGroup {
+            get {
+                return ResourceManager.GetString("GatewayGroup", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway groups.
+        /// </summary>
+        internal static string GatewayGroups {
+            get {
+                return ResourceManager.GetString("GatewayGroups", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway identification script.
+        /// </summary>
+        internal static string GatewayIdentificationScript {
+            get {
+                return ResourceManager.GetString("GatewayIdentificationScript", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateway logs.
+        /// </summary>
+        internal static string GatewayLogs {
+            get {
+                return ResourceManager.GetString("GatewayLogs", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Gateways.
+        /// </summary>
+        internal static string Gateways {
+            get {
+                return ResourceManager.GetString("Gateways", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to General information.
         /// </summary>
         internal static string GeneralInformation {
@@ -1164,6 +1227,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Hours {
             get {
                 return ResourceManager.GetString("Hours", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Identifier.
+        /// </summary>
+        internal static string Identifier {
+            get {
+                return ResourceManager.GetString("Identifier", resourceCulture);
             }
         }
         

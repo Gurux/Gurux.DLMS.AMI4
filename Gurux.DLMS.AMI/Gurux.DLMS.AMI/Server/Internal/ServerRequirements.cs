@@ -103,7 +103,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddRoleRequirements(options, issuer);
             AddKeyManagementRequirements(options, issuer);
             AddKeyManagementGroupRequirements(options, issuer);
-            AddKeyManagementLogRequirements(options, issuer);            
+            AddKeyManagementLogRequirements(options, issuer);
+            AddGatewayGroupRequirements(options, issuer);
+            AddGatewayRequirements(options, issuer);
+            AddGatewayLogRequirements(options, issuer);
         }
 
         /// <summary>
@@ -1676,6 +1679,99 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXTriggerGroupPolicies.Delete, issuer)
                 { Roles = new string[] { GXRoles.Admin, GXRoles.TriggerGroupManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add gateway requirements that are used for policy.
+        /// </summary>
+        private static void AddGatewayRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXGatewayPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.Gateway, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add gateway group requirements that are used for policy.
+        /// </summary>
+        private static void AddGatewayGroupRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXGatewayGroupPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayGroupPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayGroupPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayGroupPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayGroupPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayGroupPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+            options.AddPolicy(GXGatewayGroupPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayGroupPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add gateway log requirements that are used for policy.
+        /// </summary>
+        private static void AddGatewayLogRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXGatewayLogPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayLogPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayLogManager } });
+            });
+            options.AddPolicy(GXGatewayLogPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayLogPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayLogManager } });
+            });
+            options.AddPolicy(GXGatewayLogPolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayLogPolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayLogManager } });
+            });
+            options.AddPolicy(GXGatewayLogPolicies.Close, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXGatewayLogPolicies.Close, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayLogManager } });
             });
         }
     }

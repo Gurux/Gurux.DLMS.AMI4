@@ -648,4 +648,10 @@
   <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
     <value>New groups must be added first.</value>
   </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
 </root>

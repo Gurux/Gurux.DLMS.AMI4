@@ -117,11 +117,17 @@
                     @bind-Value="Settings.ConnectionUpTime" />
                     <ValidationMessage For="@(() => Settings.ConnectionUpTime)" />
                 </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Script</label>
-                    <ScriptMethodSelector Scripts="@Scripts"
-                                          SelectionChanged="@SelectionChanged"
+                <div class="form-group row">
+                    <ScriptMethodSelector Title="@Properties.Resources.AutoConnectIdentificationScript"
+                                          Scripts="@Scripts"
+                                          SelectionChanged="@ConnectionIdentifierSelectionChanged"
                                           ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                </div>
+                <div class="form-group row">
+                    <ScriptMethodSelector Title="@Properties.Resources.GatewayIdentificationScript"
+                                          Scripts="@Scripts"
+                                          SelectionChanged="@GatewayIdentificationSelectionChanged"
+                                          ScriptMethod="@Settings.GatewayScriptMethod"></ScriptMethodSelector>
                 </div>
             </div>
         </div>
@@ -207,13 +213,24 @@
     SerialSettings? serialSettings { get; set; }
 
     ///<summary>
-    ///Script method has been changed.
+    ///Connection identifier script method has been changed.
     ///</summary>
-    private void SelectionChanged(Guid? guid)
+    private void ConnectionIdentifierSelectionChanged(Guid? guid)
     {
         if (Settings != null)
         {
             Settings.ScriptMethod = guid;
+        }
+    }
+
+    ///<summary>
+    ///Gateway identification script method has been changed.
+    ///</summary>
+    private void GatewayIdentificationSelectionChanged(Guid? guid)
+    {
+        if (Settings != null)
+        {
+            Settings.GatewayScriptMethod = guid;
         }
     }
 
