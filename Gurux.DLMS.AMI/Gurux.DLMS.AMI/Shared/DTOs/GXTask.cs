@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -251,6 +252,34 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid? TargetDevice
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Target agent.
+        /// </summary>
+        /// <remarks>
+        /// This information is used when agents are notified 
+        /// from the new task and it's not saved to the DB.
+        /// </remarks>
+        [Ignore]
+        public GXAgent? TargetAgent
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Target gateway.
+        /// </summary>
+        /// <remarks>
+        /// This information is used when agents are notified 
+        /// from the new task and it's not saved to the DB.
+        /// </remarks>
+        [Ignore]
+        public GXGateway? TargetGateway
         {
             get;
             set;
