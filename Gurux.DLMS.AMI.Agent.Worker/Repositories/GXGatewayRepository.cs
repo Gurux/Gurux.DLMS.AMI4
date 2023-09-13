@@ -30,7 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-
+using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -38,18 +38,18 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using System.Linq.Expressions;
 using System.Security.Claims;
 
-namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
+namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
 {
     /// <summary>
-    /// This class implements device repository that can be called from the agent script.
+    /// This class implements gateway repository that can be called from the gateway script.
     /// </summary>
-    class GXDeviceRepository : IDeviceRepository
+    class GXGatewayRepository : IGatewayRepository
     {
         /// <inheritdoc/>
-        public Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
+        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
         {
-            RemoveDevice req = new RemoveDevice() { Ids = devices.ToArray(), Delete = delete };
-            return GXAgentWorker.client.PostAsJson<RemoveDeviceResponse>("/api/Device/Delete", req);
+            RemoveGateway req = new RemoveGateway() { Ids = devices.ToArray(), Delete = delete };
+            _ = await GXAgentWorker.client.PostAsJson<RemoveGatewayResponse>("/api/Gateway/Delete", req);
         }
 
         /// <inheritdoc/>
@@ -59,61 +59,49 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? deviceIds)
+        public Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? gatewayIds)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public async Task<GXDevice[]> ListAsync(
+        public async Task<GXGateway[]> ListAsync(
             ClaimsPrincipal User,
-            ListDevices? request, 
-            ListDevicesResponse? response,
+            ListGateways? request,
+            ListGatewaysResponse? response,
             CancellationToken cancellationToken)
         {
-            ListDevicesResponse? ret = await GXAgentWorker.client.PostAsJson<ListDevicesResponse>("/api/Device/List", 
+            ListGatewaysResponse? ret = await GXAgentWorker.client.PostAsJson<ListGatewaysResponse>("/api/Gateway/List",
                 request, cancellationToken);
-            if (ret == null)
-            {
-                return new GXDevice[0];
-            }
-            if (response != null)
+            if (response != null && ret != null)
             {
                 response.Count = ret.Count;
-                response.Devices = ret.Devices;
+                response.Gateways = ret.Gateways;
             }
-            return ret.Devices;
+            return ret.Gateways;
+        }      
+
+        /// <inheritdoc/>
+        public async Task<GXGateway> ReadAsync(ClaimsPrincipal? User, Guid id)
+        {
+            return await Helpers.GetAsync<GXGateway>(string.Format("/api/Gateway/?Id={0}", id));
         }
 
         /// <inheritdoc/>
-        public async Task<GXDevice> ReadAsync(ClaimsPrincipal? User, Guid id)
-        {
-            return await GXAgentWorker.client.GetAsJsonAsync<GXDevice>(string.Format("/api/Device/?Id={0}", id));
-        }
-
-        public Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> devices)
+        public Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> gateways)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal? user, 
-            IEnumerable<GXDevice> devices, 
-            CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns = null,
-            bool lateBinding = false)
+        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal User, IEnumerable<GXGateway> gateways, Expression<Func<GXGateway, object?>>? columns = null)
         {
-            UpdateDevice req = new UpdateDevice() { Devices = devices.ToArray() };
-            UpdateDeviceResponse? ret = await GXAgentWorker.client.PostAsJson<UpdateDeviceResponse>("/api/Device/Update", req, cancellationToken);
-            if (ret == null)
-            {
-                return new Guid[0];
-            }
-            return ret.Ids;
+            UpdateGateway req = new UpdateGateway() { Gateways = gateways.ToArray() };
+            return (await GXAgentWorker.client.PostAsJson<UpdateGatewayResponse>("/api/Gateway/Update", req)).GatewayIds;
         }
 
-        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status)
+        /// <inheritdoc/>
+        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid gatewayId, GatewayStatus status)
         {
             throw new NotImplementedException();
         }

@@ -42,17 +42,22 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
     internal class GXAutoConnectService : IHostedService, IDisposable
     {
         private readonly IServiceProvider _serviceProvider;
+        private readonly IGXTaskNotification _taskNotification;
         private readonly ILogger _logger;
-        private GXScriptMethod? _scriptMethod;
+        private GXScriptMethod? _autoConnectionIdentificationScript;
+        private GXScriptMethod? _gatewayIdentificationScript;
+
         //Listener wait incoming connections from the meters.
         GXNet? listener;
         ListenerSettings? _settings;
 
         public GXAutoConnectService(ILogger<GXAutoConnectService> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IGXTaskNotification taskNotification)
         {
             _serviceProvider = serviceProvider;
             _logger = logger;
+            _taskNotification = taskNotification;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -66,6 +71,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 if (listener.Protocol == NetworkType.Tcp)
                 {
                     listener.OnClientConnected += OnClientConnected;
+                    listener.OnClientDisconnected += OnClientDisconnected;
                 }
                 else
                 {
@@ -82,28 +88,62 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         new GXScriptMethod() { Id = _settings.ScriptMethod.Value }
                     });
                     ListScriptsResponse? ret = GXAgentWorker.client.PostAsJson<ListScriptsResponse>("/api/Script/List", req).Result;
-                    if (ret?.Scripts?.FirstOrDefault()?.Methods != null)
+                    if (ret?.Scripts?.FirstOrDefault()?.Methods is List<GXScriptMethod> methods)
                     {
-                        foreach (var sm in ret.Scripts.FirstOrDefault().Methods)
+                        foreach (var sm in methods)
                         {
                             if (sm.Id == _settings.ScriptMethod.Value)
                             {
-                                _scriptMethod = sm;
+                                _autoConnectionIdentificationScript = sm;
                                 //Update parent script.
                                 sm.Script = ret.Scripts[0];
                                 break;
                             }
                         }
                     }
-                    if (_scriptMethod == null)
+                    if (_autoConnectionIdentificationScript == null)
                     {
-                        throw new Exception("Unknown script to execute.");
+                        throw new Exception("Unknown auto connection identification script.");
                     }
                 }
                 else
                 {
-                    _scriptMethod = null;
+                    _autoConnectionIdentificationScript = null;
                 }
+
+                if (_settings?.GatewayScriptMethod != null)
+                {
+                    //Get script when app starts.
+                    ListScripts req = new ListScripts();
+                    req.Filter = new GXScript();
+                    req.Filter.Methods = new List<GXScriptMethod>(new GXScriptMethod[]
+                    {
+                        new GXScriptMethod() { Id = _settings.GatewayScriptMethod.Value }
+                    });
+                    ListScriptsResponse? ret = GXAgentWorker.client.PostAsJson<ListScriptsResponse>("/api/Script/List", req).Result;
+                    if (ret?.Scripts?.FirstOrDefault()?.Methods is List<GXScriptMethod> methods)
+                    {
+                        foreach (var sm in methods)
+                        {
+                            if (sm.Id == _settings.GatewayScriptMethod.Value)
+                            {
+                                _gatewayIdentificationScript = sm;
+                                //Update parent script.
+                                sm.Script = ret.Scripts[0];
+                                break;
+                            }
+                        }
+                    }
+                    if (_gatewayIdentificationScript == null)
+                    {
+                        throw new Exception("Unknown gateway identification script.");
+                    }
+                }
+                else
+                {
+                    _gatewayIdentificationScript = null;
+                }
+                
                 listener.Open();
             }
             else if (listener != null)
@@ -133,8 +173,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     _logger,
                     media,
                     e.Info,
-                    _scriptMethod,
-                    null);
+                    _autoConnectionIdentificationScript,
+                    _gatewayIdentificationScript,
+                    null,
+                    _taskNotification);
                 Thread thread = new Thread(() =>
                 {
                     ac.ReadMeter();
@@ -146,6 +188,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 Console.WriteLine(ex.Message);
             }
         }
+        /// <summary>
+        /// Client has close the connection to the server.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        internal void OnClientDisconnected(object sender, Common.ConnectionEventArgs e)
+        {
+            Console.WriteLine("Client {0} is disconnecting.", e.Info);
+        }
+
         internal void OnOnReceived(object sender, Common.ReceiveEventArgs e)
         {
             Console.WriteLine("Client {0} is connected.", e.SenderInfo);
@@ -157,8 +209,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     _logger,
                     media,
                     e.SenderInfo,
-                    _scriptMethod,
-                    null);
+                    _autoConnectionIdentificationScript,
+                    _gatewayIdentificationScript,
+                    null,
+                    _taskNotification);
                 Thread thread = new Thread(() =>
                 {
                     ac.ReadMeter();
@@ -178,6 +232,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             {
                 listener.Close();
             }
+            _taskNotification.Close();
             return Task.CompletedTask;
         }
 

@@ -40,6 +40,7 @@ using Gurux.DLMS.Objects;
 using Gurux.DLMS.Secure;
 using Gurux.Net;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Diagnostics;
 using System.Runtime.Loader;
 using static Gurux.DLMS.AMI.Agent.Worker.GXAgentWorker;
@@ -53,29 +54,41 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger? _logger;
-        private readonly GXScriptMethod? _scriptMethod;
+        private readonly GXScriptMethod? _autoConnectionIdentificationScript;
+        private readonly GXScriptMethod? _gatewayIdentificationScript;
         private readonly AssemblyLoadContext? _loadedScript;
+        private readonly IGXTaskNotification _taskNotification;
         private readonly GXNet _media;
         private readonly string _info;
         private readonly ListenerSettings? settings;
         GXByteBuffer _notify = new GXByteBuffer();
         private readonly GXDLMSReader reader;
+        /// <summary>
+        /// Device identifier.
+        /// </summary>
         private Guid? _deviceId;
+        /// <summary>
+        /// Gateway identifier.
+        /// </summary>
+        private Guid? _gatewayId;
         private AutoResetEvent _connected = new AutoResetEvent(false);
 
         public GXAutoConnect(IServiceProvider serviceProvider,
             ILogger? logger,
             GXNet media,
             string info,
-            GXScriptMethod? scriptMethod,
-            AssemblyLoadContext? loadedScript)
+            GXScriptMethod? autoConnectionIdentificationScript,
+            GXScriptMethod? gatewayIdentificationScript,
+            AssemblyLoadContext? loadedScript,
+            IGXTaskNotification taskNotification)
         {
             _serviceProvider = serviceProvider;
             settings = Options.ListenerSettings;
             _logger = logger;
             _media = media;
             _info = info;
-            _scriptMethod = scriptMethod;
+            _autoConnectionIdentificationScript = autoConnectionIdentificationScript;
+            _gatewayIdentificationScript = gatewayIdentificationScript;
             _loadedScript = loadedScript;
             _media.OnReceived += Media_OnReceived;
             if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
@@ -86,6 +99,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             GXDLMSSecureClient client = new GXDLMSSecureClient(settings.UseLogicalNameReferencing, settings.ClientAddress, settings.ServerAddress, (Authentication)settings.Authentication, settings.Password, (InterfaceType)settings.Interface);
             reader = new GXDLMSReader(client, _media, _logger, TraceLevel.Off,
                 settings.TraceLevel, 60000, 3, null);
+            _taskNotification = taskNotification;
         }
 
         private async void _media_OnTrace(object sender, TraceEventArgs e)
@@ -127,11 +141,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         {
             try
             {
-                ListenerSettings? settings = GXAgentWorker.Options.ListenerSettings;
+                ListenerSettings? settings = Options.ListenerSettings;
                 if (settings.IdentifyWaitTime != 0)
                 {
                     _connected.WaitOne(settings.IdentifyWaitTime * 1000);
-                    if (_deviceId == null)
+                    if (_deviceId == null && _gatewayId == null)
                     {
                         //_deviceId is null if meter is sending data that is not require 
                         //connection for the meter (e.g keep alive msg).
@@ -149,7 +163,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         } };
                     await client.PostAsJson("/api/AgentLog/Add", log);
                 }
-                if (settings != null && !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty && settings.IdentifyWaitTime == 0))
+                if (_gatewayId == null && settings != null && !settings.PreEstablished &&
+                    (_deviceId == null || _deviceId == Guid.Empty && settings.IdentifyWaitTime == 0))
                 {
                     GXDLMSObjectCollection objects = new GXDLMSObjectCollection();
                     GXDLMSData ldn = new GXDLMSData("0.0.42.0.0.255");
@@ -193,7 +208,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     }
                     _deviceId = ret.Devices[0].Id;
                 }
-                if (settings != null && !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty))
+                if (_gatewayId == null && settings != null &&
+                    !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty))
                 {
                     //If unknown device.
                     throw new GXAMIUnknownDeviceException(Properties.Resources.UnknownDevice);
@@ -206,6 +222,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     GetNextTask req2 = new GetNextTask();
                     req2.AgentId = Options.Id;
                     req2.DeviceId = _deviceId;
+                    req2.GatewayId = _gatewayId;
                     req2.Listener = true;
                     GetNextTaskResponse? response = await client.PostAsJson<GetNextTaskResponse>("/api/Task/Next", req2);
                     if (response != null && response.Tasks != null && response.Tasks.Any())
@@ -236,16 +253,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         log.Logs = new GXAgentLog[]{
                             new GXAgentLog()
                             {
-                                Agent = new GXAgent() { Id = GXAgentWorker.Options.Id },
+                                Agent = new GXAgent() { Id = Options.Id },
                                 Message = Properties.Resources.NoExecutedTasks
                             }
                         };
-                        await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
-
+                        await client.PostAsJson("/api/AgentLog/Add", log);
+                    }
+                    //Wait until the next message is received.
+                    if (_gatewayId is Guid id)
+                    {
+                        _taskNotification.Wait(id);
                     }
                 }
-                while ((settings != null && (settings.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < settings.ConnectionUpTime)) ||
-                (dev != null && (dev.ConnectionUpTime == -1 || (DateTime.Now - start).TotalSeconds < dev.ConnectionUpTime)));
+                while ((settings != null && (settings.ConnectionUpTime == null || (DateTime.Now - start).TotalSeconds < settings.ConnectionUpTime)) ||
+                (dev != null && (dev.ConnectionUpTime != null || (DateTime.Now - start).TotalSeconds < dev.ConnectionUpTime)));
             }
             catch (Exception ex)
             {
@@ -256,7 +277,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     log.Logs = new GXAgentLog[]{
                             new GXAgentLog()
                             {
-                                Agent = new GXAgent() { Id = GXAgentWorker.Options.Id },
+                                Agent = new GXAgent() { Id = Options.Id },
                                 Message = ex.Message,
                                 StackTrace = ex.StackTrace
                             }
@@ -270,6 +291,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             }
             finally
             {
+                if (_gatewayId is Guid id)
+                {
+                    _taskNotification.Unregister(id);
+                }
                 if (reader != null)
                 {
                     reader.Close();
@@ -287,6 +312,97 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             GXReplyData reply = new GXReplyData();
             GXReplyData notify = new GXReplyData();
             _notify.Set((byte[])e.Data);
+            //If Gateway establish the connection for the agent.
+            if (_gatewayIdentificationScript != null)
+            {
+                try
+                {
+                    if (_gatewayIdentificationScript?.Script?.ByteAssembly != null &&
+                        !string.IsNullOrEmpty(_gatewayIdentificationScript.Name))
+                    {
+                        GXAmiScript tmp = new GXAmiScript(_serviceProvider);
+                        tmp.Sender = new GXAgent() { Id = Options.Id };
+                        //Run script.
+                        GXScriptRunArgs arg = new GXScriptRunArgs()
+                        {
+                            ByteAssembly = _gatewayIdentificationScript.Script.ByteAssembly,
+                            MethodName = _gatewayIdentificationScript.Name,
+                            Asyncronous = _gatewayIdentificationScript.Asyncronous,
+                            AssemblyLoadContext = _loadedScript,
+                            Parameters = new object[]
+                            {
+                                    e.SenderInfo,
+                                    _media,
+                                    _notify.Array()
+                            }
+                        };
+                        var ret = tmp.RunAsync(arg).Result;
+                        if ((_gatewayId == null || _gatewayId == Guid.Empty))
+                        {
+                            if (ret is GXGateway gw && gw.Id != Guid.Empty)
+                            {
+                                //If script returns gateway.
+                                _gatewayId = gw.Id;
+                                if (gw.Agent?.Id != Options.Id)
+                                {
+                                    _taskNotification.Register(gw.Id);
+                                    //Update the gateway agent if it has changed.
+                                    gw.Agent = new GXAgent() { Id = Options.Id };
+                                    UpdateGateway tmp2 = new UpdateGateway()
+                                    {
+                                        Gateways = new GXGateway[]{gw}
+                                    };
+                                    GXAgentWorker.client.PostAsJson("/api/Gateway/Update", tmp2).Wait();
+                                }
+                                _connected.Set();
+                            }
+                            else if (ret == null)
+                            {
+                                _connected.Set();
+                            }
+                        }
+                    }
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    if (_gatewayId is Guid id)
+                    {
+                        _taskNotification.Unregister(id);
+                    }
+                    _logger?.LogError(ex.Message + Environment.NewLine + ex.StackTrace);
+                    AddAgentLog log = new AddAgentLog();
+                    log.Logs = new GXAgentLog[]{new GXAgentLog()
+                        {
+                            Agent = new GXAgent(){Id = Options.Id },
+                            Message = ex.Message,
+                            StackTrace =ex.StackTrace
+                        } };
+                    GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log).Wait();
+                    if (_gatewayIdentificationScript?.Script != null)
+                    {
+                        AddScriptLog se = new AddScriptLog();
+                        se.Logs = new GXScriptLog[]{new GXScriptLog()
+                        {
+                            Script = _gatewayIdentificationScript.Script,
+                            Message = ex.Message
+                        } };
+                        //Reset parent so it doesn't cause problems with JSON.
+                        GXScript original = _gatewayIdentificationScript.Script;
+                        _gatewayIdentificationScript.Script = null;
+                        try
+                        {
+                            GXAgentWorker.client.PostAsJson<AddAgentLogResponse>("/api/ScriptLog/Add", se).Wait();
+                        }
+                        finally
+                        {
+                            _gatewayIdentificationScript.Script = original;
+                        }
+                    }
+                }
+                return;
+            }
+
             GXDLMSSecureClient client =
                 new GXDLMSSecureClient(settings.UseLogicalNameReferencing,
                 0,
@@ -298,17 +414,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             {
                 try
                 {
-                    if (_scriptMethod?.Script?.ByteAssembly != null &&
-                        !string.IsNullOrEmpty(_scriptMethod.Name))
+                    if (_autoConnectionIdentificationScript?.Script?.ByteAssembly != null &&
+                        !string.IsNullOrEmpty(_autoConnectionIdentificationScript.Name))
                     {
                         GXAmiScript tmp = new GXAmiScript(_serviceProvider);
                         tmp.Sender = new GXAgent() { Id = GXAgentWorker.Options.Id };
                         //Run script.
                         GXScriptRunArgs arg = new GXScriptRunArgs()
                         {
-                            ByteAssembly = _scriptMethod.Script.ByteAssembly,
-                            MethodName = _scriptMethod.Name,
-                            Asyncronous = _scriptMethod.Asyncronous,
+                            ByteAssembly = _autoConnectionIdentificationScript.Script.ByteAssembly,
+                            MethodName = _autoConnectionIdentificationScript.Name,
+                            Asyncronous = _autoConnectionIdentificationScript.Asyncronous,
                             AssemblyLoadContext = _loadedScript,
                             Parameters = new object[]
                             {
@@ -344,24 +460,24 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             StackTrace =ex.StackTrace
                         } };
                     GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log).Wait();
-                    if (_scriptMethod?.Script != null)
+                    if (_autoConnectionIdentificationScript?.Script != null)
                     {
                         AddScriptLog se = new AddScriptLog();
                         se.Logs = new GXScriptLog[]{new GXScriptLog()
                         {
-                            Script = _scriptMethod.Script,
+                            Script = _autoConnectionIdentificationScript.Script,
                             Message = ex.Message
                         } };
                         //Reset parent so it doesn't cause problems with JSON.
-                        GXScript original = _scriptMethod.Script;
-                        _scriptMethod.Script = null;
+                        GXScript original = _autoConnectionIdentificationScript.Script;
+                        _autoConnectionIdentificationScript.Script = null;
                         try
                         {
                             GXAgentWorker.client.PostAsJson<AddAgentLogResponse>("/api/ScriptLog/Add", se).Wait();
                         }
                         finally
                         {
-                            _scriptMethod.Script = original;
+                            _autoConnectionIdentificationScript.Script = original;
                         }
                     }
                 }

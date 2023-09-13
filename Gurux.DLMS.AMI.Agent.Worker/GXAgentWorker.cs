@@ -35,6 +35,7 @@ using Gurux.DLMS.AMI.Agent.Shared;
 using Gurux.DLMS.AMI.Agent.Worker.AutoConnect;
 using Gurux.DLMS.AMI.Agent.Worker.Notifier;
 using Gurux.DLMS.AMI.Agent.Worker.Repositories;
+using Gurux.DLMS.AMI.Gateway.Worker.Repositories;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -74,6 +75,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         private readonly AutoResetEvent _newTask;
         private static HubConnection? _hubConnection = null;
         private static ILogger? _logger;
+        private IGXTaskNotification? _taskNotification;
         static AutoResetEvent _newVersion;
         ServiceProvider? _services;
         private CancellationToken cancellationToken = new CancellationToken();
@@ -146,10 +148,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             services.AddTransient<IDeviceRepository, GXDeviceRepository>();
             services.AddTransient<IObjectRepository, GXObjectRepository>();
             services.AddTransient<IValueRepository, GXValueRepository>();
-
+            services.AddTransient<IGatewayRepository, GXGatewayRepository>();
+            services.AddTransient<IGatewayLogRepository, GXGatewayLogRepository>();
+            services.AddSingleton<IGXTaskNotification, GXTaskNotification>();
             _services = services.BuildServiceProvider();
             _logger = _services.GetRequiredService<ILogger<GXAgentWorker>>();
-
+            _taskNotification = _services.GetRequiredService<IGXTaskNotification>();
             _newVersion = newVersion;
             client.BaseAddress = new Uri(Options.Address);
             if (Options.Token != null)
@@ -928,7 +932,25 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _hubConnection.On<IEnumerable<GXTask>>("TaskAdd", (tasks) =>
             {
                 _logger?.LogInformation("New task added.");
-                _newTask.Set();
+                bool newTask = _taskNotification == null;
+                if (_taskNotification != null)
+                {
+                    foreach (var task in tasks)
+                    {
+                        if (task.TargetGateway is Guid id && id != Guid.Empty)
+                        {
+                            _taskNotification.Set(id);
+                        }
+                        else
+                        {
+                            newTask = true;
+                        }
+                    }
+                }
+                if (newTask)
+                {
+                    _newTask.Set();
+                }
             });
             _hubConnection.On<IEnumerable<GXAgent>>("AgentUpdate", async (agents) =>
             {

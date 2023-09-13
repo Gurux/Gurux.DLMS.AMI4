@@ -429,7 +429,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 Client.ParseAAREResponse(reply.Data);
                 reply.Clear();
                 //Get challenge Is HLS authentication is used.
-                if (Client.IsAuthenticationRequired)
+                if (Client.Authentication > Authentication.Low)
                 {
                     foreach (byte[] it in Client.GetApplicationAssociationRequest())
                     {
