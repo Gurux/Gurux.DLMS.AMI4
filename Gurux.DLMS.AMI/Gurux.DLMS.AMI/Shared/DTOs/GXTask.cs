@@ -265,7 +265,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// from the new task and it's not saved to the DB.
         /// </remarks>
         [Ignore]
-        public GXAgent? TargetAgent
+        public Guid? TargetAgent
         {
             get;
             set;
@@ -279,7 +279,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// from the new task and it's not saved to the DB.
         /// </remarks>
         [Ignore]
-        public GXGateway? TargetGateway
+        public Guid? TargetGateway
         {
             get;
             set;
