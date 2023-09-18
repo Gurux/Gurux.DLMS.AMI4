@@ -315,8 +315,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     it.Objects = null;
                 }
+                if (request != null && (request.Select & TargetType.DeviceGroup) != 0)
+                {
+                    //Get device groups.
+                    arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name}, w => w.Removed == null);
+                    arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                    arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.Id);
+                    it.DeviceGroups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToList();
+                }
             }
-
 
             if (response != null)
             {
@@ -526,7 +534,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 foreach (var it in newDevices)
                 {
                     updates[it] = users;
-                    it.DeviceGroups = defaultGroups;
+                    if (it.DeviceGroups == null || !it.DeviceGroups.Any())
+                    {
+                        it.DeviceGroups = defaultGroups;
+                    }
                 }
             }
             foreach (var it in updatedDevices)

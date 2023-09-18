@@ -39,18 +39,8 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System;
-using Org.BouncyCastle.Asn1.X509;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Client.Pages.Config;
-using Gurux.DLMS.AMI.Client.Pages.Workflow;
-using Gurux.DLMS.AMI.Client.Pages.Script;
-using Gurux.DLMS.AMI.Client.Pages.Module;
-using System.Configuration;
-using Gurux.DLMS.AMI.Client.Pages.Block;
-using Gurux.DLMS.AMI.Client.Pages.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -230,6 +220,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 case "keymanagement":
                                     args = GXSelectArgs.Select<GXKeyManagement>(s => s.Name, w => w.Id == Id);
                                     break;
+                                case "gateway":
+                                    args = GXSelectArgs.Select<GXGateway>(s => s.Name, w => w.Id == Id);
+                                    break;
                             }
                         }
                     }
@@ -362,6 +355,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             break;
                         case TargetType.ManufacturerGroup:
                             args = GXSelectArgs.Select<GXManufacturerGroup>(s => s.Name, w => w.Id == Id);
+                            break;
+                        case TargetType.Gateway:
+                            args = GXSelectArgs.Select<GXGateway>(s => s.Name, w => w.Id == Id);
+                            break;
+                        case TargetType.GatewayGroup:
+                            args = GXSelectArgs.Select<GXGatewayGroup>(s => s.Name, w => w.Id == Id);
                             break;
                     }
                 }

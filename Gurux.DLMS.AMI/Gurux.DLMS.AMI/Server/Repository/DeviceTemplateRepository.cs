@@ -586,7 +586,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             foreach (var it in updates)
             {
-                await _eventsNotifier.DeviceTemplateUpdate(it.Value, new GXDeviceTemplate[] { it.Key });
+                await _eventsNotifier.DeviceTemplateUpdate(it.Value,
+                    new GXDeviceTemplate[]
+                    { new GXDeviceTemplate(){Id = it.Key.Id}
+                    });
             }
             return list.ToArray();
         }
