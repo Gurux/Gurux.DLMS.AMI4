@@ -49,7 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Identifier.
         /// </summary>
         [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
+        [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id

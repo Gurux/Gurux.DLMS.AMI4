@@ -30,8 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -62,6 +64,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Tasks = new();
             Errors = new List<GXAttributeError>();
         }
+
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="index">Attribute index.</param>
+        /// <param name="value">Attribute value.</param>
+        public GXAttribute(int index, string? value)
+        {
+            Template = new GXAttributeTemplate()
+            {
+                Index = index,
+            };
+            Value = value;
+            Parameters = new();
+            Values = new();
+            Tasks = new();
+            Errors = new List<GXAttributeError>();
+        }
+
         /// <summary>
         /// Attribute Id.
         /// </summary>
@@ -289,7 +311,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Executed tasks.
         /// </summary>
         [DataMember]
-        [ForeignKey]
+        [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
         public List<GXTask>? Tasks
         {

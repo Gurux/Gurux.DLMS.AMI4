@@ -58,6 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Errors),
             nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
+            nameof(GXUser.Tasks),
             nameof(GXUser.Settings))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id)
             , nameof(GXAgentGroup.Name)
@@ -109,6 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Errors),
             nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
+            nameof(GXUser.Tasks),
             nameof(GXUser.Settings))]
         public GXUser? Filter
         {
@@ -198,9 +200,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.Roles),
                 nameof(GXUser.IpAddresses),
                 nameof(GXUser.BlockSettings),
+                nameof(GXUser.Tasks),
                 nameof(GXUser.Errors),
-                          nameof(GXUser.Favorites),
-  nameof(GXUser.RestStatistics),
+                nameof(GXUser.Favorites),
+                nameof(GXUser.RestStatistics),
                 nameof(GXUser.Settings))]
         public GXUser[] Users
         {
@@ -239,10 +242,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.BlockSettings),
                 nameof(GXUser.Errors),
                 nameof(GXUser.Favorites),
+                nameof(GXUser.Tasks),
                 nameof(GXUser.RestStatistics))]
         [ExcludeSwagger(typeof(GXUserSetting),
                 nameof(GXUserSetting.User))]
-        
+
         public GXUser[] Users
         {
             get;

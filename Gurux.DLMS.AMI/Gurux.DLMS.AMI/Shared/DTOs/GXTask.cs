@@ -35,7 +35,6 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {

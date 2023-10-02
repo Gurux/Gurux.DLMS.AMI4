@@ -69,6 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             RestStatistics = new List<GXRestStatistic>();
             Settings = new List<GXUserSetting>();
             Favorites = new List<GXFavorite>();
+            Tasks = new List<GXTask>(); 
         }
 
         /// <summary>
@@ -447,6 +448,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember, ForeignKey(typeof(GXFavorite))]
         [Filter(FilterType.Contains)]
         public List<GXFavorite>? Favorites
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Executed tasks.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXTask))]
+        [Filter(FilterType.Contains)]
+        public List<GXTask>? Tasks
         {
             get;
             set;

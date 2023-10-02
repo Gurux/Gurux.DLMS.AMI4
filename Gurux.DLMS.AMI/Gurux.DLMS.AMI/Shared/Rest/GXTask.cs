@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -44,7 +45,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Tasks to execute.
         /// </summary>
-        [DataMember]
+        [DataMember]        
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
         public GXTask[] Tasks
         {
             get;
@@ -97,6 +108,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter tasks.
         /// </summary>
+
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
         public GXTask? Filter
         {
             get;
@@ -161,6 +182,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of tasks.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
         public GXTask[] Tasks
         {
             get;
@@ -251,6 +281,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks. Null if there are no operations to execute.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
         public GXTask[]? Tasks
         {
             get;
@@ -269,6 +309,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks.
         /// </summary>
         [DataMember]
+
+        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
         public GXTask[] Tasks
         {
             get;
@@ -295,6 +346,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXTask), nameof(GXTask.Id))]
         public GXTask[] Tasks
         {
             get;

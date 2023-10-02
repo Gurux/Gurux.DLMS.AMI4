@@ -79,7 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// User group ID.
         /// </summary>
-        [DataMember(Name = "ID"), Index(Unique = true)]
+        [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id

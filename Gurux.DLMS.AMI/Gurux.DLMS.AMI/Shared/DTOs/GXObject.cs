@@ -63,6 +63,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXObject(int objectType, string? logicalName)
+        {
+            Template = new GXObjectTemplate()
+            {
+                LogicalName = logicalName,
+                ObjectType = objectType,
+            };
+            Attributes = new();
+            Parameters = new();
+            Tasks = new();
+            Errors = new List<GXObjectError>();
+        }
+
+        /// <summary>
         /// Object Id.
         /// </summary>
         [DataMember]
@@ -137,6 +153,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
+        /// <summary>
+        /// Object is created only when needed.
+        /// </summary>
+        /// <remarks>
+        /// If true, the object is not created for the database.
+        /// It's created when needed for the first time.
+        /// This makes faster to add new devices for the database.
+        /// </remarks>
+        [Ignore]
+        public bool Latebind
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Concurrency stamp.
@@ -254,7 +284,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Executed tasks.
         /// </summary>
         [DataMember]
-        [ForeignKey]
+        [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
         public List<GXTask>? Tasks
         {
