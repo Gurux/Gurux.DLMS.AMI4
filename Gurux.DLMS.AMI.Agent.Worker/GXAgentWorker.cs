@@ -463,7 +463,16 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
             else if (task.TaskType == TaskType.Action)
             {
-                reader.Method(obj, task.Index.GetValueOrDefault(0), GXDLMSTranslator.XmlToValue(task.Data), DataType.None);
+                int index = task.Index.GetValueOrDefault(0);
+                object data = GXDLMSTranslator.XmlToValue(task.Data);
+                if (obj is GXDLMSImageTransfer it && index == 1 && data is GXStructure d)
+                {
+                    reader.ImageUpdate(it, (byte[])d[0], (byte[])d[1]);
+                }
+                else
+                {
+                    reader.Method(obj, index, data, DataType.None);
+                }
             }
             else if (task.TaskType == TaskType.Read)
             {
@@ -578,7 +587,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
         }
-
+       
         internal static async Task<GXDevice?> ReadMeter(GXActionBlock action,
             bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
@@ -734,7 +743,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                         else
                         {
-                            deviceAddress = (int) settings.PhysicalAddress;
+                            deviceAddress = (int)settings.PhysicalAddress;
                         }
                     }
                     TraceLevel consoleTrace = Options.TraceLevel;

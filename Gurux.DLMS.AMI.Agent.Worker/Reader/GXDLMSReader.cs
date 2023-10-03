@@ -461,36 +461,44 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             }
 
             //Step 1: Read image block size.
+            reply.Clear();
             ReadDataBlock(Client.Read(target, 2), reply);
             Client.UpdateValue(target, 2, reply.Value);
 
             // Step 2: Initiate the Image transfer process.
+            reply.Clear();
             ReadDataBlock(target.ImageTransferInitiate(Client, identification, data.Length), reply);
 
             // Step 3: Transfers ImageBlocks.
             int imageBlockCount;
+            reply.Clear();
             ReadDataBlock(target.ImageBlockTransfer(Client, data, out imageBlockCount), reply);
 
             //Step 4: Check the completeness of the Image.
+            reply.Clear();
             ReadDataBlock(Client.Read(target, 3), reply);
             Client.UpdateValue(target, 3, reply.Value);
-
+            DateTime now = DateTime.Now;
             // Step 5: The Image is verified;
-            ReadDataBlock(target.ImageVerify(Client), reply);
-            // Step 6: Before activation, the Image is checked;
-
-            //Get list to images to activate.
-            ReadDataBlock(Client.Read(target, 7), reply);
-            Client.UpdateValue(target, 7, reply.Value);
-            bool bFound = false;
-            foreach (GXDLMSImageActivateInfo it in target.ImageActivateInfo)
+            while (true)
             {
-                if (it.Identification == identification)
+                try
                 {
-                    bFound = true;
+                    reply.Clear();
+                    ReadDataBlock(target.ImageVerify(Client), reply);
                     break;
                 }
-            }
+                catch (GXDLMSException e)
+                {
+                    //The image verification can take max 30 mins.
+                    if (e.ErrorCode != 2 ||
+                        (DateTime.Now - now).TotalMinutes > 30)
+                    {
+                        throw;
+                    }
+                    Thread.Sleep(10000);
+                }
+            };
 
             //Read image transfer status.
             ReadDataBlock(Client.Read(target, 6), reply);
@@ -500,13 +508,27 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 throw new Exception("Image transfer status is " + target.ImageTransferStatus.ToString());
             }
 
-            if (!bFound)
-            {
-                throw new Exception("Image not found.");
-            }
-
             //Step 7: Activate image.
-            ReadDataBlock(target.ImageActivate(Client), reply);
+            while (true)
+            {
+                try
+                {
+                    reply.Clear();
+                    ReadDataBlock(target.ImageActivate(Client), reply);
+                    break;
+                }
+                catch (GXDLMSException e)
+                {
+                    //The image activication can take max 30 mins.
+                    if (e.ErrorCode != 2 ||
+                        (DateTime.Now - now).TotalMinutes > 30)
+                    {
+                        throw;
+                    }
+                    Thread.Sleep(10000);
+                }
+            };
+
         }
         /// <summary>
         /// Read association view.

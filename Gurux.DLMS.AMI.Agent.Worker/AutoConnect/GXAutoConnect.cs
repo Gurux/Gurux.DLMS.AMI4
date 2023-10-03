@@ -40,7 +40,6 @@ using Gurux.DLMS.Objects;
 using Gurux.DLMS.Secure;
 using Gurux.Net;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Diagnostics;
 using System.Runtime.Loader;
 using static Gurux.DLMS.AMI.Agent.Worker.GXAgentWorker;
@@ -418,7 +417,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         !string.IsNullOrEmpty(_autoConnectionIdentificationScript.Name))
                     {
                         GXAmiScript tmp = new GXAmiScript(_serviceProvider);
-                        tmp.Sender = new GXAgent() { Id = GXAgentWorker.Options.Id };
+                        tmp.Sender = new GXAgent() { Id = Options.Id };
+                        if (settings.DefaultDeviceTemplate != null)
+                        {
+                            tmp.DefaultDeviceTemplate = new GXDeviceTemplate()
+                            {
+                                Id = settings.DefaultDeviceTemplate.Value
+                            };
+                        }
                         //Run script.
                         GXScriptRunArgs arg = new GXScriptRunArgs()
                         {
