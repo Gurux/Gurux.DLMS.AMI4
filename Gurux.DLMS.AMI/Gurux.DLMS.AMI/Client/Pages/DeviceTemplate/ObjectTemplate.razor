@@ -73,7 +73,7 @@
                             {
                                 <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
                                     <td>@it.Index</td>
-                                    <td><a href="@GetPath(it)" @onclick="() => OnEdit(it)">@it.Name</a></td>
+                                    <td><LinkButton Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
                                     <td>@GetAccessRights(it)</td>
                                     <td>@GetExpirationTime(it)</td>
                                     @if (_activeAttribute == it)
@@ -253,12 +253,6 @@
             }
         }
         return list;
-    }
-
-    //Get attribute template path.
-    private string GetPath(GXAttributeTemplate target)
-    {
-        return "/objectTemplate";
     }
 
     /// <summary>

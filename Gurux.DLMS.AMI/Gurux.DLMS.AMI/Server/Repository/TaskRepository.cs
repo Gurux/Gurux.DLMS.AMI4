@@ -42,9 +42,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.Config;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Gurux.DLMS.AMI.Client.Pages.Agent;
+using System.Data;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -409,173 +408,254 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             DateTime now = DateTime.Now;
             GXSelectArgs arg;
-            foreach (GXTask it in tasks)
+            GXDevice? dev;
+            GXObject? obj;
+            using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            try
             {
-                bool dynamic = false;
-                if (it.Index == null)
+                foreach (GXTask it in tasks)
                 {
-                    it.Index = 0;
-                }
-                if (it.Order == null)
-                {
-                    it.Order = 0;
-                }
-                if (it.Device == null && it.Object == null && it.Attribute == null)
-                {
-                    throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
-                }
-                if (it.Device != null)
-                {
-                    dynamic = it.Device.Dynamic.GetValueOrDefault(false);
-                    it.TargetDevice = it.Device.Id;
-                    //Get device name from the database. Client can send all kind of names.
-                    arg = GXSelectArgs.Select<GXDevice>(s => s.Name, w => w.Id == it.Device.Id);
-                    it.Target = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg)).Name;
-                }
-                else if (it.Object != null && it.Object.Id != Guid.Empty)
-                {
-                    //Get device ID from the database.
-                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
-                    arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
-                    arg.Where.And<GXObject>(q => q.Id == it.Object.Id);
-                    GXDevice dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg));
-                    it.TargetDevice = dev.Id;
-                    dynamic = dev.Dynamic.GetValueOrDefault(false);
-                    //Get object name from the database. Client can send all kind of names.
-                    arg = GXSelectArgs.Select<GXObjectTemplate>(s => s.Name);
-                    arg.Joins.AddInnerJoin<GXObjectTemplate, GXObject>(j => j.Id, j => j.Template);
-                    arg.Where.And<GXObject>(w => w.Id == it.Object.Id);
-                    it.Target = dev.Name + " " + (await _host.Connection.SingleOrDefaultAsync<string>(arg));
-                }
-                else if (it.Attribute != null)
-                {
-                    arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
-                    arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
-                    arg.Where.And<GXAttribute>(w => w.Removed == null && w.Id == it.Attribute.Id);
-                    it.Attribute.Template = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg);
-                    if (it.Attribute.Template == null)
+                    bool dynamic = false;
+                    if (it.Index == null)
                     {
-                        throw new ArgumentException("Invalid template");
+                        it.Index = 0;
                     }
-                    //Get device ID from the database.
-                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
-                    arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
-                    arg.Joins.AddInnerJoin<GXObject, GXAttribute>(s => s.Id, o => o.Object);
-                    arg.Where.And<GXAttribute>(q => q.Id == it.Attribute.Id);
-                    GXDevice dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(arg));
-                    it.TargetDevice = dev.Id;
-                    dynamic = dev.Dynamic.GetValueOrDefault(false);
-
-                    //Get attribute and object names from the database. Client can send all kind of names.
-                    arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Index, s.Name, s.ObjectTemplate });
-                    arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name });
-                    arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(j => j.ObjectTemplate, j => j.Id);
-                    arg.Joins.AddInnerJoin<GXAttributeTemplate, GXAttribute>(j => j.Id, j => j.Template);
-                    arg.Where.And<GXAttribute>(w => w.Id == it.Attribute.Id);
-                    GXAttributeTemplate att = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(arg);
-                    it.Target = dev.Name + " " + att.ObjectTemplate.Name + " " + att.Name + ":" + att.Index;
-
-                    //Update the new attribute value.
-                    if (it.TaskType == TaskType.Write)
+                    if (it.Order == null)
                     {
-                        if (string.IsNullOrEmpty(it.Attribute.Value) && !string.IsNullOrEmpty(it.Data))
+                        it.Order = 0;
+                    }
+                    if (it.Device == null && it.Object == null && it.Attribute == null)
+                    {
+                        throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
+                    }
+                    if (it.Device != null)
+                    {
+                        dynamic = it.Device.Dynamic.GetValueOrDefault(false);
+                        it.TargetDevice = it.Device.Id;
+                        //Get device name from the database. Client can send all kind of names.
+                        arg = GXSelectArgs.Select<GXDevice>(s => s.Name, w => w.Id == it.Device.Id);
+                        it.Target = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, arg)).Name;
+                    }
+                    else if (it.Object != null && it.Object.Id != Guid.Empty)
+                    {
+                        //Get device ID from the database.
+                        arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
+                        arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
+                        arg.Where.And<GXObject>(q => q.Id == it.Object.Id);
+                        dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, arg));
+                        if (dev == null)
                         {
-                            it.Attribute.Value = it.Data;
-                            it.Attribute.LastWrite = now;
+                            //Target device must set when late binding is used.
+                            if (it.TargetDevice == null)
+                            {
+                                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                            }
+                            GXSelectArgs args = GXQuery.GetDevicesByUser(creator.Id, false, it.TargetDevice.Value);
+                            dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, args));
+                            if (dev == null)
+                            {
+                                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                            }
+                            it.Object = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, it.Object.Id);
+                            it.TargetDevice = dev.Id;
+                            dynamic = dev.Dynamic.GetValueOrDefault(false);
+                            it.Target = dev.Name + " " + it.Object.Template.Name;
                         }
-                        await _host.Connection.UpdateAsync(GXUpdateArgs.Update(it.Attribute, u => u.Value));
+                        else
+                        {
+                            it.TargetDevice = dev.Id;
+                            dynamic = dev.Dynamic.GetValueOrDefault(false);
+                            //Get object name from the database. Client can send all kind of names.
+                            arg = GXSelectArgs.Select<GXObjectTemplate>(s => s.Name);
+                            arg.Joins.AddInnerJoin<GXObjectTemplate, GXObject>(j => j.Id, j => j.Template);
+                            arg.Where.And<GXObject>(w => w.Id == it.Object.Id);
+                            it.Target = dev.Name + " " + (await _host.Connection.SingleOrDefaultAsync<string>(transaction, arg));
+                        }
                     }
-                }
-                if (it.TargetDevice == null)
-                {
-                    throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
-                }
-                //If script is triggered by user.
-                if (user != null)
-                {
-                    it.TriggerUser = new GXUser() { Id = ServerHelpers.GetUserId(user) };
-                }
-                else if (it.TriggerSchedule == null && it.TriggerScript == null)
-                {
-                    throw new ArgumentException(Properties.Resources.UnknownTarget);
-                }
-                if (it.TriggerUser == null)
-                {
-                    if (it.TriggerSchedule != null)
+                    else if (it.Attribute != null)
                     {
-                        it.TriggerUser = it.TriggerSchedule.Creator;
+                        arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                        arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                        arg.Where.And<GXAttribute>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                        it.Attribute.Template = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(transaction, arg);
+                        if (it.Attribute.Template == null)
+                        {
+                            //Target device must set when late binding is used.
+                            if (it.TargetDevice == null)
+                            {
+                                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                            }
+                            //Check that object is not created. This hapens when multiple attributes from the same object are read.
+                            arg = GXSelectArgs.SelectAll<GXObject>(w => w.Removed == null);
+                            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id });
+                            arg.Columns.Add<GXAttribute>();
+                            arg.Columns.Add<GXAttributeTemplate>(s => s.Id);
+                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                            arg.Where.And<GXAttribute>(w => w.Removed == null);
+                            arg.Where.And<GXObjectTemplate>(w => w.Removed == null);
+                            arg.Where.And<GXAttributeTemplate>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                            obj = (await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg));
+                            if (obj != null)
+                            {
+                                it.Attribute = obj.Attributes?.Where(w => w.Template.Id == it.Attribute.Id).SingleOrDefault();
+                            }
+                            else
+                            {
+                                GXSelectArgs args = GXQuery.GetDevicesByUser(creator.Id, false, it.TargetDevice.Value);
+                                dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, args));
+                                if (dev == null)
+                                {
+                                    throw new ArgumentException(Properties.Resources.UnknownTarget);
+                                }
+                                args = GXQuery.GetDevicesByUser(creator.Id, false, it.TargetDevice);
+                                args.Columns.Add<GXDeviceTemplate>(c => c.Id);
+                                args.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                                dev = await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, args);
+                                if (dev?.Template == null)
+                                {
+                                    throw new ArgumentException(Properties.Resources.UnknownTarget);
+                                }
+                                //Get object template from attribute template.
+                                arg = GXSelectArgs.Select<GXObjectTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                                arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+                                arg.Where.And<GXAttributeTemplate>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                                var objTemplate = (await _host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(transaction, arg));
+                                if (objTemplate == null)
+                                {
+                                    throw new ArgumentException(Properties.Resources.UnknownTarget);
+                                }
+                                obj = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, objTemplate.Id);
+                                it.Attribute = obj.Attributes?.Where(w => w.Template.Id == it.Attribute.Id).SingleOrDefault();
+                            }
+                        }
+                        //Get device ID from the database.
+                        arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name, s.Dynamic });
+                        arg.Joins.AddInnerJoin<GXDevice, GXObject>(s => s.Id, o => o.Device);
+                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(s => s.Id, o => o.Object);
+                        arg.Where.And<GXAttribute>(q => q.Id == it.Attribute.Id);
+                        dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, arg));
+                        it.TargetDevice = dev.Id;
+                        dynamic = dev.Dynamic.GetValueOrDefault(false);
+
+                        //Get attribute and object names from the database. Client can send all kind of names.
+                        arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Index, s.Name, s.ObjectTemplate });
+                        arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name });
+                        arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(j => j.ObjectTemplate, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXAttributeTemplate, GXAttribute>(j => j.Id, j => j.Template);
+                        arg.Where.And<GXAttribute>(w => w.Id == it.Attribute.Id);
+                        GXAttributeTemplate att = await _host.Connection.SingleOrDefaultAsync<GXAttributeTemplate>(transaction, arg);
+                        it.Target = dev.Name + " " + att.ObjectTemplate.Name + " " + att.Name + ":" + att.Index;
+
+                        //Update the new attribute value.
+                        if (it.TaskType == TaskType.Write)
+                        {
+                            if (string.IsNullOrEmpty(it.Attribute.Value) && !string.IsNullOrEmpty(it.Data))
+                            {
+                                it.Attribute.Value = it.Data;
+                                it.Attribute.LastWrite = now;
+                            }
+                            await _host.Connection.UpdateAsync(transaction,
+                                GXUpdateArgs.Update(it.Attribute, u => u.Value));
+                        }
                     }
-                    else if (it.TriggerScript != null)
+                    if (it.TargetDevice == null)
                     {
-                        it.TriggerUser = it.TriggerScript.Creator;
+                        throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
                     }
-                    else if (it.TriggerModule != null)
+                    //If script is triggered by user.
+                    if (user != null)
                     {
-                        it.TriggerUser = it.TriggerModule.Creator;
+                        it.TriggerUser = new GXUser() { Id = ServerHelpers.GetUserId(user) };
                     }
-                    if (it.TriggerUser == null)
+                    else if (it.TriggerSchedule == null && it.TriggerScript == null)
                     {
                         throw new ArgumentException(Properties.Resources.UnknownTarget);
                     }
-                }
-                it.Creator = creator;
-                it.CreationTime = now;
-                if (dynamic)
-                {
-                    //Get notified agents.
-                    arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id });
-                    arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(j => j.Id, j => j.AgentId);
-                    arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
-                    arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
-                    arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-                    arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
-                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
-                    arg.Where.And<GXDevice>(w => w.Id == it.TargetDevice);
-                    GXAgent? agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(arg);
-                    if (agent != null)
+                    if (it.TriggerUser == null)
                     {
-                        it.TargetAgent = agent.Id;
+                        if (it.TriggerSchedule != null)
+                        {
+                            it.TriggerUser = it.TriggerSchedule.Creator;
+                        }
+                        else if (it.TriggerScript != null)
+                        {
+                            it.TriggerUser = it.TriggerScript.Creator;
+                        }
+                        else if (it.TriggerModule != null)
+                        {
+                            it.TriggerUser = it.TriggerModule.Creator;
+                        }
+                        if (it.TriggerUser == null)
+                        {
+                            throw new ArgumentException(Properties.Resources.UnknownTarget);
+                        }
                     }
-                    //Get notified agents from gateway devices.
-                    arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Agent });
-                    arg.Columns.Add<GXAgent>(s => s.Id);
-                    arg.Joins.AddInnerJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
-                    arg.Joins.AddInnerJoin<GXGateway, GXGatewayDevice>(j => j.Id, j => j.GatewayId);
-                    arg.Joins.AddInnerJoin<GXGatewayDevice, GXDevice>(j => j.DeviceId, j => j.Id);
-                    arg.Where.And<GXGateway>(w => w.Removed == null);
-                    arg.Where.And<GXAgent>(w => w.Removed == null);
-                    arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.TargetDevice);
-                    var gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(arg);
-                    if (gw != null && gw.Agent != null)
+                    it.Creator = creator;
+                    it.CreationTime = now;
+                    if (dynamic)
                     {
-                        it.TargetAgent = gw.Agent.Id;
-                        it.TargetGateway = gw.Id;
-                    }
-                    else
-                    {
-                        //Get notified agents from gateway device groups.
+                        //Get notified agents.
+                        arg = GXSelectArgs.Select<GXAgent>(s => new { s.Id });
+                        arg.Joins.AddInnerJoin<GXAgent, GXAgentGroupAgent>(j => j.Id, j => j.AgentId);
+                        arg.Joins.AddInnerJoin<GXAgentGroupAgent, GXAgentGroup>(j => j.AgentGroupId, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXAgentGroup, GXAgentGroupDeviceGroup>(j => j.Id, j => j.AgentGroupId);
+                        arg.Joins.AddInnerJoin<GXAgentGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                        arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                        arg.Where.And<GXDevice>(w => w.Id == it.TargetDevice);
+                        GXAgent? agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(transaction, arg);
+                        if (agent != null)
+                        {
+                            it.TargetAgent = agent.Id;
+                        }
+                        //Get notified agents from gateway devices.
                         arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Agent });
                         arg.Columns.Add<GXAgent>(s => s.Id);
                         arg.Joins.AddInnerJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
-                        arg.Joins.AddInnerJoin<GXGateway, GXGatewayDeviceGroup>(j => j.Id, j => j.GatewayId);
-                        arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
-                        arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
-                        arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                        arg.Joins.AddInnerJoin<GXGateway, GXGatewayDevice>(j => j.Id, j => j.GatewayId);
+                        arg.Joins.AddInnerJoin<GXGatewayDevice, GXDevice>(j => j.DeviceId, j => j.Id);
                         arg.Where.And<GXGateway>(w => w.Removed == null);
                         arg.Where.And<GXAgent>(w => w.Removed == null);
-                        arg.Where.And<GXDeviceGroup>(w => w.Removed == null);
                         arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.TargetDevice);
-                        gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(arg);
+                        var gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(transaction, arg);
                         if (gw != null && gw.Agent != null)
                         {
                             it.TargetAgent = gw.Agent.Id;
                             it.TargetGateway = gw.Id;
                         }
+                        else
+                        {
+                            //Get notified agents from gateway device groups.
+                            arg = GXSelectArgs.Select<GXGateway>(s => new { s.Id, s.Agent });
+                            arg.Columns.Add<GXAgent>(s => s.Id);
+                            arg.Joins.AddInnerJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
+                            arg.Joins.AddInnerJoin<GXGateway, GXGatewayDeviceGroup>(j => j.Id, j => j.GatewayId);
+                            arg.Joins.AddInnerJoin<GXGatewayDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                            arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
+                            arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
+                            arg.Where.And<GXGateway>(w => w.Removed == null);
+                            arg.Where.And<GXAgent>(w => w.Removed == null);
+                            arg.Where.And<GXDeviceGroup>(w => w.Removed == null);
+                            arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.TargetDevice);
+                            gw = await _host.Connection.SingleOrDefaultAsync<GXGateway>(transaction, arg);
+                            if (gw != null && gw.Agent != null)
+                            {
+                                it.TargetAgent = gw.Agent.Id;
+                                it.TargetGateway = gw.Id;
+                            }
+                        }
                     }
                 }
+                await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(tasks));
+                _host.Connection.CommitTransaction(transaction);
             }
-
-            await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(tasks));
+            catch (Exception)
+            {
+                _host.Connection.RollbackTransaction(transaction);
+                throw;
+            }
             IEnumerable<Guid> list = tasks.Select(s => s.Id);
             await NotifyUsers(user, tasks, true);
             return list.ToArray();
@@ -797,22 +877,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in tasks)
             {
                 users.AddDistinct(await GetNofifiedUsersAsync(User, it));
-                if (!add)
-                {
-                    //Only basic task information is notified for the security reasons.
-                    GXSelectArgs arg = GXSelectArgs.SelectAll<GXTask>(where => where.Id == it.Id);
-                    GXTask task = (await _host.Connection.SingleOrDefaultAsync<GXTask>(arg));
-                    if (task == null)
-                    {
-                        throw new ArgumentException(Properties.Resources.UnknownTarget);
-                    }
-                    list.Add(task);
-                }
-                else
-                {
-                    list.Add(it);
-                    it.Creator = null;
-                }
+                list.Add(new GXTask() { Id = it.Id });
             }
             if (users.Any())
             {

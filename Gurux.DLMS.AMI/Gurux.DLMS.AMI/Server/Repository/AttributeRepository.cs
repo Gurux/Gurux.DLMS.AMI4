@@ -137,49 +137,93 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListAttributesResponse? response,
             CancellationToken cancellationToken)
         {
+            GXSelectArgs arg;
+            GXAttributeTemplate? attributeTemplate = null;
+            bool allUsers = request != null && request.AllUsers && User.IsInRole(GXRoles.Admin);
             string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg = GXQuery.GetAttributesByUser(userId, null);
+            if (allUsers)
+            {
+                //Admin can see all the devices.
+                arg = GXSelectArgs.SelectAll<GXDevice>();
+            }
+            else
+            {
+                arg = GXQuery.GetDevicesByUser(userId, true, null);
+            }
+            arg.Joins.AddLeftJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
+            arg.Joins.AddLeftJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+            arg.Joins.AddLeftJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+            arg.Joins.AddLeftJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+            arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+            arg.Columns.Clear();
+            arg.Columns.Add<GXDevice>();
+            arg.Columns.Exclude<GXDevice>(e => new { e.Creator, e.CreationTime });
+            arg.Columns.Add<GXObject>();
+            arg.Columns.Add<GXObjectTemplate>();
+            arg.Columns.Add<GXAttribute>();
             arg.Columns.Add<GXAttributeTemplate>();
-            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+            arg.Columns.Add<GXDeviceTemplate>(s => s.Id);
+            arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Objects });
+            arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             if (request != null)
             {
+                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                {
+                }
+                else if ((request.Select & TargetType.Device) != 0)
+                {
+                }
                 if (request.Filter?.Object != null)
                 {
-                    if (request.Filter.Object.Device?.Name is string dn)
+                    var dg = request.Filter.Object?.Device?.DeviceGroups?.FirstOrDefault();
+                    if (dg != null)
+                    {
+                        var ug = dg.UserGroups?.FirstOrDefault();
+                        if (ug != null)
+                        {
+                            var user = ug.Users?.FirstOrDefault();
+                            if (user != null)
+                            {
+                                if (allUsers)
+                                {
+                                    arg.Joins.AddLeftJoin<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId);
+                                }
+                                arg.Joins.AddLeftJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXDeviceGroup, GXUserGroupDeviceGroup>(j => j.Id, j => j.DeviceGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                                user.UserGroups = null;
+                                arg.Where.FilterBy(user);
+                            }
+                        }
+                    }
+                    else if (request.Filter.Object?.Device?.Id is Guid id && id != Guid.Empty)
+                    {
+                        arg.Where.And<GXDevice>(w => w.Id == id);
+                    }
+                    if (request.Filter.Object?.Device?.Name is string dn)
                     {
                         arg.Where.And<GXDevice>(w => w.Name.Contains(dn));
                     }
-                    if (request.Filter.Object.Device?.Template?.Name is string dtn)
+                    if (request.Filter.Object?.Device?.Template?.Name is string tn)
                     {
-                        arg.Where.And<GXDeviceTemplate>(w => w.Name.Contains(dtn));
+                        arg.Where.And<GXDeviceTemplate>(w => w.Name.Contains(tn));
                     }
-                    bool joiAdded = false;
-                    if (request.Filter.Object.Template?.LogicalName is string otln)
-                    {
-                        joiAdded = true;
-                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
-                        arg.Where.And<GXObjectTemplate>(w => w.LogicalName.Contains(otln));
-                    }
-                    if (request.Filter.Object.Template?.Name is string otn)
-                    {
-                        if (!joiAdded)
-                        {
-                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
-                        }
-                        arg.Where.And<GXObjectTemplate>(w => w.Name.Contains(otn));
-                    }
-                    if (request.Filter.Template != null && request.Filter.Template.Index != 0)
-                    {
-                        int index = request.Filter.Template.Index;
-                        arg.Where.And<GXAttributeTemplate>(w => w.Index == index);
-                    }
-                    request.Filter.Object = null;
+                    request.Filter.Object.Device = null;
+                }
+                if (request?.Filter?.Template != null)
+                {
+                    attributeTemplate = request.Filter.Template;
+                    request.Filter.Template = null;
                 }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXAttribute>(w => !request.Exclude.Contains(w.Id));
-                }
+            }
+            //Get devices before template filter or device is not retured if all objects are late binded.
+            GXDevice[] devs = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
+            if (attributeTemplate != null)
+            {
+                arg.Where.FilterBy(attributeTemplate);
             }
             if (request != null && request.Count != 0)
             {
@@ -187,6 +231,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXSelectArgs total = GXSelectArgs.Select<GXAttribute>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
+                if (request?.Exclude != null && request.Exclude.Any())
+                {
+                    total.Where.And<GXObject>(w => !request.Exclude.Contains(w.Id));
+                }
                 if (response != null)
                 {
                     response.Count = _host.Connection.SingleOrDefault<int>(total);
@@ -204,42 +252,150 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Descending = true;
                 arg.OrderBy.Add<GXAttribute>(q => q.Id);
             }
-            GXAttribute[] attributes = (await _host.Connection.SelectAsync<GXAttribute>(arg)).ToArray();
-            if (attributes.Any() && request != null)
+            List<GXAttribute> attributes = (await _host.Connection.SelectAsync<GXAttribute>(arg)).ToList();
+            var deviceTemplateIds = devs.Select(s => s.Template.Id).ToArray();
+
+            arg = GXSelectArgs.SelectAll<GXDeviceTemplate>();
+            arg.Columns.Add<GXObjectTemplate>();
+            arg.Columns.Add<GXAttributeTemplate>();
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+            arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
+            arg.Where.And<GXDeviceTemplate>(w => deviceTemplateIds.Contains(w.Id));
+            if (attributeTemplate != null)
             {
-                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                arg.Where.FilterBy(attributeTemplate);
+            }
+            GXDeviceTemplate[] deviceTemplates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
+            //Remove all attributes that are saved, but not found from the template.
+            //Filter might cause this.
+            foreach(var dev in devs)
+            {
+                if (dev.Objects != null)
                 {
-                    arg.Columns.Add<GXDeviceTemplate>();
-                    arg.Columns.Exclude<GXDeviceTemplate>(e => new { e.Objects });
-                    arg.Columns.Exclude<GXDevice>(e => new { e.Objects });
-                    arg.Columns.Add<GXDevice>();
+                    var ids = deviceTemplates.Where(w => w.Id == dev.Template.Id).Single().Objects?.Select(s => s.Id);
+                    dev.Objects.RemoveAll(w => !ids.Contains(w.Template.Id));
                 }
-                else if ((request.Select & TargetType.Device) != 0)
+            }
+            int count = 0;
+            if (request != null && (int)request.Count != 0)
+            {
+                count = (int)request.Count;
+                if (request?.Exclude != null && request.Exclude.Any())
                 {
-                    foreach (var it in attributes)
+                    count += request.Exclude.Length;
+                }
+            }
+            int attributeCount = 0;
+            bool lateBinded = false;
+            if (deviceTemplates.Any())
+            {
+                foreach (var dev in devs)
+                {
+                    GXDeviceTemplate devTemplate = deviceTemplates.Where(w => w.Id == dev.Template.Id).Single();
+                    attributeCount += devTemplate.Objects.SelectMany(s => s.Attributes).Count();
+                    if (dev.Objects == null || dev.Objects.Count != devTemplate.Objects.Count)
                     {
-                        arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template, s.Device });
-                        arg.Columns.Add<GXObject>(s => new { s.Id, s.Template, s.Device });
-                        arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
-                        arg.Columns.Add<GXDevice>(s => new { s.Id, s.Name });
-                        arg.Columns.Exclude<GXDevice>(e => e.Objects);
-                        arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
-                        arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
-                        arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
-                        arg.Where.And<GXAttribute>(w => w.Id == it.Id);
-                        it.Object = (await _host.Connection.SingleOrDefaultAsync<GXObject>(arg));
+                        //Get late bind objects.
+                        foreach (var obj in devTemplate.Objects)
+                        {
+                            obj.DeviceTemplate = null;
+                            if (count != 0 && count == attributes.Count)
+                            {
+                                if (!attributes.Where(w => w.Template != null && w.Template.Id == obj.Id &&
+                                    w.Object?.Device != null && w.Object.Device.Id == dev.Id).Any())
+                                {
+                                    lateBinded = true;
+                                }
+                                break;
+                            }
+                            if (!attributes.Where(w => w.Template != null && w.Template.Id == obj.Id &&
+                            w.Object?.Device != null && w.Object.Device.Id == dev.Id).Any())
+                            {
+                                lateBinded = true;
+                                foreach (var it in obj.Attributes)
+                                {
+                                    attributes.Add(new GXAttribute(it)
+                                    {
+                                        //Template ID is used as a ID for late bind objects.
+                                        Id = it.Id,
+                                        Object = new GXObject(obj)
+                                        {
+                                            Id = obj.Id,
+                                            Latebind = true,
+                                            Device = new GXDevice() { Id = dev.Id },
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        int removed = dev.Objects.SelectMany(s => s.Attributes).Count();
+                        if (request?.Exclude != null && request.Exclude.Any())
+                        {
+                            attributes.RemoveAll(w => request.Exclude.Contains(w.Id));
+                            removed = dev.Objects.RemoveAll(w => request.Exclude.Contains(w.Id));
+                            attributes.AddRange(dev.Objects.SelectMany(s => s.Attributes).ToList());
+                        }
+                        count -= removed;
                     }
                 }
             }
-            if (response != null)
+            if (lateBinded)
             {
-                response.Attributes = attributes;
-                if (response.Count == 0)
+                if (response != null)
                 {
-                    response.Count = attributes.Length;
+                    response.Count = attributeCount;
+                    if (request?.Exclude != null && request.Exclude.Any())
+                    {
+                        response.Count -= request.Exclude.Count();
+                    }
                 }
             }
-            return attributes;
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                //Remove excluded objects.
+                attributes.RemoveAll(w => request.Exclude.Contains(w.Id));
+            }
+            if (request != null && request.Count != 0 && (int)request.Count < attributes.Count)
+            {
+                //Remove extra objects.
+                attributes = attributes.Skip((int)request.Index).Take((int)request.Count).ToList();
+            }
+            //Only device id is send.
+            foreach (var att in attributes)
+            {
+                if (att.Object != null)
+                {
+                    att.Object = new GXObject()
+                    {
+                        Id = att.Object.Id,
+                        Device = new GXDevice()
+                        {
+                            Id = att.Object.Device.Id,
+                            Name = att.Object.Device.Name
+                        },
+                        Template = new GXObjectTemplate()
+                        {
+                            Id = att.Object.Template.Id,
+                            LogicalName = att.Object.Template.LogicalName,
+                            Name = att.Object.Template.Name
+                        }
+                    };
+                }
+                att.Template.ObjectTemplate = null;
+            }
+            if (response != null)
+            {
+                response.Attributes = attributes.ToArray();
+                if (response.Count == 0 || response.Count < attributes.Count)
+                {
+                    response.Count = attributes.Count;
+                }
+            }
+            return attributes.ToArray();
         }
 
         /// <inheritdoc />

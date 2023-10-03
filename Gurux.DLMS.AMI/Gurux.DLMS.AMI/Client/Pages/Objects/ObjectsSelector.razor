@@ -88,14 +88,14 @@
     string? GetDescription(GXObject target)
     {
         StringBuilder sb = new StringBuilder();
-        if (target?.Device?.Name != null)
+        if (target.Device?.Name != null)
         {
             sb.Append(target.Device.Name);
             sb.Append(' ');
         }
-        sb.Append(target?.Template?.LogicalName);
+        sb.Append(target.Template?.LogicalName);
         sb.Append(' ');
-        sb.Append(target?.Template?.Name);
+        sb.Append(target.Template?.Name);
         return sb.ToString();
     }
 

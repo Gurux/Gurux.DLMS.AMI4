@@ -45,6 +45,9 @@ using System.Diagnostics;
 using System.Data;
 using Gurux.DLMS.AMI.Client.Pages.Schedule;
 using Swashbuckle.AspNetCore.SwaggerGen;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Org.BouncyCastle.Crypto;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -372,19 +375,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXSchedule, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            string userId = ServerHelpers.GetUserId(user);
             List<Guid> list = new List<Guid>();
             List<GXScheduleToAttribute> list2 = new List<GXScheduleToAttribute>();
             Dictionary<GXSchedule, List<string>> updates = new Dictionary<GXSchedule, List<string>>();
             List<GXScheduleGroup>? defaultGroups = null;
             var newGroups = schedulers.Where(w => w.Id == Guid.Empty).ToList();
-            var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();
-
+            var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();            
             //Map schedule groups to schedule.
             Dictionary<GXSchedule, List<GXScheduleGroup>> scheduleGroups = new Dictionary<GXSchedule, List<GXScheduleGroup>>();
             using (IServiceScope scope = _serviceProvider.CreateScope())
             {
                 IScheduleGroupRepository scheduleGroupRepository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                foreach(var it in updatedGroups)
+                foreach (var it in updatedGroups)
                 {
                     scheduleGroups.Add(it, await scheduleGroupRepository.GetJoinedScheduleGroups(user, it.Id));
                 }
@@ -502,7 +505,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Map attributes to schedule.
                     {
                         List<GXAttribute> attributes = await GetAttributesByScheduleId(schedule.Id);
-                        var comparer = new UniqueComparer<GXAttribute, Guid>();
+                        var comparer = new UniqueAttributeComparer();
                         List<GXAttribute> removed = attributes.Except(schedule.Attributes, comparer).ToList();
                         List<GXAttribute> added = schedule.Attributes.Except(attributes, comparer).ToList();
                         if (removed.Any())
@@ -511,14 +514,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         if (added.Any())
                         {
-                            AddAttributesToSchedule(transaction, schedule.Id, added);
+                            await AddAttributesToSchedule(transaction, userId, schedule.Id, added);
                         }
                     }
 
                     //Map objects to schedule.
                     {
                         List<GXObject> objects = await GetObjectsByScheduleId(schedule.Id);
-                        var comparer = new UniqueComparer<GXObject, Guid>();
+                        var comparer = new UniqueObjectComparer();
                         List<GXObject> removed = objects.Except(schedule.Objects, comparer).ToList();
                         List<GXObject> added = schedule.Objects.Except(objects, comparer).ToList();
                         if (removed.Any())
@@ -527,7 +530,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                         if (added.Any())
                         {
-                            AddObjectsToSchedule(transaction, schedule.Id, added);
+                            await AddObjectsToSchedule(transaction, userId, schedule.Id, added);
                         }
                     }
                     //Map devices to schedule.
@@ -595,8 +598,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = DateTime.Now,
                     Schedule = it,
                     Message = it.CreationTime == now ?
-                    Properties.Resources.ScheduleInstalled :
-                    Properties.Resources.ScheduleUpdated
+                Properties.Resources.ScheduleInstalled :
+                Properties.Resources.ScheduleUpdated
                 });
             }
             using (IServiceScope scope = _serviceProvider.CreateScope())
@@ -613,8 +616,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="objects">Objects that are added for the schedule.</param>
-        public void AddObjectsToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXObject> objects)
+        public async Task AddObjectsToSchedule(IDbTransaction transaction, string userId, Guid scheduleId, IEnumerable<GXObject> objects)
         {
+            //Check that object exists.
+            foreach (GXObject it in objects)
+            {
+                GXSelectArgs arg = GXSelectArgs.Select<GXObject>(s => s.Id, w => w.Id == it.Id);
+                var obj = await _host.Connection.SingleOrDefaultAsync<GXObject>(arg);
+                if (obj == null)
+                {
+                    //If late binding.
+                    it.Id = (await ObjectRepository.CreateLateBindObject(_host, transaction, userId, it.Device, it.Id)).Id;
+                }
+            }
+
             DateTime now = DateTime.Now;
             List<GXScheduleToObject> list = new List<GXScheduleToObject>();
             foreach (GXObject it in objects)
@@ -626,7 +641,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = now
                 });
             }
-            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+            await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(list));
         }
 
         /// <summary>
@@ -641,7 +656,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in objects)
             {
                 args.Where.Or<GXScheduleToObject>(w => w.ObjectId == it.Id &&
-                    w.ScheduleId == scheduleId);
+                w.ScheduleId == scheduleId);
             }
             _host.Connection.Delete(transaction, args);
         }
@@ -652,8 +667,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <param name="attributes">Objects that are added for the schedule.</param>
-        public void AddAttributesToSchedule(IDbTransaction transaction, Guid scheduleId, IEnumerable<GXAttribute> attributes)
+        public async Task AddAttributesToSchedule(
+            IDbTransaction transaction,
+            string userId,
+            Guid scheduleId,
+            IEnumerable<GXAttribute> attributes)
         {
+            //Check that attribute exists.
+            foreach (GXAttribute it in attributes)
+            {
+                GXSelectArgs arg = GXSelectArgs.Select<GXAttribute>(s => s.Id, w => w.Id == it.Id);
+                var obj = await _host.Connection.SingleOrDefaultAsync<GXAttribute>(arg);
+                if (obj == null)
+                {
+                    //If late binding.
+                    var list2 = (await ObjectRepository.CreateLateBindObject(_host, transaction, userId, it.Object.Device, it.Object.Id)).Attributes;
+                    it.Id = list2.Where(w => w.Template.Id == it.Id).SingleOrDefault().Id;
+                }
+            }
+
             DateTime now = DateTime.Now;
             List<GXScheduleToAttribute> list = new List<GXScheduleToAttribute>();
             foreach (GXAttribute it in attributes)
@@ -680,7 +712,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in attributes)
             {
                 args.Where.Or<GXScheduleToAttribute>(w => w.AttributeId == it.Id &&
-                    w.ScheduleId == scheduleId);
+                w.ScheduleId == scheduleId);
             }
             _host.Connection.Delete(transaction, args);
         }
@@ -795,7 +827,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (GXDeviceGroup it in groups)
             {
                 args.Where.Or<GXScheduleToDeviceGroup>(w => w.DeviceGroupId == it.Id &&
-                    w.ScheduleId == scheduleId);
+                w.ScheduleId == scheduleId);
             }
             _host.Connection.Delete(transaction, args);
         }
@@ -834,7 +866,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in groups)
             {
                 args.Where.Or<GXScheduleGroupSchedule>(w => w.ScheduleGroupId == it.Id &&
-                    w.ScheduleId == scheduleId);
+                w.ScheduleId == scheduleId);
             }
             _host.Connection.Delete(transaction, args);
         }

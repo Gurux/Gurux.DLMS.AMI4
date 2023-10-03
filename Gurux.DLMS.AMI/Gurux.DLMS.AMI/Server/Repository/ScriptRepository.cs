@@ -277,7 +277,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Columns.Exclude<GXScript>(e => e.ByteAssembly);
             arg.Columns.Exclude<GXScriptGroup>(e => e.Scripts);
             arg.Columns.Exclude<GXScriptMethod>(e => e.Script);
-            arg.Joins.AddInnerJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
+            arg.Joins.AddLeftJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
             arg.Distinct = true;
             GXScript script = await _host.Connection.SingleOrDefaultAsync<GXScript>(arg);
             if (script == null)
@@ -329,15 +329,34 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 throw new ArgumentNullException("Script compile failed. Validate script to get errors.");
             }
             var comparer = new GXScriptMethodComparer();
-            List<GXScriptMethod> addedScriptMethods = methods.Except(script.Methods, comparer).ToList();
-            List<GXScriptMethod> removedScriptMethods = script.Methods.Except(methods, comparer).ToList();
-            if (removedScriptMethods.Any())
+            List<GXScriptMethod> addedScriptMethods;
+            if (script.Methods == null)
+            {
+                addedScriptMethods = methods;
+            }
+            else
+            {
+                addedScriptMethods = methods.Except(script.Methods, comparer).ToList();
+            }
+            List<GXScriptMethod>? removedScriptMethods = null;
+            if (script.Methods != null)
+            {
+                removedScriptMethods = script.Methods.Except(methods, comparer).ToList();
+            }
+            if (script.Methods != null && removedScriptMethods != null && removedScriptMethods.Any())
             {
                 script.Methods.RemoveAll(q => removedScriptMethods.Contains(q));
             }
             if (addedScriptMethods.Any())
             {
-                script.Methods.AddRange(addedScriptMethods);
+                if (script.Methods == null)
+                {
+                    script.Methods = addedScriptMethods;
+                }
+                else
+                {
+                    script.Methods.AddRange(addedScriptMethods);
+                }
             }
         }
 
@@ -543,7 +562,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public byte[]? Compile(ClaimsPrincipal User, string fileName, string script, string? additionalNamespaces, List<GXScriptMethod> methods, out string? errorJson, out int compileTime)
+        public byte[]? Compile(ClaimsPrincipal User,
+            string fileName,
+            string script,
+            string? additionalNamespaces,
+            List<GXScriptMethod>? methods,
+            out string? errorJson,
+            out int compileTime)
         {
             errorJson = null;
             if (string.IsNullOrEmpty(script))
@@ -595,8 +620,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
             byte[]? byteAssembly = GXAmiScript.Generate(ScriptLanguage.CSharp, fileName, sb.ToString(), errors, scriptMethods);
             if (methods != null && scriptMethods.Count != 0)
             {
+                //Add all public methods that are not static.
                 foreach (MethodDeclarationSyntax it in scriptMethods)
                 {
+                    if (!it.Modifiers.Where(w => w.IsKind(SyntaxKind.PublicKeyword)).Any())
+                    {
+                        continue;
+                    }
+                    if (it.Modifiers.Where(w => w.IsKind(SyntaxKind.StaticKeyword)).Any())
+                    {
+                        continue;
+                    }
                     string description = "";
                     var trivia = it.GetLeadingTrivia().SingleOrDefault(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
                     t.IsKind(SyntaxKind.MultiLineCommentTrivia));

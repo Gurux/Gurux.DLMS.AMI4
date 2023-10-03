@@ -5,13 +5,10 @@
 
 <CascadingValue Value="this">
     <div class="form-inline">
-        @if (!string.IsNullOrEmpty(Title))
-        {
-            <label>@Title</label>
-        }
         <Switch OnChange="OnHexChanged"
+                 PreText="@Title"
+            Text="@Properties.Resources.Hex"
                 Disabled="@IsHexDisabled()" Checked="@Hex">
-            @Properties.Resources.Hex
         </Switch>
     </div>
     <InputText class="form-control"

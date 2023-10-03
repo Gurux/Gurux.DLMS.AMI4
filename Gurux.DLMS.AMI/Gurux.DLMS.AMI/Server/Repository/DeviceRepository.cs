@@ -46,7 +46,6 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Client.Pages.Device;
 using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Server.Repository
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IKeyManagementRepository _keyManagementRepository;
         private readonly IAttributeRepository _attributeRepository;
         private readonly GXPerformanceSettings _performanceSettings;
-
+        private readonly IObjectRepository _objectRepository;
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -74,7 +73,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IUserRepository userRepository,
             IKeyManagementRepository keyManagementRepository,
             IAttributeRepository attributeRepository,
-            GXPerformanceSettings performanceSettings)
+            GXPerformanceSettings performanceSettings,
+            IObjectRepository objectRepository)
         {
             _host = host;
             _serviceProvider = serviceProvider;
@@ -84,6 +84,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _keyManagementRepository = keyManagementRepository;
             _attributeRepository = attributeRepository;
             _performanceSettings = performanceSettings;
+            _objectRepository = objectRepository;
         }
 
         /// <inheritdoc />
@@ -194,7 +195,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetDevicesByUser(userId, Guid.Empty);
+                arg = GXQuery.GetDevicesByUser(userId, false, Guid.Empty);
             }
             arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Type, s.Name });
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
@@ -318,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request != null && (request.Select & TargetType.DeviceGroup) != 0)
                 {
                     //Get device groups.
-                    arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name}, w => w.Removed == null);
+                    arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
                     arg.Joins.AddInnerJoin<GXDeviceGroup, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceGroupId);
                     arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
                     arg.Where.And<GXDevice>(w => w.Removed == null && w.Id == it.Id);
@@ -343,7 +344,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
            Guid id)
         {
             string userId = ServerHelpers.GetUserId(User);
-            GXSelectArgs arg = GXQuery.GetDevicesByUser(userId, id);
+            GXSelectArgs arg = GXQuery.GetDevicesByUser(userId, false, id);
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             arg.Columns.Add<GXDeviceTemplate>();
             arg.Columns.Add<GXDeviceGroup>(s => new { s.Id, s.Name });
@@ -507,7 +508,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             DateTime now = DateTime.Now;
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
             List<Guid> updated = new List<Guid>();
             var newDevices = devices.Where(w => w.Id == Guid.Empty).ToList();
             var updatedDevices = devices.Where(w => w.Id != Guid.Empty).ToList();
@@ -516,8 +516,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //Get notified users.
             if (newDevices.Any())
             {
-                var first = newDevices.First();
-                var users = await GetUsersAsync(User, first.Id);
                 if (defaultGroups == null)
                 {
                     //Get default device groups.
@@ -533,7 +531,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 foreach (var it in newDevices)
                 {
-                    updates[it] = users;
                     if (it.DeviceGroups == null || !it.DeviceGroups.Any())
                     {
                         it.DeviceGroups = defaultGroups;
@@ -542,7 +539,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             foreach (var it in updatedDevices)
             {
-                updates[it] = await GetUsersAsync(User, it.Id);
                 //Get mapped device groups.
                 ListDeviceGroups request = new ListDeviceGroups()
                 {
@@ -753,15 +749,50 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 //Update object values e.g. logical device name.
                                 if (device.Objects != null)
                                 {
-                                    foreach (var it2 in device.Objects)
+                                    foreach (var obj2 in device.Objects)
                                     {
-                                        if (obj?.Template?.LogicalName == it2?.Template?.LogicalName &&
-                                            it2?.Attributes != null)
+                                        if (obj?.Template?.LogicalName == obj2?.Template?.LogicalName &&
+                                            obj2?.Attributes != null)
                                         {
-                                            foreach (var att in it2.Attributes)
+                                            foreach (var att in obj2.Attributes)
                                             {
                                                 if (!string.IsNullOrEmpty(att.Value))
                                                 {
+                                                    if (att.Template == null)
+                                                    {
+                                                        throw new ArgumentException("Template is missing.");
+                                                    }
+                                                    if (att.Template.Id == Guid.Empty)
+                                                    {
+                                                        if (lateBinding)
+                                                        {
+                                                            obj2.CreationTime = now;
+                                                            obj2.Device = device;
+                                                            await _host.Connection.InsertAsync(transaction, GXInsertArgs.Insert(obj), cancellationToken);
+                                                        }
+                                                        else
+                                                        {
+                                                            //Get object by logical name.
+                                                            int ot = obj2.Template.ObjectType.Value;
+                                                            string ln = obj2.Template.LogicalName;
+                                                            arg = GXSelectArgs.SelectAll<GXObject>();
+                                                            arg.Columns.Add<GXAttribute>();
+                                                            arg.Columns.Add<GXAttributeTemplate>();
+                                                            arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+                                                            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
+                                                            arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
+                                                            arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
+                                                            arg.Where.And<GXObjectTemplate>(w => w.ObjectType == ot && w.LogicalName == ln);
+                                                            arg.Where.And<GXDevice>(w => w.Id == device.Id);
+                                                            GXObject tmp = await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg);
+                                                            var tmp2 = tmp?.Attributes?.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
+                                                            if (tmp2?.Template != null)
+                                                            {
+                                                                //Template is null if object is added.
+                                                                att.Template = tmp2.Template;
+                                                            }
+                                                        }
+                                                    }
                                                     var tmp3 = obj.Attributes.Where(w => w.Template.Index == att.Template.Index).SingleOrDefault();
                                                     if (tmp3 != null)
                                                     {
@@ -892,6 +923,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 _host.Connection.RollbackTransaction(transaction);
                 throw;
             }
+            Dictionary<GXDevice, List<string>> updates = new Dictionary<GXDevice, List<string>>();
+            if (newDevices.Any())
+            {
+                var first = newDevices.First();
+                var users = await GetUsersAsync(User, first.Id);
+                foreach (var it in newDevices)
+                {
+                    updates[it] = users;
+                }
+            }
+            foreach (var it in updatedDevices)
+            {
+                var users = await GetUsersAsync(User, it.Id);
+                updates[it] = users;
+            }
             foreach (var it in updates)
             {
                 await _eventsNotifier.DeviceUpdate(it.Value, new GXDevice[] { new GXDevice() { Id = it.Key.Id, Name = it.Key.Name } });
@@ -980,12 +1026,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, 
+            GXSelectArgs args = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name },
                 where => where.Id == deviceId && where.Removed == null);
             GXDevice device = await _host.Connection.SingleOrDefaultAsync<GXDevice>(args);
             if (device == null)
             {
-                throw new GXAmiNotFoundException(Properties.Resources.Device + " " + 
+                throw new GXAmiNotFoundException(Properties.Resources.Device + " " +
                     Properties.Resources.Id + " " + deviceId.ToString());
             }
             device.Status = status;
@@ -1028,7 +1074,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Add device log. Idle status is not logged.
                 IDeviceErrorRepository repository = _serviceProvider.GetRequiredService<IDeviceErrorRepository>();
                 await repository.AddAsync(User, new GXDeviceError[] { log });
-            }            
+            }
         }
 
         /// <inheritdoc />

@@ -120,7 +120,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (!admin)
             {
                 string id = ServerHelpers.GetUserId(user);
-                arg = GXQuery.GetDevicesByUser(id);
+                arg = GXQuery.GetDevicesByUser(id, true);
             }
             else
             {

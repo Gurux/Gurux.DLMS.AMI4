@@ -159,13 +159,20 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="userId">UserId</param>
         /// <param name="groupId">Device group id.</param>
         /// <returns>List of device groups that user can access.</returns>
-        public static GXSelectArgs GetDeviceGroupsByUser(string userId, Guid? groupId = null)
+        public static GXSelectArgs GetDeviceGroupsByUser(string userId, bool exists, Guid? groupId = null)
         {
             GXSelectArgs userGroups = GetUserGroupsByUser(userId);
             GXSelectArgs args = GXSelectArgs.Select<GXUserGroupDeviceGroup>(s => s.DeviceGroupId, q => q.Removed == null);
             args.Distinct = true;
             args.Columns.Clear();
-            args.Columns.Add<GXDeviceGroup>();
+            if (exists)
+            {
+                args.Columns.Add<GXDeviceGroup>(c => c.Id);
+            }
+            else
+            {
+                args.Columns.Add<GXDeviceGroup>();
+            }
             args.Joins.AddInnerJoin<GXUserGroupDeviceGroup, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
             args.Where.And<GXUserGroupDeviceGroup>(q => GXSql.Exists<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
             if (groupId != null)
@@ -232,22 +239,31 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// Get devices that user can access.
         /// </summary>
         /// <param name="userId">User Id.</param>
+        /// <param name="exists">Check if device exists.</param>
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of devices that user can access.</returns>
-        public static GXSelectArgs GetDevicesByUser(string userId, Guid? deviceId = null)
+        public static GXSelectArgs GetDevicesByUser(string userId, bool exists, Guid? deviceId = null)
         {
-            GXSelectArgs deviceGroups = GetDeviceGroupsByUser(userId);
+            GXSelectArgs deviceGroups = GetDeviceGroupsByUser(userId, exists);
             GXSelectArgs args = GXSelectArgs.Select<GXDeviceGroupDevice>(s => s.DeviceId, q => q.Removed == null);
             args.Distinct = true;
             args.Columns.Clear();
-            args.Columns.Add<GXDevice>();
+            if (exists)
+            {
+                args.Columns.Add<GXDevice>(c => c.Id);
+            }
+            else
+            {
+                args.Columns.Add<GXDevice>();
+            }
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
-            args.Where.And<GXDeviceGroupDevice>(q => GXSql.Exists<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id, deviceGroups));
             if (deviceId != null && deviceId != Guid.Empty)
             {
                 args.Where.And<GXDevice>(q => q.Id == deviceId);
             }
             args.Where.And<GXDevice>(q => q.Removed == null);
+            args.Where.And<GXDeviceGroupDevice>(q => GXSql.Exists<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id, deviceGroups));
+            //args.Where.And<GXDeviceGroupDevice>(q => GXSql.Exists(deviceGroups));
             return args;
         }
 
@@ -257,13 +273,20 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <param name="userId">User Id.</param>
         /// <param name="deviceIds">Device Id.</param>
         /// <returns>List of devices that user can access.</returns>
-        public static GXSelectArgs GetDevicesByUser(string userId, IEnumerable<Guid>? deviceIds)
+        public static GXSelectArgs GetDevicesByUsers(string userId, bool exists, IEnumerable<Guid>? deviceIds)
         {
-            GXSelectArgs deviceGroups = GetDeviceGroupsByUser(userId);
+            GXSelectArgs deviceGroups = GetDeviceGroupsByUser(userId, true);
             GXSelectArgs args = GXSelectArgs.Select<GXDeviceGroupDevice>(s => s.DeviceId, q => q.Removed == null);
             args.Distinct = true;
             args.Columns.Clear();
-            args.Columns.Add<GXDevice>();
+            if (exists)
+            {
+                args.Columns.Add<GXDevice>(s => s.Id);
+            }
+            else
+            {
+                args.Columns.Add<GXDevice>();
+            }
             args.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDevice>(j => j.DeviceId, j => j.Id);
             args.Where.And<GXDeviceGroupDevice>(q => GXSql.Exists<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id, deviceGroups));
             if (deviceIds != null && deviceIds.Any())
@@ -690,7 +713,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of devices that user can access.</returns>
         public static GXSelectArgs GetDeviceErrorsByUser(string userId, Guid? deviceId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(userId, deviceId);
+            GXSelectArgs args = GetDevicesByUser(userId, true, deviceId);
             //Get only device error columns.
             args.Columns.Clear();
             args.Columns.Add<GXDeviceError>();
@@ -707,7 +730,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of devices that user can access.</returns>
         public static GXSelectArgs GetDeviceTracesByUser(string userId, Guid? deviceId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(userId, deviceId);
+            GXSelectArgs args = GetDevicesByUser(userId, true, deviceId);
             //Get only device trace columns.
             args.Columns.Clear();
             args.Columns.Add<GXDeviceTrace>();
@@ -724,7 +747,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of devices that user can access.</returns>
         public static GXSelectArgs GetDeviceActionsByUser(string userId, Guid? deviceId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(userId, deviceId);
+            GXSelectArgs args = GetDevicesByUser(userId, true, deviceId);
             //Get only device action columns.
             args.Columns.Clear();
             args.Columns.Add<GXDeviceAction>();
@@ -741,10 +764,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of objects that user can access.</returns>
         public static GXSelectArgs GetObjectsByUser(string userId, Guid? objectId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(userId);
+            /*
+            GXSelectArgs devs = GetDevicesByUser(userId, true);
+            GXSelectArgs args = GXSelectArgs.SelectAll<GXObject>();
+            args.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            if (objectId != null)
+            {
+                args.Where.And<GXObject>(q => q.Id == objectId);
+            }
+            args.Where.And<GXObject>(q => q.Removed == null);
+            args.Where.And<GXObject>(q => GXSql.Exists<GXObject, GXDevice>(j => j.Device, j => j.Id, devs));
+            return args;
+            */
+            GXSelectArgs args = GetDevicesByUser(userId, true);
             args.Columns.Clear();
             args.Columns.Add<GXObject>();
-            args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
+            args.Joins.AddLeftJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);
             if (objectId != null)
             {
                 args.Where.And<GXObject>(q => q.Id == objectId);
@@ -804,7 +839,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// <returns>List of attributes that user can access.</returns>
         public static GXSelectArgs GetAttributesByUser(string userId, Guid? attributeId = null)
         {
-            GXSelectArgs args = GetDevicesByUser(userId);
+            GXSelectArgs args = GetDevicesByUser(userId, true);
             args.Columns.Clear();
             args.Columns.Add<GXAttribute>();
             args.Joins.AddInnerJoin<GXDevice, GXObject>(j => j.Id, j => j.Device);

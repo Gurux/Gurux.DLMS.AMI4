@@ -1119,4 +1119,31 @@
   <data name="AutoConnectIdentificationScript" xml:space="preserve">
     <value>Automaattisen yhteyden tunnistusskripti.</value>
   </data>
+  <data name="DefaultDeviceTemplate" xml:space="preserve">
+    <value>Oletus laitemalli</value>
+  </data>
+  <data name="Nothing" xml:space="preserve">
+    <value>Ei mitään</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Tarkista</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Aktivoi</value>
+  </data>
+  <data name="Transfer" xml:space="preserve">
+    <value>Siirrä</value>
+  </data>
+  <data name="FirmwareFile" xml:space="preserve">
+    <value>Laiteohjelmistotiedosto</value>
+  </data>
+  <data name="Identification" xml:space="preserve">
+    <value>Tunnistaminen:</value>
+  </data>
+  <data name="InvalidFirmware" xml:space="preserve">
+    <value>Virheellinen laiteohjelmisto.</value>
+  </data>
+  <data name="InvalidIdentification" xml:space="preserve">
+    <value>Virheellinen identifiointitunnus.</value>
+  </data>
 </root>

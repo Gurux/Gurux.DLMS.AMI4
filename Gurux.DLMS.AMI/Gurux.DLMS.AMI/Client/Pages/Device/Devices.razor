@@ -53,6 +53,11 @@
             @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
+            <input class="form-control" placeholder="Filter by detection time..."
+                   type="datetime-local"
+            @onchange="@((ChangeEventArgs __e) => filter.Detected = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
             @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
@@ -72,7 +77,8 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="Name">@Properties.Resources.Type</Th>
+        <Th Id="Template.Type">@Properties.Resources.Type</Th>
+        <Th Id="Detected" SortMode="SortMode.Descending">@Properties.Resources.Detected</Th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
         <Th Id="Updated">@Properties.Resources.Updated</Th>
         <Th Id="LastRead">@Properties.Resources.LastRead</Th>
@@ -81,6 +87,7 @@
     <ItemContent>
         <Td Link=@("Objects/" + device.Id)>@device.Name</Td>
         <td>@device.Template?.Name</td>
+        <td>@device.Detected</td>
         <td>@device.CreationTime</td>
         <td>@device.Updated</td>
         <td>@device.LastRead</td>
@@ -212,6 +219,25 @@
             {
                 await Updated();
             });
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceStatusChange), (devices) =>
+            {
+                bool updated = false;
+                foreach (var it in devices)
+                {
+                    var dev = table?.Items?.Where(w => w.Id == it.Id).SingleOrDefault();
+                    if (dev != null)
+                    {
+                        dev.Detected = it.Detected;
+                        dev.Status = it.Status;
+                        updated = true;
+                    }
+                }
+                if (updated)
+                {
+                    StateHasChanged();
+                }
+            });
+
             Notifier.Clear();
             Notifier.UpdateButtons();
             if (table != null && Id != null)

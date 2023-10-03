@@ -31,30 +31,24 @@
 //---------------------------------------------------------------------------
 
 using System.Diagnostics.CodeAnalysis;
-using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
     /// <summary>
-    /// UniqueComparer is used to find objects using IUnique.
+    /// UniqueObjectComparer is used to find objects ID and device.
     /// </summary>
-    /// <typeparam name="T">Class type.</typeparam>
-    /// <typeparam name="TYPE">Data type of the IUnique.</typeparam>
-    internal class UniqueComparer<T, TYPE> : IEqualityComparer<T>
+    internal class UniqueAttributeComparer : IEqualityComparer<GXAttribute>
     {
         /// <summary>
-        /// Check are values equal.
+        /// Check are objects equal.
         /// </summary>
         /// <param name="x"></param>
         /// <param name="y"></param>
         /// <returns></returns>
-        public bool Equals(T? x, T? y)
+        public bool Equals(GXAttribute? x, GXAttribute? y)
         {
-            if ((x is IUnique<TYPE> X) && (y is IUnique<TYPE> Y))
-            {
-                return X.Id.Equals(Y.Id);
-            }
-            return false;
+            return x.Id == y.Id && x.Object?.Device == y.Object?.Device;
         }
 
         /// <summary>
@@ -62,13 +56,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public int GetHashCode([DisallowNull] T obj)
+        public int GetHashCode([DisallowNull] GXAttribute obj)
         {
-            if (obj is IUnique<TYPE> o)
-            {
-                return o.Id.GetHashCode();
-            }
-            return base.GetHashCode();
-        }       
+            return HashCode.Combine(obj.Id, obj.Object?.Device);
+        }
     }
 }

@@ -22,18 +22,19 @@
                     <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
                     <br />
                 </div>
+                <fieldset disabled="@(!Settings.Active)">
                 <div class="form-group">
                     <label>@Properties.Resources.Threads</label>
                     <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.Threads"
+                    @bind-Value="Settings.Threads"
                                  disabled="@IsDisabled()" />
                     <ValidationMessage For="@(() => Settings.Threads)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.AliveTime</label>
                     <InputIntegerTimeSpan id="aliveTime" class="form-control"
-                                      TimeSpanUnit="TimeSpanUnit.Minute"
-                                      @bind-Value="Settings.AliveTime" />
+                                          TimeSpanUnit="TimeSpanUnit.Minute"
+                    @bind-Value="Settings.AliveTime" />
                     <ValidationMessage For="@(() => Settings.AliveTime)" />
                 </div>
                 <div class="form-group">
@@ -45,6 +46,7 @@
                         }
                     </select>
                 </div>
+                </fieldset>
             </div>
         </div>
     </EditForm>

@@ -241,7 +241,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(User);
-                arg = GXQuery.GetDeviceGroupsByUser(userId, null);
+                arg = GXQuery.GetDeviceGroupsByUser(userId, false, null);
             }
             if (request != null)
             {
@@ -318,7 +318,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             else
             {
                 string userId = ServerHelpers.GetUserId(user);
-                arg = GXQuery.GetDeviceGroupsByUser(userId, id);
+                arg = GXQuery.GetDeviceGroupsByUser(userId, false, id);
             }
             arg.Columns.Exclude<GXDeviceGroup>(e => e.Devices);
             arg.Distinct = true;

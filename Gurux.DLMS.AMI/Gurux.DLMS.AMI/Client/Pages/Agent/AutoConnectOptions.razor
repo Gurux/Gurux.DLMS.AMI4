@@ -16,7 +16,7 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
-@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject HttpClient Http
 
 @if (Settings != null)
 {
@@ -29,106 +29,120 @@
                     <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
                     <br />
                 </div>
-                @if (!IsSerialPort())
-                {
-                    <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
-                    @ref=networkSettings></NetworkSettings>
-                }
-                else
-                {
-                    <SerialSettings @bind-Settings="@Settings.MediaSettings"
-                    @ref=serialSettings></SerialSettings>
-                }
-                <div class="form-group">
-                    <label style="margin:auto">Interface</label>
-                    <select class="form-select" @bind="@Settings.Interface">
-                        @foreach (var it in InterfaceList)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
-                    @bind-Value="Settings.UseLogicalNameReferencing" />
-                    <br />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.ClientAddress</label>
-                    <InputNumber id="threads" class="form-control"
-                    @bind-Value="Settings.ClientAddress" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.ServerAddress</label>
-                    <InputNumber id="threads" class="form-control"
-                    @bind-Value="Settings.ServerAddress" />
-                </div>
-                <div class="form-group">
-                    <label style="margin:auto">Authentication</label>
-                    <select class="form-select" @bind="@Settings.Authentication">
-                        @foreach (var it in Authentications)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Password</label>
-                    <InputText id="name" class="form-control"
-                    @bind-Value="Settings.Password" />
-                </div>
-                <div class="form-group">
-                    <label style="margin:auto">@Properties.Resources.Security</label>
-                    <select class="form-select" @bind="@Settings.Security">
-                        @foreach (var it in Securities)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.InvocationCounter</label>
-                    <InputText id="name" class="form-control"
-                    @bind-Value="Settings.InvocationCounter" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.TraceLevels</label>
-                    <select class="form-select" @bind="Settings.TraceLevel">
-                        @foreach (var it in TraceLevels)
-                        {
-                            <option value="@it">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.IdentifyWaitTime</label>
-                    <InputIntegerTimeSpan id="identifyWaitTime" class="form-control"
-                    @bind-Value="Settings.IdentifyWaitTime" />
-                    <ValidationMessage For="@(() => Settings.IdentifyWaitTime)" />
-                </div>
-                <div class="form-group">
-                    <InputSwitch Text="@Properties.Resources.PreEstablishedConnection"
-                    @bind-Value="Settings.PreEstablished" />
-                    <br />
-                </div>
-                <div class="form-group row">
-                    <label>@Properties.Resources.ConnectionUpTime</label>
-                    <InputNullableIntegerTimeSpan id="connectionUpTime" class="form-control"
-                    @bind-Value="Settings.ConnectionUpTime" />
-                    <ValidationMessage For="@(() => Settings.ConnectionUpTime)" />
-                </div>
-                <div class="form-group row">
-                    <ScriptMethodSelector Title="@Properties.Resources.AutoConnectIdentificationScript"
-                                          Scripts="@Scripts"
-                                          SelectionChanged="@ConnectionIdentifierSelectionChanged"
-                                          ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
-                </div>
-                <div class="form-group row">
-                    <ScriptMethodSelector Title="@Properties.Resources.GatewayIdentificationScript"
-                                          Scripts="@Scripts"
-                                          SelectionChanged="@GatewayIdentificationSelectionChanged"
-                                          ScriptMethod="@Settings.GatewayScriptMethod"></ScriptMethodSelector>
-                </div>
+                <fieldset disabled="@(!Settings.Active)">
+                    @if (!IsSerialPort())
+                    {
+                        <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
+                        @ref=networkSettings></NetworkSettings>
+                    }
+                    else
+                    {
+                        <SerialSettings @bind-Settings="@Settings.MediaSettings"
+                        @ref=serialSettings></SerialSettings>
+                    }
+                    <div class="form-group">
+                        <label style="margin:auto">Interface</label>
+                        <select class="form-select" @bind="@Settings.Interface">
+                            @foreach (var it in InterfaceList)
+                            {
+                                <option value="@Convert.ToInt32(it)">@it</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <InputSwitch Text="@Properties.Resources.UseLogicalNameReferencing"
+                        @bind-Value="Settings.UseLogicalNameReferencing" />
+                        <br />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.ClientAddress</label>
+                        <InputNumber id="threads" class="form-control"
+                        @bind-Value="Settings.ClientAddress" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.ServerAddress</label>
+                        <InputNumber id="threads" class="form-control"
+                        @bind-Value="Settings.ServerAddress" />
+                    </div>
+                    <div class="form-group">
+                        <label style="margin:auto">Authentication</label>
+                        <select class="form-select" @bind="@Settings.Authentication">
+                            @foreach (var it in Authentications)
+                            {
+                                <option value="@Convert.ToInt32(it)">@it</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.Password</label>
+                        <InputText id="name" class="form-control"
+                        @bind-Value="Settings.Password" />
+                    </div>
+                    <div class="form-group">
+                        <label style="margin:auto">@Properties.Resources.Security</label>
+                        <select class="form-select" @bind="@Settings.Security">
+                            @foreach (var it in Securities)
+                            {
+                                <option value="@Convert.ToInt32(it)">@it</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.InvocationCounter</label>
+                        <InputText id="name" class="form-control"
+                        @bind-Value="Settings.InvocationCounter" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.TraceLevels</label>
+                        <select class="form-select" @bind="Settings.TraceLevel">
+                            @foreach (var it in TraceLevels)
+                            {
+                                <option value="@it">@it</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.IdentifyWaitTime</label>
+                        <InputIntegerTimeSpan id="identifyWaitTime" class="form-control"
+                        @bind-Value="Settings.IdentifyWaitTime" />
+                        <ValidationMessage For="@(() => Settings.IdentifyWaitTime)" />
+                    </div>
+                    <div class="form-group">
+                        <InputSwitch Text="@Properties.Resources.PreEstablishedConnection"
+                        @bind-Value="Settings.PreEstablished" />
+                        <br />
+                    </div>
+                    <div class="form-group row">
+                        <label>@Properties.Resources.ConnectionUpTime</label>
+                        <InputNullableIntegerTimeSpan id="connectionUpTime" class="form-control"
+                        @bind-Value="Settings.ConnectionUpTime" />
+                        <ValidationMessage For="@(() => Settings.ConnectionUpTime)" />
+                    </div>
+                    <div class="form-group row">
+                        <ScriptMethodSelector Title="@Properties.Resources.AutoConnectIdentificationScript"
+                                              Scripts="@Scripts"
+                                              SelectionChanged="@ConnectionIdentifierSelectionChanged"
+                                              ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                    </div>
+                    <div class="form-group row">
+                        <div class="form-group">
+                            <label>@Properties.Resources.DefaultDeviceTemplate</label>
+                            <DropdownSearch Context="item"
+                            @bind-Value="DefaultDeviceTemplate"
+                                            ItemsProvider="@GetItems">
+                                <ItemContent>
+                                    @item.Name
+                                </ItemContent>
+                            </DropdownSearch>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <ScriptMethodSelector Title="@Properties.Resources.GatewayIdentificationScript"
+                                              Scripts="@Scripts"
+                                              SelectionChanged="@GatewayIdentificationSelectionChanged"
+                                              ScriptMethod="@Settings.GatewayScriptMethod"></ScriptMethodSelector>
+                    </div>
+                </fieldset>
             </div>
         </div>
     </EditForm>
@@ -143,6 +157,29 @@
     public ListenerSettings? Settings { get; set; }
 
     private GXValidator? _validator;
+    GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
+    private GXDeviceTemplate DefaultDeviceTemplate
+    {
+        get
+        {
+            return _defaultDeviceTemplate;
+        }
+        set
+        {
+            _defaultDeviceTemplate = value;
+            if (Settings != null)
+            {
+                if (value.Id == Guid.Empty)
+                {
+                    Settings.DefaultDeviceTemplate = null;
+                }
+                else
+                {
+                    Settings.DefaultDeviceTemplate = value.Id;
+                }
+            }
+        }
+    }
 
     InterfaceType[] InterfaceList = new InterfaceType[]
     {
@@ -265,5 +302,64 @@
         {
             Settings.MediaType = typeof(GXNet).FullName;
         }
+        if (Settings != null && Settings?.DefaultDeviceTemplate != null &&
+            Settings?.DefaultDeviceTemplate.Value != Guid.Empty)
+        {
+            _defaultDeviceTemplate = new GXDeviceTemplate()
+                {
+                    Id = Settings.DefaultDeviceTemplate.Value,
+                    Name = Properties.Resources.Nothing
+                };
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        GXDeviceTemplate? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search device templates by name
+            filter = new GXDeviceTemplate() { Name = request.Filter };
+        }
+        ListDeviceTemplates req = new ListDeviceTemplates()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+        var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
+        List<GXDeviceTemplate> list = new();
+        //Add empty device template.
+        list.Add(new GXDeviceTemplate() { Name = Properties.Resources.Nothing });
+        if (ret.Templates != null)
+        {
+            list.AddRange(ret.Templates);
+        }
+        if (Settings?.DefaultDeviceTemplate != null)
+        {
+            foreach (var it in list)
+            {
+                if (it.Id == Settings?.DefaultDeviceTemplate)
+                {
+                    _defaultDeviceTemplate = it;
+                    StateHasChanged();
+                    break;
+                }
+            }
+        }
+        else
+        {
+            _defaultDeviceTemplate = list[0];
+        }
+
+        return new ItemsProviderResult<GXDeviceTemplate>(list, ret.Count);
     }
 }

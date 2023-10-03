@@ -29,8 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Client.Pages.Device;
-using Gurux.DLMS.AMI.Client.Pages.Gateway;
+using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Client.Pages.Objects;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Services;
@@ -42,12 +42,12 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
@@ -1305,7 +1305,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             public Task DeviceStatusChange(IReadOnlyList<string> users, IEnumerable<GXDevice> devices)
             {
                 return _hostedService.DeviceStatusChange(users, devices);
-            }           
+            }
         }
 
         /// <summary>
@@ -1335,6 +1335,305 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Filter by.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="filter">Filter.</param>
+        public static void FilterBy<T>(List<T> target, T? filter)
+        {
+            List<T> list = new List<T>();
+            foreach (var it in target)
+            {
+                if (FilterBy(it, filter))
+                {
+                    list.Add(it);
+                }
+            }
+            target.RemoveAll(w => list.Contains(w));
+        }
+
+        /// <summary>
+        /// Filter by.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="filter">Filter.</param>
+        private static bool FilterBy<T>(T target, T? filter)
+        {
+            if (target != null && filter != null)
+            {
+                Dictionary<PropertyInfo, FilterAttribute> properties = new();
+                foreach (var it in filter.GetType().GetProperties())
+                {
+                    var att = it.GetCustomAttribute<FilterAttribute>();
+                    if (it != null && att != null)
+                    {
+                        properties.Add(it, att);
+                    }
+                }
+                foreach (var it in properties)
+                {
+                    object? actual = it.Key?.GetValue(target);
+                    object? filterValue = it.Key?.GetValue(filter);
+                    if (actual == null && filterValue == null)
+                    {
+                    }
+                    else if (actual != null && filterValue != null)
+                    {
+                        if (actual is DateTime d && filterValue is DateTime d2)
+                        {
+                            if (d2 != DateTime.MinValue && d != d2)
+                            {
+                                return true;
+                            }
+                            continue;
+                        }
+                        else if (actual is DateTimeOffset dto && filterValue is DateTimeOffset dto2)
+                        {
+                            if (dto2 != DateTimeOffset.MinValue && dto != dto2)
+                            {
+                                return true;
+                            }
+                            continue;
+                        }
+                        else if (actual is Guid q && filterValue is Guid q2)
+                        {
+                            if (q2 != Guid.Empty && q != q2)
+                            {
+                                return true;
+                            }
+                            continue;
+                        }
+                    }
+                    if (actual != null)
+                    {
+                        if (!(actual is string))
+                        {
+                            if (typeof(System.Collections.IEnumerable).IsAssignableFrom(actual.GetType()))
+                            {
+                                foreach (var e1 in (System.Collections.IEnumerable)actual)
+                                {
+                                    if (FilterBy(e1, filterValue))
+                                    {
+                                        return true;
+                                    }
+                                }
+                                continue;
+                            }
+                            else if (actual.GetType().IsClass)
+                            {
+                                if (FilterBy(actual, filterValue))
+                                {
+                                    return true;
+                                }
+                                continue;
+                            }
+                        }
+                    }
+                    if (filterValue != null && Convert.ToString(filterValue) != Convert.ToString(actual))
+                    {
+                        if (actual != null)
+                        {
+                            if (actual.GetType().IsEnum)
+                            {
+                                actual = Convert.ToInt64(actual);
+                            }
+                            if (actual is bool b)
+                            {
+                                int val = b ? 1 : 0;
+                                if (!val.Equals(filterValue))
+                                {
+                                    return true;
+                                }
+                            }
+                            else if (actual is Guid)
+                            {
+                                if ((Guid)filterValue != Guid.Empty && !actual.Equals(filterValue))
+                                {
+                                    return true;
+                                }
+                            }
+                            else
+                            {
+                                switch (it.Value.FilterType)
+                                {
+                                    case FilterType.Exact:
+                                        if (filterValue != null && !actual.Equals(filterValue))
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.Equals:
+                                        if (filterValue != null && !actual.Equals(filterValue))
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.Greater:
+                                        //TODO: And<T>(q => GXSql.Greater(it.Value.Target, actual));
+                                        break;
+                                    case FilterType.Less:
+                                        //TODO: And<T>(q => GXSql.Less(it.Value.Target, actual));
+                                        break;
+                                    case FilterType.GreaterOrEqual:
+                                        //TODO: And<T>(q => GXSql.GreaterOrEqual(it.Value.Target, actual));
+                                        break;
+                                    case FilterType.LessOrEqual:
+                                        //TODO: And<T>(q => GXSql.LessOrEqual(it.Value.Target, actual));
+                                        break;
+                                    case FilterType.StartsWith:
+                                        if (filterValue != null && !Convert.ToString(actual).ToLower().StartsWith(Convert.ToString(filterValue).ToLower()))
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.EndsWith:
+                                        if (filterValue != null && !Convert.ToString(actual).ToLower().EndsWith(Convert.ToString(filterValue).ToLower()))
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.Contains:
+                                        if (filterValue != null && !Convert.ToString(actual).ToLower().Contains(Convert.ToString(filterValue).ToLower()))
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.Null:
+                                        if (filterValue != null && actual != null)
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    case FilterType.NotNull:
+                                        if (filterValue != null && actual == null)
+                                        {
+                                            return true;
+                                        }
+                                        break;
+                                    default:
+                                        throw new ArgumentOutOfRangeException(nameof(it.Value.FilterType));
+                                }
+                            }
+                        }
+                    }
+                    else if (it.Value.FilterType == FilterType.Null)
+                    {
+                        if (filterValue != null && actual != null)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        private static void OrderByInternal<T>(List<T> list, Type type, string[] orderBy, int index, bool descending)
+        {
+            PropertyInfo? prop = type.GetProperty(orderBy[index]);
+            if (prop != null)
+            {
+                if (orderBy.Length == 1 + index)
+                {
+                    if (descending)
+                    {
+                        list = list.OrderByDescending(o => prop.GetValue(o, null)).ToList();
+                    }
+                    else
+                    {
+                        if (index == 0)
+                        {
+                            list = list.OrderBy(o => prop.GetValue(o, null)).ToList();
+                        }
+                        else
+                        {
+                            list = list.OrderBy(o => prop.GetValue(o, null)).ToList();
+                        }
+                    }
+                }
+                else
+                {
+                    OrderByInternal(list, prop.PropertyType, orderBy, 1 + index, descending);
+                }
+            }
+        }
+
+        /// <summary>
+        /// GXComparer is used to sort classes using class properties.
+        /// </summary>
+        class GXComparer : IComparer<object>
+        {
+            private readonly bool _descending;
+            private List<PropertyInfo>? _props = new List<PropertyInfo>();
+            Dictionary<string, Type>? _enumTypes;
+
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            /// <param name="enumTypes">Property enum types.</param>
+            /// <param name="descending">Descending</param>
+            /// <param name="orderBy">Dot separated order by name.</param>
+            public GXComparer(Dictionary<string, Type>? enumTypes, bool descending, string orderBy)
+            {
+                _enumTypes = enumTypes;
+                _descending = descending;
+                Type type = typeof(GXObject);
+                string[] list = orderBy.Split('.');
+                foreach (var it in list)
+                {
+                    PropertyInfo? pi = type.GetProperty(it);
+                    type = pi.PropertyType;
+                    _props.Add(pi);
+                }
+            }
+
+            /// <inheritdoc/>
+            public int Compare(object? obj1, object? obj2)
+            {
+                string? propName = null;
+                object? value1 = obj1, value2 = obj2;
+                Comparer comparer = new Comparer(Thread.CurrentThread.CurrentCulture);
+                if (_props != null)
+                {
+                    foreach (var it in _props)
+                    {
+                        value1 = it.GetValue(value1, null);
+                        value2 = it.GetValue(value2, null);
+                        propName = it.Name;
+                    }
+                }
+                if (value1 != null && value2 != null && _enumTypes != null &&
+                    propName != null && _enumTypes.TryGetValue(propName, out Type? type))
+                {
+                    value1 = Enum.GetName(type, value1);
+                    value2 = Enum.GetName(type, value2);
+                }
+                if (value1 == null || value2 == null)
+                {
+
+                }
+                if (_descending)
+                {
+                    return comparer.Compare(value2, value1);
+                }
+                return comparer.Compare(value1, value2);
+            }
+        }
+
+        /// <summary>
+        /// Order by.
+        /// </summary>
+        /// <param name="objects">Ordered objects</param>
+        /// <param name="enumTypes">Property enum types.</param>
+        /// <param name="orderBy">Order by.</param>
+        /// <param name="descending">Descending.</param>
+        public static List<T> OrderBy<T>(List<T> objects, string orderBy, bool descending = false, Dictionary<string, Type>? enumTypes = null)
+        {
+            var comparer = new GXComparer(enumTypes, descending, orderBy);
+            return objects.OrderBy(o => o, comparer).ToList();
         }
     }
 }

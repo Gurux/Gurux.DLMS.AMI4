@@ -110,7 +110,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Dictionary<GXModule, List<string>> updates = new();
             foreach (string it in modules)
             {
-                GXModule module = _host.Connection.SelectById<GXModule>(it);
+                GXSelectArgs arg = GXSelectArgs.Select<GXModule>(s => s.Id, w => w.Id == it);
+                GXModule? module = await _host.Connection.SingleOrDefaultAsync<GXModule>(arg);
                 if (module == null)
                 {
                     throw new ArgumentException(string.Format("Module {0} don't exists.", it));

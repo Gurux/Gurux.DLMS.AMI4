@@ -1,0 +1,192 @@
+﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
+@using Gurux.DLMS.AMI.Shared.DIs;
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Text;
+@using System.Xml;
+@inject IGXNotifier Notifier
+<Dialog OnOk="OnSave" OnCancel="OnCancel" OkButtonTitle="@Properties.Resources.Transfer">
+    <EditForm Model="@this">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputHexAscii @bind-Value="@Identification"
+                                   Title="@Properties.Resources.Identification">
+                    </InputHexAscii>
+                </div>
+                <div class="form-group">
+                    <label id="Identifier">@Properties.Resources.FirmwareFile</label>
+                    <p><InputFile OnChange="@LoadFile" /></p>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</Dialog>
+@code {
+    private string? fileName = null;
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the profile content.
+    ///</summary>
+    ///<param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Identification == null || !Identification.Any())
+        {
+            sender.AddError(() => Identification, Properties.Resources.InvalidIdentification);
+        }
+        if (Image == null || !Image.Any())
+        {
+            sender.AddError(() => Image, Properties.Resources.InvalidFirmware);
+        }
+    }
+
+    [Parameter]
+    public ImageTransferView? Parent { get; set; }
+
+    /// <summary>
+    /// Image Identification.
+    /// </summary>
+    private byte[]? Identification
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Image.
+    /// </summary>
+    private byte[]? Image
+    {
+        get;
+        set;
+    }
+
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        fileName = e.File.Name;
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Identification == null)
+            {
+                Identification = ASCIIEncoding.ASCII.GetBytes(Path.GetFileNameWithoutExtension(fileName));
+            }
+            using (var ms = new MemoryStream())
+            {
+                if (string.Compare(Path.GetExtension(fileName), ".xml", true) == 0)
+                {
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(ms);
+                    Identification = GetIdentification(doc.ChildNodes);
+                    byte[]? image = null;
+                    GetImage(doc.ChildNodes, ref image);
+                    Image = image;
+                }
+                else
+                {
+                    await e.File.OpenReadStream(8000000).CopyToAsync(ms);
+                    Image = ms.ToArray();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Try to get identification from xml file.
+    /// </summary>
+    /// <param name="nodes">XML nodes.</param>
+    /// <returns>Found dentification.</returns>
+    public static byte[]? GetIdentification(XmlNodeList nodes)
+    {
+        foreach (XmlNode it in nodes)
+        {
+            if (it.NodeType == XmlNodeType.Element && it.ChildNodes.Count == 1 && it.ChildNodes[0].NodeType == XmlNodeType.Text &&
+                it.Name.Contains("Identification"))
+            {
+                return GXDLMSTranslator.HexToBytes(it.InnerText);
+            }
+            else
+            {
+                if (it.ChildNodes.Count != 0 && it.FirstChild.NodeType != XmlNodeType.Text)
+                {
+                    byte[]? ret = GetIdentification(it.ChildNodes);
+                    if (ret != null)
+                    {
+                        return ret;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Try to get image from xml file.
+    /// </summary>
+    /// <param name="nodes">XML nodes.</param>
+    /// <returns>Found dentification.</returns>
+    public static void GetImage(XmlNodeList nodes, ref byte[]? image)
+    {
+        foreach (XmlNode it in nodes)
+        {
+            if (it.NodeType == XmlNodeType.Element && it.ChildNodes.Count == 1 && it.ChildNodes[0].NodeType == XmlNodeType.Text)
+            {
+                byte[] tmp = GXDLMSTranslator.HexToBytes(it.InnerText);
+                if (image == null || tmp.Length > image.Length)
+                {
+                    image = tmp;
+                }
+            }
+            else
+            {
+                if (it.ChildNodes.Count != 0 && it.FirstChild.NodeType != XmlNodeType.Text)
+                {
+                    GetImage(it.ChildNodes, ref image);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Save profile group.
+    ///</summary>
+    public void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Parent?.Update(Identification, Image);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        Parent?.Update(null, null);
+    }
+}

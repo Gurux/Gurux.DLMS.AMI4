@@ -1119,4 +1119,31 @@
   <data name="AutoConnectIdentificationScript" xml:space="preserve">
     <value>Identification script for the auto connect.</value>
   </data>
+  <data name="DefaultDeviceTemplate" xml:space="preserve">
+    <value>Default device template</value>
+  </data>
+  <data name="Nothing" xml:space="preserve">
+    <value>Nothing</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="Transfer" xml:space="preserve">
+    <value>Transfer</value>
+  </data>
+  <data name="FirmwareFile" xml:space="preserve">
+    <value>Firmware file</value>
+  </data>
+  <data name="Identification" xml:space="preserve">
+    <value>Identification:</value>
+  </data>
+  <data name="InvalidIdentification" xml:space="preserve">
+    <value>Invalid identification.</value>
+  </data>
+  <data name="InvalidFirmware" xml:space="preserve">
+    <value>Invalid firmware.</value>
+  </data>
 </root>

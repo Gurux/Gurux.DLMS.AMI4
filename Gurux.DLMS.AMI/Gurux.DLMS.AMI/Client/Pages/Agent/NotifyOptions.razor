@@ -15,7 +15,7 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Diagnostics
-
+@inject HttpClient Http
 @if (Settings != null)
 {
     <EditForm Model="@Settings">
@@ -25,18 +25,19 @@
             <div style="width:100%">
                 <div class="form-group">
                     <InputSwitch Text="@Properties.Resources.Active"
-                             @bind-Value="Settings.Active" />
+                    @bind-Value="Settings.Active" />
                     <br />
                 </div>
+                <fieldset disabled="@(!Settings.Active)">
                 @if (!IsSerialPort())
                 {
                     <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
-                             @ref=networkSettings></NetworkSettings>
+                    @ref=networkSettings></NetworkSettings>
                 }
                 else
                 {
                     <SerialSettings @bind-Settings="@Settings.MediaSettings"
-                            @ref=serialSettings></SerialSettings>
+                    @ref=serialSettings></SerialSettings>
                 }
                 <div class="form-group">
                     <label style="margin:auto">Interface</label>
@@ -51,20 +52,31 @@
                     <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
                     <label>@Properties.Resources.UseLogicalNameReferencing</label>
                     <br />
-                </div>               
+                </div>
                 <div class="form-group">
                     <label>@Properties.Resources.ExpirationTime</label>
                     <InputNumber id="threads" class="form-control"
-                             @bind-Value="Settings.ExpirationTime" />
+                    @bind-Value="Settings.ExpirationTime" />
                     <ValidationMessage For="@(() => Settings.ExpirationTime)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Script</label>
                     <ScriptMethodSelector Scripts="@Scripts"
-                                      SelectionChanged="@SelectionChanged"
-                                      ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                                          SelectionChanged="@SelectionChanged"
+                                          ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
                 </div>
-                <div class="form-group">
+                <div class="form-group row">
+                    <div class="form-group">
+                        <label>@Properties.Resources.DefaultDeviceTemplate</label>
+                        <DropdownSearch Context="item"
+                        @bind-Value="DefaultDeviceTemplate"
+                                        ItemsProvider="@GetItems">
+                            <ItemContent>
+                                @item.Name
+                            </ItemContent>
+                        </DropdownSearch>
+                    </div>
+                </div> <div class="form-group">
                     <label>@Properties.Resources.TraceLevels</label>
                     <select class="form-select" @bind="Settings.TraceLevel">
                         @foreach (var it in TraceLevels)
@@ -73,6 +85,7 @@
                         }
                     </select>
                 </div>
+                </fieldset>
             </div>
         </div>
     </EditForm>
@@ -120,6 +133,30 @@
     private Gurux.Net.GXNet _net = new Gurux.Net.GXNet();
 
     private string? _serialPort;
+
+    GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
+    private GXDeviceTemplate DefaultDeviceTemplate
+    {
+        get
+        {
+            return _defaultDeviceTemplate;
+        }
+        set
+        {
+            _defaultDeviceTemplate = value;
+            if (Settings != null)
+            {
+                if (value.Id == Guid.Empty)
+                {
+                    Settings.DefaultDeviceTemplate = null;
+                }
+                else
+                {
+                    Settings.DefaultDeviceTemplate = value.Id;
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// The serial port of the agent.
@@ -199,5 +236,64 @@
         {
             Settings.MediaType = typeof(GXNet).FullName;
         }
+        if (Settings != null && Settings?.DefaultDeviceTemplate != null &&
+           Settings?.DefaultDeviceTemplate.Value != Guid.Empty)
+        {
+            _defaultDeviceTemplate = new GXDeviceTemplate()
+                {
+                    Id = Settings.DefaultDeviceTemplate.Value,
+                    Name = Properties.Resources.Nothing
+                };
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        GXDeviceTemplate? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search device templates by name
+            filter = new GXDeviceTemplate() { Name = request.Filter };
+        }
+        ListDeviceTemplates req = new ListDeviceTemplates()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+        var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
+        List<GXDeviceTemplate> list = new();
+        //Add empty device template.
+        list.Add(new GXDeviceTemplate() { Name = Properties.Resources.Nothing });
+        if (ret.Templates != null)
+        {
+            list.AddRange(ret.Templates);
+        }
+        if (Settings?.DefaultDeviceTemplate != null)
+        {
+            foreach (var it in list)
+            {
+                if (it.Id == Settings?.DefaultDeviceTemplate)
+                {
+                    _defaultDeviceTemplate = it;
+                    StateHasChanged();
+                    break;
+                }
+            }
+        }
+        else
+        {
+            _defaultDeviceTemplate = list[0];
+        }
+
+        return new ItemsProviderResult<GXDeviceTemplate>(list, ret.Count);
     }
 }

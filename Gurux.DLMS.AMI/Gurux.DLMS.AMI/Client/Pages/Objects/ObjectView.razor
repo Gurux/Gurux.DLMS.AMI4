@@ -42,6 +42,9 @@
                     case ObjectType.DisconnectControl:
                         <DisconnectControlView Target="Active"></DisconnectControlView>
                         break;
+                    case ObjectType.ImageTransfer:
+                        <ImageTransferView Target="Active"></ImageTransferView>
+                        break;
                     default:
                         <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
                         @if (Active.Attributes != null)
@@ -63,6 +66,20 @@
                 {
                     <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(Active.LastAction)"></AttributeTile>
                 }
+                @if (Active.CreationTime != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <input type="datetime" readonly="readonly" id="creationTime" class="form-control" value="@Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Remove</label>
+                        <input type="datetime" readonly="readonly" id="remove" class="form-control" value="@Active.Removed" />
+                    </div>
+                }
             </div>
         </div>
         @ChildContent
@@ -82,6 +99,12 @@
     /// </summary>
     [Parameter]
     public string? Action { get; set; }
+
+    /// <summary>
+    /// Current device.
+    /// </summary>
+    [Parameter]
+    public GXDevice? Device { get; set; }
 
     private CrudAction action;
     /// <summary>
@@ -311,6 +334,9 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                    //Update device for late binding.
+                    _active.Device = Device;
+                    StateHasChanged();
                 }
             }
             if (Active == null)
@@ -683,6 +709,13 @@
     {
         Notifier?.ProgressStart();
         Notifier?.ClearStatus();
+        foreach (GXTask task in tasks)
+        {
+            if (Active != null && Active.Latebind)
+            {
+                task.TargetDevice = Device?.Id;
+            }
+        }
         try
         {
             AddTask req = new AddTask();

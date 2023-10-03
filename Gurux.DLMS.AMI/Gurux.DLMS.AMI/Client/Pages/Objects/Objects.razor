@@ -50,7 +50,7 @@
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
 {
     <CascadingValue Value="this">
-        <ObjectView Action="@Action" Id="@Id"></ObjectView>
+        <ObjectView Device="@Device" Action="@Action" Id="@Id"></ObjectView>
     </CascadingValue>
 }
 else
@@ -88,13 +88,14 @@ else
             <ContextMenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear"></ContextMenuItem>
         </MenuContent>
         <HeaderContent>
-            <Th Id="Name">@Properties.Resources.Name</Th>
-            <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
-            <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
+            <Th Id="Template.Name">@Properties.Resources.Name</Th>
+            <Th Id="Template.LogicalName">@Properties.Resources.LogicalName</Th>
+            <Th Id="Template.ObjectType">@Properties.Resources.ObjectType</Th>
             <Th Id="LastError">@Properties.Resources.LastError</Th>
             <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
             <Th Id="LastRead">@Properties.Resources.LastRead</Th>
             <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
+            <Th Id="CreationTime">@Properties.Resources.CreationTime</Th>
         </HeaderContent>
         <ItemContent>
             <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
@@ -104,6 +105,7 @@ else
             <td>@item.LastErrorMessage</td>
             <td>@item.LastRead</td>
             <td>@item.LastWrite</td>
+            <td>@item.CreationTime</td>
         </ItemContent>
     </GXTable>
     <br />
@@ -471,7 +473,15 @@ else
                     Select = TargetType.AttributeTemplate
                 };
             var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXObject>(ret.Objects, ret.Count);
+            //Update device for late binding.
+            if (ret != null)
+            {
+                foreach (var it in ret.Objects)
+                {
+                    it.Device = filter.Device;
+                }
+                return new ItemsProviderResult<GXObject>(ret.Objects, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {
@@ -497,16 +507,27 @@ else
         try
         {
             Notifier?.ClearStatus();
+            Notifier?.ProgressStart();
             if (Active?.Template == null)
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             GXTask task = new GXTask();
             task.Object = new() { Id = Active.Id };
+            //Add target device for late binding.
+            if (Active.Latebind)
+            {
+                task.TargetDevice = Device?.Id;
+            }
             task.TaskType = TaskType.Read;
             AddTask req = new AddTask();
             req.Tasks = new GXTask[] { task };
             await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            //Read objects agein when late binding is used because object Id is set.
+            if (Active.Latebind)
+            {
+                await Updated();
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -516,7 +537,10 @@ else
         {
             Notifier?.ProcessError(ex);
         }
-
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 
     /// <summary>
@@ -527,6 +551,7 @@ else
         try
         {
             Notifier?.ClearStatus();
+            Notifier?.ProgressStart();
             if (table == null || !table.SingleOrDefault().Any())
             {
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
@@ -538,6 +563,7 @@ else
             {
                 batch = Guid.NewGuid();
             }
+            bool lateBinding = false;
             List<GXTask> tasks = new();
             foreach (var it in selectedItems)
             {
@@ -547,12 +573,24 @@ else
                         TaskType = TaskType.Read,
                         Batch = batch,
                     };
+                //Add target device when late binding is used.
+                if (it.Latebind)
+                {
+                    lateBinding = true;
+                    task.TargetDevice = Device?.Id;
+                }
                 tasks.Add(task);
                 task.Order = tasks.Count;
             }
             AddTask req = new AddTask();
             req.Tasks = tasks.ToArray();
             await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            //Read objects agein when late binding is used because object Id is set.
+            if (lateBinding)
+            {
+                await Updated();
+            }
+            Notifier?.ShowInformation("Read tasks added.", true);
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -562,7 +600,10 @@ else
         {
             Notifier?.ProcessError(ex);
         }
-
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
     }
 
     /// <summary>

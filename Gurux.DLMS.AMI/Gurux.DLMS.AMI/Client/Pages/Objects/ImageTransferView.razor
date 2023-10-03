@@ -1,0 +1,116 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs;
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@inject IGXNotifier Notifier
+
+@if (Edit)
+{
+    <ImageSelector Parent="this"></ImageSelector>
+}
+
+@if (Target?.Attributes != null && Target.Template != null && Target.Attributes.Any())
+{
+    <CascadingValue Value="this">
+        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
+        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="3" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
+        @ChildContent
+    </CascadingValue>
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
+
+    internal bool Edit;
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+
+    /// <summary>
+    /// Image Identification.
+    /// </summary>
+    private byte[]? Identification
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Image.
+    /// </summary>
+    private byte[]? Image
+    {
+        get;
+        set;
+    }
+
+    internal void Update(byte[]? identification, byte[]? image, bool renderOnSuccess = true)
+    {
+        Edit = false;
+        if (identification != null && image != null)
+        {
+            GXStructure structure = new GXStructure();
+            structure.Add(identification);
+            structure.Add(image);
+            Parent?.OnAction(1, structure);
+        }
+        if (renderOnSuccess)
+        {
+            StateHasChanged();
+        }
+    }
+
+    void Transfer()
+    {
+        Edit = true;
+        StateHasChanged();
+    }
+
+    void Verify()
+    {
+        Parent?.OnAction(3, (sbyte)0);
+    }
+
+    void Activate()
+    {
+        Parent?.OnAction(4, (sbyte)0);
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Parent == null)
+            {
+                throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+            }
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Transfer,
+                "",
+                Transfer,
+                !Parent.CanInvokeAction(2)));
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Verify,
+                "",
+                Verify,
+                !Parent.CanInvokeAction(3)));
+            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Activate,
+                "",
+                Activate,
+                !Parent.CanInvokeAction(4)));
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

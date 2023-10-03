@@ -77,10 +77,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize]
         public async Task<ActionResult<UpdateFavoriteResponse>> Post(UpdateFavorite request)
         {
-            await _favoriteRepository.UpdateAsync(User, request.Favorites);
             return new UpdateFavoriteResponse()
             {
-                Ids = request.Favorites.Select(s => s.Id).ToArray()
+                Ids = await _favoriteRepository.UpdateAsync(User, request.Favorites)
             };
         }
 

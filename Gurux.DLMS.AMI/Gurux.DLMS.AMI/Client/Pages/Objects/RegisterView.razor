@@ -5,7 +5,7 @@
 @using Gurux.DLMS.Objects;
 
 @inject IGXNotifier Notifier
-@if (Target != null)
+@if (Target?.Attributes != null && Target.Template != null && Target.Attributes.Any())
 {
     <CascadingValue Value="this">
         <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
@@ -18,25 +18,25 @@
 }
 
 @code {
-    private GXDLMSRegister _register = new();
+    private GXDLMSRegister? _register = new GXDLMSRegister();
 
     [CascadingParameter]
-    private ObjectView Parent { get; set; }
+    private ObjectView? Parent { get; set; }
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
-    string[] Units;
+    string[]? Units;
 
     /// <summary>
     /// Target COSEM object.
     ///</summary>
     [Parameter]
-    public GXObject Target { get; set; }
+    public GXObject? Target { get; set; }
 
     void Reset()
     {
-        Parent.OnAction(1, (sbyte)0);
+        Parent?.OnAction(1, (sbyte)0);
     }
 
     /// <summary>

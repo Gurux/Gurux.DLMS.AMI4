@@ -33,6 +33,7 @@
 using Gurux.DLMS.AMI.Client;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Helpers.Toaster;
+using Gurux.DLMS.AMI.Client.Pages.Objects;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;

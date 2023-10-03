@@ -819,13 +819,13 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXKey>(false, false);
                         AddDefaultConfigurationSettings(host);
                         UpdateComponentViews(host);
-                        t.Commit();
+                        host.Connection.CommitTransaction(t);
                     }
                     catch (Exception)
                     {
                         if (t != null)
                         {
-                            t.Rollback();
+                            host.Connection.RollbackTransaction(t);
                         }
                         throw;
                     }

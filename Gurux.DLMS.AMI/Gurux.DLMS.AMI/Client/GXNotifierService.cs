@@ -844,6 +844,15 @@ namespace Gurux.DLMS.AMI.Client
                         }
                         await ChangedAsync(nameof(IGXHubEvents.DeviceDelete), devices);
                     });
+                    hubConnection.On<IEnumerable<GXDevice>>(nameof(IGXHubEvents.DeviceStatusChange), async (devices) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Device) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Device status changed", ToString(devices), Color.Info, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.DeviceStatusChange), devices);
+                    });
+
                     hubConnection.On<IEnumerable<GXDeviceGroup>>(nameof(IGXHubEvents.DeviceGroupUpdate), async (groups) =>
                     {
                         if ((IgnoreNotification & TargetType.DeviceGroup) == 0)

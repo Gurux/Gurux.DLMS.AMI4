@@ -233,7 +233,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     action = tmp[1];
                     id = tmp[2];
                 }
-                TargetType target;
+                TargetType target = TargetType.None;
                 if (id != null && Enum.TryParse(it.Type, true, out target))
                 {
                     Guid? Id = null;
@@ -369,6 +369,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Name = await _host.Connection.SingleOrDefaultAsync<string>(args);
                     if (it.Name == null)
                     {
+                        if (target == TargetType.Object)
+                        {
+                            //Object is not created yet.
+                            return new Guid[0];
+                        }
                         throw new Exception(Properties.Resources.InvalidName);
                     }
                 }

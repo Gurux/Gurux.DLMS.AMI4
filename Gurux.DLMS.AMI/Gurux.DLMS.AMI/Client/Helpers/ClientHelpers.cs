@@ -283,6 +283,24 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             }
             return items;
         }
+
+        /// <summary>
+        /// Clone the object.
+        /// </summary>
+        /// <typeparam name="T">Object type.</typeparam>
+        /// <param name="value">Object to clone.</param>
+        /// <returns>Cloned value.</returns>
+        public static T Clone<T>(T value)
+        {
+            var serialized = JsonSerializer.Serialize(value);
+            var ret = JsonSerializer.Deserialize<T>(serialized);
+            if (ret == null)
+            {
+                throw new Exception("Clone failed.");
+            }
+            return ret;
+        }
+
         /// <summary>
         /// Clone the object.
         /// </summary>

@@ -115,6 +115,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Activate.
+        /// </summary>
+        internal static string Activate {
+            get {
+                return ResourceManager.GetString("Activate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Active.
         /// </summary>
         internal static string Active {
@@ -709,6 +718,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Default device template.
+        /// </summary>
+        internal static string DefaultDeviceTemplate {
+            get {
+                return ResourceManager.GetString("DefaultDeviceTemplate", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Default group.
         /// </summary>
         internal static string DefaultGroup {
@@ -1087,6 +1105,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Firmware file.
+        /// </summary>
+        internal static string FirmwareFile {
+            get {
+                return ResourceManager.GetString("FirmwareFile", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Gateway.
         /// </summary>
         internal static string Gateway {
@@ -1231,6 +1258,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Identification:.
+        /// </summary>
+        internal static string Identification {
+            get {
+                return ResourceManager.GetString("Identification", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Identifier.
         /// </summary>
         internal static string Identifier {
@@ -1321,6 +1357,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Invalid firmware..
+        /// </summary>
+        internal static string InvalidFirmware {
+            get {
+                return ResourceManager.GetString("InvalidFirmware", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sorry, there&apos;s nothing at this address..
         /// </summary>
         internal static string InvalidHttpAddress {
@@ -1335,6 +1380,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string InvalidId {
             get {
                 return ResourceManager.GetString("InvalidId", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Invalid identification..
+        /// </summary>
+        internal static string InvalidIdentification {
+            get {
+                return ResourceManager.GetString("InvalidIdentification", resourceCulture);
             }
         }
         
@@ -1911,6 +1965,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string NotAuthorized {
             get {
                 return ResourceManager.GetString("NotAuthorized", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Nothing.
+        /// </summary>
+        internal static string Nothing {
+            get {
+                return ResourceManager.GetString("Nothing", resourceCulture);
             }
         }
         
@@ -2788,6 +2851,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Transfer.
+        /// </summary>
+        internal static string Transfer {
+            get {
+                return ResourceManager.GetString("Transfer", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Trigger.
         /// </summary>
         internal static string Trigger {
@@ -2973,6 +3045,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Variables {
             get {
                 return ResourceManager.GetString("Variables", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Verify.
+        /// </summary>
+        internal static string Verify {
+            get {
+                return ResourceManager.GetString("Verify", resourceCulture);
             }
         }
         

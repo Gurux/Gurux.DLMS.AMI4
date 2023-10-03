@@ -52,6 +52,16 @@
                         <li class="validation-message">@message</li>
                     }
                 </ul>
+                @if (action == CrudAction.Create)
+                {
+                    <div class="form-group row">
+                        <div class="form-inline">
+                            <label>Create the device immediately.</label>
+                            <InputSwitch @bind-Value="CreateImmediately">
+                            </InputSwitch>
+                        </div>
+                    </div>
+                }
                 <div class="row justify-content-center">
                     <div>
                         @if (Parent.Manufacturers != null && Parent.Manufacturers.Any())
@@ -360,6 +370,14 @@
     private InputHexAscii? _blockCipherKey;
     private InputHexAscii? _authenticationKey;
 
+    /// <summary>
+    /// Is device created immediatly or when needed.
+    /// </summary>
+    /// <remarks>
+    /// Create devices immediatly is taking longer time when it's added.
+    /// This is handy when a large amount of the meter is added.
+    /// </remarks>
+    private bool CreateImmediately { get; set; }
 
     [CascadingParameter]
     private DeviceTab? Parent { get; set; }
@@ -1498,6 +1516,7 @@
             _validator?.ClearErrors();
             if (_validator != null && !_validator.Validate())
             {
+                StateHasChanged();
                 return;
             }
             Notifier.ProgressStart();
@@ -1528,7 +1547,8 @@
             {
                 await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Add", new UpdateDevice()
                     {
-                        Devices = new GXDevice[] { Active }
+                        Devices = new GXDevice[] { Active },
+                        LateBinding = !CreateImmediately
                     });
             }
             else if (action == CrudAction.Update)

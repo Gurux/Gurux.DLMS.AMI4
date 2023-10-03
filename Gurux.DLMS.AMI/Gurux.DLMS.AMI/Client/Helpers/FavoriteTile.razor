@@ -55,7 +55,13 @@
                     Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri)
                 }
             };
-            _ = await Http.PostAsJson<UpdateFavoriteResponse>("api/Favorite/Add", req);
+            var ret = await Http.PostAsJson<UpdateFavoriteResponse>("api/Favorite/Add", req);
+            if (ret.Ids == null || !ret.Ids.Any())
+            {
+                //If object is not create yet.
+                Checked = false;
+                StateHasChanged();
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {

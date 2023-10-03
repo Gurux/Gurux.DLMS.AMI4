@@ -26,7 +26,7 @@
                 {
                     @if (ItemContent != null)
                     {
-                        <a class="dropdown-item" Item="@it"
+                        <a class=@(it.Equals(Value) ? "dropdown-item active" : "dropdown-item") Item="@it"
                            onclick="@(()=> HandleSelect(it, ItemContent))">
                             @ItemContent(it)
                         </a>
@@ -98,7 +98,8 @@
     int _pageSize = 5;
     [Parameter]
     public EventCallback
-    <TItem> OnSelected { get; set; }
+    <TItem> OnSelected
+    { get; set; }
     private async Task HandleSelect(TItem item, RenderFragment<TItem> contentFragment)
     {
         Value = item;
