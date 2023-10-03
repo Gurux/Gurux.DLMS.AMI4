@@ -63,7 +63,7 @@ namespace Gurux.DLMS.AMI.Script
             _serviceProvider = serviceProvider;
         }
 
-        /// <inheritdoc cref="IGXAmi.Sender"/>
+        /// <inheritdoc/>
         public object? Sender
         {
             get
@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Script
             }
         }
 
-        /// <inheritdoc cref="IGXAmi.User"/>
+        /// <inheritdoc />
         public GXUser? User
         {
             get;
@@ -95,6 +95,9 @@ namespace Gurux.DLMS.AMI.Script
             get;
             set;
         }
+
+        /// <inheritdoc />
+        public GXDeviceTemplate? DefaultDeviceTemplate { get; set; }
 
         /// <inheritdoc />
         public async Task AddAsync(object value)
@@ -122,7 +125,7 @@ namespace Gurux.DLMS.AMI.Script
             else if (value is GXDevice d)
             {
                 IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                d.Id = (await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None))[0];
+                d.Id = (await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None, null, true))[0];
             }
             else if (value is GXObject o)
             {
@@ -539,6 +542,7 @@ namespace Gurux.DLMS.AMI.Script
                 // Getting the root node of the file.
                 methods.Clear();
                 var rootSyntaxNode = syntaxTree.GetRootAsync().Result;
+                //Add all public methods that are not static.
                 methods.AddRange(rootSyntaxNode.DescendantNodesAndSelf().OfType<MethodDeclarationSyntax>().ToList());
             }
             ms.Seek(0, SeekOrigin.Begin);

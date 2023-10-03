@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Script
@@ -37,7 +38,7 @@ namespace Gurux.DLMS.AMI.Script
     public interface IGXAmi
     {
         /// <summary>
-        /// Source object.
+        /// Sender object.
         /// </summary>
         object? Sender
         {
@@ -49,6 +50,19 @@ namespace Gurux.DLMS.AMI.Script
         /// User that owns the script.
         /// </summary>
         GXUser? User
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Default device template.
+        /// </summary>
+        /// <remarks>
+        /// Default device template is used to create a new device when unknown device 
+        /// establish the connection for the agent.
+        /// </remarks>
+        GXDeviceTemplate? DefaultDeviceTemplate
         {
             get;
             set;
