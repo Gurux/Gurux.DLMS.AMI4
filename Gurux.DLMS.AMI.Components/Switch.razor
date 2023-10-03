@@ -1,19 +1,34 @@
 ﻿
 <CascadingValue Value="this">
-    <label class="form-check-label">@Text</label>
-    @ChildContent
-    <div class="form-check form-switch">
-        <input class="form-check-input"
-               type="checkbox"
-               checked="@IsChecked()"
-               disabled="@IsDisabled()"
-               onchange="@((ChangeEventArgs e) => UpdateCheck(Convert.ToBoolean(e.Value)))">
+    <div class="form-inline">
+        @if (!string.IsNullOrEmpty(PreText))
+        {
+            <label>@PreText</label>
+        }
+        <div class="form-check form-switch">
+            <input class="form-check-input"
+                   type="checkbox"
+                   checked="@IsChecked()"
+                   disabled="@IsDisabled()"
+                   onchange="@((ChangeEventArgs e) => UpdateCheck(Convert.ToBoolean(e.Value)))">
+            @if (!string.IsNullOrEmpty(Text))
+            {
+                <label>@Text</label>
+            }
+            @ChildContent
+        </div>
     </div>
 </CascadingValue>
 
 @code {
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Switch pre-text.
+    /// </summary>
+    [Parameter]
+    public string? PreText { get; set; }
 
     /// <summary>
     /// Switch text.
