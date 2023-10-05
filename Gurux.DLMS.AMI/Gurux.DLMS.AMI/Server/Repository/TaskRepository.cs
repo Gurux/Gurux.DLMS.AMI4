@@ -877,7 +877,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in tasks)
             {
                 users.AddDistinct(await GetNofifiedUsersAsync(User, it));
-                list.Add(new GXTask() { Id = it.Id });
+                //Only basic information is send.
+                list.Add(new GXTask()
+                {
+                    Id = it.Id,
+                    TargetAgent = it.TargetAgent,
+                    TargetGateway = it.TargetGateway,
+                    TargetDevice = it.TargetDevice
+                });
             }
             if (users.Any())
             {
