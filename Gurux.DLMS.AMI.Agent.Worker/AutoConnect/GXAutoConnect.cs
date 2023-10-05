@@ -261,7 +261,17 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     //Wait until the next message is received.
                     if (_gatewayId is Guid id)
                     {
-                        _taskNotification.Wait(id);
+                        try
+                        {
+                            _taskNotification.Wait(id);
+                        }
+                        catch (Exception)
+                        {
+                            //Exception is thrown when GW established a new connection and old is closed.
+                            //This is necessary so that the new connection is not unregistered.
+                            _gatewayId = null;
+                            break;
+                        }
                     }
                 }
                 while ((settings != null && (settings.ConnectionUpTime == null || (DateTime.Now - start).TotalSeconds < settings.ConnectionUpTime)) ||
@@ -342,9 +352,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                             {
                                 //If script returns gateway.
                                 _gatewayId = gw.Id;
+                                _taskNotification.Register(gw.Id);
                                 if (gw.Agent?.Id != Options.Id)
                                 {
-                                    _taskNotification.Register(gw.Id);
                                     //Update the gateway agent if it has changed.
                                     gw.Agent = new GXAgent() { Id = Options.Id };
                                     UpdateGateway tmp2 = new UpdateGateway()

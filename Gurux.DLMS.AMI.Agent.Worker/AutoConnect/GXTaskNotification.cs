@@ -40,7 +40,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         {
             lock (list)
             {
-                foreach(var it in list)
+                foreach (var it in list)
                 {
                     it.Value.Set();
                 }
@@ -51,11 +51,11 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
         {
             lock (list)
             {
-                if (list.ContainsKey(id))
+                if (list.TryGetValue(id, out AutoResetEvent? reset))
                 {
-                    //If new connection for the new agent.
-                    list[id].Set();
+                    //Remove existing connection.
                     list.Remove(id);
+                    reset.Set();
                 }
                 list.Add(id, new AutoResetEvent(false));
             }
@@ -89,16 +89,28 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
             AutoResetEvent? value = null;
             lock (list)
             {
-                if (list.ContainsKey(id))
+                if (list.TryGetValue(id, out value))
                 {
                     value = list[id];
                 }
             }
+            bool ret = false;
             if (value != null)
             {
-                return value.WaitOne();
+                ret = value.WaitOne(60000);
+                if (ret)
+                {
+                    lock (list)
+                    {
+                        if (!list.TryGetValue(id, out AutoResetEvent? reset)
+                            || reset != value)
+                        {
+                            throw new Exception("New connection established.");
+                        }
+                    }
+                }
             }
-            return false;
+            return ret;
         }
     }
 }
