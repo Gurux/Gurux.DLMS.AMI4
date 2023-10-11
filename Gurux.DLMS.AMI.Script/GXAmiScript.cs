@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.Loader;
 using System.Runtime.ExceptionServices;
+using static System.Formats.Asn1.AsnWriter;
 
 namespace Gurux.DLMS.AMI.Script
 {
@@ -124,8 +125,7 @@ namespace Gurux.DLMS.AMI.Script
             }
             else if (value is GXDevice d)
             {
-                IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
-                d.Id = (await repository.UpdateAsync(Claims, new GXDevice[] { d }, CancellationToken.None, null, true))[0];
+                await AddDeviceAsync(d, false);
             }
             else if (value is GXObject o)
             {
@@ -611,7 +611,7 @@ namespace Gurux.DLMS.AMI.Script
             }
         }
 
-        /// <inheritdoc cref="IGXAmi.GetService"/>
+        /// <inheritdoc />
         public object? GetService(Type type)
         {
             if (_serviceProvider == null)
@@ -621,7 +621,7 @@ namespace Gurux.DLMS.AMI.Script
             return _serviceProvider.GetService(type);
         }
 
-        /// <inheritdoc cref="IGXAmi.GetService"/>
+        /// <inheritdoc />
         public T? GetService<T>()
         {
             if (_serviceProvider == null)
@@ -772,13 +772,13 @@ namespace Gurux.DLMS.AMI.Script
             }
         }
 
-        /// <inheritdoc cref="IGXAmi.SingleOrDefault"/>
+        /// <inheritdoc />
         public T? SingleOrDefault<T>(T filter)
         {
             return SingleOrDefaultAsync(filter).Result;
         }
 
-        /// <inheritdoc cref="IGXAmi.SingleOrDefaultAsync"/>
+        /// <inheritdoc />
         public async Task<T?> SingleOrDefaultAsync<T>(T value)
         {
             if (_serviceProvider == null)
@@ -897,19 +897,19 @@ namespace Gurux.DLMS.AMI.Script
             return (T?)ret;
         }
 
-        /// <inheritdoc cref="IGXAmi.Add"/>
+        /// <inheritdoc />
         public void Add(object value)
         {
             AddAsync(value).Wait();
         }
 
-        /// <inheritdoc cref="IGXAmi.Remove"/>
+        /// <inheritdoc />
         public void Remove(object value, bool delete)
         {
             RemoveAsync(value, delete).Wait();
         }
 
-        /// <inheritdoc cref="IGXAmi.Update"/>
+        /// <inheritdoc />
         public void Update(object value)
         {
             UpdateAsync(value).Wait();
@@ -1000,6 +1000,20 @@ namespace Gurux.DLMS.AMI.Script
         public void Clear<T>(IEnumerable<T>? items)
         {
             ClearAsync(items).Wait();
+        }
+
+        /// <inheritdoc />
+        public void AddDevice(GXDevice value, bool lateBinding)
+        {
+            AddDeviceAsync(value, lateBinding).Wait();
+        }
+
+        /// <inheritdoc />
+        public async Task AddDeviceAsync(GXDevice value, bool lateBinding)
+        {
+            using IServiceScope scope = _serviceProvider.CreateScope();
+            IDeviceRepository repository = scope.ServiceProvider.GetRequiredService<IDeviceRepository>();
+            value.Id = (await repository.UpdateAsync(Claims, new GXDevice[] { value }, CancellationToken.None, null, lateBinding))[0];
         }
     }
 }

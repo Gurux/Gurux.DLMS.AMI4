@@ -113,6 +113,20 @@ namespace Gurux.DLMS.AMI.Script
         Task AddAsync(object value);
 
         /// <summary>
+        /// Adds new device for the database.
+        /// </summary>
+        /// <param name="value">Added device.</param>
+        /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
+        void AddDevice(GXDevice value, bool lateBinding);
+
+        /// <summary>
+        /// Adds new device for the database.
+        /// </summary>
+        /// <param name="value">Added device.</param>
+        /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
+        Task AddDeviceAsync(GXDevice value, bool lateBinding);
+
+        /// <summary>
         /// Remove value from the database.
         /// </summary>
         /// <param name="value">Removed value.</param>
