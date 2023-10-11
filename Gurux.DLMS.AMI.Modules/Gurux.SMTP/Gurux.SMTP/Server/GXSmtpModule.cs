@@ -33,7 +33,6 @@
 using Gurux.DLMS.AMI.Module;
 using Gurux.SMTP.Shared;
 using Microsoft.AspNetCore.Identity.UI.Services;
-using System.Linq;
 using System.Security.Claims;
 
 namespace Gurux.SMTP.Server

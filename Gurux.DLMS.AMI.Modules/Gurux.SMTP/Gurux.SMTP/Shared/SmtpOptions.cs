@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel;
 
 namespace Gurux.SMTP.Shared
 {
