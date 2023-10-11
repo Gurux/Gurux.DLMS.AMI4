@@ -53,7 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Assembly file name.
         /// </summary>
-        [StringLength(30)]
+        [StringLength(64)]
         public string FileName
         {
             get;

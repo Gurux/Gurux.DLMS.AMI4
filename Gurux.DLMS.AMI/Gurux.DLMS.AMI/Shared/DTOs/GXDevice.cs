@@ -51,7 +51,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public GXDevice()
         {
-
         }
 
         /// <summary>
@@ -64,6 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXDevice(string? name)
         {
             Name = name;
+            Active = true;
             Parameters = new List<GXDeviceParameter>();
             Objects = new List<GXObject>();
             TraceLevel = System.Diagnostics.TraceLevel.Verbose;
@@ -88,6 +88,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+
+        /// <summary>
+        /// Is device active.
+        /// </summary>
+        [DefaultValue(true)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? Active { get; set; }
 
         /// <summary>
         /// Name of the meter.

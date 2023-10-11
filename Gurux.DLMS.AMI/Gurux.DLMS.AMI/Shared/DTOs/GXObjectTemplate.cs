@@ -94,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Object type.")]
         [IsRequired]
         [DefaultValue(0)]
+        [Filter(FilterType.Exact)]
         public int? ObjectType
         {
             get;

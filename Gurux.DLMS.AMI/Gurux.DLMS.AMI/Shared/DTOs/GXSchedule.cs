@@ -35,6 +35,7 @@ using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.Text.Json.Serialization;
+using System;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -60,6 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXSchedule(string? name)
         {
             Name = name;
+            Active = true;
             Attributes = new List<GXAttribute>();
             Objects = new List<GXObject>();
             Devices = new List<GXDevice>();
@@ -84,6 +86,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+        /// <summary>
+        /// Is schedule active.
+        /// </summary>
+        [DefaultValue(true)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? Active { get; set; }
 
         /// <summary>
         /// Scheduled attributes.
@@ -243,6 +253,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Ignore]
         [JsonIgnore]
         public bool Modified
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Schedule targets are handled concurrently.
+        /// </summary>
+        [DefaultValue(false)]
+        [IsRequired]
+        public bool? Concurrently
         {
             get;
             set;

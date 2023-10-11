@@ -31,25 +31,71 @@
 //---------------------------------------------------------------------------
 
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared
 {
+    /// <summary>
+    /// This class implements helper functions to communicate with Gurux.DLMS.AMI.Server.
+    /// </summary>
     public static class Helpers
     {
+        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
+            ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<RET>();
+            if (ret == null)
+            {
+                throw new Exception("Invalid reply.");
+            }
+            return ret;
+        }
+
+        public static async Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions()
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
+            ValidateStatusCode(response);
+        }
+
+        public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
+        {
+            HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
+            ValidateStatusCode(response);
+            var ret = await response.Content.ReadFromJsonAsync<RET>();
+            if (ret == null)
+            {
+                throw new Exception("Invalid reply.");
+            }
+            return ret;
+        }
+
         public static void ValidateStatusCode(HttpResponseMessage response)
         {
             if (!response.IsSuccessStatusCode)
             {
                 if (response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    throw new Exception(response.ReasonPhrase);
+                    string? error = response.Content.ReadAsStringAsync().Result;
+                    if (string.IsNullOrEmpty(error))
+                    {
+                        error = response.ReasonPhrase;
+                    }
+                    throw new GXAmiNotFoundException(error);
                 }
                 if (response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    response.EnsureSuccessStatusCode();
-
                     throw new Exception(response.ReasonPhrase);
                 }
                 if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
@@ -71,11 +117,11 @@ namespace Gurux.DLMS.AMI.Shared
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
                     string error = response.Content.ReadAsStringAsync().Result;
-                    throw new GXAmiException(error);
+                    throw new Exception(error);
                 }
                 else
                 {
-                    Exception? ex;
+                    Exception? ex = null;
                     try
                     {
                         ex = JsonSerializer.Deserialize<GXAmiException>(response.Content.ReadAsStringAsync().Result);

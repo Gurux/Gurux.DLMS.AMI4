@@ -67,6 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Keys = new List<GXKeyManagement>();
             Parameters = new();
             Gateways = new List<GXGateway>();
+            Active = true;
         }
 
         /// <summary>
@@ -80,6 +81,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             get;
             set;
         }
+
+
+        /// <summary>
+        /// Is device group active.
+        /// </summary>
+        [DefaultValue(true)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? Active { get; set; }
 
         /// <summary>
         /// Device group name.
