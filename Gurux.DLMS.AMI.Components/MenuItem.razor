@@ -1,0 +1,45 @@
+﻿@code {
+    [CascadingParameter]
+    private MenuControl? Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Text { get; set; }
+
+    [Parameter]
+    public string? Icon { get; set; }
+
+    //Is menu item read-only.
+    public bool ReadOnly { get; set; }
+
+    [Parameter]
+    public Action? OnClick { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+            throw new ArgumentNullException(nameof(Parent), "MenuItem must exist within a MenuControl");
+        base.OnInitialized();
+        Parent.AddMenuItem(this);
+    }
+
+    //Create menu item.
+
+    public static MenuItem Create(string text, string icon, Action action)
+    {
+        return Create(text, icon, action, false);
+    }
+
+    //Create menu item.
+    public static MenuItem Create(string text, string icon, Action action, bool readOnly)
+    {
+        MenuItem ret = new MenuItem();
+        ret.Text = text;
+        ret.Icon = icon;
+        ret.OnClick += action;
+        ret.ReadOnly = readOnly;
+        return ret;
+    }
+}

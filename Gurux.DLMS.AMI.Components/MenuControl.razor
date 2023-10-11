@@ -1,0 +1,94 @@
+﻿<CascadingValue Value="this">
+    <div class="btn-group" role="group" style="@GetStyle()">
+        @foreach (MenuItem it in Items)
+        {
+            <button type="button" class="btn button" disabled="@it.ReadOnly" style="@GetButtonStyle()" onclick=@it.OnClick>
+                @if (it.Icon != null)
+                {
+                    <div class="@it.Icon"></div>
+                }
+                &nbsp;@it.Text
+            </button>
+        }
+    </div>
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Is button shown on the right corner.
+    /// </summary>
+    [Parameter]
+    public bool RightCorner { get; set; }
+
+    /// <summary>
+    /// Is button shown on the bottom.
+    /// </summary>
+    [Parameter]
+    public bool Bottom { get; set; }
+
+    /// <summary>
+    /// CSS style.
+    /// </summary>
+    [Parameter]
+    public string? CssStyle { get; set; }
+
+    private string @GetButtonStyle()
+    {
+        if (!string.IsNullOrEmpty(CssStyle))
+        {
+            return CssStyle;
+        }
+        if (RightCorner)
+        {
+            return "background-color: dodgerblue;";
+        }
+        return "";
+    }
+    private string GetStyle()
+    {
+        if (RightCorner)
+        {
+            if (Bottom)
+            {
+                return "position: absolute; right:0;bottom:0;";
+            }
+            return "position: absolute; right:0;";
+        }
+        if (Bottom)
+        {
+            return "position: absolute; bottom:0;";
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Menu items.
+    /// </summary>
+    [Parameter]
+    public List<MenuItem>? MenuItems { get; set; }
+
+    List<MenuItem> Items = new List<MenuItem>();
+
+    /// <summary>
+    /// Add new menu item.
+    /// </summary>
+    /// <param name="item">Menu item</param>
+    internal void AddMenuItem(MenuItem item)
+    {
+        Items.Add(item);
+        StateHasChanged();
+    }
+
+    protected override void OnInitialized()
+    {
+        if (MenuItems != null && MenuItems.Count != 0)
+        {
+            Items.AddRange(MenuItems);
+            StateHasChanged();
+        }
+    }
+}

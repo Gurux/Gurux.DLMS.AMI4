@@ -1,0 +1,221 @@
+﻿@using System.Text;
+@using Gurux.DLMS.AMI.Components.Validation;
+
+@namespace Gurux.DLMS.AMI.Components
+
+<CascadingValue Value="this">
+    <div class="form-inline">
+        <Switch OnChange="OnHexChanged"
+                PreText="@Title"
+                Text="@Properties.Resources.Hex"
+                Disabled="@IsHexDisabled()" Checked="@Hex">
+        </Switch>
+    </div>
+    <InputText class="form-control"
+    @bind-Value="@HexValue" disabled="@Disabled" />
+</CascadingValue>
+@ChildContent
+@code
+{
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Validator.
+    /// </summary>
+    [Parameter]
+    public GXValidator? Validator { get; set; }
+
+    /// <summary>
+    /// Title.
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// Is value shown in hex format.
+    /// </summary>
+    [Parameter]
+    public bool Hex { get; set; }
+
+    /// <summary>
+    /// Notified when system title hex is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> HexChanged { get; set; }
+
+    /// <summary>
+    /// Is hex disabled.
+    /// </summary>
+    [Parameter]
+    public bool HexDisabled { get; set; }
+
+    private bool IsASCIIString;
+
+    /// <summary>
+    /// HEX button is disabled when user wants it or there is non ASCII string.
+    /// </summary>
+    /// <returns></returns>
+    private bool IsHexDisabled()
+    {
+        return HexDisabled;
+    }
+
+    /// <summary>
+    /// Is value disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private byte[]? _value;
+
+    private string? HexValue
+    {
+        get
+        {
+            if (Value == null)
+            {
+                return null;
+            }
+            if (Hex)
+            {
+                return BitConverter.ToString(Value).Replace("-", " ");
+            }
+            return ASCIIEncoding.ASCII.GetString(Value);
+        }
+        set
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                _value = null;
+            }
+            else
+            {
+                if (Hex)
+                {
+                    if (value == null)
+                    {
+                        _value = null;
+                    }
+                    else
+                    {
+                        _value = Convert.FromHexString(value.Replace(" ", ""));
+                    }
+                }
+                else
+                {
+                    _value = ASCIIEncoding.ASCII.GetBytes(value);
+                }
+            }
+            ValueChanged.InvokeAsync(Value);
+        }
+    }
+
+    [Parameter]
+    public byte[]? Value
+    {
+        get
+        {
+            return _value;
+        }
+        set
+        {
+            if (_value != value)
+            {
+                _value = value;
+                if (_value == null || !_value.Any())
+                {
+                    IsASCIIString = true;
+                    Hex = false;
+                }
+                else
+                {
+                    IsASCIIString = IsAsciiString(_value);
+                    Hex = !IsASCIIString;
+                }
+                HexDisabled = !IsASCIIString;
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// Notified when value is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<byte[]?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// User changes string from ASCII to HEX or vice versa.
+    /// </summary>
+    /// <param name="value"></param>
+    private void OnHexChanged(bool value)
+    {
+        try
+        {
+            Hex = value;
+            HexChanged.InvokeAsync(value);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Validator?.AddError(() => Value, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Get byte array.
+    /// </summary>
+    /// <returns></returns>
+    public byte[] GetByteArray()
+    {
+        if (Value == null)
+        {
+            return new byte[0];
+        }
+        return Value;
+    }
+
+    /// <summary>
+    /// Check is byte buffer ASCII string.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    [System.Diagnostics.DebuggerStepThrough]
+    public static bool IsAsciiString(byte[]? value)
+    {
+        if (value != null)
+        {
+            foreach (byte it in value)
+            {
+                if (it < 32 || it > 127)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public bool IsAsciiString()
+    {
+        return IsAsciiString(Value);
+    }
+
+    protected override void OnInitialized()
+    {
+        if (!Hex && Value != null)
+        {
+            IsASCIIString = IsAsciiString();
+            Hex = !IsASCIIString;
+            if (!IsASCIIString)
+            {
+                HexDisabled = true;
+            }
+        }
+        else
+        {
+            HexDisabled = !IsAsciiString();
+        }
+    }
+}
