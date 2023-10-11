@@ -1,6 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
-@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -180,6 +179,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

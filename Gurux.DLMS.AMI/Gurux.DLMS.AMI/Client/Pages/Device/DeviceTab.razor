@@ -220,6 +220,10 @@
                     Active = tmp.Item;
                     StateHasChanged();
                 }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
             }
             //Get installed manufacturer settings.
             var filter2 = new Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXManufacturer(null);

@@ -1,5 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Gurux.Net
 @using Gurux.Serial
 @using Microsoft.AspNetCore.Authorization
@@ -21,13 +21,12 @@
 @using System.Text.Encodings.Web
 @using System.Text.Json.Serialization
 @using System.Diagnostics
-@using Gurux.DLMS.AMI.Client.Helpers.Validation
 @using System.Text;
 
 @attribute [Authorize(Roles = "Admin, Device, DeviceManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 <CascadingValue Value="this">
 
@@ -1305,6 +1304,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

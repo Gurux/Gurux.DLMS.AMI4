@@ -1,8 +1,6 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
-@using Gurux.DLMS.AMI.Module
+﻿@using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -254,7 +252,6 @@
     {
         try
         {
-            Console.WriteLine("Agent OnInitialized.");
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.Clear();
@@ -266,6 +263,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

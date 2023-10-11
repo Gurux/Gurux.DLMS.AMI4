@@ -1,5 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -19,22 +19,23 @@
         <label style="margin:auto">@Title</label>
     }
     <div class="d-inline-flex">
-            <select class="form-select" @bind="@ScriptMethod">
-                <!--Empty option is used to reset selection.-->
-                <option></option>
-                @foreach (var script in Scripts)
+        <select class="form-select" @bind="@ScriptMethod">
+            <!--Empty option is used to reset selection.-->
+            <option></option>
+            @foreach (var script in Scripts)
+            {
+                @if (script.Methods != null)
                 {
-                    @if (script.Methods != null)
+                    @foreach (var method in script.Methods)
                     {
-                        @foreach (var method in script.Methods)
-                        {
-                            <option value="@method.Id">@(script.Name + "." + method.Name)</option>
-                        }
+                        <option value="@method.Id">@(script.Name + "." + method.Name)</option>
                     }
                 }
-            </select>
-        &nbsp;
-            <a target="_blank" href="@GetScriptId()">@Properties.Resources.Manage</a>
+            }
+        </select>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Script, GXRoles.ScriptGroupManager)>
+            &nbsp;<a target="_blank" href="@GetScriptId()">@Properties.Resources.Manage</a>
+        </AuthorizeView>
     </div>
 }
 

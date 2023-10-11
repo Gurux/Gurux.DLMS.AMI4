@@ -103,6 +103,11 @@
                     }
                     StateHasChanged();
                 }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+
             }
         }
         catch (AccessTokenNotAvailableException exception)

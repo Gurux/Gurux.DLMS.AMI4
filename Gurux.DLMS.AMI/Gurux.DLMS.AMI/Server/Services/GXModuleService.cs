@@ -299,10 +299,13 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             _modules.Add(module.Id, info);
             //Load assemblies.
-            foreach (var it in module.Assemblies)
+            if (module.Assemblies != null)
             {
-                path2 = Path.Combine(searchPath, it.FileName);
-                alc.LoadFromAssemblyPath(path2);
+                foreach (var it in module.Assemblies)
+                {
+                    path2 = Path.Combine(searchPath, it.FileName);
+                    alc.LoadFromAssemblyPath(path2);
+                }
             }
             //Get framework services.
             if (services != null)
@@ -538,8 +541,9 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             IGXServerModule? server = null;
             GXModule? existing = null;
-            GXModule module = new GXModule();
+            GXModule module = new GXModule("");
             AssemblyLoadContext alc = new AssemblyLoadContext("tmp", true);
+            List<string> servers= new List<string>();
             List<GXModuleAssembly> assemblies = new List<GXModuleAssembly>();
             try
             {
@@ -576,6 +580,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                             module.CreationTime = DateTime.Now;
                             module.Id = server.Name;
                             module.FileName = Path.GetFileName(fileName);
+                            servers.Add(module.FileName);
                             module.Class = type.FullName;
                             module.Description = server.Description;
                             if (server.Configuration != null)
@@ -631,18 +636,9 @@ namespace Gurux.DLMS.AMI.Server.Services
                 {
                     throw new Exception(string.Format("Failed to create {0} module", module.Class));
                 }
-                //Remove server from satelite assemblies.
-                if (!string.IsNullOrEmpty(module.FileName))
-                {
-                    foreach (var it in assemblies)
-                    {
-                        if (it.FileName == module.FileName)
-                        {
-                            assemblies.Remove(it);
-                            break;
-                        }
-                    }
-                }
+                //Remove servers from satelite assemblies.
+                //Servers are not send to the client.
+                //MIKKO assemblies.RemoveAll(w => servers.Contains(w.FileName));
                 //Check is module already added or new item is installed.
                 if (existing == null)
                 {
@@ -666,7 +662,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                     GXInsertArgs args = GXInsertArgs.Insert(module);
                     args.Exclude<GXModule>(e => e.Updated);
                     await _host.Connection.InsertAsync(args);
-                    server.Install(user, _serviceProvider, module);
+                    server?.Install(user, _serviceProvider, module);
                     //Read installed module methods, etc...
                     module = await _moduleRepository.ReadAsync(user, module.Id);
                     if (module.Scripts != null)

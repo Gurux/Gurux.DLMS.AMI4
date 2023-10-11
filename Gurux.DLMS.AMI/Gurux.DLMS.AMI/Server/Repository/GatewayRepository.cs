@@ -270,7 +270,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.And<GXGatewayGroupGateway>(w => w.Removed == null);
                 //Gateway installers are not part of any group.
                 arg.Joins.AddLeftJoin<GXGateway, GXGatewayGroupGateway>(x => x.Id, y => y.GatewayId);
-                arg.Joins.AddLeftJoin<GXGatewayGroupGateway, GXGatewayGroup>(j => j.GatewayGroupId, j => j.Id);
             }
             else
             {
@@ -278,9 +277,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg = GXQuery.GetGatewaysByUser(userId, id);
                 arg.Where.And<GXGatewayGroup>(w => w.Removed == null);
                 arg.Where.And<GXGatewayGroupGateway>(w => w.Removed == null);
-                arg.Joins.AddInnerJoin<GXGatewayGroupGateway, GXGatewayGroup>(j => j.GatewayGroupId, j => j.Id);
             }
+            arg.Joins.AddLeftJoin<GXGatewayGroupGateway, GXGatewayGroup>(j => j.GatewayGroupId, j => j.Id);
+            arg.Joins.AddLeftJoin<GXGateway, GXAgent>(j => j.Agent, j => j.Id);
             arg.Columns.Add<GXGatewayGroup>();
+            arg.Columns.Add<GXAgent>(s => new { s.Id, s.Name });
             arg.Columns.Exclude<GXGatewayGroup>(e => e.Gateways);
             arg.Distinct = true;
             GXGateway gateway = await _host.Connection.SingleOrDefaultAsync<GXGateway>(arg);

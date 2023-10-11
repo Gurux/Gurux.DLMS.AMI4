@@ -49,9 +49,8 @@ namespace Gurux.DLMS.AMI.Client
             RemoteAuthenticationUserOptions options)
         {
             var user = await base.CreateUserAsync(account, options);
-            var claimsIdentity = (ClaimsIdentity)user.Identity;
-
-            if (account != null)
+            var claimsIdentity = (ClaimsIdentity?)user.Identity;
+            if (account != null && claimsIdentity != null)
             {
                 MapArrayClaimsToMultipleSeparateClaims(account, claimsIdentity);
             }

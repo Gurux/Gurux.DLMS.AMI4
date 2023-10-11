@@ -106,6 +106,10 @@
                     Active = tmp.Item;
                     StateHasChanged();
                 }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)

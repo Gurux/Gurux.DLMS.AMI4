@@ -69,7 +69,7 @@
                     @if (pos >= CurrentPage - Container.Spread && pos <= CurrentPage + Container.Spread)
                     {
                         <li onclick="@(() => SelectPage(pos))" style="cursor: pointer;" class="page-item @(CurrentPage == pos ? "active" : null)">
-                            <span class="page-link" href="#">@pos</span>
+                            <span class="page-link" href="#">@(1 + pos)</span>
                         </li>
                     }
                 }

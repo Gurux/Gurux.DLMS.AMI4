@@ -43,7 +43,6 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared;
 using System.Diagnostics;
-using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -55,6 +54,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
         private readonly IModuleGroupRepository _moduleGroupRepository;
         private readonly IServiceProvider _serviceProvider;
+        private readonly ISystemLogRepository _systemLogRepository;
 
         /// <summary>
         /// Constructor.
@@ -63,13 +63,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IUserRepository userRepository,
             IGXEventsNotifier eventsNotifier,
             IModuleGroupRepository moduleGroupRepository,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            ISystemLogRepository systemLogRepository)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;
             _userRepository = userRepository;
             _moduleGroupRepository = moduleGroupRepository;
             _serviceProvider = serviceProvider;
+            _systemLogRepository = systemLogRepository;
         }
 
         /// <inheritdoc />
@@ -145,23 +147,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 GXModule tmp = new GXModule() { Id = it.Key.Id };
                 await _eventsNotifier.ModuleDelete(it.Value, new GXModule[] { tmp });
             }
-
-
-            List<GXModuleLog> list = new List<GXModuleLog>();
-            foreach (var it in updates.Keys)
+            List<GXSystemLog> logs = new List<GXSystemLog>();
+            foreach (string it in modules)
             {
-                list.Add(new GXModuleLog(TraceLevel.Info)
+                logs.Add(new GXSystemLog(TraceLevel.Info)
                 {
-                    CreationTime = DateTime.Now,
-                    Module = it,
-                    Message = Properties.Resources.ModuleRemoved
+                    Message = string.Format("Module {0} removed.", it)
                 });
             }
-            using (IServiceScope scope = _serviceProvider.CreateScope())
-            {
-                IModuleLogRepository moduleLogRepository = scope.ServiceProvider.GetRequiredService<IModuleLogRepository>();
-                await moduleLogRepository.AddAsync(User, list);
-            }
+            await _systemLogRepository.AddAsync(User, logs);
         }
 
         /// <inheritdoc />
@@ -319,8 +313,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg = GXSelectArgs.SelectAll<GXModuleVersion>(where => where.Module == module);
             List<GXModuleVersion> versions = _host.Connection.Select<GXModuleVersion>(arg);
             var comparer = new UniqueComparer<GXModuleVersion, Guid>();
-            List<GXModuleVersion> addedVersions = module.Versions.Except(versions, comparer).ToList();
-            if (addedVersions.Any())
+            List<GXModuleVersion>? addedVersions = null;
+            if (module.Versions != null)
+            {
+                addedVersions = module.Versions.Except(versions, comparer).ToList();
+            }
+            if (addedVersions != null && addedVersions.Any())
             {
                 GXInsertArgs i = GXInsertArgs.InsertRange(addedVersions);
                 await _host.Connection.InsertAsync(i);

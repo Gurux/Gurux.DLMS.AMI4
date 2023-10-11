@@ -33,13 +33,13 @@
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Helpers.Toaster;
 using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Components;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.Models;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
@@ -49,13 +49,14 @@ using System.Collections.ObjectModel;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Client
 {
     /// <summary>
     /// Notification service is used to show the top menu, occurred exceptions and progress indicator.
     /// </summary>
-    public class GXNotifierService : ComponentBase, IGXNotifier
+    public class GXNotifierService : ComponentBase, IGXNotifier2
     {
         private readonly ConcurrentDictionary<string, List<EventHandler>> _handlers = new ConcurrentDictionary<string, List<EventHandler>>(StringComparer.Ordinal);
 
@@ -1515,21 +1516,27 @@ namespace Gurux.DLMS.AMI.Client
         /// Status has cleared.
         /// </summary>
         public event Action? OnClearStatus;
+
+        /// <summary>
+        /// Page is changing.
+        /// </summary>
+        public event Action<IGXLocationChangingContext>? OnPageChanging;
+
         /// <summary>
         /// Exception has occurred.
         /// </summary>
-        public Action<Exception> OnProcessError { get; set; }
+        public event Action<Exception>? OnProcessError;
         /// <summary>
         /// Script logs has occurred.
         /// </summary>
-        public Action<IEnumerable<object>> OnProcessErrors { get; set; }
+        public event Action<IEnumerable<object>>? OnProcessErrors;
         /// <summary>
         /// Show information.
         /// </summary>
-        public Action<string, bool> OnShowInformation { get; set; }
+        public event Action<string, bool>? OnShowInformation;
         /// <summary>
         /// Maintenance mode is updated.
         /// </summary>
-        public Action<bool> OnMaintenanceMode { get; set; }
+        public event Action<bool>? OnMaintenanceMode;
     }
 }

@@ -1,5 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -90,13 +90,13 @@
             HttpResponseMessage response = await Http.GetAsync(string.Format("api/WorkflowLog?id={0}", Id));
             ClientHelpers.ValidateStatusCode(response);
             var tmp = await response.Content.ReadFromJsonAsync<GetWorkflowLogResponse>();
-            if (tmp != null)
+            if (tmp?.Item != null)
             {
                 _active = tmp.Item;
             }
-            if (_active == null)
+            else
             {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
+                NavigationManager.NavigateTo("404");
             }
         }
         catch (AccessTokenNotAvailableException exception)

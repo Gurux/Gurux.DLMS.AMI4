@@ -41,6 +41,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using System.Data;
+using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -227,21 +228,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(objectTemplate);
             }
+            UInt32 count2 = 0;
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
                 GXSelectArgs total = GXSelectArgs.Select<GXObject>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
-                if (request?.Exclude != null && request.Exclude.Any())
+                if (request.Exclude != null && request.Exclude.Any())
                 {
                     total.Where.And<GXObject>(w => !request.Exclude.Contains(w.Id));
                 }
                 if (response != null)
                 {
                     response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    count2 = (UInt32)response.Count;
                 }
-                arg.Index = (UInt32)request.Index;
+                if (count2 < (UInt32)request.Index)
+                {
+                    //Handle index for late bind objects.
+                    arg.Index = count2;
+                    request.Index -= count2;
+                }
+                else
+                {
+                    arg.Index = (UInt32)request.Index;
+                }
                 arg.Count = (UInt32)request.Count;
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
@@ -284,6 +296,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 foreach (var dev in devs)
                 {
                     GXDeviceTemplate devTemplate = deviceTemplates.Where(w => w.Id == dev.Template.Id).Single();
+                    //Remove device objects that are not in device template.
+                    if (dev.Objects != null)
+                    {
+                        var tmp = devTemplate.Objects.Select(s => s.Id);
+                        var tmp2 = dev.Objects.Select(s => s.Template.Id);
+                        List<GXObject> remove = new List<GXObject>();
+                        foreach (var it in dev.Objects)
+                        {
+                            if (!tmp.Contains(it.Template.Id))
+                            {
+                                remove.Add(it);
+                            }
+                        }
+                        dev.Objects.RemoveAll(w => remove.Contains(w));
+                    }
                     objectCount += devTemplate.Objects.Count;
                     if (dev.Objects == null || dev.Objects.Count != devTemplate.Objects.Count)
                     {
@@ -304,7 +331,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                     //Template ID is used as a ID for late bind objects.
                                     Id = it.Id,
                                     Latebind = true,
-                                    Device = new GXDevice() { Id = dev.Id },
+                                    Device = new GXDevice() { Id = dev.Id, Name = dev.Name },
                                 });
                             }
                         }
@@ -343,12 +370,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Remove extra objects.
                 objects = objects.Skip((int)request.Index).Take((int)request.Count).ToList();
             }
-            //Only device id is send.
+            //Only device id and name are send.
             foreach (var obj in objects)
             {
                 if (obj.Device != null)
                 {
-                    obj.Device = new GXDevice() {Id = obj.Device.Id };
+                    obj.Device = new GXDevice() {Id = obj.Device.Id, Name = obj.Device.Name};
                 }
             }
             if (request != null && (request.Select & TargetType.Attribute) != 0)

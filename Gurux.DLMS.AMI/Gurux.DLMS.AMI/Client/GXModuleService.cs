@@ -35,7 +35,8 @@ using System.Reflection;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Module;
-using Gurux.DLMS.AMI.Client.Helpers;
+using System.Runtime.Loader;
+using Gurux.DLMS.AMI.Shared;
 
 namespace Gurux.DLMS.AMI.Client
 {
@@ -90,11 +91,45 @@ namespace Gurux.DLMS.AMI.Client
         }
 
         /// <summary>
+        /// Modules are load for own assembly load context.
+        /// </summary>
+        public class GXAssemblyLoadContext : AssemblyLoadContext
+        {
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            /// <param name="name">Assembly load context name.</param>
+            public GXAssemblyLoadContext(string name) : base(name, true)
+            {
+            }
+        }
+
+        private Assembly? ModuleResolving(AssemblyLoadContext arg1, AssemblyName arg2)
+        {
+            //Find module from loaded assemblies.
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    if (assembly.GetName().Name == arg2.Name)
+                    {
+                        return assembly;
+                    }
+                }
+                catch (Exception)
+                {
+                    //It's OK if this fails. Assembly is skipped.
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
         /// Add new assembly.
         /// </summary>
         /// <param name="name">Assembly name.</param>
         /// <param name="assemblies">Assembly list.</param>
-        public void AddAssemblies(string name, List<Assembly> assemblies)
+        public bool AddAssemblies(string name, List<Assembly> assemblies)
         {
             lock (Assemblies)
             {
@@ -111,6 +146,10 @@ namespace Gurux.DLMS.AMI.Client
                 {
                     foreach (Type it in asm.GetExportedTypes())
                     {
+                        if (it.IsAbstract || !it.IsClass || it.FullName == null)
+                        {
+                            continue;
+                        }
                         if (typeof(IGXDeviceSettings).IsAssignableFrom(it))
                         {
                             meterSettings.Add(it);
@@ -140,8 +179,12 @@ namespace Gurux.DLMS.AMI.Client
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _assemblies.Remove(name);
+                Assemblies.RemoveAll(w => assemblies.Contains(w));
+                _logger.LogError("AddAssemblies {0}", ex.Message);
+                return false;
             }
+            return true;
         }
 
         /// <summary>
@@ -178,23 +221,49 @@ namespace Gurux.DLMS.AMI.Client
         /// </summary>
         /// <param name="Http">Http client.</param>
         /// <param name="module">Module to load.</param>
-        public async Task GetModule(HttpClient Http, GXModule module)
+        public async Task<Assembly[]> GetModule(HttpClient Http, GXModule module)
         {
-            List<Assembly> assemblies = new List<Assembly>();
-            ModuleConfigurationUIResponse ret2 = await Http.PostAsJson<ModuleConfigurationUIResponse>("api/Module/ModuleUI", new ModuleConfigurationUI() { Name = module.Id });
-            foreach (string it in ret2.Modules)
+            lock (Assemblies)
             {
-                lock (this)
+                List<Assembly>? list = null;
+                if (_assemblies.TryGetValue(module.Id, out list))
                 {
-                    Assembly asm = Assembly.Load(Convert.FromBase64String(it));
-                    if (asm == null)
-                    {
-                        throw new Exception("Failed to load assembly.");
-                    }
-                    assemblies.Add(asm);
+                    //If assembly is already loaded.
+                    return list.ToArray();
                 }
             }
-            AddAssemblies(module.Id, assemblies);
+            try
+            {
+                List<Assembly> assemblies = new List<Assembly>();
+                ModuleConfigurationUIResponse ret2 = await Http.PostAsJson<ModuleConfigurationUIResponse>("api/Module/ModuleUI", new ModuleConfigurationUI() { Name = module.Id });
+                if (ret2.Modules != null)
+                {
+                    AssemblyLoadContext alc = new AssemblyLoadContext(module.Id);
+                    alc.Resolving += ModuleResolving;
+                    foreach (string it in ret2.Modules)
+                    {
+                        using MemoryStream ms = new MemoryStream();
+                        ms.Write(Convert.FromBase64String(it));
+                        ms.Position = 0;
+                        Assembly asm = alc.LoadFromStream(ms);
+                        if (asm == null)
+                        {
+                            throw new Exception("Failed to load assembly.");
+                        }
+                        assemblies.Add(asm);
+                    }
+                    if (!AddAssemblies(module.Id, assemblies))
+                    {
+                        return new Assembly[0];
+                    }
+                }
+                return assemblies.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("GetModule failed {0}", ex.Message);
+                throw;
+            }
         }
 
         /// <summary>
@@ -228,8 +297,12 @@ namespace Gurux.DLMS.AMI.Client
                         }
                         catch (Exception ex)
                         {
-                            _logger.LogError(ex.Message);
+                            _logger.LogError("LoadModules failed", ex.Message);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError("LoadModules failed", ex.Message);
                     }
                 }
             }

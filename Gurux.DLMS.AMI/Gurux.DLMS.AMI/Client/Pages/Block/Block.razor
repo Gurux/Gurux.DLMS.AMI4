@@ -1,5 +1,4 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -13,7 +12,7 @@
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.BlockManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @if (Active != null)
 {
     <EditForm Model="@Active">
@@ -329,7 +328,7 @@
                         }
                         foreach (var it in Target.GetType().GetProperties())
                         {
-                            if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                            if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
                             {
                                 _parameters.Add(new GXKeyValuePair<string, object?>(it.Name, it.GetValue(Target)));
                             }
@@ -437,6 +436,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

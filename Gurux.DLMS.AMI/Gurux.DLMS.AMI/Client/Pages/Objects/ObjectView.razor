@@ -2,7 +2,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Gurux.DLMS.Objects;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -337,6 +337,10 @@
                     //Update device for late binding.
                     _active.Device = Device;
                     StateHasChanged();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

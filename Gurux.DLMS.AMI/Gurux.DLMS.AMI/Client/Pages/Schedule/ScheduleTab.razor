@@ -32,31 +32,38 @@
                     </div>
                 </TabPage>
             </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager, GXRoles.UserGroup)>
                 <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
                         <ScheduleGroupsSelector></ScheduleGroupsSelector>
                     </div>
                 </TabPage>
             </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
+                <TabPage Text=@Properties.Resources.Attributes Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
-                        <DevicesSelector></DevicesSelector>
+                        <AttributesSelector></AttributesSelector>
                     </div>
                 </TabPage>
             </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
                 <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
                         <ObjectsSelector></ObjectsSelector>
                     </div>
                 </TabPage>
             </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-                <TabPage Text=@Properties.Resources.Attributes Icon="oi oi-timer">
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
+                <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
                     <div style="position: relative; width: 100%; ">
-                        <AttributesSelector></AttributesSelector>
+                        <DevicesSelector></DevicesSelector>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager, GXRoles.DeviceGroup)>
+                <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
+                    <div style="position: relative; width: 100%; ">
+                        <DeviceGroupsSelector></DeviceGroupsSelector>
                     </div>
                 </TabPage>
             </AuthorizeView>
@@ -123,6 +130,10 @@
                     //Convert start time from invariant culture to UI culture.
                     Active.Start = new GXDateTime(Active.Start, CultureInfo.InvariantCulture).ToFormatString();
                     StateHasChanged();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
         }

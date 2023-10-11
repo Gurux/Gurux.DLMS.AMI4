@@ -1,5 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Gurux.Net
 @using Gurux.Serial
 @using Microsoft.AspNetCore.Authorization
@@ -171,7 +171,7 @@
                 foreach (var module in _modules)
                 {
                     var settings = module.Value.GetType().GetProperty("Settings");
-                    if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                    if (settings != null && settings.CanRead && settings.CanWrite && settings.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
                     {
                         var value = settings.GetValue(module.Value);
                         if (value != null)

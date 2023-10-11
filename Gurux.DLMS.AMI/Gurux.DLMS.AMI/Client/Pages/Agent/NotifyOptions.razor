@@ -1,5 +1,4 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
-@using Gurux.DLMS.AMI.Client.Pages.Admin
+﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Media;
 @using Gurux.DLMS.AMI.Client.Pages.Script
 @using Gurux.DLMS.AMI.Shared
@@ -23,68 +22,69 @@
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <div class="row">
             <div style="width:100%">
-                <div class="form-group">
+                <div class="form-group row">
                     <InputSwitch Text="@Properties.Resources.Active"
                     @bind-Value="Settings.Active" />
                     <br />
                 </div>
                 <fieldset disabled="@(!Settings.Active)">
-                @if (!IsSerialPort())
-                {
-                    <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
-                    @ref=networkSettings></NetworkSettings>
-                }
-                else
-                {
-                    <SerialSettings @bind-Settings="@Settings.MediaSettings"
-                    @ref=serialSettings></SerialSettings>
-                }
-                <div class="form-group">
-                    <label style="margin:auto">Interface</label>
-                    <select class="form-select" @bind="@Settings.Interface">
-                        @foreach (var it in InterfaceList)
-                        {
-                            <option value="@Convert.ToInt32(it)">@it</option>
-                        }
-                    </select>
-                </div>
-                <div class="form-group">
-                    <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
-                    <label>@Properties.Resources.UseLogicalNameReferencing</label>
-                    <br />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.ExpirationTime</label>
-                    <InputNumber id="threads" class="form-control"
-                    @bind-Value="Settings.ExpirationTime" />
-                    <ValidationMessage For="@(() => Settings.ExpirationTime)" />
-                </div>
-                <div class="form-group">
-                    <label>@Properties.Resources.Script</label>
-                    <ScriptMethodSelector Scripts="@Scripts"
-                                          SelectionChanged="@SelectionChanged"
-                                          ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
-                </div>
-                <div class="form-group row">
-                    <div class="form-group">
-                        <label>@Properties.Resources.DefaultDeviceTemplate</label>
-                        <DropdownSearch Context="item"
-                        @bind-Value="DefaultDeviceTemplate"
-                                        ItemsProvider="@GetItems">
-                            <ItemContent>
-                                @item.Name
-                            </ItemContent>
-                        </DropdownSearch>
+                    @if (!IsSerialPort())
+                    {
+                        <NetworkSettings IsServer="true" @bind-Settings="@Settings.MediaSettings"
+                        @ref=networkSettings></NetworkSettings>
+                    }
+                    else
+                    {
+                        <SerialSettings @bind-Settings="@Settings.MediaSettings"
+                        @ref=serialSettings></SerialSettings>
+                    }
+                    <div class="form-group row">
+                        <label style="margin:auto">Interface</label>
+                        <select class="form-select" @bind="@Settings.Interface">
+                            @foreach (var it in InterfaceList)
+                            {
+                                <option value="@Convert.ToInt32(it)">@it</option>
+                            }
+                        </select>
                     </div>
-                </div> <div class="form-group">
-                    <label>@Properties.Resources.TraceLevels</label>
-                    <select class="form-select" @bind="Settings.TraceLevel">
-                        @foreach (var it in TraceLevels)
-                        {
-                            <option value="@it"> @it </option>
-                        }
-                    </select>
-                </div>
+                    <div class="form-group row">
+                        <InputCheckbox @bind-Value="Settings.UseLogicalNameReferencing" />
+                        <label>@Properties.Resources.UseLogicalNameReferencing</label>
+                        <br />
+                    </div>
+                    <div class="form-group row">
+                        <label>@Properties.Resources.ExpirationTime</label>
+                        <InputNumber id="threads" class="form-control"
+                        @bind-Value="Settings.ExpirationTime" />
+                        <ValidationMessage For="@(() => Settings.ExpirationTime)" />
+                    </div>
+                    <div class="form-group row">
+                        <label>@Properties.Resources.Script</label>
+                        <ScriptMethodSelector Scripts="@Scripts"
+                                              SelectionChanged="@SelectionChanged"
+                                              ScriptMethod="@Settings.ScriptMethod"></ScriptMethodSelector>
+                    </div>
+                    <div class="form-group row">
+                        <div class="form-group">
+                            <label>@Properties.Resources.DefaultDeviceTemplate</label>
+                            <DropdownSearch Context="item"
+                            @bind-Value="DefaultDeviceTemplate"
+                                            ItemsProvider="@GetItems">
+                                <ItemContent>
+                                    @item.Name
+                                </ItemContent>
+                            </DropdownSearch>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label>@Properties.Resources.TraceLevels</label>
+                        <select class="form-select" @bind="Settings.TraceLevel">
+                            @foreach (var it in TraceLevels)
+                            {
+                                <option value="@it"> @it </option>
+                            }
+                        </select>
+                    </div>
                 </fieldset>
             </div>
         </div>

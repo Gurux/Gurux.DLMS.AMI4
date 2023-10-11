@@ -39,58 +39,15 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
-using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.ManufacturerSettings;
 using Gurux.DLMS.Objects;
 using System.Xml.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
-using Microsoft.Extensions.Logging;
+using Gurux.DLMS.AMI.Components;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
-{
-    public static class HttpHelpers
-    {
-        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
-        {
-            JsonSerializerOptions options = new JsonSerializerOptions()
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
-            };
-            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<RET>();
-            if (ret == null)
-            {
-                throw new Exception("Invalid reply.");
-            }
-            return ret;
-        }
-
-        public static async Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
-        {
-            JsonSerializerOptions options = new JsonSerializerOptions()
-            {
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
-            };
-            HttpResponseMessage response = await client.PostAsJsonAsync(requestUri, value, options, cancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-        }
-
-        public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
-        {
-            HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
-            ClientHelpers.ValidateStatusCode(response);
-            var ret = await response.Content.ReadFromJsonAsync<RET>();
-            if (ret == null)
-            {
-                throw new Exception("Invalid reply.");
-            }
-            return ret;
-        }
-
-    }
-
+{   
     public static class ClientHelpers
     {
         /// <summary>

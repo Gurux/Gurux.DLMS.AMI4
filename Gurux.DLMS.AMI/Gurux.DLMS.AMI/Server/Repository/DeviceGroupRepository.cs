@@ -36,9 +36,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Server.Models;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
@@ -51,7 +49,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
     {
         private readonly IGXHost _host;
         private readonly IUserRepository _userRepository;
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserGroupRepository _userGroupRepository;
 
@@ -61,13 +58,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public DeviceGroupRepository(
             IGXHost host,
             IUserRepository userRepository,
-            UserManager<ApplicationUser> userManager,
             IUserGroupRepository userGroupRepository,
         IGXEventsNotifier eventsNotifier)
         {
             _host = host;
             _userRepository = userRepository;
-            _userManager = userManager;
             _eventsNotifier = eventsNotifier;
             _userGroupRepository = userGroupRepository;
         }
@@ -108,7 +103,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public List<GXDevice> GetDevicessByDeviceGroupId(ClaimsPrincipal user, Guid deviceGroupId)
+        public static List<GXDevice> GetDevicessByDeviceGroupId(IGXHost host, ClaimsPrincipal user, Guid deviceGroupId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXDevice>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(a => a.Id, b => b.DeviceId);
@@ -121,7 +116,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             var id = ServerHelpers.GetUserId(user);
             arg.Where.And<GXUser>(q => q.Removed == null && q.Id == id);
             arg.Where.And<GXDeviceGroup>(where => where.Removed == null && where.Id == deviceGroupId);
-            return _host.Connection.Select<GXDevice>(arg);
+            return host.Connection.Select<GXDevice>(arg);
         }
 
         /// <inheritdoc />
@@ -481,7 +476,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Map devices to device group.
                     if (it.Devices != null)
                     {
-                        List<GXDevice> devices = GetDevicessByDeviceGroupId(user, it.Id);
+                        List<GXDevice> devices = GetDevicessByDeviceGroupId(_host, user, it.Id);
                         var comparer2 = new UniqueComparer<GXDevice, Guid>();
                         List<GXDevice> removedDevices = devices.Except(it.Devices, comparer2).ToList();
                         List<GXDevice> addedDevices = it.Devices.Except(devices, comparer2).ToList();

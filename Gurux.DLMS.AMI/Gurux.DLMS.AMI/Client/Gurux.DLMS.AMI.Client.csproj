@@ -8,16 +8,16 @@
 
   <ItemGroup>
     <PackageReference Include="Gurux.DLMS" Version="9.0.2308.2801" />
-    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2310.301" />
-    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2306.2601" />
-    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2310.301" />
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2310.201" />
+    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2310.1101" />
+    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2310.1102" />
+    <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2310.1101" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2310.1101" />
     <PackageReference Include="Gurux.Net" Version="8.4.2302.904" />
     <PackageReference Include="Gurux.Serial" Version="8.4.2302.902" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.12" PrivateAssets="all" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="7.0.12" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
   </ItemGroup>
 

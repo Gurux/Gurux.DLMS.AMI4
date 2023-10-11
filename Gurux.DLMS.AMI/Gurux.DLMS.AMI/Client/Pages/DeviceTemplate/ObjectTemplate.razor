@@ -1,9 +1,8 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
-@using Gurux.DLMS.AMI.Client.Pages.Device;
+﻿@using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.Objects;
 @using Microsoft.AspNetCore.Authorization
@@ -19,7 +18,7 @@
 @attribute [Authorize(Roles = "Admin, TemplateManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 
 @if (Active != null)
 {
@@ -347,6 +346,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)

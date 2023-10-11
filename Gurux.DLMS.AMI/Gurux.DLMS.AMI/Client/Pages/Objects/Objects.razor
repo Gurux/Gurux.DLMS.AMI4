@@ -3,12 +3,10 @@
 @page "/Object/{Action}"
 @page "/Object/{Action}/{Id:guid?}"
 
-@using Gurux.DLMS.AMI.Client.Helpers.ContextMenu
-@using Gurux.DLMS.AMI.Client.Helpers.Table;
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -75,6 +73,7 @@ else
                 <DropdownSearch Context="item"
                                 Immediate="true"
                 @bind-Value="filterByObjectType"
+                                OnSelected="@((Enums.ObjectType e) => SearchByObjectType(e))"
                                 ItemsProvider="@GetObjectTypes">
                     <ItemContent>
                         @item
@@ -402,6 +401,14 @@ else
     {
         filterByLogicalName = Convert.ToString(args.Value);
         return Updated();
+    }
+
+    /// <summary>
+    /// Search by object type.
+    /// </summary>
+    private Task SearchByObjectType(Enums.ObjectType item)
+    {
+       return Updated();
     }
 
     private ValueTask<ItemsProviderResult<Enums.ObjectType>> GetObjectTypes(GXItemsProviderRequest request)

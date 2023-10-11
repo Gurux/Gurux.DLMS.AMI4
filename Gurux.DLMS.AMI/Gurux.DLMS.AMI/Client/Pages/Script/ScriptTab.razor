@@ -1,7 +1,7 @@
 ﻿@page "/config/Script/{Id:guid?}"
 @page "/config/Script/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+
 @using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -106,6 +106,10 @@
                 {
                     Active = tmp.Item;
                     StateHasChanged();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
         }

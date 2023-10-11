@@ -67,7 +67,7 @@
                                 {
                                     foreach (var it in values[block.Name].GetType().GetProperties())
                                     {
-                                        if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Length != 0)
+                                        if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
                                         {
                                             builder.AddAttribute(pos, it.Name, it.GetValue(target));
                                             ++pos;

@@ -906,6 +906,12 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXUserGroupGatewayGroup>(false, false);
                         host.Connection.CreateTable<GXGatewayGroupGateway>(false, false);                        
                     }
+                    //Concurrently and active properties added to schedule.
+                    host.Connection.UpdateTable<GXSchedule>();
+                    //Active property added to device.
+                    host.Connection.UpdateTable<GXDevice>();
+                    //Active property added to device group.
+                    host.Connection.UpdateTable<GXDeviceGroup>();
                 }
             }
             else

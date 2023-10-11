@@ -44,6 +44,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Data;
+using Gurux.DLMS.AMI.Client.Helpers;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -411,9 +412,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             GXDevice? dev;
             GXObject? obj;
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
+            List<GXTask> tasks2 = new List<GXTask>();
             try
             {
+                //Handle device groups and create a own task for each device.
+                List<GXTask> removed = new List<GXTask>();
+                List<GXTask> deviceTasks = new List<GXTask>();
                 foreach (GXTask it in tasks)
+                {
+                    if (it.DeviceGroup != null)
+                    {
+                        //Get devices that belong to this device group.
+                        var devices = DeviceGroupRepository.GetDevicessByDeviceGroupId(_host, user, it.DeviceGroup.Id);
+                        foreach (var dev2 in devices)
+                        {
+                            GXTask t = ClientHelpers.Clone(it);
+                            t.DeviceGroup = null;
+                            t.Device = dev2;
+                            t.Creator = it.Creator;
+                            deviceTasks.Add(t);
+                        }
+                        removed.Add(it);
+                    }
+                }
+                tasks2.AddRange(tasks);
+                tasks2.RemoveAll(w => removed.Contains(w));
+                tasks2.AddRange(deviceTasks);
+                foreach (GXTask it in tasks2)
                 {
                     bool dynamic = false;
                     if (it.Index == null)
@@ -648,7 +673,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         }
                     }
                 }
-                await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(tasks));
+                await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(tasks2));
                 _host.Connection.CommitTransaction(transaction);
             }
             catch (Exception)
@@ -656,8 +681,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 _host.Connection.RollbackTransaction(transaction);
                 throw;
             }
-            IEnumerable<Guid> list = tasks.Select(s => s.Id);
-            await NotifyUsers(user, tasks, true);
+            IEnumerable<Guid> list = tasks2.Select(s => s.Id);
+            await NotifyUsers(user, tasks2, true);
             return list.ToArray();
         }
 

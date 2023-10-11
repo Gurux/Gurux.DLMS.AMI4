@@ -1,7 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation
-@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
-@using Gurux.DLMS.AMI.Shared.Models
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -29,22 +27,22 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Description</label>
                     <InputText id="name" disabled="@IsDeleting"
-                           @bind-Value="Active.Name"
+                    @bind-Value="Active.Name"
                                class="form-control" />
                     <ValidationMessage For="@(() => Active.Name)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.SystemTitle</label>
                     <InputText id="name" disabled="@IsDeleting"
-                           @bind-Value="Active.SystemTitle"
+                    @bind-Value="Active.SystemTitle"
                                class="form-control" />
                     <ValidationMessage For="@(() => Active.SystemTitle)" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Device</label>
                     <DropdownSearch Context="item"
-                                @bind-Value="Device"
-                                ItemsProvider="@GetItems">
+                    @bind-Value="Device"
+                                    ItemsProvider="@GetItems">
                         <ItemContent>
                             @item.Name
                         </ItemContent>
@@ -56,7 +54,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.CreationTime" />
+                        @bind-Value="Active.CreationTime" />
                     </div>
                 }
                 @if (Active.Updated != null)
@@ -64,7 +62,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                        @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -72,7 +70,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="Active.Removed" />
+                        @bind-Value="Active.Removed" />
                     </div>
                 }
                 @if (action == CrudAction.Delete)
@@ -212,11 +210,15 @@
                 Notifier.ProgressStart();
                 //Get key management data.
                 var tmp = (await Http.GetAsJsonAsync<GetKeyManagementResponse>(string.Format("api/KeyManagement?id={0}", Id)));
+                Notifier.ProgressEnd();
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
                 }
-                Notifier.ProgressEnd();
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
             }
             if (Active == null)
             {

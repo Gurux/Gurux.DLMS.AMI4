@@ -1,6 +1,4 @@
-﻿@using Gurux.DLMS.AMI.Client.Helpers.Validation;
-@using Gurux.DLMS.AMI.Shared.DIs
-@using Gurux.DLMS.AMI.Shared.Models
+﻿@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -36,12 +34,28 @@
                                placeholder=@Properties.Resources.Identifier />
                     <ValidationMessage For="@(() => Active.Identifier)" />
                 </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Agent</label>
+                    <div class="form-control d-inline-flex">
+                        <input id="agent" readonly="readonly"
+                               value="@Active.Agent?.Name"
+                               class="form-control"
+                               placeholder=@Properties.Resources.Agent />
+                        &nbsp;
+                        @if (Active.Agent != null)
+                        {
+                            <a target="_blank" href="@("Config/Agent/Edit/" + Active.Agent.Id)">
+                                @Properties.Resources.Manage
+                            </a>
+                        }
+                    </div>
+                </div>
                 @if (Active.CreationTime != DateTime.MinValue)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.CreationTime" />
+                        @bind-Value="Active.CreationTime" />
                     </div>
                 }
                 @if (Active.Updated != null)
@@ -49,7 +63,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                        @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -57,7 +71,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="Active.Removed" />
+                        @bind-Value="Active.Removed" />
                     </div>
                 }
                 @if (action == CrudAction.Delete)
@@ -141,6 +155,10 @@
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
                 }
             }
             if (Active == null)
@@ -232,9 +250,9 @@
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
                 await Http.PostAsJson<UpdateGatewayResponse>(address, new UpdateGateway()
-                {
-                    Gateways = new GXGateway[] { Active }
-                });
+                    {
+                        Gateways = new GXGateway[] { Active }
+                    });
             }
             ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
         }

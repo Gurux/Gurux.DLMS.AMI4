@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IKeyManagementRepository _keyManagementRepository;
         private readonly IAttributeRepository _attributeRepository;
         private readonly GXPerformanceSettings _performanceSettings;
-        private readonly IObjectRepository _objectRepository;
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -73,8 +73,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IUserRepository userRepository,
             IKeyManagementRepository keyManagementRepository,
             IAttributeRepository attributeRepository,
-            GXPerformanceSettings performanceSettings,
-            IObjectRepository objectRepository)
+            GXPerformanceSettings performanceSettings)
         {
             _host = host;
             _serviceProvider = serviceProvider;
@@ -84,7 +83,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _keyManagementRepository = keyManagementRepository;
             _attributeRepository = attributeRepository;
             _performanceSettings = performanceSettings;
-            _objectRepository = objectRepository;
         }
 
         /// <inheritdoc />

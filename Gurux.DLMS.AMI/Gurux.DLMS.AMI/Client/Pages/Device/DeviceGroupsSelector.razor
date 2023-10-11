@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Agent;
 @using Gurux.DLMS.AMI.Client.Pages.Gateway;
+@using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
@@ -72,6 +73,10 @@
 
     [CascadingParameter]
     private GatewayTab? GatewayParent { get; set; }
+
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
 
     SelectionList<GXDeviceGroup>? _selected;
     SelectionList<GXDeviceGroup>? _available;
@@ -247,6 +252,10 @@
         if (AgentGroupParent?.Active?.DeviceGroups != null)
         {
             return AgentGroupParent.Active.DeviceGroups;
+        }        
+        if (ScheduleParent?.Active?.DeviceGroups != null)
+        {
+            return ScheduleParent.Active.DeviceGroups;
         }        
         return GatewayParent?.Active?.DeviceGroups;
     }

@@ -33,8 +33,7 @@
 using Gurux.DLMS.AMI.Client;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Helpers.Toaster;
-using Gurux.DLMS.AMI.Client.Pages.Objects;
-using Gurux.DLMS.AMI.Shared.DIs;
+using Gurux.DLMS.AMI.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -59,6 +58,7 @@ builder.Services.AddSingleton<IGXToasterService>(new GXToasterService());
 GXNotifierService n = new GXNotifierService(builder.Services.BuildServiceProvider());
 builder.Services.AddSingleton(x => n);
 builder.Services.AddSingleton<IGXNotifier>(x => n);
+builder.Services.AddSingleton<IGXNotifier2>(x => n);
 
 builder.Services.AddApiAuthorization()
     .AddAccountClaimsPrincipalFactory<CustomUserFactory>();
@@ -93,6 +93,16 @@ Assembly? CurrentDomain_TypeResolve(object? sender, ResolveEventArgs args)
             if (args.Name.StartsWith(assembly.GetName().Name))
             {
                 return assembly;
+            }
+        }
+        if (App.assemblies != null)
+        {
+            foreach (Assembly assembly in App.assemblies)
+            {
+                if (args.Name.StartsWith(assembly.GetName().Name))
+                {
+                    return assembly;
+                }
             }
         }
         //Late binding...

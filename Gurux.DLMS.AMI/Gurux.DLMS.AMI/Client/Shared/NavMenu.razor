@@ -78,6 +78,17 @@
                 </NavLink>
             </li>
         </AuthorizeView>
+        @foreach (var comp in navItems)
+        {
+            @foreach (Gurux.DLMS.AMI.Module.GXNavItem item in comp.Value)
+            {
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="@("Module/" + comp.Key + "/" + item.Component.Name)">
+                        <span class="@item.Icon" aria-hidden="true"></span> @item.Name
+                    </NavLink>
+                </li>
+            }
+        }
         <AuthorizeView>
             <li class="nav-item">
                 <NavLink class="nav-link" href="Favorites">
@@ -96,7 +107,9 @@
         StateHasChanged();
     }
 
-    List<Gurux.DLMS.AMI.Module.GXNavItem> navItems = new List<Gurux.DLMS.AMI.Module.GXNavItem>();
+    //Module navigation items.
+    List<KeyValuePair<string, Gurux.DLMS.AMI.Module.GXNavItem[]>> navItems = new();
+
     private bool collapseNavMenu = true;
 
     private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
@@ -111,9 +124,9 @@
         try
         {
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            if (authState.User.Identity.IsAuthenticated)
+            if (authState.User.Identity != null && authState.User.Identity.IsAuthenticated)
             {
-                if (modules.Assemblies.Count == 0)
+                if (!modules.Assemblies.Any())
                 {
                     Logger.LogInformation("Loading assemblies.");
                     await modules.LoadModules(Http);
@@ -126,18 +139,31 @@
                 {
                     foreach (var asm in modules.Assemblies)
                     {
-                        Logger.LogError(asm.FullName);
+                        string? name = null;
+                        List<GXNavItem> items = new List<GXNavItem>();
                         foreach (var type in asm.GetExportedTypes())
                         {
-                            if (type.GetInterfaces().Contains(typeof(IGXModuleUI)))
+                            if (type.IsAbstract || !type.IsClass || type.FullName == null)
                             {
-                                IGXModuleUI tmp = (IGXModuleUI)asm.CreateInstance(type.FullName);
-                                if (tmp.NavItems != null && tmp.NavItems.Length != 0)
-                                {
-                                    navItems.AddRange(tmp.NavItems);
-                                }
-                                break;
+                                continue;
                             }
+                            if (type.GetInterfaces().Contains(typeof(IGXServerModule)))
+                            {
+                                IGXServerModule? tmp = (IGXServerModule?)asm.CreateInstance(type.FullName);
+                                name = tmp?.Name;
+                            }
+                            else if (type.GetInterfaces().Contains(typeof(IGXModuleUI)))
+                            {
+                                IGXModuleUI? tmp = (IGXModuleUI?)asm.CreateInstance(type.FullName);
+                                if (tmp?.NavItems != null && tmp.NavItems.Any())
+                                {
+                                    items.AddRange(tmp.NavItems);
+                                }
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(name) && items.Any())
+                        {
+                            navItems.Add(new KeyValuePair<string, GXNavItem[]>(name, items.ToArray()));
                         }
                     }
                 }
