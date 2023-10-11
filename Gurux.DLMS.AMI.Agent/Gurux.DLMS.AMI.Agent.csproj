@@ -28,9 +28,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Agent.Shared" Version="4.0.2310.301" />
-    <PackageReference Include="Gurux.DLMS.AMI.Agent.Worker" Version="4.0.2310.501" />
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2310.201" />
+    <PackageReference Include="Gurux.DLMS.AMI.Agent.Shared" Version="4.0.2310.1101" />
+    <PackageReference Include="Gurux.DLMS.AMI.Agent.Worker" Version="4.0.2310.1101" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2310.1101" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="7.0.0" />
