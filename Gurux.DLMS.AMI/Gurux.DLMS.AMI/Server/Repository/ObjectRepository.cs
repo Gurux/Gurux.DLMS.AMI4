@@ -41,7 +41,6 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using System.Data;
-using System.Linq;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -468,7 +467,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return obj;
         }
 
-        internal static async Task<GXObject> CreateLateBindObject(IGXHost host, IDbTransaction transaction,
+        internal static async Task<GXObject> CreateLateBindObject(IGXHost host, 
+            IDbTransaction? transaction,
             string userId, GXDevice device, Guid objectId)
         {
             GXSelectArgs args = GXQuery.GetObjectTemplatesByUser(userId, objectId);

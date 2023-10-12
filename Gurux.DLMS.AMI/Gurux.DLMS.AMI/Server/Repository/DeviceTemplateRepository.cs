@@ -45,7 +45,6 @@ using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Module;
 using System.Data;
-using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {

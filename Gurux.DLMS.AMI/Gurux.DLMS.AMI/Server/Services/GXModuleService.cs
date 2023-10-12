@@ -638,7 +638,8 @@ namespace Gurux.DLMS.AMI.Server.Services
                 }
                 //Remove servers from satelite assemblies.
                 //Servers are not send to the client.
-                //MIKKO assemblies.RemoveAll(w => servers.Contains(w.FileName));
+                //TODO: Check this.
+                assemblies.RemoveAll(w => servers.Contains(w.FileName));
                 //Check is module already added or new item is installed.
                 if (existing == null)
                 {

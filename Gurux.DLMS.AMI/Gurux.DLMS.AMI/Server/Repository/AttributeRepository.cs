@@ -315,17 +315,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 lateBinded = true;
                                 foreach (var it in obj.Attributes)
                                 {
-                                    attributes.Add(new GXAttribute(it)
+                                    if (!attributes.Where(w => w.Template.Id == it.Id).Any())
                                     {
-                                        //Template ID is used as a ID for late bind objects.
-                                        Id = it.Id,
-                                        Object = new GXObject(obj)
+                                        attributes.Add(new GXAttribute(it)
                                         {
-                                            Id = obj.Id,
-                                            Latebind = true,
-                                            Device = new GXDevice() { Id = dev.Id },
-                                        }
-                                    });
+                                            //Template ID is used as a ID for late bind objects.
+                                            Id = it.Id,
+                                            Object = new GXObject(obj)
+                                            {
+                                                Id = obj.Id,
+                                                Latebind = true,
+                                                Device = new GXDevice() { Id = dev.Id },
+                                            }
+                                        });
+                                    }
                                 }
                             }
                         }

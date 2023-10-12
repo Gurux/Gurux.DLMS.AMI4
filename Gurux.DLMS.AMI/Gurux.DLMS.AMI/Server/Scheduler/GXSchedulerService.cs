@@ -40,11 +40,12 @@ using System.Text.Json;
 using System.Diagnostics;
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Server.Repository;
-using System.Threading;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server;
-using Org.BouncyCastle.Asn1.X509;
+using Gurux.DLMS.AMI.Shared;
+using Gurux.Service.Orm;
+using Gurux.DLMS.AMI.Server.Repository;
+using Gurux.DLMS.AMI.Client.Pages.Device;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {
@@ -67,6 +68,9 @@ namespace Gurux.DLMS.AMI.Scheduler
         private readonly IConfigurationRepository _configurationRepository;
         private readonly IScheduleLogRepository _scheduleLogRepository;
         private readonly IScheduleRepository _scheduleRepository;
+        private readonly IObjectRepository _objectRepository;
+        private readonly IAttributeRepository _attributeRepository;
+        private readonly IDeviceGroupRepository _deviceGroupRepository;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly ISystemLogRepository _systemLogRepository;
         private StatisticSettings? statistic;
@@ -82,7 +86,10 @@ namespace Gurux.DLMS.AMI.Scheduler
             IScheduleLogRepository scheduleLogRepository,
             IGXEventsNotifier eventsNotifier,
             ISystemLogRepository systemLogRepository,
-            IScheduleRepository scheduleRepository)
+            IScheduleRepository scheduleRepository,
+            IObjectRepository objectRepository,
+            IDeviceGroupRepository deviceGroupRepository,
+            IAttributeRepository attributeRepository)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -92,6 +99,9 @@ namespace Gurux.DLMS.AMI.Scheduler
             _eventsNotifier = eventsNotifier;
             _systemLogRepository = systemLogRepository;
             _host = host;
+            _objectRepository = objectRepository;
+            _deviceGroupRepository = deviceGroupRepository;
+            _attributeRepository = attributeRepository;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
@@ -158,6 +168,14 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
         }
 
+        private void GetDeviceTasks(List<GXDevice> devices)
+        {
+            foreach (var it in devices)
+            {
+
+            }
+        }
+
         private async Task RunSchedule(GXSchedule schedule, List<GXTask> tasks, DateTime now)
         {
             ClaimsPrincipal user = ServerHelpers.CreateClaimsPrincipalFromUser(schedule.Creator);
@@ -168,56 +186,178 @@ namespace Gurux.DLMS.AMI.Scheduler
             //Read all data for the schedule.
             schedule = await _scheduleRepository.ReadAsync(user, schedule.Id);
             schedule.Creator = creator;
-            foreach (GXDeviceGroup it in schedule.DeviceGroups)
+            if (schedule.DeviceGroups != null)
             {
-                GXTask t = new GXTask()
+                foreach (GXDeviceGroup dg in schedule.DeviceGroups)
                 {
-                    TriggerSchedule = schedule,
-                    DeviceGroup = it,
-                    TaskType = TaskType.Read,
-                };
-                tasks.Add(t);
+                    bool handled = false;
+                    if (schedule.Objects != null && schedule.Objects.Any())
+                    {
+                        handled = true;
+                        GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
+                        if (g.Devices != null)
+                        {
+                            foreach (GXDevice dev in g.Devices)
+                            {
+                                ListObjects req = new ListObjects()
+                                {
+                                    Filter = new GXObject() { Device = dev },
+                                };
+                                var objects = await _objectRepository.ListAsync(user, req, null, default);
+                                //Device objects are read in one batch.
+                                Guid batch = Guid.NewGuid();
+                                foreach (GXObject o in schedule.Objects)
+                                {
+                                    GXObject? ot = objects.Where(w => w.Template?.LogicalName == o.Template?.LogicalName).SingleOrDefault();
+                                    if (ot != null)
+                                    {
+                                        if (ot.Latebind)
+                                        {
+                                            //If late binding.
+                                            ot.Id = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, dev, ot.Id)).Id;
+                                            ot.Device = dev;
+                                        }
+                                        GXTask t = new GXTask()
+                                        {
+                                            TriggerSchedule = schedule,
+                                            Object = ot,
+                                            TaskType = TaskType.Read,
+                                            Batch = batch,
+                                        };
+                                        tasks.Add(t);
+                                    }
+                                }
+                            }
+                        }
+                        //Reset objects.
+                        schedule.Objects = null;
+                    }
+                    if (schedule.Attributes != null && schedule.Attributes.Any())
+                    {
+                        handled = true;
+                        GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
+                        //List of create objects.
+                        if (g.Devices != null)
+                        {
+                            foreach (GXDevice device in g.Devices)
+                            {
+                                Dictionary<Guid, GXObject> objects = new Dictionary<Guid, GXObject>();
+                                ListAttributes req = new ListAttributes()
+                                {
+                                    Filter = new GXAttribute()
+                                    {
+                                        Object = new GXObject() { Device = device },
+                                    }
+                                };
+                                var attributes = await _attributeRepository.ListAsync(user, req, null, default);
+                                //Device attrbutes are read in one batch.
+                                Guid batch = Guid.NewGuid();
+                                foreach (GXAttribute a in schedule.Attributes)
+                                {
+                                    GXAttribute? at = attributes.Where(w => w.Template.Id == a.Template.Id).SingleOrDefault();
+                                    if (at != null)
+                                    {
+                                        if (at.CreationTime == DateTime.MinValue)
+                                        {
+                                            //If late binding is used and object is not created yet.
+                                            if (objects.TryGetValue(at.Object.Id, out GXObject? obj))
+                                            {
+                                                at.Object = obj;
+                                            }
+                                            else
+                                            {
+                                                at.Object = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, device, at.Object.Id));
+                                            }
+                                            objects[at.Object.Template.Id] = at.Object;
+                                            //Find attribute template and update it.
+                                            var tmp = at.Object.Attributes.Where(w => w.Template.Index == a.Template.Index).SingleOrDefault();
+                                            if (tmp != null)
+                                            {
+                                                //Update attribute ID.
+                                                at.Id = tmp.Id;
+                                            }
+                                        }
+                                        GXTask t = new GXTask()
+                                        {
+                                            TriggerSchedule = schedule,
+                                            Attribute = at,
+                                            TaskType = TaskType.Read,
+                                            Batch = batch,
+                                        };
+                                        tasks.Add(t);
+                                    }
+                                }
+                            }
+                        }
+                        //Reset attributes.
+                        schedule.Attributes = null;
+                    }
+                    if (!handled)
+                    {
+                        GXTask t = new GXTask()
+                        {
+                            TriggerSchedule = schedule,
+                            DeviceGroup = dg,
+                            TaskType = TaskType.Read,
+                        };
+                        tasks.Add(t);
+                    }
+                }
             }
-            foreach (GXDevice it in schedule.Devices)
+
+            if (schedule.Devices != null)
             {
-                GXTask t = new GXTask()
+                foreach (GXDevice it in schedule.Devices)
                 {
-                    TriggerSchedule = schedule,
-                    Device = it,
-                    TaskType = TaskType.Read,
-                };
-                tasks.Add(t);
+                    //Add device read.
+                    GXTask t = new GXTask()
+                    {
+                        TriggerSchedule = schedule,
+                        Device = it,
+                        TaskType = TaskType.Read,
+                    };
+                    tasks.Add(t);
+                }
             }
-            foreach (GXObject it in schedule.Objects)
+            if (schedule.Objects != null)
             {
-                GXTask t = new GXTask()
+                foreach (GXObject it in schedule.Objects)
                 {
-                    TriggerSchedule = schedule,
-                    Object = it,
-                    TaskType = TaskType.Read,
-                };
-                tasks.Add(t);
+                    GXTask t = new GXTask()
+                    {
+                        TriggerSchedule = schedule,
+                        Object = it,
+                        TaskType = TaskType.Read,
+                    };
+                    tasks.Add(t);
+                }
             }
-            foreach (GXAttribute it in schedule.Attributes)
+            if (schedule.Attributes != null)
             {
-                GXTask t = new GXTask()
+                foreach (GXAttribute it in schedule.Attributes)
                 {
-                    TriggerSchedule = schedule,
-                    Attribute = it,
-                    TaskType = TaskType.Read,
-                    Index = it.Template.Index
-                };
-                tasks.Add(t);
+                    GXTask t = new GXTask()
+                    {
+                        TriggerSchedule = schedule,
+                        Attribute = it,
+                        TaskType = TaskType.Read,
+                        Index = it.Template.Index
+                    };
+                    tasks.Add(t);
+                }
             }
-            foreach (GXScriptMethod it in schedule.ScriptMethods)
+            if (schedule.ScriptMethods != null)
             {
-                GXTask t = new GXTask()
+                foreach (GXScriptMethod it in schedule.ScriptMethods)
                 {
-                    TriggerSchedule = schedule,
-                    ScriptMethod = it,
-                    TaskType = TaskType.Read,
-                };
-                tasks.Add(t);
+                    GXTask t = new GXTask()
+                    {
+                        TriggerSchedule = schedule,
+                        ScriptMethod = it,
+                        TaskType = TaskType.Read,
+                    };
+                    tasks.Add(t);
+                }
             }
             schedule.ExecutionTime = now;
             _scheduleRepository.UpdateExecutionTime(schedule);

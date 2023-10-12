@@ -116,14 +116,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Returns objects that are added for the schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <returns>List of objects.</returns>
-        private async Task<List<GXObject>> GetObjectsByScheduleId(Guid scheduleId)
+        private async Task<List<GXObject>> GetObjectsByScheduleId(IDbTransaction transaction, Guid scheduleId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXObject>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXObject, GXScheduleToObject>(a => a.Id, b => b.ObjectId);
             arg.Where.And<GXScheduleToObject>(where => where.Removed == null && where.ScheduleId == scheduleId);
-            return (await _host.Connection.SelectAsync<GXObject>(arg));
+            return (await _host.Connection.SelectAsync<GXObject>(transaction, arg));
         }
 
         /// <summary>
@@ -520,7 +521,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                     //Map objects to schedule.
                     {
-                        List<GXObject> objects = await GetObjectsByScheduleId(schedule.Id);
+                        List<GXObject> objects = await GetObjectsByScheduleId(transaction, schedule.Id);
                         var comparer = new UniqueObjectComparer();
                         List<GXObject> removed = objects.Except(schedule.Objects, comparer).ToList();
                         List<GXObject> added = schedule.Objects.Except(objects, comparer).ToList();
