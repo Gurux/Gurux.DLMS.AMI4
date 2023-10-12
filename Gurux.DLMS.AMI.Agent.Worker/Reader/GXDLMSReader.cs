@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.Enums;
 using Gurux.DLMS.Objects;
+using Gurux.DLMS.Objects.Enums;
 using Gurux.DLMS.Secure;
 using Gurux.Net;
 using Gurux.Serial;
@@ -480,56 +481,62 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             Client.UpdateValue(target, 3, reply.Value);
             DateTime now = DateTime.Now;
             // Step 5: The Image is verified;
-            while (true)
+            try
             {
-                try
-                {
-                    reply.Clear();
-                    ReadDataBlock(target.ImageVerify(Client), reply);
-                    break;
-                }
-                catch (GXDLMSException e)
-                {
-                    //The image verification can take max 30 mins.
-                    if (e.ErrorCode != 2 ||
-                        (DateTime.Now - now).TotalMinutes > 30)
-                    {
-                        throw;
-                    }
-                    Thread.Sleep(10000);
-                }
-            };
-
-            //Read image transfer status.
-            ReadDataBlock(Client.Read(target, 6), reply);
-            Client.UpdateValue(target, 6, reply.Value);
-            if (target.ImageTransferStatus != Gurux.DLMS.Objects.Enums.ImageTransferStatus.VerificationSuccessful)
-            {
-                throw new Exception("Image transfer status is " + target.ImageTransferStatus.ToString());
+                reply.Clear();
+                ReadDataBlock(target.ImageVerify(Client), reply);
             }
-
-            //Step 7: Activate image.
-            while (true)
+            catch (GXDLMSException e)
             {
-                try
+                if (e.ErrorCode != (short)ErrorCode.TemporaryFailure)
                 {
-                    reply.Clear();
-                    ReadDataBlock(target.ImageActivate(Client), reply);
-                    break;
+                    throw;
                 }
-                catch (GXDLMSException e)
+                do
                 {
-                    //The image activication can take max 30 mins.
-                    if (e.ErrorCode != 2 ||
-                        (DateTime.Now - now).TotalMinutes > 30)
-                    {
-                        throw;
-                    }
                     Thread.Sleep(10000);
+                    //Read image transfer status.
+                    reply.Clear();
+                    ReadDataBlock(Client.Read(target, 6), reply);
+                    Client.UpdateValue(target, 6, reply.Value);
+                    //The image verify can take max 30 mins.
+                    if ((DateTime.Now - now).TotalMinutes > 30)
+                    {
+                        throw new TimeoutException();
+                    }
                 }
+                while (target.ImageTransferStatus != ImageTransferStatus.VerificationSuccessful &&
+                target.ImageTransferStatus != ImageTransferStatus.VerificationFailed);
+            }
+            //Step 7: Activate image.
+            try
+            {
+                reply.Clear();
+                ReadDataBlock(target.ImageActivate(Client), reply);
+            }
+            catch (GXDLMSException e)
+            {
+                if (e.ErrorCode != (short)ErrorCode.TemporaryFailure)
+                {
+                    throw;
+                }
+                do
+                {
+                    Thread.Sleep(10000);
+                    //Read image transfer status.
+                    reply.Clear();
+                    ReadDataBlock(Client.Read(target, 6), reply);
+                    Client.UpdateValue(target, 6, reply.Value);
+                    //The image activication can take max 30 mins.
+                    if ((DateTime.Now - now).TotalMinutes > 30)
+                    {
+                        throw new TimeoutException();
+                    }
+                } while (target.ImageTransferStatus != ImageTransferStatus.ActivationSuccessful &&
+                target.ImageTransferStatus != ImageTransferStatus.ActivationFailed);
             };
-
         }
+
         /// <summary>
         /// Read association view.
         /// </summary>
