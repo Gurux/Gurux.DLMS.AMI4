@@ -261,6 +261,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Optional scaler is used to multiple the value with the given scaler.
+        /// </summary>
+        [DataMember]
+        [Description("Optional scaler is used to multiple the value with the given scaler.")]
+        public double? Scaler
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()
