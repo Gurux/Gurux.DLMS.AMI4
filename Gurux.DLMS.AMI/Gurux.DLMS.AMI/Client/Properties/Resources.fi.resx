@@ -1146,4 +1146,16 @@
   <data name="InvalidIdentification" xml:space="preserve">
     <value>Virheellinen identifiointitunnus.</value>
   </data>
+  <data name="Scaler" xml:space="preserve">
+    <value>Skaalain</value>
+  </data>
+  <data name="Unit" xml:space="preserve">
+    <value>Yksikkö</value>
+  </data>
+  <data name="DataType" xml:space="preserve">
+    <value>Tietotyyppi</value>
+  </data>
+  <data name="UIDataType" xml:space="preserve">
+    <value>Käyttöliittymän tietotyyppi</value>
+  </data>
 </root>

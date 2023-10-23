@@ -20,6 +20,12 @@
                     <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
                     <label>@Index @Name</label>
                 }
+                &emsp;
+                @if (Attribute?.Template?.Unit is string unit)
+                {
+                    <label>@unit</label>
+                }
+                &emsp;
                 @if (Attribute != null && Attribute.Modified)
                 {
                     <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
@@ -61,7 +67,7 @@
                         <label>@GetName()</label>
                         &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                     </Tooltip>
-                    <select class="form-control" value="@GetValue2(@Attribute)"
+                    <select class="form-control" value="@GetAttributeValue(@Attribute)"
                     @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
                         @foreach (var li in Attribute.Template.ListItems)
@@ -69,6 +75,12 @@
                             <option value="@li.Value">@li.UIValue</option>
                         }
                     </select>
+                    &emsp;
+                    @if (Attribute?.Template?.Unit is string unit)
+                    {
+                        <label>@unit</label>
+                    }
+                    &emsp;
                     @if (Attribute != null && Attribute.Modified)
                     {
                         <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
@@ -80,7 +92,7 @@
                 <div class="form-group">
                     <Tooltip Title="@LastRead"><label>@GetName()</label></Tooltip>
                     &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
-                    <select class="form-control" value="@GetValue2(@Attribute)"
+                    <select class="form-control" value="@GetAttributeValue(@Attribute)"
                     @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
                         @foreach (var li in Values)
@@ -88,6 +100,12 @@
                             <option value="@li">@li</option>
                         }
                     </select>
+                    &emsp;
+                    @if (Attribute?.Template?.Unit is string unit)
+                    {
+                        <label>@unit</label>
+                    }
+                    &emsp;
                     @if (Attribute != null && Attribute.Modified)
                     {
                         <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
@@ -101,17 +119,23 @@
                         <Tooltip Title="@LastRead">
                             <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
                             <label>@GetName()</label>
+                            &emsp;
+                            @if (Attribute?.Template?.Unit is string unit)
+                            {
+                                <label>@unit</label>
+                            }
                             @if (Attribute != null && Attribute.Modified)
                             {
                                 <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
                             }
-                            &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                            &emsp;
+                            <a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                         </Tooltip>
                     </div>
                     @if (!HideValue)
                     {
-                        <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetValue2(@Attribute)"
-                   @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
+                        <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetAttributeValue(@Attribute)"
+                        @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
                     }
                 </div>
             }
@@ -127,7 +151,7 @@
 
     private string GetPath()
     {
-        return "/history/" + Attribute.Id;
+        return "/history/" + Attribute?.Id;
     }
 
     GXAttribute? _attribute;
@@ -136,13 +160,13 @@
     {
         get
         {
-            return "Last read: " + Attribute.Read;
+            return "Last read: " + Attribute?.Read;
         }
     }
 
     private string GetName()
     {
-        if (!string.IsNullOrEmpty(Name) || Attribute == null || Attribute.Template == null)
+        if (!string.IsNullOrEmpty(Name) || Attribute?.Template == null)
         {
             return Name;
         }
@@ -201,13 +225,18 @@
     /// </summary>
     /// <param name="attribute">Attribute.</param>
     /// <returns>Value of the attribute.</returns>
-    private string? GetValue2(GXAttribute attribute)
+    private string? GetAttributeValue(GXAttribute attribute)
     {
         try
         {
             if (GetValue != null)
             {
-                return GetValue.Invoke();
+                string? value = GetValue.Invoke();
+                if (attribute.Template?.Scaler is double d1)
+                {
+                    value = (Convert.ToDouble(attribute.Value) * d1).ToString("0.######");
+                }
+                return value;
             }
             if (attribute.Template != null)
             {
@@ -223,6 +252,10 @@
                 if (dt == DataType.Time)
                 {
                     return new GXTime(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                }
+                if (attribute.Template?.Scaler is double d2)
+                {
+                    return (Convert.ToDouble(attribute.Value) * d2).ToString("0.######");
                 }
             }
             return attribute.Value;
@@ -274,6 +307,10 @@
                     }
                     else
                     {
+                        if (attribute.Template.Scaler is double s && tmp != null)
+                        {
+                            tmp = (Convert.ToDouble(tmp) / s).ToString();
+                        }
                         //Check that value type is correct.
                         dt = (DataType)attribute.Template.DataType;
                         if (dt != DataType.None)
@@ -291,6 +328,7 @@
         {
             //TODO: Notify from the error.
             Console.WriteLine(ex.Message);
+            throw;
         }
     }
 
@@ -321,7 +359,7 @@
         }
     }
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 
     /// <summary>
     /// Value is hidden. Only the title and history are shown.

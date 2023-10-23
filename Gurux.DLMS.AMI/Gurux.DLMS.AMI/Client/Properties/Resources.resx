@@ -1146,4 +1146,16 @@
   <data name="InvalidFirmware" xml:space="preserve">
     <value>Invalid firmware.</value>
   </data>
+  <data name="Scaler" xml:space="preserve">
+    <value>Scaler</value>
+  </data>
+  <data name="Unit" xml:space="preserve">
+    <value>Unit</value>
+  </data>
+  <data name="DataType" xml:space="preserve">
+    <value>Data type</value>
+  </data>
+  <data name="UIDataType" xml:space="preserve">
+    <value>UI data type</value>
+  </data>
 </root>

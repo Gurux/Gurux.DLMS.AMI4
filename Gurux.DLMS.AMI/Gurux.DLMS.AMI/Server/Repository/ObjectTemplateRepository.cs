@@ -228,12 +228,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         await _host.Connection.UpdateAsync(GXUpdateArgs.Update(obj, columns));
                     }
-                    //Update attribute expiration times.
+                    //Update attribute data type, UI data type, scaler, access rights and expiration times.
                     if (obj.Attributes != null)
                     {
                         foreach (var att in obj.Attributes)
                         {
-                            await _host.Connection.UpdateAsync(GXUpdateArgs.Update(att, u => u.ExpirationTime));
+                            await _host.Connection.UpdateAsync(GXUpdateArgs.Update(att, u => new
+                            {
+                                u.DataType,
+                                u.UIDataType,
+                                u.Scaler,
+                                u.Unit,
+                                u.AccessLevel,
+                                u.ExpirationTime
+                            }));
                         }
                     }
                 }

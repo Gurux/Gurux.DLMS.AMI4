@@ -42,6 +42,10 @@
                         <tr>
                             <th>Index</th>
                             <th>@Properties.Resources.Name</th>
+                            <th>@Properties.Resources.DataType</th>
+                            <th>@Properties.Resources.UIDataType</th>
+                            <th>@Properties.Resources.Scaler</th>
+                            <th>@Properties.Resources.Unit</th>
                             <th>Access rights</th>
                             <th>Expiration time</th>
                             <th width="1%"></th>
@@ -54,7 +58,39 @@
                             {
                                 <tr>
                                     <td>@it.Index</td>
-                                    <td>it.Name</td>
+                                    <td>@it.Name</td>
+                                    <td>
+                                        <select class="form-select" @bind="@it.DataType">
+                                            @foreach (var type in GetDataTypes())
+                                            {
+                                                <option value="@Convert.ToInt32(type)">@type</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select" @bind="@it.UIDataType">
+                                            @foreach (var type in GetDataTypes())
+                                            {
+                                                <option value="@Convert.ToInt32(type)">@type</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        @if (IsNumber(it.DataType))
+                                        {
+                                            <InputNumber step="0.0001"
+                                                         class="form-control"
+                                                         id="scaler"
+                                            @bind-Value="@it.Scaler" />
+                                        }
+                                        else
+                                        {
+                                            <!--Scaler is shown only for number data types.-->
+                                        }
+                                    </td>
+                                    <td>
+                                        <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
+                                    </td>
                                     <td>@GetAccessRights(it)</td>
                                     <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
                                     <td>
@@ -73,6 +109,10 @@
                                 <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
                                     <td>@it.Index</td>
                                     <td><LinkButton Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
+                                    <td>@GetDataType(it.DataType)</td>
+                                    <td>@GetDataType(it.UIDataType)</td>
+                                    <td>@it.Scaler</td>
+                                    <td>@it.Unit</td>
                                     <td>@GetAccessRights(it)</td>
                                     <td>@GetExpirationTime(it)</td>
                                     @if (_activeAttribute == it)
@@ -166,6 +206,54 @@
     [Parameter]
     public Guid? Id { get; set; }
 
+
+    /// <summary>
+    /// Get data type.
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    private string GetDataType(int value)
+    {
+        if (value == 0)
+        {
+            return string.Empty;
+        }
+        return ((Gurux.DLMS.Enums.DataType)value).ToString();
+    }
+
+    private Gurux.DLMS.Enums.DataType[] GetDataTypes()
+    {
+        return Enum.GetValues<Gurux.DLMS.Enums.DataType>();
+    }
+
+    private static bool IsNumber(int value)
+    {
+        Gurux.DLMS.Enums.DataType dt = (Gurux.DLMS.Enums.DataType)value;
+        switch (dt)
+        {
+            case Enums.DataType.Float32:
+            case Enums.DataType.Float64:
+            case Enums.DataType.Int16:
+            case Enums.DataType.Int32:
+            case Enums.DataType.Int64:
+            case Enums.DataType.Int8:
+            case Enums.DataType.None:
+            case Enums.DataType.DeltaInt8:
+            case Enums.DataType.DeltaInt16:
+            case Enums.DataType.DeltaInt32:
+            case Enums.DataType.DeltaUInt8:
+            case Enums.DataType.DeltaUInt16:
+            case Enums.DataType.DeltaUInt32:
+            case Enums.DataType.UInt16:
+            case Enums.DataType.UInt32:
+            case Enums.DataType.UInt64:
+            case Enums.DataType.UInt8:
+                return true;
+        }
+        return false;
+    }
+
+
     private GXAttributeTemplate? _activeAttribute;
 
     /// <summary>
@@ -195,7 +283,7 @@
                 }
             }
         }
-        return list;
+        return list.OrderBy(s => s.Index);
     }
 
     class GXAction
@@ -277,7 +365,6 @@
         }
         if (save)
         {
-            GXAttributeTemplate? ret;
             ClientHelpers.Copy(modified, key);
         }
         if (Modified.ContainsKey(key))

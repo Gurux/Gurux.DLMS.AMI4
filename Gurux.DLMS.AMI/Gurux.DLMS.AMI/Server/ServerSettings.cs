@@ -904,7 +904,7 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXGatewayDeviceGroup>(false, false);
                         host.Connection.CreateTable<GXGatewayDevice>(false, false);
                         host.Connection.CreateTable<GXUserGroupGatewayGroup>(false, false);
-                        host.Connection.CreateTable<GXGatewayGroupGateway>(false, false);                        
+                        host.Connection.CreateTable<GXGatewayGroupGateway>(false, false);
                     }
                     //Concurrently and active properties added to schedule.
                     host.Connection.UpdateTable<GXSchedule>();
@@ -912,6 +912,8 @@ namespace Gurux.DLMS.AMI.Server
                     host.Connection.UpdateTable<GXDevice>();
                     //Active property added to device group.
                     host.Connection.UpdateTable<GXDeviceGroup>();
+                    //Scaler added to attribute template.
+                    host.Connection.UpdateTable<GXAttributeTemplate>();
                 }
             }
             else
