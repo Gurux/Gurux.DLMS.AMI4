@@ -271,6 +271,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             set;
         }
 
+
+        /// <summary>
+        /// Optional unit is used to describe the unit.
+        /// </summary>
+        [DataMember]
+        [Description("Optional unit is used to describe the unit.")]
+        public string? Unit
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Update creation time before update.
         /// </summary>
