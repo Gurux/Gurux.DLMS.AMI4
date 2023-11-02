@@ -73,6 +73,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// Block is added for the content footer.
         /// </summary>
         [XmlEnum("6")]
-        ContentFooter = 6
+        ContentFooter = 6,
+        /// <summary>
+        /// Block is added inside of the UI component.
+        /// </summary>
+        [XmlEnum("7")]
+        Component = 7
     }
 }

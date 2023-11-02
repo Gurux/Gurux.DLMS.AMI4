@@ -81,6 +81,10 @@ namespace Gurux.DLMS.AMI.Scheduler
             ver.FileName = version.FileName;
             ver.Prerelease = version.Prerelease;
             ver.Description = version.Description;
+            if (module.Versions == null)
+            {
+                module.Versions = new List<Shared.DTOs.GXModuleVersion>();
+            }
             module.Versions.Add(ver);
             try
             {
