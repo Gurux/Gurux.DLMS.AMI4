@@ -40,7 +40,7 @@ namespace Gurux.SMTP.Server
     /// <summary>
     /// SMTP email module settings.
     /// </summary>
-    public class GXSmtpModule : IGXServerModule
+    public class GXSmtpModule : IAmiModule
     {
         /// <inheritdoc />
         public string Name => "Smtp";

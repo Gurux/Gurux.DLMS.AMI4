@@ -37,15 +37,15 @@ namespace Gurux.SMTP.Client
     /// <summary>
     /// Show SMTP settings.
     /// </summary>
-    public class GXSmtpClient : IGXModuleUI
+    public class GXSmtpClient : IAMINavigation
     {
         public string Name => "Smtp";
 
-        public GXNavItem[]? NavItems
+        public AmiNavItem[]? NavItems
         {
             get
             {
-                return new GXNavItem[] { new GXNavItem() { Component = typeof(Gurux.SMTP.Client.Pages.Configuration), Name = "SMTP", Icon = "oi oi-envelope-closed" } };
+                return new AmiNavItem[] { new AmiNavItem() { Component = typeof(Gurux.SMTP.Client.Pages.Configuration), Name = "SMTP", Icon = "oi oi-envelope-closed" } };
             }
         }     
     }

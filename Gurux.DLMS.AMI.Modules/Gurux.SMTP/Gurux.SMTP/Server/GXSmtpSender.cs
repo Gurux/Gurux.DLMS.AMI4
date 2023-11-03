@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.SMTP.Shared;
 using Microsoft.AspNetCore.Identity.UI.Services;
