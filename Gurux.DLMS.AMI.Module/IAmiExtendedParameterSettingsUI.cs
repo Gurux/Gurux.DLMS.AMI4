@@ -31,14 +31,14 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// Device group settings UI interface.
+    /// Extended setting interface for the parameter settings.
     /// </summary>
     /// <remarks>
-    /// This interface is used to customize device group settings for the module.
+    /// This interface is used to customize parameters for the module.
     /// </remarks>
-    public interface IGXDeviceGroupSettings : IGXParameterSettings
+    public interface IAmiExtendedParameterSettingsUI : IAmiExtendedSettingsUI
     {
     }   
 }

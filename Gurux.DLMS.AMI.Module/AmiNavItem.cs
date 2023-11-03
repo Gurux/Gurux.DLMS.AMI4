@@ -29,17 +29,26 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// Object settings UI interface.
+    /// Navication item.
     /// </summary>
-    /// <remarks>
-    /// This interface is used to customize object settings for the module.
-    /// </remarks>
-    public interface IGXObjectSettings : IGXParameterSettings
+    public class AmiNavItem
     {
+        /// <summary>
+        /// Name of the navication item.
+        /// </summary>
+        public string Name { get; set; } = "";
 
-    }    
+        /// <summary>
+        /// Name of the navication item.
+        /// </summary>
+        public string? Icon { get; set; }
+
+        /// <summary>
+        /// Component.
+        /// </summary>
+        public Type? Component { get; set; }
+    }
 }

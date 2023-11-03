@@ -29,17 +29,28 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
-namespace Gurux.DLMS.AMI.Module
-{    
+namespace Gurux.DLMS.AMI.Module.Enums
+{
     /// <summary>
-    /// Meter settings UI interface.
+    /// Visible type defines how extended UI is handled on the UI.
     /// </summary>
-    /// <remarks>
-    /// This interface is used to customize meter settings for the module.
-    /// </remarks>
-    public interface IGXDeviceSettings : IGXParameterSettings
+    public enum ExtendedlUIType
     {
-        
-    }   
+        /// <summary>
+        /// Extended UI is not shown to the target.
+        /// </summary>
+        None,
+        /// <summary>
+        /// Extended UI is append after the target default settings.
+        /// </summary>
+        Append,
+        /// <summary>
+        /// The default UI is replaced with extended UI.
+        /// </summary>
+        /// <remarks>
+        /// If there are multiple extended UIs all must replace 
+        /// the default UI or default UI is shown. 
+        /// </remarks>
+        Replace
+    }
 }

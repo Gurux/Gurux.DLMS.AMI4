@@ -33,23 +33,13 @@
 namespace Gurux.DLMS.AMI.Module
 {    
     /// <summary>
-    /// IGXModule UI notification interface.
+    /// Meter settings UI interface.
     /// </summary>
-    public interface IGXModuleSettings
+    /// <remarks>
+    /// This interface is used to customize meter settings for the module.
+    /// </remarks>
+    public interface IAmiExtendedDeviceSettingsUI : IAmiExtendedSettingsUI
     {
-        /// <summary>
-        /// Initialize settings.
-        /// </summary>
-        void Initialize();
-
-        /// <summary>
-        /// Save settings.
-        /// </summary>
-        void Save();
-
-        /// <summary>
-        /// Cancel changes.
-        /// </summary>
-        void Cancel();
+        
     }   
 }

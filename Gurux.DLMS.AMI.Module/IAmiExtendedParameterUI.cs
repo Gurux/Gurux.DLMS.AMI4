@@ -33,24 +33,13 @@
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// IGXModule UI interface.
+    /// Extended setting interface for the parameters.
     /// </summary>
-    public interface IGXModuleUI
+    /// <remarks>
+    /// This interface is used to customize parameters for the module.
+    /// </remarks>
+    public interface IAmiExtendedParameterUI : IAmiExtendedUI
     {
-        /// <summary>
-        /// Name of the module.
-        /// </summary>
-        string Name
-        {
-            get;
-        }
 
-        /// <summary>
-        /// Navication items.
-        /// </summary>
-        GXNavItem[]? NavItems
-        {
-            get;
-        }
-    }
+    }   
 }

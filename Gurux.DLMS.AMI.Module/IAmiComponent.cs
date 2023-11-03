@@ -29,27 +29,40 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using System;
+
+using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Navication item.
+    /// Components that are derived from IAmiComponent can be used inside of the UI blocks.
     /// </summary>
-    public class GXNavItem
+    public interface IAmiComponent
     {
         /// <summary>
-        /// Name of the navication item.
+        /// Name of the component view.
         /// </summary>
-        public string Name { get; set; } = "";
-        /// <summary>
-        /// Name of the navication item.
-        /// </summary>
-        public string? Icon { get; set; }
+        string Name
+        {
+            get;
+        }
 
         /// <summary>
-        /// Component.
+        /// Optional configuration UI.
         /// </summary>
-        public Type? Component { get; set; }
+        [JsonIgnore]
+        Type? ConfigurationUI
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Css icon name or Base64 image.
+        /// </summary>
+        [JsonIgnore]
+        string? Icon
+        {
+            get;
+        }
     }
 }

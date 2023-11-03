@@ -30,15 +30,17 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Module.Enums;
+
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// Parameter setting interface.
+    /// Extended UI setting interface.
     /// </summary>
     /// <remarks>
-    /// This interface is used to customize parameters for the module.
+    /// This interface is used to customize UI for the wanted object.
     /// </remarks>
-    public interface IGXParameterSettings
+    public interface IAmiExtendedSettingsUI
     {
         /// <summary>
         /// Parameter name.
@@ -60,9 +62,12 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
-        /// Initialize settings.
+        /// Returns true, if extended UI has been modified.
         /// </summary>
-        void Initialize();
+        bool Dirty
+        {
+            get;
+        }
 
         /// <summary>
         /// Save settings.
@@ -75,10 +80,18 @@ namespace Gurux.DLMS.AMI.Module
         void Cancel();
 
         /// <summary>
-        /// Are settings shown for the target meter.
+        /// Page is changing.
         /// </summary>
-        /// <param name="target">Target meter.</param>
-        /// <returns>True, if settings are shown.</returns>
-        bool IsVisible(object target);
-    }   
+        /// <param name="location">New location.</param>
+        /// <returns>Returns true, if page can change to the target location.</returns>
+        bool CanChange(string location);
+
+        /// <summary>
+        /// Are settings shown for the target object.
+        /// Object can be device group, device, object or attribute.
+        /// </summary>
+        /// <param name="target">Target object.</param>
+        /// <returns>Visible type.</returns>
+        ExtendedlUIType ExtendedUI(object target);
+    }
 }

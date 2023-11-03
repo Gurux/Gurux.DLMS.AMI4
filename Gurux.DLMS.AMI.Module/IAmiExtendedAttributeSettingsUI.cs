@@ -38,7 +38,7 @@ namespace Gurux.DLMS.AMI.Module
     /// <remarks>
     /// This interface is used to customize attribute settings for the module.
     /// </remarks>
-    public interface IGXAttributeSettings : IGXParameterSettings
+    public interface IAmiExtendedAttributeSettingsUI : IAmiExtendedSettingsUI
     {
     }
 }

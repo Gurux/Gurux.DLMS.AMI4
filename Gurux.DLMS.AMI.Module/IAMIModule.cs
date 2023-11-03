@@ -37,9 +37,9 @@ using System.Security.Claims;
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Server Module interface.
+    /// Gurux DLMS AMI module interface.
     /// </summary>
-    public interface IGXServerModule
+    public interface IAmiModule
     {
         /// <summary>
         /// Name of the module.

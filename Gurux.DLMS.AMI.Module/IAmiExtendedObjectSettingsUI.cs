@@ -31,38 +31,15 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{
+{    
     /// <summary>
-    /// This interface is used to get crypto service.
+    /// Object settings UI interface.
     /// </summary>
-    public interface IGXCryproService
+    /// <remarks>
+    /// This interface is used to customize object settings for the module.
+    /// </remarks>
+    public interface IAmiExtendedObjectSettingsUI : IAmiExtendedSettingsUI
     {
-        /// <summary>
-        /// Decrypt the string.
-        /// </summary>
-        /// <param name="encrypted">Decrypted string.</param>
-        /// <returns>Decrypted string.</returns>
-        string Decrypt(string encrypted);
 
-        /// <summary>
-        /// Encrypt the string.
-        /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
-        /// <returns>Encrypted ASCII string</returns>
-        string Encrypt(string plainText);
-
-        /// <summary>
-        /// Decrypt the byte array.
-        /// </summary>
-        /// <param name="encrypted">Decrypted byte array.</param>
-        /// <returns>Decrypted byte array.</returns>
-        byte[] Decrypt(byte[] encrypted);
-
-        /// <summary>
-        /// Encrypt the byte array.
-        /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
-        /// <returns>Encrypted byte array.</returns>
-        byte[] Encrypt(byte[] plainText);
-    }
+    }    
 }

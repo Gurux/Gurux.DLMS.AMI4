@@ -31,34 +31,25 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{
+{    
     /// <summary>
-    /// Components that are derived from IGXComponentView can be used inside of the UI blocks.
+    /// IGXModule UI notification interface.
     /// </summary>
-    public interface IGXComponentView
+    public interface IAmiModuleSettings
     {
         /// <summary>
-        /// Name of the component view.
+        /// Initialize settings.
         /// </summary>
-        string Name
-        {
-            get;
-        }
+        void Initialize();
 
         /// <summary>
-        /// Optional configuration UI.
+        /// Save settings.
         /// </summary>
-        Type? ConfigurationUI
-        {
-            get;
-        }
+        void Save();
 
         /// <summary>
-        /// Css icon name or Base64 image.
+        /// Cancel changes.
         /// </summary>
-        string? Icon
-        {
-            get;
-        }
-    }
+        void Cancel();
+    }   
 }
