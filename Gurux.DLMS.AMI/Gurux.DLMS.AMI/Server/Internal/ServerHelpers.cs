@@ -258,13 +258,13 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 List<GXComponentView> list = new List<GXComponentView>();
                 foreach (Type it in assembly.GetTypes())
                 {
-                    if (!it.IsAbstract && typeof(IGXComponentView).IsAssignableFrom(it))
+                    if (!it.IsAbstract && typeof(IAmiComponent).IsAssignableFrom(it))
                     {
                         GXSelectArgs args = GXSelectArgs.SelectAll<GXComponentView>(where => where.ClassName == it.FullName);
                         GXComponentView? item = host.Connection.SingleOrDefault<GXComponentView>(args);
                         if (item == null)
                         {
-                            IGXComponentView tmp = (IGXComponentView)Activator.CreateInstance(it);
+                            IAmiComponent tmp = (IAmiComponent)Activator.CreateInstance(it);
                             string? configurationUI = null;
                             if (tmp.ConfigurationUI != null)
                             {

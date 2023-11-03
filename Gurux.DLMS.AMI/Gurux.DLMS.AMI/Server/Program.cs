@@ -141,7 +141,7 @@ if (host != null)
 }
 
 //Add crypto service
-builder.Services.AddTransient<IGXCryproService, GXCryproService>();
+builder.Services.AddTransient<IAmiCryproService, GXCryproService>();
 //Add workflow service
 builder.Services.AddSingleton<IWorkflowHandler, GXWorkflowService>();
 

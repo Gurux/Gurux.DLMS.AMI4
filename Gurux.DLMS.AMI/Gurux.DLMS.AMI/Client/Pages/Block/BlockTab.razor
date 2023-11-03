@@ -69,7 +69,10 @@
     /// <summary>
     /// Active item.
     /// </summary>
-    public GXBlock Active = new GXBlock(null);
+    public GXBlock Active = new GXBlock(null)
+        {
+            Location = Gurux.DLMS.AMI.Shared.DTOs.Enums.BlockLocation.Content
+        };
 
     protected override async Task OnInitializedAsync()
     {

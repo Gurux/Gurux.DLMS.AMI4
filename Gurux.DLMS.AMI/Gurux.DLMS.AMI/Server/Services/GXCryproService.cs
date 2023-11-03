@@ -41,7 +41,7 @@ namespace Gurux.DLMS.AMI.Services
     /// <summary>
     /// This service is used to encrypt and descrypt passwords.
     /// </summary>
-    public class GXCryproService : IGXCryproService
+    public class GXCryproService : IAmiCryproService
     {
         private readonly byte[] key;
 

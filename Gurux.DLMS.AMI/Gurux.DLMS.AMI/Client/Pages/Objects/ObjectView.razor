@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Module.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
 
@@ -20,7 +21,7 @@
 @implements IDisposable
 @inject ILogger<ObjectView> logger
 
-@if (Active?.Template != null)
+@if (_extendedlUIType != ExtendedlUIType.Replace && Active?.Template != null)
 {
     <CascadingValue Value="this">
         <h3>@Active.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType) Object</h3>
@@ -90,6 +91,39 @@
     </CascadingValue>
     <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
 }
+@if (Active?.Template != null && _extendedUIs != null)
+{
+    <!--Show extended UIs.-->
+    var onRead = EventCallback.Factory.Create<IEnumerable<AMIReadArgument>>(this, async arg =>
+            {
+                await CreateRead(arg);
+            });
+    var onWrite = EventCallback.Factory.Create<IEnumerable<AMIWriteArgument>>(this, async arg =>
+            {
+                await CreateWrite(arg);
+            });
+    var onAction = EventCallback.Factory.Create<IEnumerable<AMIActionArgument>>(this, async arg =>
+            {
+                await CreateAction(arg);
+            });
+    @foreach (var it in _extendedUIs)
+    {
+        RenderFragment renderFragment = (builder) =>
+        {
+            builder.OpenComponent(0, it.GetType());
+            builder.AddAttribute(0, "Target", Active);
+            builder.AddAttribute(1, "OnRead", onRead);
+            builder.AddAttribute(2, "OnWrite", onWrite);
+            builder.AddAttribute(3, "OnAction", onAction);
+            builder.CloseComponent();
+        };
+        <CascadingValue Value="this">
+            <div>
+                @renderFragment
+            </div>
+        </CascadingValue>
+    }
+}
 @code {
     [CascadingParameter]
     public Objects? Parent { get; set; }
@@ -114,6 +148,10 @@
     public Guid? Id { get; set; }
 
     GXObject? _active;
+
+    ExtendedlUIType _extendedlUIType;
+    IAmiExtendedObjectUI[]? _extendedUIs;
+
     /// <summary>
     /// Active item.
     /// </summary>
@@ -347,7 +385,9 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (Active != null && Active.Parameters != null)
+            _extendedUIs = AmiExtendedUIHelper.GetExtendedObjectUIs(Active, false,
+                out _extendedlUIType);
+            if (Active.Parameters != null)
             {
                 Parameters.AddRange(Active.Parameters);
             }
@@ -364,6 +404,26 @@
         {
             Notifier?.ProgressEnd();
         }
+    }
+
+    /// <summary>
+    /// Get attribute access level.
+    /// </summary>
+    /// <param name="index"></param>
+    /// <returns></returns>
+    public int GetAccessLevel(int index)
+    {
+        if (Active?.Template?.Attributes != null)
+        {
+            foreach (var it in Active.Template.Attributes)
+            {
+                if (it.Index == index)
+                {
+                    return it.AccessLevel;
+                }
+            }
+        }
+        return 0;
     }
 
     /// <summary>
@@ -633,6 +693,234 @@
     public async void OnRead()
     {
         await OnRead(true);
+    }
+
+    /// <summary>
+    /// Create read task.
+    /// </summary>
+    /// <param name="target"></param>
+    private async System.Threading.Tasks.Task CreateRead(IEnumerable<AMIReadArgument> targets)
+    {
+        try
+        {
+            List<GXTask> tasks = new();
+            List<GXAttribute> tmp = new List<GXAttribute>();
+            foreach (var it in targets)
+            {
+                if (it.Target is GXObject obj)
+                {
+                    tmp.AddRange(obj.Attributes);
+                }
+                else if (it.Target is GXAttribute att)
+                {
+                    tmp.Add(att);
+                }
+                else
+                {
+                    throw new Exception("No item has been selected.");
+                }
+            }
+            Guid? batch = null;
+            if (tmp.Count != 1)
+            {
+                batch = Guid.NewGuid();
+            }
+            foreach (var it in tmp)
+            {
+                if (it.Template == null)
+                {
+                    throw new ArgumentNullException("Invalid attribute template");
+                }
+                //Check expiration time.
+                if (it.Read != null && it.Template.ExpirationTime != null)
+                {
+                    TimeSpan exp = new TimeSpan(it.Template.ExpirationTime.Value.Ticks);
+                    if ((DateTime.Now - it.Read.Value) < exp)
+                    {
+                        continue;
+                    }
+                }
+                if ((it.Template.AccessLevel & (int)AccessMode.Read) != 0)
+                {
+                    GXTask task = new GXTask()
+                        {
+                            TaskType = TaskType.Read,
+                            Batch = batch,
+                            Attribute = new GXAttribute() { Id = it.Id },
+                        };
+                    tasks.Add(task);
+                    task.Order = tasks.Count;
+                }
+            }
+            await GenerateTask(tasks.ToArray());
+            Notifier.ShowInformation("Read tasks added.", true);
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    private void AddWriteTask(List<GXTask> tasks, GXAttribute it, object? value)
+    {
+        if (it.Template == null)
+        {
+            throw new ArgumentNullException("Invalid attribute template");
+        }
+        if ((it.Template.AccessLevel & (int)AccessMode.Write) != 0)
+        {
+            string? str;
+            DataType d = (DataType)it.Template.DataType;
+            if (d == DataType.OctetString)
+            {
+                DataType dt = (DataType)it.Template.UIDataType;
+                if (dt == DataType.OctetString && value is string str2)
+                {
+                    str = GXDLMSTranslator.ValueToXml(GXDLMSTranslator.HexToBytes(str2));
+                }
+                else if (dt == DataType.DateTime || dt == DataType.Date || dt == DataType.Time)
+                {
+                    //Date time is already converted to the InvariantCulture.
+                    str = Convert.ToString(value);
+                }
+                else
+                {
+                    str = GXDLMSTranslator.ValueToXml(System.Text.ASCIIEncoding.ASCII.GetBytes((string)value));
+                }
+            }
+            else if (d == DataType.Structure || d == DataType.Array)
+            {
+                //Value is alread in XML.
+                if (value is string)
+                {
+                    str = (string)value;
+                }
+                else
+                {
+                    str = GXDLMSTranslator.ValueToXml(value);
+                }
+            }
+            else
+            {
+                if (d == DataType.Enum && value != null)
+                {
+                    str = GXDLMSTranslator.ValueToXml(new GXEnum(Convert.ToByte(value)));
+                }
+                else
+                {
+                    Type dt = GXDLMSConverter.GetDataType(d);
+                    object? tmp = Convert.ChangeType(value, dt);
+                    str = GXDLMSTranslator.ValueToXml(tmp);
+                }
+            }
+            GXTask task = new GXTask();
+            task.Attribute = new() { Id = it.Id };
+            task.TaskType = TaskType.Write;
+            task.Data = str;
+            task.Index = it.Template.Index;
+            tasks.Add(task);
+            task.Order = tasks.Count;
+        }
+    }
+
+    /// <summary>
+    /// Create write task.
+    /// </summary>
+    /// <param name="target"></param>
+    private async System.Threading.Tasks.Task CreateWrite(IEnumerable<AMIWriteArgument> targets)
+    {
+        try
+        {
+            List<GXTask> tasks = new();
+            foreach (var it in targets)
+            {
+                if (it.Target is GXObject obj)
+                {
+                    foreach (var att in obj.Attributes)
+                    {
+                        AddWriteTask(tasks, att, it.Value);
+                    }
+                }
+                else if (it.Target is GXAttribute att)
+                {
+                    AddWriteTask(tasks, att, it.Value);
+                }
+                else
+                {
+                    throw new Exception("No item has been selected.");
+                }
+            }
+            Guid? batch = null;
+            if (tasks.Any())
+            {
+                if (tasks.Count > 1)
+                {
+                    batch = Guid.NewGuid();
+                    foreach (GXTask task in tasks)
+                    {
+                        task.Batch = batch;
+                    }
+                }
+                await GenerateTask(tasks.ToArray());
+                Notifier.ShowInformation("Write tasks added.", true);
+            }
+            else if (tasks.Count == 0)
+            {
+                throw new Exception("Nothing to write.");
+            }
+            foreach (var it in targets)
+            {
+                if (it.Target is GXObject obj)
+                {
+                    foreach (var att in obj.Attributes)
+                    {
+                        att.Modified = false;
+                    }
+                }
+                else if (it.Target is GXAttribute att)
+                {
+                    att.Modified = false;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Create action task.
+    /// </summary>
+    private async System.Threading.Tasks.Task CreateAction(IEnumerable<AMIActionArgument> targets)
+    {
+        try
+        {
+            List<GXTask> tasks = new List<GXTask>();
+            Guid? batch = null;
+            foreach (var it in targets)
+            {
+                if (it.Target is GXObject obj)
+                {
+                    GXTask task = new GXTask();
+                    tasks.Add(task);
+                    task.Object = new() { Id = obj.Id };
+                    task.TaskType = TaskType.Action;
+                    task.Data = GXDLMSTranslator.ValueToXml(it.Value);
+                    task.Index = it.Index;
+                }
+                else
+                {
+                    throw new Exception("Target object has not been selected.");
+                }
+            }
+            await GenerateTask(tasks.ToArray());
+            Notifier.ShowInformation("Action tasks added.", true);
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
     }
 
     /// <summary>

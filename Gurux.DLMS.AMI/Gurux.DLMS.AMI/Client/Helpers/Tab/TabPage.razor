@@ -1,4 +1,6 @@
-﻿@if (Parent.ActivePage == this)
+﻿@namespace Gurux.DLMS.AMI.Components.Tab
+
+@if (Parent.ActivePage == this)
 {
     @ChildContent
 }
@@ -44,6 +46,14 @@
     /// This is for internal use.
     /// </remarks>
     internal int Index { get; set; }
+
+    /// <summary>
+    /// Page identifier.
+    /// </summary>
+    /// <remarks>
+    /// This is for internal use.
+    /// </remarks>
+    internal string? Id { get; set; }
 
     protected override void OnInitialized()
     {

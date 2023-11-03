@@ -150,15 +150,15 @@ namespace Gurux.DLMS.AMI.Client
                         {
                             continue;
                         }
-                        if (typeof(IGXDeviceSettings).IsAssignableFrom(it))
+                        if (typeof(IAmiExtendedDeviceSettingsUI).IsAssignableFrom(it))
                         {
                             meterSettings.Add(it);
                         }
-                        else if (typeof(IGXObjectSettings).IsAssignableFrom(it))
+                        else if (typeof(IAmiExtendedObjectSettingsUI).IsAssignableFrom(it))
                         {
                             objectSettings.Add(it);
                         }
-                        else if (typeof(IGXAttributeSettings).IsAssignableFrom(it))
+                        else if (typeof(IAmiExtendedAttributeSettingsUI).IsAssignableFrom(it))
                         {
                             attributeSettings.Add(it);
                         }

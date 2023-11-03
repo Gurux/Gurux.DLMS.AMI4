@@ -56,7 +56,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
         private readonly IServiceProvider _serviceProvider;
         private readonly IKeyManagementGroupRepository _deviceKeyGroupRepository;
-        private readonly IGXCryproService _cryproService;
+        private readonly IAmiCryproService _cryproService;
 
         /// <summary>
         /// Constructor.
@@ -66,7 +66,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IServiceProvider serviceProvider,
             IKeyManagementGroupRepository deviceKeyGroupRepository,
             IGXEventsNotifier eventsNotifier,
-            IGXCryproService cryproService)
+            IAmiCryproService cryproService)
         {
             _host = host;
             _eventsNotifier = eventsNotifier;

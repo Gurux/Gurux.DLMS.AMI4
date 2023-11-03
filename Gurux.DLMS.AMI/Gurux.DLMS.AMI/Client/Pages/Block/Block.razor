@@ -11,6 +11,7 @@
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.BlockManager)]
 @inject NavigationManager NavigationManager
+@inject ILogger<Block> Logger
 @inject HttpClient Http
 @inject IGXNotifier2 Notifier
 @if (Active != null)
@@ -89,7 +90,7 @@
                                     <label class="form-check-label">@p.Key</label>
                                     <input type="checkbox" checked="@Convert.ToBoolean(p.Value)"
                                            class="form-check-input"
-                           @onchange="@((ChangeEventArgs __e) => UpdateParameterValue(p.Key, __e.Value))" />
+                                    @onchange="@((ChangeEventArgs __e) => UpdateParameterValue(p.Key, __e.Value))" />
                                 </div>
                             }
                             else
@@ -98,6 +99,46 @@
                                 <input class="form-control" value="@p.Value" @onchange="@((ChangeEventArgs __e) => UpdateParameterValue(p.Key, __e.Value))" />
                             }
                         </div>
+                    }
+                    @if (componentList != null && !string.IsNullOrEmpty(SelectedComponent))
+                    {
+                        //Show component configuration UI if exists.
+                        var comp = componentList.Where(w => w.ClassName == SelectedComponent).SingleOrDefault();
+                        if (!string.IsNullOrEmpty(comp?.ConfigurationUI))
+                        {
+                            Type? type = Type.GetType(comp.ConfigurationUI);
+                            if (type != null)
+                            {
+                                var onEdit = EventCallback.Factory.Create<KeyValuePair<string, object>>(this, arg =>
+                                {
+                                    try
+                                    {
+                                        UpdateParameterValue(arg.Key, arg.Value);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.LogError(ex.Message);
+                                    }
+                                });
+                                RenderFragment renderFragment = (builder) =>
+                                {
+                                    builder.OpenComponent(0, type);
+                                    builder.AddAttribute(1, "OnSettingsUpdated", onEdit);
+                                    @foreach (var p in @_parameters)
+                                    {
+                                        builder.AddAttribute(2, p.Key, p.Value);
+                                    }
+                                    builder.CloseComponent();
+                                };
+                                <div>
+                                    @renderFragment
+                                </div>
+                            }
+                            else
+                            {
+                                Logger.LogError("Unknown component {0}", comp.ConfigurationUI);
+                            }
+                        }
                     }
                 }
                 else if (Active.BlockType == BlockType.Script)
@@ -147,19 +188,19 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Publish</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="publish" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="Active.PublishTime" />
+                    @bind-Value="Active.PublishTime" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.EndTime</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="endTime" disabled="@IsDeleting" class="form-control"
-                           @bind-Value="Active.EndTime" />
+                    @bind-Value="Active.EndTime" />
                 </div>
                 @if (Active.CreationTime != DateTime.MinValue)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
-                           @bind-Value="Active.CreationTime" />
+                        @bind-Value="Active.CreationTime" />
                     </div>
                 }
                 @if (Active.Updated != null)
@@ -167,7 +208,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                        @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -175,7 +216,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="Active.Removed" />
+                        @bind-Value="Active.Removed" />
                     </div>
                 }
                 @if (action == CrudAction.Delete)
@@ -216,6 +257,12 @@
             return _active;
         }
     }
+
+    void OnEdit(object? value)
+    {
+
+    }
+
 
     /// <summary>
     /// User action.

@@ -164,8 +164,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             foreach (var it in module.Assemblies)
             {
                 path2 = Path.Combine(path, module.Id, module.Version, it.FileName);
-                bytes = await System.IO.File.ReadAllBytesAsync(path2, _cancellationToken);
-                list.Add(Convert.ToBase64String(bytes));
+                try
+                {
+                    bytes = await System.IO.File.ReadAllBytesAsync(path2, _cancellationToken);
+                    list.Add(Convert.ToBase64String(bytes));
+                }
+                catch(Exception)
+                {                    
+                    continue;
+                }
             }
             return list;
         }

@@ -1,0 +1,117 @@
+﻿@using Gurux.DLMS.AMI.Module;
+@using Gurux.DLMS.AMI.Module.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@implements IAmiExtendedObjectUI
+
+@if (Target?.Attributes != null && Target.Template != null && Target.Attributes.Any())
+{
+    <CascadingValue Value="this">
+        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
+        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
+        @ChildContent
+    </CascadingValue>
+
+    @if (Parent != null &&
+(Parent.GetAccessLevel(2) & (int)Gurux.DLMS.Enums.AccessMode.Write) == 0)
+    {
+        <button type="button" class="btn btn-link"
+                onclick="@(() => UpdateTime())">
+            Current time
+        </button>
+    }
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+    /// <summary>
+    /// Write new time.
+    /// </summary>
+    private Task UpdateTime()
+    {
+        foreach (GXAttribute it in Target.Attributes)
+        {
+            if (it.Template != null && it.Template.Index == 2)
+            {
+                DateTime now = DateTime.Now;
+                it.Value = now.ToString();
+                AMIWriteArgument arg = new AMIWriteArgument()
+                    {
+                        Target = it,
+                        Value = GXDateTime.ToUnixTime(now.ToUniversalTime())
+                    };
+                OnWrite.InvokeAsync(new AMIWriteArgument[] { arg });
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+        }
+    }
+
+    /// <inheritdoc/>
+    public string Name
+    {
+        get
+        {
+            return "UnixTimeData";
+        }
+    }
+
+    /// <inheritdoc/>
+    public string Description
+    {
+        get
+        {
+            return "Custom UI for Unix time data object.";
+        }
+    }
+
+    /// <inheritdoc/>
+    [Parameter]
+    public EventCallback<IEnumerable<AMIReadArgument>> OnRead { get; set; }
+
+    /// <inheritdoc/>
+    [Parameter]
+    public EventCallback<IEnumerable<AMIWriteArgument>> OnWrite { get; set; }
+
+    /// <inheritdoc/>
+    [Parameter]
+    public EventCallback<IEnumerable<AMIActionArgument>> OnAction { get; set; }
+
+    /// <inheritdoc/>
+    public bool CanChange(string location)
+    {
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public ExtendedlUIType ExtendedUI(object target)
+    {
+        ExtendedlUIType ret = ExtendedlUIType.None;
+        if (target is GXObject obj && obj.Template?.LogicalName == "0.0.1.1.0.255")
+        {
+            //Replace default object UI with the custom UI.
+            ret = ExtendedlUIType.Replace;
+        }
+        return ret;
+    }
+}

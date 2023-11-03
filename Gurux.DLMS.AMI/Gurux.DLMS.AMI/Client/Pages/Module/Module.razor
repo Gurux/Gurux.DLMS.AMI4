@@ -57,7 +57,7 @@
                             {
                                 builder.AddAttribute(1, "Settings", _moduleSettings);
                             }
-                            builder.AddComponentReferenceCapture(0, inst => { _module = (IGXModuleSettings)inst; });
+                            builder.AddComponentReferenceCapture(0, inst => { _module = (IAmiModuleSettings)inst; });
                             builder.CloseComponent();
                         };
                         <div>
@@ -132,7 +132,7 @@
     /// </summary>
     protected ConfirmBase? RestartConfirmation;
 
-    private IGXModuleSettings? _module = null;
+    private IAmiModuleSettings? _module = null;
     private string? fileName = null;
     private bool isAdding = false;
     private bool isLoading;

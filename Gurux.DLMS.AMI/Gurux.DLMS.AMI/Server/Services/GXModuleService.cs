@@ -47,6 +47,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
@@ -130,7 +131,7 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// <summary>
         /// Server module.
         /// </summary>
-        public IGXServerModule? Module;
+        public IAmiModule? Module;
         /// <summary>
         /// Services.
         /// </summary>
@@ -188,9 +189,9 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// Get server modules.
         /// </summary>
         /// <returns></returns>
-        public IGXServerModule[] GetServerModules()
+        public IAmiModule[] GetServerModules()
         {
-            List<IGXServerModule> list = new List<IGXServerModule>();
+            List<IAmiModule> list = new List<IAmiModule>();
             foreach (var it in _modules.Values)
             {
                 if (it.Module != null)
@@ -247,7 +248,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             string path2 = Path.Combine(searchPath, module.FileName);
             Assembly asm = alc.LoadFromAssemblyPath(path2);
             //Create services.
-            IGXServerModule? server = (IGXServerModule?)asm.CreateInstance(module.Class);
+            IAmiModule? server = (IAmiModule?)asm.CreateInstance(module.Class);
             if (server == null)
             {
                 throw new ArgumentNullException();
@@ -304,7 +305,14 @@ namespace Gurux.DLMS.AMI.Server.Services
                 foreach (var it in module.Assemblies)
                 {
                     path2 = Path.Combine(searchPath, it.FileName);
-                    alc.LoadFromAssemblyPath(path2);
+                    try
+                    {
+                        alc.LoadFromAssemblyPath(path2);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.ToString());
+                    }
                 }
             }
             //Get framework services.
@@ -405,7 +413,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 Directory.CreateDirectory(path);
             }
-            List<IGXServerModule> list = new List<IGXServerModule>();
+            List<IAmiModule> list = new List<IAmiModule>();
             foreach (GXModule module in modules)
             {
                 try
@@ -504,8 +512,8 @@ namespace Gurux.DLMS.AMI.Server.Services
                 // Notify change
                 _actionDescriptorChangeProvider.TokenSource.Cancel();
             }
-            IGXServerModule[] modules = modulesService.GetServerModules();
-            foreach (IGXServerModule it in modules)
+            IAmiModule[] modules = modulesService.GetServerModules();
+            foreach (IAmiModule it in modules)
             {
                 try
                 {
@@ -539,15 +547,16 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 throw new Exception("Module update failed. Invalid module file.");
             }
-            IGXServerModule? server = null;
+            IAmiModule? server = null;
             GXModule? existing = null;
             GXModule module = new GXModule("");
             AssemblyLoadContext alc = new AssemblyLoadContext("tmp", true);
-            List<string> servers= new List<string>();
+            List<string> servers = new List<string>();
             List<GXModuleAssembly> assemblies = new List<GXModuleAssembly>();
+            GXModuleAssembly? serverAsm = null;
             try
             {
-                foreach (string fileName in Directory.GetFiles(tempFolder, "*.dll"))
+                foreach (string fileName in Directory.GetFiles(tempFolder, "*.dll", SearchOption.AllDirectories))
                 {
                     string name = Path.GetFileNameWithoutExtension(fileName);
                     if (name == "Gurux.DLMS.AMI.Client" ||
@@ -558,78 +567,95 @@ namespace Gurux.DLMS.AMI.Server.Services
                     {
                         continue;
                     }
-                    assemblies.Add(new GXModuleAssembly()
-                    {
-                        FileName = Path.GetFileName(fileName),
+
+                    GXModuleAssembly ma = new GXModuleAssembly()
+                    {                        
+                        FileName = fileName.Replace(tempFolder + Path.DirectorySeparatorChar, ""),
+                        //FileName = Path.GetFileName(fileName),
                         Module = module
-                    });
+                    };
+                    assemblies.Add(ma);
                     Assembly asm = alc.LoadFromAssemblyPath(fileName);
-                    foreach (Type type in asm.GetExportedTypes())
+                    try
                     {
-                        if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                        foreach (Type type in asm.GetExportedTypes())
                         {
-                            continue;
-                        }
-                        if (typeof(IGXServerModule).IsAssignableFrom(type))
-                        {
-                            server = (IGXServerModule?)asm.CreateInstance(type.FullName);
-                            if (server == null)
+                            if (type.IsAbstract || !type.IsClass || type.FullName == null)
                             {
-                                throw new Exception(string.Format("Failed to create {0} module", type.FullName));
+                                continue;
                             }
-                            module.CreationTime = DateTime.Now;
-                            module.Id = server.Name;
-                            module.FileName = Path.GetFileName(fileName);
-                            servers.Add(module.FileName);
-                            module.Class = type.FullName;
-                            module.Description = server.Description;
-                            if (server.Configuration != null)
+                            //Server side code is not share with the client app.
+                            if (typeof(ControllerBase).IsAssignableFrom(type))
                             {
-                                module.ConfigurationUI = server.Configuration.FullName;
+                                serverAsm = ma;
                             }
-                            FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
-                            module.Version = info.FileVersion;
-                            if (module.Version == null)
+                            if (typeof(IAmiModule).IsAssignableFrom(type))
                             {
-                                throw new ArgumentException("Invalid module version.");
+
+                                server = (IAmiModule?)asm.CreateInstance(type.FullName);
+                                if (server == null)
+                                {
+                                    throw new Exception(string.Format("Failed to create {0} module", type.FullName));
+                                }
+                                module.CreationTime = DateTime.Now;
+                                module.Id = server.Name;
+                                module.FileName = Path.GetFileName(fileName);
+                                servers.Add(module.FileName);
+                                module.Class = type.FullName;
+                                module.Description = server.Description;
+                                if (server.Configuration != null)
+                                {
+                                    module.ConfigurationUI = server.Configuration.FullName;
+                                }
+                                FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
+                                module.Version = info.FileVersion;
+                                if (module.Version == null)
+                                {
+                                    throw new ArgumentException("Invalid module version.");
+                                }
+                                module.Icon = server.Icon;
+                                //Check is module already installed.
+                                existing = _host.Connection.SelectById<GXModule>(server.Name);
+                                if (existing != null &&
+                                    (existing.Status & ModuleStatus.Installed) != 0 &&
+                                    existing.Version == module.Version)
+                                {
+                                    throw new Exception(string.Format("{0} module version {1} already installed.", server.Name, module.Version));
+                                }
+                                if (existing != null)
+                                {
+                                    module.Status = existing.Status;
+                                }
                             }
-                            module.Icon = server.Icon;
-                            //Check is module already installed.
-                            existing = _host.Connection.SelectById<GXModule>(server.Name);
-                            if (existing != null &&
-                                (existing.Status & ModuleStatus.Installed) != 0 &&
-                                existing.Version == module.Version)
+                            else if (typeof(IAMINavigation).IsAssignableFrom(type))
                             {
-                                throw new Exception(string.Format("{0} module version {1} already installed.", server.Name, module.Version));
+                                //Create object to verify it.
+                                IAMINavigation? client = (IAMINavigation?)asm.CreateInstance(type.FullName);
                             }
-                            if (existing != null)
+                            else if (typeof(IAmiModuleSettings).IsAssignableFrom(type))
                             {
-                                module.Status = existing.Status;
+                                //This is a client module and it can't be created.
+                            }
+                            else if (typeof(IAmiComponent).IsAssignableFrom(type))
+                            {
+                                //Create object to verify it.
+                                IAmiComponent? c = (IAmiComponent?)asm.CreateInstance(type.FullName);
+                                //Add component view.
+                                GXComponentView view = new GXComponentView()
+                                {
+                                    Name = c.Name,
+                                    ClassName = type.FullName,
+                                    Icon = c.Icon
+                                };
+                                await _componentViewRepositorymoduleRepository.UpdateAsync(user,
+                                    new GXComponentView[] { view });
                             }
                         }
-                        else if (typeof(IGXModuleUI).IsAssignableFrom(type))
-                        {
-                            //Create object to verify it.
-                            IGXModuleUI? client = (IGXModuleUI?)asm.CreateInstance(type.FullName);
-                        }
-                        else if (typeof(IGXModuleSettings).IsAssignableFrom(type))
-                        {
-                            //This is a client module and it can't be created.
-                        }
-                        else if (typeof(IGXComponentView).IsAssignableFrom(type))
-                        {
-                            //Create object to verify it.
-                            IGXComponentView? c = (IGXComponentView?)asm.CreateInstance(type.FullName);
-                            //Add component view.
-                            GXComponentView view = new GXComponentView()
-                            {
-                                Name = c.Name,
-                                ClassName = type.FullName,
-                                Icon = c.Icon
-                            };
-                            await _componentViewRepositorymoduleRepository.UpdateAsync(user,
-                                new GXComponentView[] { view });
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        assemblies.Remove(ma);
+                        Console.WriteLine(ex.Message);
                     }
                 }
                 if (server == null)
@@ -638,8 +664,10 @@ namespace Gurux.DLMS.AMI.Server.Services
                 }
                 //Remove servers from satelite assemblies.
                 //Servers are not send to the client.
-                //TODO: Check this.
-                assemblies.RemoveAll(w => servers.Contains(w.FileName));
+                if (serverAsm != null)
+                {
+                    assemblies.Remove(serverAsm);
+                }
                 //Check is module already added or new item is installed.
                 if (existing == null)
                 {

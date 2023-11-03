@@ -347,11 +347,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             List<GXComponentView> updateList = new List<GXComponentView>();
             foreach (Type it in typeof(Client.Pages.Admin.ActiveDeviceErrors).Assembly.GetTypes())
             {
-                if (typeof(IGXComponentView).IsAssignableFrom(it) && it.FullName != null)
+                if (typeof(IAmiComponent).IsAssignableFrom(it) && it.FullName != null)
                 {
                     GXSelectArgs args = GXSelectArgs.SelectAll<GXComponentView>(where => where.ClassName == it.FullName);
                     GXComponentView? item = await _host.Connection.SingleOrDefaultAsync<GXComponentView>(args);
-                    IGXComponentView? tmp = (IGXComponentView?)Activator.CreateInstance(it);
+                    IAmiComponent? tmp = (IAmiComponent?)Activator.CreateInstance(it);
                     string? configurationUI = null;
                     if (tmp.ConfigurationUI != null)
                     {

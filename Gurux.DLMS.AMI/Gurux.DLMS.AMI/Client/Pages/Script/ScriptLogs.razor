@@ -18,7 +18,7 @@
 @inject ConfirmBase Confirm
 @inject IGXNotifier Notifier
 @implements IDisposable
-@implements IGXComponentView
+@implements IAmiComponent
 @if (Title)
 {
     <PageTitle>@Properties.Resources.ScriptLogs</PageTitle>
@@ -122,7 +122,7 @@
         }
     }
 
-    /// <inheritdoc cref="IGXComponentView.Icon">
+    /// <inheritdoc cref="IAmiComponent.Icon">
     public string? Icon
     {
         get

@@ -39,6 +39,7 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using Org.BouncyCastle.Ocsp;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -146,7 +147,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetBlocksByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request?.Filter != null)
             {
                 //User is already filtered. It can be removed.
                 GXUser? orig = request.Filter.User;
@@ -213,6 +214,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         break;
                 }
             }
+            if (request?.Filter?.Active.GetValueOrDefault() == true)
+            {
+                //TODO: Fix active issue.
+                blocks = blocks.Where(w => w.Active == true).ToArray();
+            }
+
             if (response != null)
             {
                 response.Blocks = blocks;

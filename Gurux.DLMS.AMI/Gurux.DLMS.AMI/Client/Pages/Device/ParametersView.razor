@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Module.Enums;
+@using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.Net
 @using Gurux.Serial
@@ -35,7 +36,7 @@
             }
             builder.AddComponentReferenceCapture(0, inst =>
                             {
-                                _modules.Add(new KeyValuePair<string, IGXParameterSettings>(it.Value.Module, (IGXParameterSettings)inst));
+                                _modules.Add(new KeyValuePair<string, IAmiExtendedParameterSettingsUI>(it.Value.Module, (IAmiExtendedParameterSettingsUI)inst));
                             });
             builder.CloseComponent();
         };
@@ -47,12 +48,14 @@
 
 @code {
     [Parameter]
-    public List<IGXParameter> Parameters { get; set; }
+    public List<IGXParameter>? Parameters { get; set; }
 
     [Parameter]
-    public object Target { get; set; }
+    public object? Target { get; set; }
 
-    private List<KeyValuePair<string, IGXParameterSettings>> _modules = new List<KeyValuePair<string, IGXParameterSettings>>();
+    private ExtendedlUIType _extendedlUI;
+
+    private List<KeyValuePair<string, IAmiExtendedParameterSettingsUI>> _modules = new List<KeyValuePair<string, IAmiExtendedParameterSettingsUI>>();
 
     private struct ModuleInfo
     {
@@ -94,28 +97,27 @@
             {
                 foreach (var type in module.Value)
                 {
-                    bool visible = false;
-                    if (typeof(IGXDeviceSettings).IsAssignableFrom(type))
+                    if (typeof(IAmiExtendedDeviceSettingsUI).IsAssignableFrom(type))
                     {
-                        IGXDeviceSettings? ds = (IGXDeviceSettings?)Activator.CreateInstance(type);
-                        visible = ds.IsVisible(Target);
+                        IAmiExtendedDeviceSettingsUI? ds = (IAmiExtendedDeviceSettingsUI?)Activator.CreateInstance(type);
+                        _extendedlUI = ds.ExtendedUI(Target);
                     }
-                    else if (typeof(IGXObjectSettings).IsAssignableFrom(type))
+                    else if (typeof(IAmiExtendedObjectSettingsUI).IsAssignableFrom(type))
                     {
-                        IGXObjectSettings? os = (IGXObjectSettings?)Activator.CreateInstance(type);
-                        visible = os.IsVisible(Target);
+                        IAmiExtendedObjectSettingsUI? os = (IAmiExtendedObjectSettingsUI?)Activator.CreateInstance(type);
+                        _extendedlUI = os.ExtendedUI(Target);
                     }
-                    else if (typeof(IGXAttributeSettings).IsAssignableFrom(type))
+                    else if (typeof(IAmiExtendedAttributeSettingsUI).IsAssignableFrom(type))
                     {
-                        IGXAttributeSettings? s = (IGXAttributeSettings?)Activator.CreateInstance(type);
-                        visible = s.IsVisible(Target);
+                        IAmiExtendedAttributeSettingsUI? s = (IAmiExtendedAttributeSettingsUI?)Activator.CreateInstance(type);
+                        _extendedlUI = s.ExtendedUI(Target);
                     }
-                    else if (typeof(IGXDeviceGroupSettings).IsAssignableFrom(type))
+                    else if (typeof(IAmiExtendedDeviceGroupSettingsUI).IsAssignableFrom(type))
                     {
-                        IGXDeviceGroupSettings? dgs = (IGXDeviceGroupSettings?)Activator.CreateInstance(type);
-                        visible = dgs.IsVisible(Target);
+                        IAmiExtendedDeviceGroupSettingsUI? dgs = (IAmiExtendedDeviceGroupSettingsUI?)Activator.CreateInstance(type);
+                        _extendedlUI = dgs.ExtendedUI(Target);
                     }
-                    if (visible)
+                    if (_extendedlUI != ExtendedlUIType.None)
                     {
                         _moduleConfiguration[type] = new ModuleInfo() { Module = module.Key };
                         var p = type.GetProperty("Settings");
@@ -157,7 +159,7 @@
                 //Save module device settings.
                 foreach (var module in _modules)
                 {
-                    if (module.Value is IGXParameterSettings ps)
+                    if (module.Value is IAmiExtendedParameterSettingsUI ps)
                     {
                         id = ps.Name;
                         ps.Save();
@@ -200,7 +202,7 @@
     {
         foreach (var module in _modules)
         {
-            if (module.Value is IGXParameterSettings ps)
+            if (module.Value is IAmiExtendedParameterSettingsUI ps)
             {
                 ps.Cancel();
             }

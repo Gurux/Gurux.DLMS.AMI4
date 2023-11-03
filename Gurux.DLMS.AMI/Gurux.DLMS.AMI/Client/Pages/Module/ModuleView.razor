@@ -33,7 +33,7 @@
         {
             builder.AddAttribute(1, "Settings", _moduleSettings);
         }
-        builder.AddComponentReferenceCapture(0, inst => { _module = (IGXModuleSettings)inst; });
+        builder.AddComponentReferenceCapture(0, inst => { _module = (IAmiModuleSettings)inst; });
         builder.CloseComponent();
     };
     <div>
@@ -62,7 +62,7 @@
     public string? Id { get; set; }
 
     private Type? _configurationUI;
-    private IGXModuleSettings? _module = null;
+    private IAmiModuleSettings? _module = null;
     object? _moduleSettings;
     bool initialized;
 
@@ -85,17 +85,17 @@
                     {
                         continue;
                     }
-                    if (type.GetInterfaces().Contains(typeof(IGXServerModule)))
+                    if (type.GetInterfaces().Contains(typeof(IAmiModule)))
                     {
-                        IGXServerModule? tmp = (IGXServerModule?)asm.CreateInstance(type.FullName);
+                        IAmiModule? tmp = (IAmiModule?)asm.CreateInstance(type.FullName);
                         if (string.Compare(Target, tmp?.Name, true) != 0)
                         {
                             break;
                         }
                     }
-                    else if (type.GetInterfaces().Contains(typeof(IGXModuleUI)))
+                    else if (type.GetInterfaces().Contains(typeof(IAMINavigation)))
                     {
-                        IGXModuleUI? tmp = (IGXModuleUI?)asm.CreateInstance(type.FullName);
+                        IAMINavigation? tmp = (IAMINavigation?)asm.CreateInstance(type.FullName);
                         if (tmp?.NavItems != null && tmp.NavItems.Any())
                         {
                             foreach (var it in tmp.NavItems)
