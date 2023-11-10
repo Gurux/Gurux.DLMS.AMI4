@@ -1158,4 +1158,13 @@
   <data name="UIDataType" xml:space="preserve">
     <value>Käyttöliittymän tietotyyppi</value>
   </data>
+  <data name="Index" xml:space="preserve">
+    <value>Indeksi</value>
+  </data>
+  <data name="ToolTipReadValue" xml:space="preserve">
+    <value>Lukuarvo</value>
+  </data>
+  <data name="ToolTipReadValues" xml:space="preserve">
+    <value>Lue arvot</value>
+  </data>
 </root>

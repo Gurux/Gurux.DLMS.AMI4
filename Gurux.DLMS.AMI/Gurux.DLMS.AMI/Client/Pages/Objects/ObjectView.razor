@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Objects.Charge
 @using Gurux.DLMS.AMI.Module.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -23,72 +24,78 @@
 
 @if (_extendedlUIType != ExtendedlUIType.Replace && Active?.Template != null)
 {
-    <CascadingValue Value="this">
-        <h3>@Active.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType) Object</h3>
-        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
-
-        <div class="row">
-            <div style="width:100%">
-                @switch ((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType)
-                {
-                    case ObjectType.Data:
-                        <DataView Target="Active"></DataView>
-                        break;
-                    case ObjectType.Register:
-                        <RegisterView Target="Active"></RegisterView>
-                        break;
-                    case ObjectType.ProfileGeneric:
-                        <ProfileGenericView Target="Active"></ProfileGenericView>
-                        break;
-                    case ObjectType.DisconnectControl:
-                        <DisconnectControlView Target="Active"></DisconnectControlView>
-                        break;
-                    case ObjectType.ImageTransfer:
-                        <ImageTransferView Target="Active"></ImageTransferView>
-                        break;
-                    default:
-                        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
-                        @if (Active.Attributes != null)
-                        {
-                            @foreach (var it in Active.Attributes.OrderBy(o => o.Template.Index))
+    <EditForm Model="@Active">
+        <CascadingValue Value="this">
+            <h3>@Active.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType) Object</h3>
+            <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="row">
+                <div style="width:100%">
+                    @switch ((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType)
+                    {
+                        case ObjectType.Data:
+                            <DataView Target="Active"></DataView>
+                            break;
+                        case ObjectType.Register:
+                            <RegisterView Target="Active"></RegisterView>
+                            break;
+                        case ObjectType.ProfileGeneric:
+                            <ProfileGenericView Target="Active"></ProfileGenericView>
+                            break;
+                        case ObjectType.DisconnectControl:
+                            <DisconnectControlView Target="Active"></DisconnectControlView>
+                            break;
+                        case ObjectType.ImageTransfer:
+                            <ImageTransferView Target="Active"></ImageTransferView>
+                            break;
+                        case ObjectType.Charge:
+                            <ChargeView Target="Active"></ChargeView>
+                            break;
+                        default:
+                            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
+                            @if (Active.Attributes != null)
                             {
-                                <AttributeTile Attribute="@it"></AttributeTile>
+                                @foreach (var it in Active.Attributes.OrderBy(o => o.Template.Index))
+                                {
+                                    <AttributeTile Attribute="@it"></AttributeTile>
+                                }
                             }
-                        }
-                        break;
-                }
-                @if (Active.LastError != null)
-                {
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(Active.LastError) + " " + Active.LastErrorMessage)"></AttributeTile>
-                }
-                <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(Active.LastRead)"></AttributeTile>
-                <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(Active.LastWrite)"></AttributeTile>
-                @if (Active.LastAction != null)
-                {
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(Active.LastAction)"></AttributeTile>
-                }
-                @if (Active.CreationTime != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.CreationTime</label>
-                        <input type="datetime" readonly="readonly" id="creationTime" class="form-control" value="@Active.CreationTime" />
-                    </div>
-                }
-                @if (Active.Removed != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Remove</label>
-                        <input type="datetime" readonly="readonly" id="remove" class="form-control" value="@Active.Removed" />
-                    </div>
-                }
+                            break;
+                    }
+                    <MenuControl MenuItems="MenuItems" CssStyle="background-color: dodgerblue;">
+                        <ChildContent>
+                        </ChildContent>
+                    </MenuControl>
+                    @if (Active.LastError != null)
+                    {
+                        <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(Active.LastError) + " " + Active.LastErrorMessage)"></AttributeTile>
+                    }
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(Active.LastRead)"></AttributeTile>
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(Active.LastWrite)"></AttributeTile>
+                    @if (Active.LastAction != null)
+                    {
+                        <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(Active.LastAction)"></AttributeTile>
+                    }
+                    @if (Active.CreationTime != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.CreationTime</label>
+                            <input type="datetime" readonly="readonly" id="creationTime" class="form-control" value="@Active.CreationTime" />
+                        </div>
+                    }
+                    @if (Active.Removed != null)
+                    {
+                        <div class="form-group">
+                            <label>@Properties.Resources.Remove</label>
+                            <input type="datetime" readonly="readonly" id="remove" class="form-control" value="@Active.Removed" />
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
-        @ChildContent
-        <MenuControl MenuItems="MenuItems" CssStyle="background-color: dodgerblue;">
-            <ChildContent>
-            </ChildContent>
-        </MenuControl>
-    </CascadingValue>
+            @ChildContent
+        </CascadingValue>
+    </EditForm>
     <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
 }
 @if (Active?.Template != null && _extendedUIs != null)
@@ -153,6 +160,13 @@
     IAmiExtendedObjectUI[]? _extendedUIs;
 
     /// <summary>
+    /// Update UI.
+    /// </summary>
+    internal void Update()
+    {
+        StateHasChanged();
+    }
+    /// <summary>
     /// Active item.
     /// </summary>
     public GXObject? Active
@@ -199,7 +213,7 @@
         }
     }
 
-    public static void GetValue(GXObject Target, GXDLMSObject target, int index)
+    public static void UpdateValue(GXObject Target, GXDLMSObject target, int index)
     {
         string? str = AttributeTile.GetAttribute(Target.Attributes, index).Value;
         if (!string.IsNullOrEmpty(str))
@@ -210,6 +224,52 @@
                 };
             (target as IGXDLMSBase).SetValue(null, e);
         }
+    }
+
+    /// <summary>
+    /// Get attribute value.
+    /// </summary>
+    /// <param name="Target">Target object.</param>
+    /// <param name="index">Attribute index.</param>
+    /// <returns>Current value.</returns>
+    public static object? GetValue(GXObject Target, int index)
+    {
+        if (Target.Attributes != null)
+        {
+            foreach (GXAttribute it in Target.Attributes)
+            {
+                if (it.Template != null && it.Template.Index == index)
+                {
+                    if (string.IsNullOrEmpty(it.Value))
+                    {
+                        return null;
+                    }
+                    return GXDLMSTranslator.XmlToValue(it.Value);
+                }
+            }
+        }
+        throw new ArgumentException(string.Format("Invalid index #{0}", index));
+    }
+
+    /// <summary>
+    /// Get attribute.
+    /// </summary>
+    /// <param name="Target">Target object.</param>
+    /// <param name="index">Attribute index.</param>
+    /// <returns>Attribute.</returns>
+    public static GXAttribute GetAttribute(GXObject Target, int index)
+    {
+        if (Target.Attributes != null)
+        {
+            foreach (GXAttribute it in Target.Attributes)
+            {
+                if (it.Template != null && it.Template.Index == index)
+                {
+                    return it;
+                }
+            }
+        }
+        throw new ArgumentException(string.Format("Invalid index #{0}", index));
     }
 
     protected override async System.Threading.Tasks.Task OnInitializedAsync()

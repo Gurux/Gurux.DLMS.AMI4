@@ -1158,4 +1158,13 @@
   <data name="UIDataType" xml:space="preserve">
     <value>UI data type</value>
   </data>
+  <data name="Index" xml:space="preserve">
+    <value>Index</value>
+  </data>
+  <data name="ToolTipReadValue" xml:space="preserve">
+    <value>Read value</value>
+  </data>
+  <data name="ToolTipReadValues" xml:space="preserve">
+    <value>Read values</value>
+  </data>
 </root>

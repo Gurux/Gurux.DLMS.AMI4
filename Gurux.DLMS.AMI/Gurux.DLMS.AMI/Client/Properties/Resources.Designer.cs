@@ -1294,6 +1294,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Index.
+        /// </summary>
+        internal static string Index {
+            get {
+                return ResourceManager.GetString("Index", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Install.
         /// </summary>
         internal static string Install {
@@ -2838,6 +2847,24 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string TokensTitle {
             get {
                 return ResourceManager.GetString("TokensTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read value.
+        /// </summary>
+        internal static string ToolTipReadValue {
+            get {
+                return ResourceManager.GetString("ToolTipReadValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Read values.
+        /// </summary>
+        internal static string ToolTipReadValues {
+            get {
+                return ResourceManager.GetString("ToolTipReadValues", resourceCulture);
             }
         }
         

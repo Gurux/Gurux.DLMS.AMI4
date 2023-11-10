@@ -1,0 +1,289 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using System.Text.Json
+@using System.Text;
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@if (Target != null)
+{
+    <Tooltip Title="@Properties.Resources.ToolTipReadValue">
+        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => SelectAttribute(Convert.ToBoolean(__e.Value)))" />
+    </Tooltip>
+    <div class="row">
+        <div style="width:100%">
+            <div class="form-group">
+                <div class="card">
+                    <div class="card-header">
+                        Charge per unit scaling type.
+                    </div>
+                    <div class="card-body">
+                        <label>Commodity scaler</label>
+                        <GXInputNumber id="scaler" disabled="@IsReadOnly" class="form-control"
+                        @bind-Value="CommodityScaler" />
+                        <ValidationMessage For="@(() => PriceScale)" />
+                        <label>Price scale</label>
+                        <GXInputNumber id="scale" disabled="@IsReadOnly" class="form-control"
+                        @bind-Value="@PriceScale" />
+                        <ValidationMessage For="@(() => PriceScale)" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="card">
+                    <div class="card-header">
+                        Commodity reference type
+                    </div>
+                    <div class="card-body">
+                        <label>Target</label>
+                        <InputText id="target" disabled="@IsReadOnly" class="form-control"
+                        @bind-Value="CommodityReference" />
+                        <ValidationMessage For="@(() => CommodityReference)" />
+                        <label>Index</label>
+                        <GXInputNumber id="index" disabled="@IsReadOnly" class="form-control"
+                        @bind-Value="AttributeIndex" />
+                        <ValidationMessage For="@(() => AttributeIndex)" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="card">
+                    <div class="card-header">
+                        Charge tables
+                    </div>
+                    <div class="card-body">
+                        <GXTable Context="row"
+                                 ItemsProvider="@GetItems"
+                                 SelectionMode="SelectionMode.None"
+                                 ShowRemoved="false"
+                                 Total="false"
+                                 ShowAllData="true"
+                                 Filter="false">
+                            <FilterContent>
+                            </FilterContent>
+                            <MenuContent>
+                            </MenuContent>
+                            <HeaderContent>
+                                <Th Id="Index">@Properties.Resources.Index</Th>
+                                <Th Id="Charge">Charge per unit</Th>
+                            </HeaderContent>
+                            <ItemContent>
+                                <td>@row.Index</td>
+                                <td>@row.ChargePerUnit</td>
+                            </ItemContent>
+                        </GXTable>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    /// <summary>
+    /// Is attribute selected.
+    /// </summary>
+    /// <param name="selected">Selected item.</param>
+    /// <returns>True, if the row is selected.</returns>
+    protected string? IsSelected()
+    {
+        bool ret = false;
+        if (Parent != null && Target != null)
+        {
+            ret = Parent.IsSelected(ObjectView.GetAttribute(Target, Index));
+        }
+        if (ret)
+        {
+            return "checked";
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Select or de-select the attribute.
+    /// </summary>
+    /// <param name="selected">Selected item</param>
+    protected void SelectAttribute(bool select)
+    {
+        if (Parent != null && Target != null)
+        {
+            Parent.ToggleAttribute(ObjectView.GetAttribute(Target, Index));
+        }
+    }
+
+
+    private Int32 CommodityScaler
+    {
+        get
+        {
+            if (_value == null)
+            {
+                return 0;
+            }
+            return Convert.ToSByte(((GXStructure)_value[0])[0]);
+        }
+        set
+        {
+            if (_value != null)
+            {
+                ((GXStructure)_value[0])[0] = Convert.ToSByte(value);
+            }
+        }
+    }
+
+    internal Int32 PriceScale
+    {
+        get
+        {
+            if (_value == null)
+            {
+                return 0;
+            }
+            return Convert.ToInt32(((GXStructure)_value[0])[1]);
+        }
+        set
+        {
+            if (_value != null)
+            {
+                ((GXStructure)_value[0])[1] = Convert.ToInt32(value);
+            }
+        }
+    }
+
+    private string? CommodityReference
+    {
+        get
+        {
+            if (_value == null)
+            {
+                return null;
+            }
+            return Convert.ToString(((GXStructure)_value[1])[1]);
+        }
+        set
+        {
+            if (_value != null)
+            {
+                ((GXStructure)_value[1])[1] = Convert.ToSByte(value);
+            }
+        }
+    }
+
+    private int AttributeIndex
+    {
+        get
+        {
+            if (_value == null)
+            {
+                return 0;
+            }
+            return Convert.ToSByte(((GXStructure)_value[1])[2]);
+        }
+        set
+        {
+            if (_value != null)
+            {
+                ((GXStructure)_value[1])[2] = Convert.ToSByte(value);
+            }
+        }
+    }
+
+    private GXChargeTable[] ChargeTables
+    {
+        get
+        {
+            if (_value == null)
+            {
+                return new GXChargeTable[0];
+            }
+            List<GXChargeTable> list = new List<GXChargeTable>();
+            GXArray arr = (GXArray)_value[2];
+            foreach (GXStructure it in arr)
+            {
+                list.Add(new GXChargeTable()
+                    {
+                        Index = ASCIIEncoding.ASCII.GetString((byte[])it[0]),
+                        ChargePerUnit = Convert.ToInt16(it[1])
+                    });
+            }
+            return list.ToArray();
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXChargeTable>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            return new(new ItemsProviderResult<GXChargeTable>(ChargeTables, ChargeTables.Length));
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Is attribute read-only.
+    /// </summary>
+    private bool IsReadOnly
+    {
+        get
+        {
+            if (Parent == null)
+            {
+                return true;
+            }
+            return (Parent.GetAccessLevel(Index) & (int)Gurux.DLMS.Enums.AccessMode.Write) == 0;
+        }
+    }
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
+
+    /// <summary>
+    /// Target attribute index.
+    ///</summary>
+    [Parameter]
+    public int Index { get; set; }
+
+    private GXStructure? _value;
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+        }
+        if (Target == null)
+        {
+            throw new ArgumentNullException(nameof(Target), "Unknown target.");
+        }
+        if (Index != 5 && Index != 6)
+        {
+            throw new ArgumentNullException(nameof(Index), "Invalid index.");
+        }
+        _value = (GXStructure?)ObjectView.GetValue(Target, Index);
+    }
+}

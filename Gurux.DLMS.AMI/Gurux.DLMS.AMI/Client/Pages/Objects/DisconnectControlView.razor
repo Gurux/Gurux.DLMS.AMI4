@@ -53,13 +53,13 @@
     {
         get
         {
-            ObjectView.GetValue(Target, _register, 3);
+            ObjectView.UpdateValue(Target, _register, 3);
             return _register.Scaler.ToString();
         }
         set
         {
             _register.Scaler = double.Parse(value);
-            ObjectView.SetValue(Target, _register, 3);
+            ObjectView.UpdateValue(Target, _register, 3);
         }
     }
 
@@ -71,13 +71,13 @@
     {
         get
         {
-            ObjectView.GetValue(Target, _register, 4);
+            ObjectView.UpdateValue(Target, _register, 4);
             return _register.Unit.ToString();
         }
         set
         {
             _register.Unit = Enum.Parse<Enums.Unit>(value);
-            ObjectView.SetValue(Target, _register, 4);
+            ObjectView.UpdateValue(Target, _register, 4);
         }
     }
 
