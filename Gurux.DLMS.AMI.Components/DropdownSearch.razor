@@ -5,7 +5,8 @@
 @if (Items != null)
 {
     <div class="dropdown">
-        <button class="btn btn-primary dropdown-toggle mr-4" data-toggle="dropdown"
+        <button disabled="@Disabled"
+                class="btn btn-primary dropdown-toggle mr-4" data-toggle="dropdown"
                 type="button" onclick="@((MouseEventArgs e) => HandleClick(e))"
                 placeholder="@Placeholder"
                 aria-haspopup="true" aria-expanded="false">
@@ -33,6 +34,36 @@
                         </a>
                     }
                 }
+                <!--Show pagination.-->
+                @if (Pages.Count > 1 && !ShowAllData)
+                {
+                    <ul class="pagination justify-content-center">
+                        @if (CurrentPage != 0)
+                        {
+                            <li onclick="@(() => SelectPage(0))"
+                                style="cursor: pointer;"
+                                class="page-link" href="#">&laquo;</li>
+                        }
+                        @foreach (int pos in Pages)
+                        {
+                            @if (pos >= CurrentPage - Spread && pos <= CurrentPage + Spread)
+                            {
+                                <li onclick="@(() => SelectPage(pos))"
+                                    style="cursor: pointer;"
+                                    class="page-item @(CurrentPage == pos ? "active" : null)">
+                                    <span class="page-link" href="#">@(1 + pos)</span>
+                                </li>
+                            }
+
+                        }
+                        @if (CurrentPage != TotalPages - 1)
+                        {
+                            <li onclick="@(() => SelectPage(TotalPages - 1))"
+                                style="cursor: pointer;"
+                                class="page-link" href="#">&raquo;</li>
+                        }
+                    </ul>
+                }
             </div>
         </CascadingValue>
     </div>
@@ -48,6 +79,14 @@
 
     [Parameter]
     public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Is the drop down control disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private List<int> Pages = new List<int>();
 
     /// <summary>
     /// Selected item.
@@ -98,6 +137,8 @@
     private async Task UpdateFilter(object? value)
     {
         Filter = Convert.ToString(value);
+        Pages.Clear();
+        _currentPage = 0;
         if (Immediate)
         {
             await RefreshDataAsync();
@@ -120,8 +161,9 @@
     }
 
     /// <summary>
-    /// Page size.
+    /// Page size tells how many rows are shown.
     /// </summary>
+    [Parameter]
     public int PageSize
     {
         get
@@ -137,6 +179,7 @@
             _pageSize = value;
         }
     }
+
     [Parameter]
     public string? Placeholder { get; set; }
     public delegate string? GetNameEventHandler(TItem target);
@@ -260,7 +303,19 @@
         var result = await ItemsProvider(req);
         Items?.Clear();
         Items?.AddRange(result.Items);
-        TotalCount = result.TotalItemCount;
+        //If pages count has changed.
+        if (TotalCount != result.TotalItemCount)
+        {
+            TotalCount = result.TotalItemCount;
+            Pages.Clear();
+            if (!ShowAllData)
+            {
+                for (int pos = 0; pos != TotalPages; ++pos)
+                {
+                    Pages.Add(pos);
+                }
+            }
+        }
         // Only apply result if the task was not canceled.
         if (!cancellationToken.IsCancellationRequested && renderOnSuccess)
         {
