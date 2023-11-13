@@ -280,6 +280,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             GXDeviceTemplate[] deviceTemplates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
             int count = 0;
+            int index = 0;
             if (request != null && (int)request.Count != 0)
             {
                 count = (int)request.Count;
@@ -287,6 +288,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     count += request.Exclude.Length;
                 }
+                index = (int)request.Index;
             }
             int objectCount = 0;
             bool lateBinded = false;
@@ -317,7 +319,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         foreach (var it in devTemplate.Objects)
                         {
                             it.DeviceTemplate = null;
-                            if (count != 0 && count == objects.Count)
+                            if (count != 0 && index + count == objects.Count)
                             {
                                 break;
                             }

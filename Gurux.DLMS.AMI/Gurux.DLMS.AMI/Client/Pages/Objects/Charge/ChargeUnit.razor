@@ -24,11 +24,11 @@
                     </div>
                     <div class="card-body">
                         <label>Commodity scaler</label>
-                        <GXInputNumber id="scaler" disabled="@IsReadOnly" class="form-control"
+                        <GXInputNumber id="scaler" disabled="@IsDisabled" class="form-control"
                         @bind-Value="CommodityScaler" />
                         <ValidationMessage For="@(() => PriceScale)" />
                         <label>Price scale</label>
-                        <GXInputNumber id="scale" disabled="@IsReadOnly" class="form-control"
+                        <GXInputNumber id="scale" disabled="@IsDisabled" class="form-control"
                         @bind-Value="@PriceScale" />
                         <ValidationMessage For="@(() => PriceScale)" />
                     </div>
@@ -40,12 +40,17 @@
                         Commodity reference type
                     </div>
                     <div class="card-body">
-                        <label>Target</label>
-                        <InputText id="target" disabled="@IsReadOnly" class="form-control"
-                        @bind-Value="CommodityReference" />
-                        <ValidationMessage For="@(() => CommodityReference)" />
+                        <div class="form-group row">
+                            <div class="form-group">
+                                <label>@Properties.Resources.Target</label>
+                                <ObjectDropdownSelector Disabled="@IsDisabled"
+                                @bind-Value="CommodityReference">
+                                </ObjectDropdownSelector>
+                                <ValidationMessage For="@(() => CommodityReference)" />
+                            </div>
+                        </div>
                         <label>Index</label>
-                        <GXInputNumber id="index" disabled="@IsReadOnly" class="form-control"
+                        <GXInputNumber id="index" disabled="@IsDisabled" class="form-control"
                         @bind-Value="AttributeIndex" />
                         <ValidationMessage For="@(() => AttributeIndex)" />
                     </div>
@@ -156,21 +161,54 @@
         }
     }
 
-    private string? CommodityReference
+    private GXObject? _commodityReference;
+
+    private GXObject CommodityReference
     {
         get
         {
+            if (_commodityReference != null)
+            {
+                return _commodityReference;
+            }
             if (_value == null)
             {
-                return null;
+                return new GXObject()
+                    {
+                        Device = Target?.Device
+                    };
             }
-            return Convert.ToString(((GXStructure)_value[1])[1]);
+            int ot = Convert.ToInt32(((GXStructure)_value[1])[0]);
+            if (ot == 0)
+            {
+                return new GXObject()
+                    {
+                        Device = Target?.Device
+                    };
+            }
+            byte[] ln = (byte[])((GXStructure)_value[1])[1];
+            return new GXObject()
+                {
+                    Template = new GXObjectTemplate()
+                    {
+                        ObjectType = ot,
+                        LogicalName = GXDLMSConverter.ToLogicalName(ln)
+                    },
+                    Device = Target?.Device
+                };
         }
         set
         {
-            if (_value != null)
+            _commodityReference = value;
+            if (_value != null && value?.Template?.ObjectType is int ot)
             {
-                ((GXStructure)_value[1])[1] = Convert.ToSByte(value);
+                ((GXStructure)_value[1])[0] = (UInt16)ot;
+                ((GXStructure)_value[1])[1] = GXDLMSConverter.LogicalNameToBytes(value.Template.LogicalName);
+            }
+            else if (_value != null)
+            {
+                ((GXStructure)_value[1])[0] = (UInt16)0;
+                ((GXStructure)_value[1])[1] = null;
             }
         }
     }
@@ -241,7 +279,7 @@
     /// <summary>
     /// Is attribute read-only.
     /// </summary>
-    private bool IsReadOnly
+    private bool IsDisabled
     {
         get
         {
@@ -249,7 +287,8 @@
             {
                 return true;
             }
-            return (Parent.GetAccessLevel(Index) & (int)Gurux.DLMS.Enums.AccessMode.Write) == 0;
+            int level = Parent.GetAccessLevel(Index);
+            return (level & (int)Gurux.DLMS.Enums.AccessMode.Write) != 0;
         }
     }
 

@@ -1,0 +1,100 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs;
+@using Gurux.DLMS.AMI.Shared.Enums;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Gurux.DLMS.Enums;
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+<DropdownSearch Disabled="@Disabled"
+                Context="item"
+                ItemsProvider="GetTemplates"
+@bind-Value="Value">
+    <ItemContent>
+        @item?.Name
+    </ItemContent>
+</DropdownSearch>
+
+@code {
+
+    /// <summary>
+    /// Target device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? Value { get; set; }
+
+    /// <summary>
+    /// Notified when device template is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXDeviceTemplate?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Target device template filter.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? Filter { get; set; }
+
+    /// <summary>
+    /// Notified when device template filter is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXDeviceTemplate?> FilterChanged { get; set; }
+
+
+    /// <summary>
+    /// Is the object selector read-only.
+    /// </summary>
+    [Parameter]
+    public bool Disabled
+    {
+        get;
+        set;
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate?>> GetTemplates(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            Filter.Name = request.Filter;
+            ListDeviceTemplates req = new ListDeviceTemplates()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = Filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                };
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplates/List", req, request.CancellationToken);
+            //Update device for late binding.
+            if (ret != null)
+            {
+                return new ItemsProviderResult<GXDeviceTemplate?>(ret.Templates, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Filter == null)
+        {
+            Filter = new GXDeviceTemplate();
+        }
+    }
+}

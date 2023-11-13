@@ -1,0 +1,108 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs;
+@using Gurux.DLMS.AMI.Shared.Enums;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Gurux.DLMS.Enums;
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+<DropdownSearch Disabled="@Disabled"
+                Context="item"
+                ItemsProvider="GetDevices"
+@bind-Value="Value">
+    <ItemContent>
+        @item?.Name
+    </ItemContent>
+</DropdownSearch>
+
+@code {
+
+    /// <summary>
+    /// Target device.
+    /// </summary>
+    [Parameter]
+    public GXDevice? Value { get; set; }
+
+    /// <summary>
+    /// Notified when value is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXDevice?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Target device filter.
+    /// </summary>
+    [Parameter]
+    public GXDevice? Filter { get; set; }
+
+    /// <summary>
+    /// Notified when device filter is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXDevice?> FilterChanged { get; set; }
+
+
+    /// <summary>
+    /// Is the device selector read-only.
+    /// </summary>
+    [Parameter]
+    public bool Disabled
+    {
+        get;
+        set;
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDevice?>> GetDevices(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            Filter.Name = null;
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                Filter.Name = request.Filter;
+            }
+            else
+            {
+                //Reset filter.
+                Filter.Name = null;
+            }
+            ListDevices req = new ListDevices()
+                {
+                    Index = (int)request.StartIndex,
+                    Count = (int)request.Count,
+                    Filter = Filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                };
+            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
+            if (ret != null)
+            {
+                return new ItemsProviderResult<GXDevice?>(ret.Devices, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Filter == null)
+        {
+            Filter = new GXDevice();
+        }
+    }
+}
