@@ -115,16 +115,16 @@
         <ul class="pagination justify-content-center">
             @if (CurrentPage != 0)
             {
-                <li onclick="@(() => SelectPage(0))" 
-                    style="cursor: pointer;" 
+                <li onclick="@(() => SelectPage(0))"
+                    style="cursor: pointer;"
                     class="page-link" href="#">&laquo;</li>
             }
             @foreach (int pos in Pages)
             {
                 @if (pos >= CurrentPage - Spread && pos <= CurrentPage + Spread)
                 {
-                    <li onclick="@(() => SelectPage(pos))" 
-                        style="cursor: pointer;" 
+                    <li onclick="@(() => SelectPage(pos))"
+                        style="cursor: pointer;"
                         class="page-item @(CurrentPage == pos ? "active" : null)">
                         <span class="page-link" href="#">@(1 + pos)</span>
                     </li>
@@ -133,8 +133,8 @@
             }
             @if (CurrentPage != TotalPages - 1)
             {
-                <li onclick="@(() => SelectPage(TotalPages - 1))" 
-                    style="cursor: pointer;" 
+                <li onclick="@(() => SelectPage(TotalPages - 1))"
+                    style="cursor: pointer;"
                     class="page-link" href="#">&raquo;</li>
             }
         </ul>
@@ -143,7 +143,8 @@
     {
         <div style="float: right;">
             <label>@Properties.Resources.RowsPerPage</label>
-            <select class="select" bind="@PageSize">
+            <select class="select" value="@PageSize"
+                    onchange="@((ChangeEventArgs e) => SetPageSize(e))">
                 @foreach (var it in RowsPerPage)
                 {
                     <option value="@it">@it</option>
@@ -368,9 +369,18 @@
             {
                 _pageSize = 10;
             }
-            _pageSize = value;
-            Notifier.RowsPerPage = value;
+            if (_pageSize != value)
+            {
+                _pageSize = value;
+                Notifier.RowsPerPage = value;
+            }
         }
+    }
+
+    private void SetPageSize(ChangeEventArgs e)
+    {
+        PageSize = Convert.ToInt32(e.Value);
+        SelectPage(0).Start();
     }
 
     /// <summary>
