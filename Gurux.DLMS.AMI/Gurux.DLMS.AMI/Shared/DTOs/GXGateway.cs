@@ -34,6 +34,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 
@@ -66,6 +67,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             Logs = new List<GXGatewayLog>();
             DeviceGroups = new List<GXDeviceGroup>();
             Devices = new List<GXDevice>();
+            TraceLevel = System.Diagnostics.TraceLevel.Verbose;
+
         }
 
         /// <summary>
@@ -240,6 +243,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Ignore]
         [JsonIgnore]
         public bool Modified
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Used trace level.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(System.Diagnostics.TraceLevel.Off)]
+        [Description("Used trace level.")]
+        [IsRequired]
+        public TraceLevel? TraceLevel
         {
             get;
             set;

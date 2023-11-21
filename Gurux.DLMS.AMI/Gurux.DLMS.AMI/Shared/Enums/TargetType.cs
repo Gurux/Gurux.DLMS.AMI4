@@ -300,5 +300,21 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         [XmlEnum("1125899906842624")]
         GatewayGroup = 0x4000000000000,
+        /// <summary>
+        /// Rest statistic is changed.
+        /// </summary>
+        [XmlEnum("2251799813685248")]
+        RestStatistic = 0x8000000000000,
+
+        /// <summary>
+        /// Langage is changed.
+        /// </summary>
+        [XmlEnum("4503599627370496")]
+        Language = 0x10000000000000,
+        /// <summary>
+        /// Performance is changed.
+        /// </summary>
+        [XmlEnum("9007199254740992")]
+        Performance = 0x20000000000000,        
     }
 }
