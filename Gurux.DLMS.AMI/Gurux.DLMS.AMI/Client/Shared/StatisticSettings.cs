@@ -56,6 +56,19 @@ namespace Gurux.DLMS.AMI.Client.Shared
         } = 5000;
 
         /// <summary>
+        /// How often performance values are saved to database.
+        /// </summary>
+        /// <remarks>
+        /// At default values are kept on the memory and 
+        /// are not saved to the database.
+        /// </remarks>
+        public int PerformanceInterval
+        {
+            get;
+            set;
+        } = 0;
+
+        /// <summary>
         /// Are device actions saved.
         /// </summary>
         public bool DeviceActions

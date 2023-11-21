@@ -32,6 +32,7 @@
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Gurux.DLMS.AMI.Shared.DIs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {
@@ -40,6 +41,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
     /// </summary>
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class RestStatisticController : ControllerBase
     {
         private readonly IRestStatisticRepository _restStatisticRepository;
@@ -83,7 +85,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
             AddRestStatisticResponse ret = new();
             await _restStatisticRepository.AddAsync(User, request.Statistics);
             return ret;
-        }      
+        }
 
         /// <summary>
         /// Clear REST statistics.

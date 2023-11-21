@@ -57,6 +57,11 @@
                 <InputNumber id="requiredUniqueChars" class="form-control"
                          @bind-Value="_settings.RestTrigger" />
             </div>
+            <div class="form-group">
+                <label>Performance interval defines in seconds how often performance values are saved to the database.</label>
+                <InputNumber id="requiredUniqueChars" class="form-control"
+                @bind-Value="_settings.PerformanceInterval" />
+            </div>
         </div>
     </EditForm>
 }

@@ -34,7 +34,6 @@ using System.Security.Claims;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -43,16 +42,23 @@ using Gurux.DLMS.AMI.Shared.Enums;
 namespace Gurux.DLMS.AMI.Server.Repository
 {
     /// <inheritdoc />
-    public class RestStatisticRepository : IRestStatisticRepository
+    public class PerformanceRepository : IPerformanceRepository
     {
         private readonly IGXHost _host;
         private readonly IGXEventsNotifier _eventsNotifier;
         private readonly IUserRepository _userRepository;
 
+        /// <inheritdoc />
+        public List<GXPerformance> Snapshots
+        {
+            get;
+            private set;
+        } = new List<GXPerformance>();
+
         /// <summary>
         /// Constructor.
         /// </summary>
-        public RestStatisticRepository(IGXHost host,
+        public PerformanceRepository(IGXHost host,
             IGXEventsNotifier eventsNotifier,
             IUserRepository userRepository)
         {
@@ -61,7 +67,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _userRepository = userRepository;
         }
 
-
         /// <inheritdoc />
         public async Task ClearAsync(ClaimsPrincipal user)
         {
@@ -69,35 +74,33 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            _host.Connection.Truncate<GXRestStatistic>();
+            lock(Snapshots)
+            {
+                Snapshots.Clear();
+            }
+            _host.Connection.Truncate<GXPerformance>();
             var users = await _userRepository.GetUserIdsInRoleAsync(user, new string[] { GXRoles.Admin });
-            await _eventsNotifier.RestStatisticClear(users, null);
+            await _eventsNotifier.PerformanceClear(users);
         }
 
 
         /// <inheritdoc />
-        public async Task<GXRestStatistic[]> ListAsync(
+        public async Task<GXPerformance[]> ListAsync(
             ClaimsPrincipal user,
-            ListRestStatistics? request,
-            ListRestStatisticsResponse? response,
+            ListPerformances? request,
+            ListPerformancesResponse? response,
             CancellationToken cancellationToken)
         {
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXRestStatistic>();
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXPerformance>();
             arg.Distinct = true;
-            GXUser u = new GXUser() { Id = ServerHelpers.GetUserId(user) };
-            arg.Where.And<GXRestStatistic>(q => q.User == u);
             if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXRestStatistic>(w => !request.Exclude.Contains(w.Id));
-                }
             }
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
-                GXSelectArgs total = GXSelectArgs.Select<GXRestStatistic>(q => GXSql.DistinctCount(q.Id));
+                GXSelectArgs total = GXSelectArgs.Select<GXPerformance>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
                 if (response != null)
@@ -110,37 +113,72 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
                 arg.Descending = request.Descending;
-                arg.OrderBy.Add<GXRestStatistic>(request.OrderBy);
+                arg.OrderBy.Add<GXPerformance>(request.OrderBy);
             }
             else
             {
                 arg.Descending = true;
-                arg.OrderBy.Add<GXRestStatistic>(q => q.Start);
+                arg.OrderBy.Add<GXPerformance>(q => q.Start);
             }
-            GXRestStatistic[] statistics = (await _host.Connection.SelectAsync<GXRestStatistic>(arg)).ToArray();
-            if (response != null)
+            List<GXPerformance> performances = (await _host.Connection.SelectAsync<GXPerformance>(arg)).ToList();
+            if (Snapshots.Any())
             {
-                response.Statistics = statistics;
-                if (response.Count == 0)
+                //Add snapshot values.
+                if (arg.Descending)
                 {
-                    response.Count = statistics.Length;
+                    performances.InsertRange(0, Snapshots);
+                }
+                else
+                {
+                    performances.AddRange(Snapshots);
                 }
             }
-            return statistics;
+            if (response != null)
+            {
+                response.Performances = performances.ToArray();
+                if (response.Count == 0)
+                {
+                    response.Count = performances.Count;
+                }
+            }
+            return performances.ToArray();
         }
 
         /// <inheritdoc />
-        public async Task<Guid[]> AddAsync(ClaimsPrincipal user, IEnumerable<GXRestStatistic> statistics)
+        public async Task<Guid[]> AddAsync(
+            ClaimsPrincipal user,
+            IEnumerable<GXPerformance> performances)
         {
             List<Guid> list = new();
-            foreach (GXRestStatistic it in statistics)
+            foreach (GXPerformance it in performances)
             {
                 await _host.Connection.InsertAsync(GXInsertArgs.Insert(it));
                 list.Add(it.Id);
             }
             var users = await _userRepository.GetUserIdsInRoleAsync(user, new string[] { GXRoles.Admin });
-            await _eventsNotifier.RestStatisticAdd(users, statistics);
+            await _eventsNotifier.PerformanceAdd(users, performances);
             return list.ToArray();
+        }
+
+        /// <inheritdoc />
+        public async Task DeleteAsync(
+            ClaimsPrincipal User,
+            IEnumerable<Guid> performances)
+        {
+            if (!User.IsInRole(GXRoles.Admin))
+            {
+                throw new UnauthorizedAccessException();
+            }
+            GXSelectArgs arg = GXSelectArgs.Select<GXPerformance>(a => a.Id, q => performances.Contains(q.Id));
+            List<GXPerformance> list = _host.Connection.Select<GXPerformance>(arg);
+            DateTime now = DateTime.Now;
+            foreach (GXPerformance it in list)
+            {
+                await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXPerformance>(it.Id));
+            }
+
+            var users = await _userRepository.GetUserIdsInRoleAsync(User, new string[] { GXRoles.Admin });
+            await _eventsNotifier.PerformanceDelete(users, performances);
         }
     }
 }

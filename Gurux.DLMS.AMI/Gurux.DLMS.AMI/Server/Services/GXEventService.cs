@@ -35,10 +35,12 @@ using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gurux.DLMS.AMI.Services
@@ -298,7 +300,7 @@ namespace Gurux.DLMS.AMI.Services
         /// <inheritdoc/>
         public event Action<IEnumerable<GXGatewayLog>>? OnCloseGatewayErrors;
         /// <inheritdoc/>
-        public event Action<IEnumerable<GXGateway>>? OnGatewayUpdate;        
+        public event Action<IEnumerable<GXGateway>>? OnGatewayUpdate;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXDevice>>? OnDeviceStatusChange;
         /// <inheritdoc/>
@@ -309,7 +311,13 @@ namespace Gurux.DLMS.AMI.Services
         public event Action<IEnumerable<GXGatewayGroup>>? OnGatewayGroupUpdate;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXGatewayGroup>>? OnGatewayGroupDelete;
-
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXPerformance>>? OnPerformanceAdd;
+        /// <inheritdoc/>
+        public event Action? OnPerformanceClear;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<Guid>>? OnPerformanceDelete;
+     
         /// <inheritdoc/>
         public async Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
         {
@@ -1237,6 +1245,27 @@ namespace Gurux.DLMS.AMI.Services
         {
             OnDeviceStatusChange?.Invoke(devices);
             await _hubContext.Clients.Users(users).DeviceStatusChange(devices);
+        }
+
+        /// <inheritdoc/>
+        public async Task PerformanceAdd(IReadOnlyList<string> users, IEnumerable<GXPerformance> performances)
+        {
+            OnPerformanceAdd?.Invoke(performances);
+            await _hubContext.Clients.Users(users).PerformanceAdd(performances);
+        }
+
+        /// <inheritdoc/>
+        public async Task PerformanceClear(IReadOnlyList<string> users)
+        {
+            OnPerformanceClear?.Invoke();
+            await _hubContext.Clients.Users(users).PerformanceClear();
+        }
+
+        /// <inheritdoc/>
+        public async Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances)
+        {
+            OnPerformanceDelete?.Invoke(performances);
+            await _hubContext.Clients.Users(users).PerformanceDelete(performances);
         }
 
     }

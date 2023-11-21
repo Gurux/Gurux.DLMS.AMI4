@@ -1,0 +1,484 @@
+﻿@page "/performances"
+@page "/performance/edit/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@implements IDisposable
+
+@if (Active != null)
+{
+    <Dialog OnCancel="OnCancel" CancelButtonTitle="@Properties.Resources.Close">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <div class="card">
+                        <div class="card-header">
+                            Creation time
+                        </div>
+                        <div class="card-body">
+                            @Active.Start
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="card">
+                        <div class="card-header">
+                            Target
+                        </div>
+                        <div class="card-body">
+                            @((TargetType)Active.TargetType)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <table class="table table-striped" width="100%">
+            <thead>
+                <tr>
+                    <th>@Properties.Resources.Name</th>
+                    <th>Time</th>
+                    <th>Count</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        List
+                    </td>
+                    <td>
+                        @Active.ListTime
+                    </td>
+                    <td>
+                        @Active.ListCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Read
+                    </td>
+                    <td>
+                        @Active.ReadTime
+                    </td>
+                    <td>
+                        @Active.ReadCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Add
+                    </td>
+                    <td>
+                        @Active.AddTime
+                    </td>
+                    <td>
+                        @Active.AddCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Update
+                    </td>
+                    <td>
+                        @Active.UpdateTime
+                    </td>
+                    <td>
+                        @Active.UpdateCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Delete
+                    </td>
+                    <td>
+                        @Active.DeleteTime
+                    </td>
+                    <td>
+                        @Active.DeleteCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Clear
+                    </td>
+                    <td>
+                        @Active.ClearTime
+                    </td>
+                    <td>
+                        @Active.ClearCount
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Total
+                    </td>
+                    <td>
+                        @Active.TotalTime
+                    </td>
+                    <td>
+                        @Active.TotalCount
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </Dialog>
+}
+<PageTitle>@Properties.Resources.Performance</PageTitle>
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Refresh" OnClick="@(async () => await Updated())" />
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+    </ChildContent>
+</MenuControl>
+
+<GXTable @ref="table"
+         Context="performance"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         OnSearch="@Updated"
+         ShowAllUsers="false"
+         ShowRemoved="false">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="Filter by start time..."
+                   type="datetime-local"
+            @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <!--TargetType -->
+            <DropdownSearch Context="item"
+                            Immediate="true"
+            @bind-Value="TargetType"
+                            ItemsProvider="@GetTargetTypes">
+                <ItemContent>
+                    @item
+                </ItemContent>
+            </DropdownSearch>
+        </th>
+        <th>
+            <!--Total count -->
+        </th>
+        <th>
+            <!--Total time -->
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="Start" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
+        <Th Id="TargetType">@Properties.Resources.Target</Th>
+        <th>Total count</th>
+        <th>Total time</th>
+    </HeaderContent>
+    <ItemContent>
+        <td>
+            <LinkButton Target="@performance" OnClick="@Show"
+                        Text="@(performance.End != null ? performance.Start.ToString() : "Snapshot")" />
+        </td>
+        <td>@((TargetType)performance.TargetType)</td>
+        <td>@performance.TotalCount</td>
+        <td>@performance.TotalTime</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle=@Properties.Resources.Clear
+         ConfirmationMessage=@Properties.Resources.AreYouSureYouWantToClearPerformance>
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected performance ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Performance;
+        }
+    }
+
+    private TargetType TargetType
+    {
+        get;
+        set;
+    }
+
+    GXPerformance? Active { get; set; }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Amount of the performance items shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    private GXTable<GXPerformance>? table;
+
+    /// <summary>
+    /// Performance filter.
+    /// </summary>
+    private GXPerformance filter = new GXPerformance();
+
+    /// <summary>
+    /// Hide performance dialog.
+    /// </summary>
+    public void OnCancel()
+    {
+        Active = null;
+        StateHasChanged();
+    }
+
+    private void Show(GXPerformance item)
+    {
+        try
+        {
+            Active = item;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Get object types.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<TargetType>> GetTargetTypes(GXItemsProviderRequest request)
+    {
+        TargetType[] values = Enum.GetValues<TargetType>();
+        int total = values.Length;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            List<TargetType> list = new List<TargetType>();
+            string filter = request.Filter.ToLower();
+            foreach (var it in values)
+            {
+                if (it.ToString().ToLower().Contains(filter))
+                {
+                    list.Add(it);
+                }
+            }
+            values = list.ToArray();
+        }
+        return new(new ItemsProviderResult<TargetType>(values, values.Length));
+    }
+
+    /// <summary>
+    /// User is verified before performances are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+
+    private int GetTime(GXPerformance item)
+    {
+        if (item.End == null || item.Start == null)
+        {
+            return 0;
+        }
+        return (int)(item.End.Value - item.Start.Value).TotalMilliseconds;
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXPerformance>>(this, nameof(IGXHubEvents.PerformanceAdd), async (performances) =>
+            {
+                await Updated();
+            });
+            Notifier.On(this, nameof(IGXHubEvents.PerformanceClear), async () =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXPerformance>>(this, nameof(IGXHubEvents.PerformanceDelete), async (performances) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXPerformance() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXPerformance>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            filter.TargetType = (UInt64)TargetType;
+            ListPerformances req = new ListPerformances()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListPerformancesResponse>("api/Performance/List", req, request.CancellationToken);
+            if (ret.Performances != null)
+            {
+                foreach (var it in ret.Performances)
+                {
+                    if (it.Id == Guid.Empty)
+                    {
+                        //If snapshot.
+                        it.Id = Guid.NewGuid();
+                    }
+                }
+                return new ItemsProviderResult<GXPerformance>(ret.Performances, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear performances.
+    /// </summary>
+    public void OnClear()
+    {
+        Notifier?.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear performances.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                await Http.PostAsJson<ClearRestStatisticResponse>("api/Performance/Clear", new ClearRestStatistic());
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

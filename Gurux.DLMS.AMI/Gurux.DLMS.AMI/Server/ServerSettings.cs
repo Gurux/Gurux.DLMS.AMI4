@@ -643,6 +643,7 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IGatewayGroupRepository, GatewayGroupRepository>();
             services.AddTransient<IGatewayRepository, GatewayRepository>();
             services.AddTransient<IGatewayLogRepository, GatewayLogRepository>();
+            services.AddSingleton<IPerformanceRepository, PerformanceRepository>();
         }
 
         /// <summary>
@@ -806,6 +807,7 @@ namespace Gurux.DLMS.AMI.Server
                     IDbTransaction t = host.Connection.BeginTransaction();
                     try
                     {
+                        host.Connection.CreateTable<GXPerformance>(false, false);
                         host.Connection.CreateTable<GXSystemLog>(false, false);
                         //Add ASP.Net user management.
                         host.Connection.CreateTable<GXUserGroup>(true, false);
@@ -914,6 +916,13 @@ namespace Gurux.DLMS.AMI.Server
                     host.Connection.UpdateTable<GXDeviceGroup>();
                     //Scaler added to attribute template.
                     host.Connection.UpdateTable<GXAttributeTemplate>();
+                    //Performance table added.
+                    if (!host.Connection.TableExist<GXPerformance>())
+                    {
+                        host.Connection.CreateTable<GXPerformance>(false, false);
+                        //TraceLevel added to gateway.
+                        host.Connection.UpdateTable<GXGateway>();
+                    }
                 }
             }
             else

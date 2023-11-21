@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS" Version="9.0.2308.2801" />
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2310.2301" />
+    <PackageReference Include="Gurux.DLMS" Version="9.0.2311.2101" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2311.2102" />
     <PackageReference Include="Gurux.DLMS.AMI.Update" Version="4.0.2211.1701" />
     <PackageReference Include="Gurux.Net" Version="8.4.2302.904" />
     <PackageReference Include="Gurux.Serial" Version="8.4.2302.902" />
@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="7.0.12" />
     <PackageReference Include="Microsoft.IO.RecyclableMemoryStream" Version="2.3.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
-    <PackageReference Include="MySql.Data" Version="8.1.0" />
+    <PackageReference Include="MySql.Data" Version="8.2.0" />
     <PackageReference Include="MySql.EntityFrameworkCore" Version="7.0.5" />
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.120" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />

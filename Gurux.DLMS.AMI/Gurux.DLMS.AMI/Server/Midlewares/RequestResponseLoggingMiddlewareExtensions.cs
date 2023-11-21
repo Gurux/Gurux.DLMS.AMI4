@@ -33,7 +33,7 @@
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
     /// <summary>
-    /// This class is used to save all user actions for the User log table.
+    /// This class is used to save all user actions to the User log table.
     /// </summary>
     internal static class RequestResponseLoggingMiddlewareExtensions
     {

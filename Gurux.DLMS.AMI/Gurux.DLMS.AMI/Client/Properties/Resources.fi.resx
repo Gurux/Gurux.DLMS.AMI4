@@ -1167,4 +1167,10 @@
   <data name="ToolTipReadValues" xml:space="preserve">
     <value>Lue arvot</value>
   </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Suorituskyky</value>
+  </data>
+  <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
+    <value>Haluatko varmasti tyhjentää suorituskykylaskurit?</value>
+  </data>
 </root>

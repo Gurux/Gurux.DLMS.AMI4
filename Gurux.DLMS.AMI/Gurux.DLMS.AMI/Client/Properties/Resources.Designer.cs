@@ -286,6 +286,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Are you sure you want to clear performance counters?.
+        /// </summary>
+        internal static string AreYouSureYouWantToClearPerformance {
+            get {
+                return ResourceManager.GetString("AreYouSureYouWantToClearPerformance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Are you sure you want to clear tasks?.
         /// </summary>
         internal static string AreYouSureYouWantToClearTasks {
@@ -2082,6 +2091,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Path {
             get {
                 return ResourceManager.GetString("Path", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Performance.
+        /// </summary>
+        internal static string Performance {
+            get {
+                return ResourceManager.GetString("Performance", resourceCulture);
             }
         }
         

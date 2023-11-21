@@ -1306,6 +1306,25 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 return _hostedService.DeviceStatusChange(users, devices);
             }
+
+            /// <inheritdoc/>
+            public Task PerformanceAdd(IReadOnlyList<string> users, IEnumerable<GXPerformance> performances)
+            {
+                return _hostedService.PerformanceAdd(users, performances);
+            }
+
+            /// <inheritdoc/>
+            public Task PerformanceClear(IReadOnlyList<string> users)
+            {
+                return _hostedService.PerformanceClear(users);
+            }
+
+            /// <inheritdoc/>
+            public Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances)
+            {
+                return _hostedService.PerformanceDelete(users, performances);
+            }
+
         }
 
         /// <summary>

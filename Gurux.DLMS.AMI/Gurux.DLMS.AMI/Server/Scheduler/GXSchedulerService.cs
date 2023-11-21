@@ -42,10 +42,7 @@ using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server;
-using Gurux.DLMS.AMI.Shared;
-using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Server.Repository;
-using Gurux.DLMS.AMI.Client.Pages.Device;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {

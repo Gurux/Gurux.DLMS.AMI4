@@ -1322,24 +1322,33 @@ namespace Gurux.DLMS.AMI.Client
                     });
                     hubConnection.On<IEnumerable<GXRestStatistic>>(nameof(IGXHubEvents.RestStatisticAdd), async (items) =>
                     {
-                        _toasterService.Add(new GXToast("REST statistic added", ToString(items), Color.Info, 15));
+                        if ((IgnoreNotification & TargetType.RestStatistic) == 0)
+                        {
+                            _toasterService.Add(new GXToast("REST statistic added", ToString(items), Color.Info, 15));
+                        }
                         await ChangedAsync(nameof(IGXHubEvents.RestStatisticAdd), items);
                     });
                     hubConnection.On<IEnumerable<GXUser>>(nameof(IGXHubEvents.RestStatisticClear), async (users) =>
                     {
-                        if (users == null || !users.Any())
+                        if ((IgnoreNotification & TargetType.RestStatistic) == 0)
                         {
-                            _toasterService.Add(new GXToast("REST statistics clear", "All statistics cleared.", Color.Info, 15));
-                        }
-                        else
-                        {
-                            _toasterService.Add(new GXToast("REST statistics clear", ToString(users), Color.Info, 15));
+                            if (users == null || !users.Any())
+                            {
+                                _toasterService.Add(new GXToast("REST statistics clear", "All statistics cleared.", Color.Info, 15));
+                            }
+                            else
+                            {
+                                _toasterService.Add(new GXToast("REST statistics clear", ToString(users), Color.Info, 15));
+                            }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.RestStatisticClear), users);
                     });
                     hubConnection.On<IEnumerable<GXLanguage>>(nameof(IGXHubEvents.LanguageUpdate), async (languages) =>
                     {
-                        _toasterService.Add(new GXToast("Language updated", ToString(languages), Color.Info, 15));
+                        if ((IgnoreNotification & TargetType.Language) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Language updated", ToString(languages), Color.Info, 15));
+                        }
                         await ChangedAsync(nameof(IGXHubEvents.LanguageUpdate), languages);
                     });
 
@@ -1473,6 +1482,31 @@ namespace Gurux.DLMS.AMI.Client
                             _toasterService.Add(new GXToast("Key management group deleted", ToString(manufacturers), Color.Warning, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.KeyManagementGroupDelete), manufacturers);
+                    });
+
+                    hubConnection.On<IEnumerable<GXPerformance>>(nameof(IGXHubEvents.PerformanceAdd), async (performances) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Performance) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Performance add", ToString(performances), Color.Info, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.PerformanceAdd), performances);
+                    });
+                    hubConnection.On<IEnumerable<GXPerformance>>(nameof(IGXHubEvents.PerformanceDelete), async (performances) =>
+                    {
+                        if ((IgnoreNotification & TargetType.Performance) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Performance deleted", ToString(performances), Color.Info, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.PerformanceDelete), performances);
+                    });
+                    hubConnection.On(nameof(IGXHubEvents.PerformanceClear), async () =>
+                    {
+                        if ((IgnoreNotification & TargetType.Performance) == 0)
+                        {
+                            _toasterService.Add(new GXToast("Performance cleared.", null, Color.Info, 15));
+                        }
+                        await ChangedAsync(nameof(IGXHubEvents.PerformanceClear));
                     });
                     await hubConnection.StartAsync();
                 }

@@ -39,7 +39,6 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
-using Org.BouncyCastle.Ocsp;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {

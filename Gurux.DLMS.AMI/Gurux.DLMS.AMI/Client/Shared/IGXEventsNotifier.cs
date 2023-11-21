@@ -938,5 +938,25 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="gateways">Gateways.</param>
         Task GatewayStatusChange(IReadOnlyList<string> users, IEnumerable<GXGateway> gateways);
+
+        /// <summary>
+        /// New performance is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="performances">Updated performances.</param>
+        Task PerformanceAdd(IReadOnlyList<string> users, IEnumerable<GXPerformance> performances);
+
+        /// <summary>
+        /// Performances are clear.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        Task PerformanceClear(IReadOnlyList<string> users);
+
+        /// <summary>
+        /// Performance is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="performances">Deleted performances.</param>
+        Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances);
     }
 }

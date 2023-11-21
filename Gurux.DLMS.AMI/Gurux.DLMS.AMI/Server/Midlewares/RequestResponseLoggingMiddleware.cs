@@ -53,6 +53,13 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         private readonly ILogger _logger;
         private readonly RecyclableMemoryStreamManager _recyclableMemoryStreamManager;
         private readonly IConfigurationRepository _configurationRepository;
+        private readonly IPerformanceRepository _performanceRepository;
+        private Timer? _timer;
+
+        /// <summary>
+        /// Current performance.
+        /// </summary>
+        private readonly Dictionary<UInt64, GXPerformance> _performances = new();
 
         StatisticSettings? statistic;
 
@@ -62,7 +69,8 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         public RequestResponseLoggingMiddleware(RequestDelegate next,
             IGXHost host,
             IConfigurationRepository configurationRepository,
-            ILoggerFactory loggerFactory)
+            ILoggerFactory loggerFactory,
+            IPerformanceRepository performanceRepository)
         {
             _next = next;
             _host = host;
@@ -88,6 +96,89 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     }
                 }
             };
+            _performanceRepository = performanceRepository;
+            if (statistic.PerformanceInterval == 0)
+            {
+                statistic.PerformanceInterval = 60;
+            }
+            TimeSpan start = DateTime.Now.AddSeconds(statistic.PerformanceInterval - (DateTime.Now.Second % statistic.PerformanceInterval)) - DateTime.Now;
+            _timer = new Timer(DoWork, null, start, TimeSpan.FromSeconds(statistic.PerformanceInterval));
+        }
+
+        private async void DoWork(object? state)
+        {
+            foreach (var it in _performances)
+            {
+                await GetPerformance((TargetType)it.Key, true);
+            }
+        }
+
+        private async Task<GXPerformance> GetPerformance(TargetType type,
+            bool force = false)
+        {
+            DateTime now = DateTime.Now;
+            now = now.AddMilliseconds(-now.Millisecond);
+            GXPerformance? value = null;
+            GXPerformance? savedValue = null;
+            lock (_performances)
+            {
+                if (_performances.TryGetValue((UInt64)type, out GXPerformance? v))
+                {
+                    if (v != null)
+                    {
+                        value = v;
+                        //Values are saved for the database once a minute if there are any actions.
+                        if (force || now.Second == 0 ||
+                            (now - value.Start.GetValueOrDefault()).TotalSeconds >= statistic.PerformanceInterval)
+                        {
+                            value.End = now;
+                            savedValue = value;
+                            value = new GXPerformance()
+                            {
+                                TargetType = (UInt64)type,
+                                Start = now,
+                            };
+                            _performances[(UInt64)type] = value;
+                        }
+                    }
+                }
+                if (value == null)
+                {
+                    value = new GXPerformance()
+                    {
+                        TargetType = (UInt64)type,
+                        Start = now,
+                    };
+                    _performances[(UInt64)type] = value;
+                    lock (_performanceRepository.Snapshots)
+                    {
+                        _performanceRepository.Snapshots.Clear();
+                        _performanceRepository.Snapshots.AddRange(_performances.Values);
+                    }
+
+                }
+            }
+            if (savedValue != null && savedValue.TotalCount != 0)
+            {
+                lock (_performanceRepository.Snapshots)
+                {
+                    //Remove snapshot value.
+                    _performanceRepository.Snapshots.RemoveAll(w => w.TargetType == (UInt64)type);
+                }
+                await _performanceRepository.AddAsync(null, new[] { savedValue });
+            }
+            else
+            {
+                lock (_performanceRepository.Snapshots)
+                {
+                    //Add new snapshot value.
+                    if (!_performanceRepository.Snapshots.Where(w => w.TargetType == (UInt64)type).Any())
+                    {
+                        _performanceRepository.Snapshots.Add(value);
+                    }
+                }
+            }
+            return value;
         }
 
         public async Task Invoke(HttpContext context)
@@ -104,9 +195,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             {
                 //It's OK if this fails.
             }
-            //SignalR events are not saved.
-            bool isApi = context.Request.Path.StartsWithSegments("/api");
-
+            bool isApi = context.Request.Path.StartsWithSegments("/api");          
             //Save user actions.
             if (id != null && statistic != null && statistic.UserActions && isApi)
             {
@@ -127,8 +216,35 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     _logger.LogInformation("Unknown path '{0}'", context.Request.Path.Value);
                 }
             }
+            GXPerformance? _performance = null;
             if (action != CrudAction.None && type != TargetType.None)
             {
+                _performance = await GetPerformance(type);
+                //Increase performance counters.
+                switch (action)
+                {
+                    case CrudAction.Create:
+                        _performance.AddCount = _performance.AddCount.GetValueOrDefault() + 1; ;
+                        break;
+                    case CrudAction.Read:
+                        _performance.ReadCount = _performance.ReadCount.GetValueOrDefault() + 1; ;
+                        break;
+                    case CrudAction.Update:
+                        _performance.UpdateCount = _performance.UpdateCount.GetValueOrDefault() + 1; ;
+                        break;
+                    case CrudAction.Delete:
+                        _performance.DeleteCount = _performance.DeleteCount.GetValueOrDefault() + 1; ;
+                        break;
+                    case CrudAction.List:
+                        _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
+                        break;
+                    case CrudAction.Clear:
+                        _performance.ClearCount = _performance.ClearCount.GetValueOrDefault() + 1;
+                        break;
+                    case CrudAction.Next:
+                        _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
+                        break;
+                }
                 string request = await LogRequest(context);
                 await LogResponse(context, action, type, request);
             }
@@ -138,15 +254,47 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             try
             {
-                if (id != null && isApi && statistic != null && (DateTime.Now - start).TotalMilliseconds >= statistic.RestTrigger)
+                if (action != CrudAction.None && type != TargetType.None)
                 {
-                    GXRestStatistic diag = new GXRestStatistic();
-                    diag.End = DateTime.Now;
-                    diag.Start = start;
-                    diag.Path = context.Request.Path;
-                    diag.User = new GXUser() { Id = id };
-                    GXInsertArgs arg = GXInsertArgs.Insert<GXRestStatistic>(diag);
-                    await _host.Connection.InsertAsync(arg);
+                    if (_performance != null)
+                    {
+                        //Update performance time.
+                        UInt64 time = (UInt64)(DateTime.Now - start).TotalMilliseconds;
+                        switch (action)
+                        {
+                            case CrudAction.Create:
+                                _performance.AddTime = time + _performance.AddTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.Read:
+                                _performance.ReadTime = time + _performance.ReadTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.Update:
+                                _performance.UpdateTime = time + _performance.UpdateTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.Delete:
+                                _performance.DeleteTime = time + _performance.DeleteTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.List:
+                                _performance.ListTime = time + _performance.ListTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.Clear:
+                                _performance.ClearTime = time + _performance.ClearTime.GetValueOrDefault();
+                                break;
+                            case CrudAction.Next:
+                                _performance.ListTime = time + _performance.ListTime.GetValueOrDefault();
+                                break;
+                        }
+                    }
+                    if (id != null && isApi && statistic != null && (DateTime.Now - start).TotalMilliseconds >= statistic.RestTrigger)
+                    {
+                        GXRestStatistic diag = new GXRestStatistic();
+                        diag.End = DateTime.Now;
+                        diag.Start = start;
+                        diag.Path = context.Request.Path;
+                        diag.User = new GXUser() { Id = id };
+                        GXInsertArgs arg = GXInsertArgs.Insert<GXRestStatistic>(diag);
+                        await _host.Connection.InsertAsync(arg);
+                    }
                 }
             }
             catch (Exception)

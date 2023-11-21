@@ -1167,4 +1167,10 @@
   <data name="ToolTipReadValues" xml:space="preserve">
     <value>Read values</value>
   </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
+    <value>Are you sure you want to clear performance counters?</value>
+  </data>
 </root>

@@ -789,6 +789,25 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// Device status has changed.
         /// </summary>
         /// <param name="devices">Devices.</param>
-        Task DeviceStatusChange(IEnumerable<GXDevice> devices);        
+        Task DeviceStatusChange(IEnumerable<GXDevice> devices);
+
+        /// <summary>
+        /// New performance is added.
+        /// </summary>
+        /// <param name="statistics">Updated performances.</param>
+        Task PerformanceAdd(IEnumerable<GXPerformance> performance);
+
+        /// <summary>
+        /// Performances are clear.
+        /// </summary>
+        Task PerformanceClear();
+
+        /// <summary>
+        /// Performances are removed.
+        /// </summary>
+        /// <param name="statistics">Deleted performances.</param>
+        Task PerformanceDelete(IEnumerable<Guid> performance);
+
+
     }
 }
