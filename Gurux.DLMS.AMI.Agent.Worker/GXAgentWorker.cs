@@ -39,7 +39,10 @@ using Gurux.DLMS.AMI.Gateway.Worker.Repositories;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.Enums;
@@ -683,12 +686,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         }
                         media.Open();
                     }
-                    var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Settings);
+                    var settings = JsonSerializer.Deserialize<AMI.Shared.DTOs.Device.GXDLMSSettings>(dev.Settings);
                     if (settings == null)
                     {
                         throw new Exception("Failed to serialize settings.");
                     }
-                    var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.GXDLMSSettings>(dev.Template.Settings);
+                    var templateSettings = JsonSerializer.Deserialize<AMI.Shared.DTOs.Device.GXDLMSSettings>(dev.Template.Settings);
                     if (templateSettings == null)
                     {
                         throw new Exception("Failed to serialize template settings.");
@@ -707,6 +710,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 {
                                     settings.PhysicalAddress = it.PhysicalAddress;
                                 }
+                                else if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber &&
+                                    settings.PhysicalAddress == 0)
+                                {
+                                    //If serial number is not given.
+                                    settings.HDLCAddressing = (int)ManufacturerSettings.HDLCAddressType.Default;
+                                    settings.PhysicalAddress = it.PhysicalAddress;
+                                }
                                 break;
                             }
                         }
@@ -721,6 +731,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 settings.LogicalAddress = it.LogicalAddress;
                                 if (settings.HDLCAddressing != (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
                                 {
+                                    settings.PhysicalAddress = it.PhysicalAddress;
+                                }
+                                else if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber && 
+                                    settings.PhysicalAddress == 0)
+                                {
+                                    //If serial number is not given.
+                                    settings.HDLCAddressing = (int)ManufacturerSettings.HDLCAddressType.Default;
                                     settings.PhysicalAddress = it.PhysicalAddress;
                                 }
                                 break;

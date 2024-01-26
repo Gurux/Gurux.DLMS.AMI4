@@ -36,6 +36,7 @@ using Gurux.Net;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
 {

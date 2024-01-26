@@ -33,6 +33,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.Enums;

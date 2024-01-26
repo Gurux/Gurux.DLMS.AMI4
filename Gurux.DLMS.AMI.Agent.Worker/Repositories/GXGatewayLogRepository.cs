@@ -32,8 +32,9 @@
 
 using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Diagnostics;
 using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
@@ -51,13 +52,21 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task<GXGatewayLog> AddAsync(ClaimsPrincipal? User, GXGateway device, Exception ex)
+        public async Task<GXGatewayLog> AddAsync(ClaimsPrincipal? User, GXGateway gateway, Exception ex)
         {
-            throw new NotImplementedException();
+            GXGatewayLog log = new GXGatewayLog(TraceLevel.Error)
+            {
+                Message = ex.Message,
+                StackTrace = ex.StackTrace,
+                Gateway = gateway,
+            };
+            AddGatewayLog req = new AddGatewayLog() { Logs = new[] { log } };
+            _ = await GXAgentWorker.client.PostAsJson<AddGatewayLogResponse>("/api/GatewayLog/Add", req);
+            return log;
         }
 
         /// <inheritdoc/>
-        public async Task ClearAsync(ClaimsPrincipal User, Guid[] gateways)
+        public async Task ClearAsync(ClaimsPrincipal User, Guid[]? gateways)
         {
             ClearGatewayLogs req = new ClearGatewayLogs()
             {
@@ -106,6 +115,11 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
                 return ret.Item;
             }
             */
+        }
+
+        Task<GXGatewayLog> IGatewayLogRepository.AddAsync(ClaimsPrincipal User, GXGateway Gateway, Exception ex)
+        {
+            throw new NotImplementedException();
         }
     }
 }

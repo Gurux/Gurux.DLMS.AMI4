@@ -34,7 +34,6 @@ using Gurux.Net;
 using Gurux.Common;
 using Microsoft.Extensions.Hosting;
 using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Script;
 using System.Runtime.Loader;
@@ -43,8 +42,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Runtime.Caching;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.Runtime;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
 {
@@ -208,7 +208,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                 {
                     SystemTitle = st
                 },
-                Select = (TargetType.KeyManagementKey | TargetType.Device | TargetType.Object | TargetType.ObjectTemplate | TargetType.Attribute | TargetType.AttributeTemplate)
+                Select = new string[] { "KeyManagementKey", "Device", "Object", "ObjectTemplate ", "Attribute", "AttributeTemplate" }
             };
             var ret = GXAgentWorker.client.PostAsJson<ListKeyManagementsResponse>("/api/KeyManagement/List", req).Result;
             if (ret != null)
