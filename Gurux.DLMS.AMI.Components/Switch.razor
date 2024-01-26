@@ -10,7 +10,7 @@
                    type="checkbox"
                    checked="@IsChecked()"
                    disabled="@IsDisabled()"
-                   onchange="@((ChangeEventArgs e) => UpdateCheck(Convert.ToBoolean(e.Value)))">
+                   onchange="@(async (ChangeEventArgs e) => await UpdateCheck(Convert.ToBoolean(e.Value)))">
             @if (!string.IsNullOrEmpty(Text))
             {
                 <label>@Text</label>
@@ -47,12 +47,12 @@
     /// Is switch checked
     /// </summary>
     [Parameter]
-    public bool Checked { get; set; }
+    public bool Value { get; set; }
 
 
     private string? IsChecked()
     {
-        return Checked ? "checked" : null;
+        return Value ? "checked" : null;
     }
 
     private string? IsDisabled()
@@ -60,17 +60,24 @@
         return Disabled ? "disabled" : null;
     }
 
-    private void UpdateCheck(bool value)
+    private async Task UpdateCheck(bool value)
     {
-        if (Checked != value)
+        if (Value != value)
         {
-            Checked = value;
+            Value = value;
+            await ValueChanged.InvokeAsync();
             if (OnChange != null)
             {
                 OnChange(value);
             }
         }
     }
+
+    /// <summary>
+    /// Receive notification when user changes the value.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> ValueChanged { get; set; }
 
     /// <summary>
     /// Receive notification when user changes the value.

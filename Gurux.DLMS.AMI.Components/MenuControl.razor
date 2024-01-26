@@ -48,21 +48,21 @@
         }
         return "";
     }
-    private string GetStyle()
+    private string? GetStyle()
     {
         if (RightCorner)
         {
             if (Bottom)
             {
-                return "position: absolute; right:0;bottom:0;";
+                return "position: fixed;bottom: 20px;right: 20px;";
             }
-            return "position: absolute; right:0;";
+            return "float: right;";
         }
         if (Bottom)
         {
             return "position: absolute; bottom:0;";
         }
-        return "";
+        return null;
     }
 
     /// <summary>

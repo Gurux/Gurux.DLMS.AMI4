@@ -1,9 +1,14 @@
-﻿@inherits ComponentBase
+﻿@using Gurux.DLMS.AMI.Components.Enums
+@inherits ComponentBase
 
-<th id="@Id" style="@CssStyle" class="@CssClass" @attributes="@AdditionalAttributes" onclick="@(() => SortTable())">
-    @ChildContent
-    <span class="@(GetSortIcon())"></span>
-</th>
+@if (!_hidden)
+{
+    <th id="@Id" style="@CssStyle" class="@GetCssClass()" @attributes="@AdditionalAttributes"
+        onclick="@(() => SortTable())">
+        @ChildContent
+        <span class="@(GetSortIcon())"></span>
+    </th>
+}
 
 @code
 {
@@ -25,14 +30,113 @@
     [Parameter]
     public SortMode SortMode { get; set; } = SortMode.None;
 
+    /// <summary>
+    /// Id.
+    /// </summary>
     [Parameter]
     public string? Id { get; set; }
 
+    /// <summary>
+    /// CSS style.
+    /// </summary>
     [Parameter]
     public string? CssStyle { get; set; }
 
+    /// <summary>
+    /// CSS class.
+    /// </summary>
     [Parameter]
     public string? CssClass { get; set; } = "sort-th";
+
+    private string? GetCssClass()
+    {
+        return GetCssClass(Visibility, CssClass);
+    }
+
+    internal static string? GetCssClass(Visibility visibility, string? CssClass)
+    {
+        string? str = null;
+        if (visibility == Visibility.ExtraLargeLarge)
+        {
+            str = "d-none d-xll-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.ExtraLarge)
+        {
+            str = "d-none d-xl-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Large)
+        {
+            str = "d-none d-lg-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Medium)
+        {
+            str = "d-none d-md-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Small)
+        {
+            str = "d-none d-sm-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.ExtraSmall)
+        {
+            str = "d-none d-xs-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Print)
+        {
+            str = "d-none d-print-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.PrintHide)
+        {
+            str = "d-print-none " + CssClass;
+        }
+        else
+        {
+            str = CssClass;
+        }
+
+        /*
+        if (visibility == Visibility.Large)
+        {
+            str = "d-none d-xl-table-cell  " + CssClass;
+            }
+            else if (visibility == Visibility.Medium)
+        {
+        str = "d-none d-lg-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Small)
+            {
+            str = "d-none d-md-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.ExtraSmall)
+            {
+            str = "d-none d-sm-table-cell " + CssClass;
+            }
+        else if (visibility == Visibility.Print)
+        {
+        str = "d-none d-print-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.PrintHide)
+        {
+        str = "d-print-none " + CssClass;
+            }
+            else
+            {
+            str = CssClass;
+            }
+            */
+        return str;
+    }
+
+    /// <summary>
+    /// Responsive determines the order
+    /// in which the contents are hidden if they do not fit the screen.
+    /// </summary>
+    [Parameter]
+    public Visibility Visibility { get; set; } = Visibility.All;
+
+    /// <summary>
+    /// Is hidden.
+    /// </summary>
+    bool _hidden;
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
@@ -51,6 +155,7 @@
             Parent.SortMode = SortMode;
             Parent.OrderBy = Id;
         }
+        _hidden = Parent.IsHidden(Id);
         base.OnInitialized();
     }
 

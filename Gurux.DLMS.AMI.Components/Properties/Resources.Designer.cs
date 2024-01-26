@@ -113,5 +113,14 @@ namespace Gurux.DLMS.AMI.Components.Properties {
                 return ResourceManager.GetString("Total", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unknown.
+        /// </summary>
+        internal static string Unknown {
+            get {
+                return ResourceManager.GetString("Unknown", resourceCulture);
+            }
+        }
     }
 }

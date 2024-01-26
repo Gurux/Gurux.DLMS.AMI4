@@ -1,0 +1,79 @@
+﻿@using Gurux.DLMS.AMI.Components.Enums
+@inherits ComponentBase
+
+
+@if (!_hidden)
+{
+    <th id="@Id"
+    style="@CssStyle"
+    class="@GetCssClass()"
+    @attributes="@AdditionalAttributes">
+        @ChildContent
+    </th>
+}
+
+@code
+{
+    /// <summary>
+    /// Id.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Parent table.
+    /// </summary>
+    [CascadingParameter]
+    private IGXTable? Parent { get; set; }
+
+    /// <summary>
+    /// Gets or sets the item template for the list.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// CSS style.
+    /// </summary>
+    [Parameter]
+    public string? CssStyle { get; set; }
+
+    /// <summary>
+    /// CSS class.
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Responsive determines the order
+    /// in which the contents are hidden if they do not fit the screen.
+    /// </summary>
+    [Parameter]
+    public Visibility Visibility { get; set; } = Visibility.All;
+
+    /// <summary>
+    /// Is hidden.
+    /// </summary>
+    bool _hidden;
+
+    private string? GetCssClass()
+    {
+        return Th.GetCssClass(Visibility, CssClass);
+    }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>
+    /// Initialize filter.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "Fh must exist within a GXTable");
+        }
+        _hidden = Parent.IsHidden(Id);
+        base.OnInitialized();
+    }
+}

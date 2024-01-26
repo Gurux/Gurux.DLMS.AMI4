@@ -1,24 +1,55 @@
 ﻿@namespace Gurux.DLMS.AMI.Components.Table
 @using Gurux.DLMS.AMI.Client.Helpers;
+@using Gurux.DLMS.AMI.Components.Enums
 
 @inherits ComponentBase
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<td style="@CssStyle" class="@CssClass" @attributes="@AdditionalAttributes">
-    <a href="@Link" onclick="@(() => OnSelect())">
-        @ChildContent
-    </a>
-</td>
+
+@if (!_hidden)
+{
+    <td style="@CssStyle" class="@GetCssClass()" @attributes="@AdditionalAttributes">
+        @if (Parent != null && Parent.CanEdit)
+        {
+            <a href="@Link" onclick="@(() => OnSelect())">
+                @ChildContent
+            </a>
+        }
+        else
+        {
+            @ChildContent
+        }
+    </td>
+}
 
 @code
 {
+    /// <summary>
+    /// Id.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
     /// <summary>
     /// Parent table.
     /// </summary>
     [CascadingParameter]
     private IGXTable? Parent { get; set; }
+
+
+    private bool CanEdit
+    {
+        get
+        {
+            if (Parent == null)
+            {
+                return true;
+            }
+            return Parent.CanEdit;
+        }
+    }
 
     /// <summary>
     /// href link.
@@ -35,16 +66,44 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
+    /// <summary>
+    /// CSS style.
+    /// </summary>
     [Parameter]
     public string? CssStyle { get; set; }
 
+    /// <summary>
+    /// CSS class.
+    /// </summary>
     [Parameter]
     public string? CssClass { get; set; }
 
+    /// <summary>
+    /// Responsive determines the order
+    /// in which the contents are hidden if they do not fit the screen.
+    /// </summary>
+    [Parameter]
+    public Visibility Visibility { get; set; } = Visibility.All;
+
+    /// <summary>
+    /// Is hidden.
+    /// </summary>
+    bool _hidden;
+
+    private string? GetCssClass()
+    {
+        return Th.GetCssClass(Visibility, CssClass);
+    }
+
+    /// <summary>
+    /// Additional attributes.
+    /// </summary>
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
-    //New target is selected.
+    /// <summary>
+    /// New target is selected.
+    /// </summary>
     private void OnSelect()
     {
         if (Target != null)
@@ -70,6 +129,7 @@
         {
             throw new ArgumentNullException(nameof(Parent), "Th must exist within a GXTable");
         }
+        _hidden = Parent.IsHidden(Id);
         base.OnInitialized();
     }
 }

@@ -135,4 +135,7 @@
   <data name="ShowRemoved" xml:space="preserve">
     <value>Show removed targets</value>
   </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
 </root>

@@ -6,7 +6,6 @@
 @implements IGXTable
 
 @inject IGXNotifier Notifier
-
 <CascadingValue Value="this">
     @if (Filter && FilterContent != null)
     {
@@ -91,7 +90,7 @@
                         @ItemContent(it)
                         @if (Menu && MenuContent != null)
                         {
-                            @if (it.Equals(Active))
+                            @if (it != null && it.Equals(Active))
                             {
                                 <td>
                                     <ContextMenuController>
@@ -155,7 +154,14 @@
     @if (Total)
     {
         <label>
-            @Properties.Resources.Total @TotalCount
+            @if (@TotalCount == -1)
+            {
+                @(Properties.Resources.Total + " " + Properties.Resources.Unknown)
+            }
+            else
+            {
+                @(Properties.Resources.Total + " " + TotalCount.ToString("N0"))
+            }
         </label>
     }
     @ChildContent
@@ -343,6 +349,14 @@
                 //Select the first page.
                 value = 0;
             }
+            else if (TotalCount == -1)
+            {
+                //Select the last page.
+                if (value == _currentPage)
+                {
+                    value = 1 + _currentPage;
+                }
+            }
             else if (_pageSize * value > TotalCount)
             {
                 //Select the last page.
@@ -395,6 +409,10 @@
     {
         get
         {
+            if (TotalCount == -1)
+            {
+                return 2 + CurrentPage;
+            }
             return (int)Math.Ceiling(TotalCount / (double)PageSize);
         }
     }
@@ -408,6 +426,18 @@
         CurrentPage = index;
         await RefreshDataAsync(true);
     }
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
 
     /// <summary>
     /// Selection mode.
@@ -457,7 +487,7 @@
     public string? Style { get; set; }
 
     [Parameter]
-    public string? CssClass { get; set; } = "table table-striped";
+    public string? CssClass { get; set; } = "table table-striped table-responsive";
 
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
@@ -798,6 +828,20 @@
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Is column hidden.
+    /// </summary>
+    /// <param name="name">Name of the column.</param>
+    /// <returns>True, if table column is hidden.</returns>
+    bool IGXTable.IsHidden(string? name)
+    {
+        if (string.IsNullOrEmpty(name) || Columns == null || !Columns.Any())
+        {
+            return false;
+        }
+        return !Columns.Contains(name);
     }
 
     ///<summary>

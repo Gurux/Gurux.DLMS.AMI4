@@ -1,4 +1,6 @@
-﻿namespace Gurux.DLMS.AMI.Components.Table
+﻿using Microsoft.AspNetCore.Components;
+
+namespace Gurux.DLMS.AMI.Components.Table
 {
     /// <summary>
     /// Sort mode.
@@ -23,12 +25,24 @@
         /// User has selected the row.
         /// </summary>
         /// <param name="selected">Selected row.</param>
-        public void SelectRow(object selected);
+        void SelectRow(object selected);
 
         /// <summary>
         /// User has selected the cell.
         /// </summary>
         /// <param name="selected">Selected cell.</param>
-        public void SelectCell(object selected);
+        void SelectCell(object selected);
+
+        /// <summary>
+        /// Is edit allowed.
+        /// </summary>
+        bool CanEdit { get;}
+
+        /// <summary>
+        /// Is column hidden.
+        /// </summary>
+        /// <param name="name">Column name.</param>
+        /// <returns>True, if column is hidden.</returns>
+        bool IsHidden(string? name);
     }
 }
