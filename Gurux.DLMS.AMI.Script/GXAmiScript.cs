@@ -45,7 +45,11 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Runtime.Loader;
 using System.Runtime.ExceptionServices;
-using static System.Formats.Asn1.AsnWriter;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Script
 {
