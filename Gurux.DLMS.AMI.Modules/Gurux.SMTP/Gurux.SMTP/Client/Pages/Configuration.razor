@@ -101,6 +101,13 @@
     }
 
     /// <inheritdoc />
+    public Task InitializeAsync()
+    {
+        //Nothing to do.
+        return Task.CompletedTask;
+    }
+
+    /// <inheritdoc />
     public void Save()
     {
         if (Settings.Port == 0)

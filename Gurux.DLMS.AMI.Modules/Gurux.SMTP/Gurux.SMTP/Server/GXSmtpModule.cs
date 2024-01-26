@@ -43,6 +43,15 @@ namespace Gurux.SMTP.Server
     public class GXSmtpModule : IAmiModule
     {
         /// <inheritdoc />
+        public string Id
+        {
+            get
+            {
+                return "Smtp";
+            }
+        }
+
+        /// <inheritdoc />
         public string Name => "Smtp";
 
         /// <inheritdoc />
@@ -60,8 +69,55 @@ namespace Gurux.SMTP.Server
         /// <inheritdoc />
         public string Description => Properties.Resources.SMTPSettings;
 
+
+
         /// <inheritdoc />
-        public void ConfigureModuleServices(IServiceCollection services, 
+        public string? Protocols
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public string? Help
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public Type? Extension
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public bool CanSchedule
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        /// <inheritdoc />
+        public Type? Schedule
+        {
+            get
+            {
+                return null;
+            }
+        }
+
+        /// <inheritdoc />
+        public void ConfigureModuleServices(IServiceCollection services,
             IConfiguration configuration)
         {
             services.Configure<SmtpOptions>(configuration.GetSection("Smtp"));
@@ -115,5 +171,49 @@ namespace Gurux.SMTP.Server
             //Nothing to do for SMTP.
         }
 
+        public void ConfigureMidlewares(IServiceCollection services)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task InstallAsync(ClaimsPrincipal user, IServiceProvider services, object module)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Update(ClaimsPrincipal user, IServiceProvider services, string current, string updated)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UpdateAsync(ClaimsPrincipal user, IServiceProvider services, object current, object updated)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task UninstallAsync(ClaimsPrincipal user, IServiceProvider services, object module)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StartAsync(IServiceProvider services)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Execute(ClaimsPrincipal user, IServiceProvider services, string? settings, string? instanceSettings)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task ExecuteAsync(ClaimsPrincipal user, IServiceProvider services, string? settings, string? instanceSettings)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task StopAsync(IServiceProvider services)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

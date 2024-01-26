@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using System.Diagnostics;
 using Microsoft.Extensions.Options;
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.SMTP.Server
 {
