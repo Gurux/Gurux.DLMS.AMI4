@@ -31,8 +31,8 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs

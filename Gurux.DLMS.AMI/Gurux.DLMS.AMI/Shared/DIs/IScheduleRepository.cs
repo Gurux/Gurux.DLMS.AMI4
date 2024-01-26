@@ -32,8 +32,7 @@
 
 using System.Linq.Expressions;
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
@@ -64,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// TargetType.User: Creator.
         /// </remarks>
         Task<GXSchedule> ReadAsync(
-            ClaimsPrincipal user, 
+            ClaimsPrincipal user,
             Guid id);
 
         /// <summary>
@@ -74,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="schedulers">Updated schedule(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
+            ClaimsPrincipal user,
             IEnumerable<GXSchedule> schedulers,
             Expression<Func<GXSchedule, object?>>? columns = null);
 
@@ -116,5 +115,24 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task RunAsync(
             ClaimsPrincipal User,
             Guid id);
+
+        /// <summary>
+        /// Get module settings for the schedule.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="settings">Schedule and module id.</param>
+        /// <returns>Module settings for the schedule.</returns>
+        Task<GXScheduleModule?> GetModuleSettingsAsync(
+            ClaimsPrincipal user,
+            GXScheduleModule? settings);
+
+        /// <summary>
+        /// Update module settings for the schedule.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="settings">Module settings to the schedule.</param>
+        Task UpdateModuleSettingsAsync(
+            ClaimsPrincipal user,
+            GXScheduleModule? settings);
     }
 }

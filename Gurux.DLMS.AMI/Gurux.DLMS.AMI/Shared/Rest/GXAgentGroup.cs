@@ -30,11 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -115,7 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -138,6 +140,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;

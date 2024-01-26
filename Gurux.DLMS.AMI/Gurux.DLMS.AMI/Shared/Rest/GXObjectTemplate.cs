@@ -140,7 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -170,12 +170,53 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
         public Guid[]? Exclude
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Device template Ids.
+        /// </summary>
+        public Guid[]? DeviceTemplates
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Filtered object types.
+        /// </summary>
+        /// <remarks>
+        /// </remarks>
+        public int[]? ObjectTypes
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Ignored object types.
+        /// </summary>
+        public int[]? IgnoredObjectTypes
         {
             get;
             set;

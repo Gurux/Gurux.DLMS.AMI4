@@ -32,7 +32,7 @@
 
 using System.Linq.Expressions;
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -62,12 +62,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXDevice> ReadAsync(ClaimsPrincipal user, Guid id);
 
         /// <summary>
-        /// Update device.
+        /// Update device(s).
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="devices">Updated device(s).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <param name="columns">Updated columns(s).</param>
+        /// <param name="groups">Device groups where devices are added. This can be used with batch.</param>
         /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
         /// <remarks>
         /// Late binding improves device creation when a huge amount of devices is created. 
@@ -78,7 +79,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
             Expression<Func<GXDevice, object?>>? columns = null,
-            bool lateBinding = false);
+            bool lateBinding = false,
+            IEnumerable<GXDeviceGroup>? groups = null);
 
         /// <summary>
         /// Delete device(s).

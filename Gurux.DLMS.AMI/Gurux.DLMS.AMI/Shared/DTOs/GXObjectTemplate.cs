@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -81,6 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Description("Device template identifier.")]
         [Index(false)]
+        [Filter(FilterType.Exact)]
         public GXDeviceTemplate? DeviceTemplate
         {
             get;
@@ -93,7 +95,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Object type.")]
         [IsRequired]
-        [DefaultValue(0)]
         [Filter(FilterType.Exact)]
         public int? ObjectType
         {

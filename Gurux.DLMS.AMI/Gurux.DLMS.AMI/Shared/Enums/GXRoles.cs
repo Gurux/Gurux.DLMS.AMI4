@@ -29,6 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using System.Security.Cryptography;
+
 namespace Gurux.DLMS.AMI.Shared.Enums
 {
     /// <summary>
@@ -84,7 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// <summary>
         /// User can access device trace information.
         /// </summary>
-        public const string DeviceTrace = "deviceatrace";
+        public const string DeviceTrace = "DeviceTrace";
         /// <summary>
         /// User is device trace manager.
         /// </summary>
@@ -92,7 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// <summary>
         /// User can access device action information.
         /// </summary>
-        public const string DeviceAction = "deviceaction";
+        public const string DeviceAction = "DeviceAction";
         /// <summary>
         /// User is device action manager.
         /// </summary>
@@ -387,11 +389,35 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User can access gateway logs.
         /// </summary>
         public const string GatewayLog = "GatewayLog";
-
         /// <summary>
         /// User is gateway log manager.
         /// </summary>
         public const string GatewayLogManager = "GatewayLogManager";
+
+        /// <summary>
+        /// User can access subtotal groups.
+        /// </summary>
+        public const string SubtotalGroup = "SubtotalGroup";
+        /// <summary>
+        /// User is subtotal group manager.
+        /// </summary>
+        public const string SubtotalGroupManager = "SubtotalGroupManager";
+        /// <summary>
+        /// User can access subtotals.
+        /// </summary>
+        public const string Subtotal = "Subtotal";
+        /// <summary>
+        /// User is subtotal manager.
+        /// </summary>
+        public const string SubtotalManager = "SubtotalManager";
+        /// <summary>
+        /// User can access subtotal log.
+        /// </summary>
+        public const string SubtotalLog = "SubtotalLog";
+        /// <summary>
+        /// User is subtotal log manager.
+        /// </summary>
+        public const string SubtotalLogManager = "SubtotalLogManager";
 
         public static string ToString(string param1)
         {

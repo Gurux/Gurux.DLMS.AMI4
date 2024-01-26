@@ -31,6 +31,8 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -54,10 +56,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// The target type.
         /// </summary>
-        [DefaultValue(0)]
+        [StringLength(32)]
+        [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public UInt64? TargetType
+        public string? Target
         {
             get;
             set;
@@ -311,6 +314,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
                 count += ClearNotificationTime.GetValueOrDefault();
                 return count;
             }
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            string str = Target + " " + Start + "-" + End;
+            str += "Count:" + TotalCount + ", Total: " + TotalTime;
+            return str;
         }
     }
 }

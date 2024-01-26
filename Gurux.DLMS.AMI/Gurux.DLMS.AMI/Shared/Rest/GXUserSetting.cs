@@ -32,6 +32,8 @@
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -46,6 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
+        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]        
         public GXUserSetting? Item
         {
             get;
@@ -81,6 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user settings.
         /// </summary>
+        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
         public GXValue? Filter
         {
             get;
@@ -93,7 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -123,6 +127,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
@@ -145,6 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of user settings items.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
         public GXUserSetting[] Settings
         {
             get;

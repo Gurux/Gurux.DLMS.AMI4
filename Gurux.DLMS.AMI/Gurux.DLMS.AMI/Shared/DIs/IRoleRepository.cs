@@ -62,11 +62,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXRole> ReadAsync(ClaimsPrincipal user, string id);
 
         /// <summary>
-        /// Update role(s).
+        /// Add role(s).
         /// </summary>
         /// <param name="user">Current user.</param>
-        /// <param name="roles">Updated role(s).</param>
-        Task<string[]> UpdateAsync(
+        /// <param name="roles">Added role(s).</param>
+        Task<string[]> AddAsync(
             ClaimsPrincipal user, 
             IEnumerable<GXRole> roles);
 

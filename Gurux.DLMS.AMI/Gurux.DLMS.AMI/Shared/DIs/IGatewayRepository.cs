@@ -32,8 +32,8 @@
 
 using System.Linq.Expressions;
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs

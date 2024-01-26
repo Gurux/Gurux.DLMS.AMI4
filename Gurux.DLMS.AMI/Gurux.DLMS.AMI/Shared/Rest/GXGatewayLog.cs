@@ -30,7 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.Runtime.Serialization;
 
@@ -108,7 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -131,6 +131,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;
@@ -170,6 +182,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total amount of the logs.
         /// </summary>
+        /// <remarks>
+        /// With large databases reading the amount of the data can take a very long time.
+        /// In those cases the count is set to -1.
+        /// </remarks>
         public int Count
         {
             get;

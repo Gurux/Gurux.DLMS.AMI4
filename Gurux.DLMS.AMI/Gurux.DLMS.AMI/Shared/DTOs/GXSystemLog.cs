@@ -59,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         public GXSystemLog(int level)
         {
             Level = level;
+            Type = 0;
         }
 
         /// <summary>
@@ -127,6 +128,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Level
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(0)]
+        [IsRequired]
+        [Filter(FilterType.Exact)]
+        public int? Type
         {
             get;
             set;

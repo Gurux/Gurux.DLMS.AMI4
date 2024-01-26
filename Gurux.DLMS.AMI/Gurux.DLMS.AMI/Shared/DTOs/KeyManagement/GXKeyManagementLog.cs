@@ -59,6 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         public GXKeyManagementLog(int level)
         {
             Level = level;
+            Type = 0;
         }
 
         /// <summary>
@@ -154,6 +155,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [IsRequired]
         [Filter(FilterType.Exact)]
         public int? Level
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(0)]
+        [IsRequired]
+        [Filter(FilterType.Exact)]
+        public int? Type
         {
             get;
             set;

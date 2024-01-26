@@ -31,8 +31,18 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 
 namespace Gurux.DLMS.AMI.Shared
 {

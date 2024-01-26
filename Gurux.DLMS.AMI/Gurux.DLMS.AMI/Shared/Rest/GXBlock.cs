@@ -36,6 +36,10 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -57,7 +61,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeSwagger(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
             nameof(GXLocalizedResource.Module), nameof(GXLocalizedResource.Block),
             nameof(GXLocalizedResource.Script))]
-        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.Resources))]
+        [ExcludeSwagger(typeof(GXBlock), 
+            nameof(GXBlock.Resources),
+            nameof(GXBlock.Parent))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXBlock Item
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -95,10 +101,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter blocks.
         /// </summary>
-        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.BlockGroups),
+        [ExcludeSwagger(typeof(GXBlock), 
+            nameof(GXBlock.BlockGroups),
             nameof(GXBlock.User),
-            nameof(GXBlock.Resources), nameof(GXBlock.Languages), 
-            nameof(GXBlock.ComponentView), nameof(GXBlock.ScriptMethod))]
+            nameof(GXBlock.Resources), 
+            nameof(GXBlock.Languages),
+            nameof(GXBlock.Parent),
+            nameof(GXBlock.ComponentView), 
+            nameof(GXBlock.ScriptMethod))]
         public GXBlock? Filter
         {
             get;
@@ -123,7 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -153,6 +163,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
@@ -176,13 +198,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.BlockGroups),
-            nameof(GXBlock.User), nameof(GXBlock.Resources), nameof(GXBlock.Languages))]
+            nameof(GXBlock.User), 
+            nameof(GXBlock.Resources),
+            nameof(GXBlock.Parent), 
+            nameof(GXBlock.Languages))]
         [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
         [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]        
-        public GXBlock[] Blocks
+        public GXBlock[]? Blocks
         {
             get;
             set;
@@ -218,8 +243,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.Resources), nameof(GXBlock.Languages)
-            , nameof(GXBlock.User))]
+        [ExcludeSwagger(typeof(GXBlock), 
+            nameof(GXBlock.Resources),
+            nameof(GXBlock.Parent), 
+            nameof(GXBlock.Languages), 
+            nameof(GXBlock.User))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
         [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]

@@ -34,6 +34,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {

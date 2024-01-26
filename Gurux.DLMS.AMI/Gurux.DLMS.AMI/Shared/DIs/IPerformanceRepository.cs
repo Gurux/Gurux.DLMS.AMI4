@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Snapshot values.
         /// </summary>
-        List<GXPerformance> Snapshots
+        Dictionary<string, GXPerformance> Snapshots
         {
             get;
         }

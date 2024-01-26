@@ -32,10 +32,11 @@
 using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -127,7 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -151,6 +152,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;

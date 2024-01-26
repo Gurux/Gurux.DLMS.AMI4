@@ -32,7 +32,7 @@
 using Gurux.Common.Db;
 using System.ComponentModel;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -86,6 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Description("Read time.")]
+        [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         public DateTimeOffset? Read
@@ -109,6 +110,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder();
+            if (Read != null)
+            {
+                sb.Append(Read.ToString());
+                sb.Append(" ");
+            }
+            sb.Append(Value);
+            return sb.ToString();
         }
     }
 }

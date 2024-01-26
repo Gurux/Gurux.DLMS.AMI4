@@ -32,6 +32,7 @@
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -150,7 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -180,6 +181,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
@@ -189,6 +202,35 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Device Ids.
+        /// </summary>
+        public Guid[]? Devices
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Filtered object types.
+        /// </summary>
+        /// <remarks>
+        /// </remarks>
+        public int[]? ObjectTypes
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Ignored object types.
+        /// </summary>
+        public int[]? IgnoredObjectTypes 
+        { 
+            get; 
+            set; 
         }
     }
 

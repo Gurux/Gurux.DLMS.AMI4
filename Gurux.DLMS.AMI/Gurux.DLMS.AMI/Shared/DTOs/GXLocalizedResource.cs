@@ -30,6 +30,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 

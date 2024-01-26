@@ -30,7 +30,12 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -59,6 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// The creator of the task.
         /// </summary>
         [DataMember]
+        [Index(false)]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
@@ -119,6 +125,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXScriptMethod? ScriptMethod
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Target module.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXModule? Module
         {
             get;
             set;
@@ -374,6 +393,37 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         public string? Data
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Condition script is used to check should the task executed.
+        /// </summary>
+        /// <remarks>
+        /// If the condition script is not set, the task is always executed.
+        /// If condition script returns true, the task is executed.
+        /// </remarks>
+        /// 
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXScriptMethod? Condition
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Action script is executed after the task is executed.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXScriptMethod? Action
         {
             get;
             set;

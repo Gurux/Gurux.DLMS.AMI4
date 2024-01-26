@@ -31,8 +31,8 @@
 //---------------------------------------------------------------------------
 using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -47,6 +47,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated roles.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXModule),
+            nameof(GXModule.Id))]
         public GXRole[] Roles
         {
             get;
@@ -84,7 +86,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-
         }
 
         /// <summary>
@@ -99,6 +100,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter roles.
         /// </summary>
+        [IncludeSwagger(typeof(GXModule),
+            nameof(GXModule.Id),
+            nameof(GXModule.Name))]
         public GXRole? Filter
         {
             get;
@@ -111,7 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -141,6 +145,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
@@ -163,6 +179,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of roles.
         /// </summary>
         [DataMember]
+        [IncludeSwagger(typeof(GXModule),
+            nameof(GXModule.Id),
+            nameof(GXModule.Name))]
         public GXRole[] Roles
         {
             get;

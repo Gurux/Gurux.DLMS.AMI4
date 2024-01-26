@@ -33,9 +33,10 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -59,10 +60,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
             nameof(GXUser.Tasks),
+            nameof(GXUser.Stamps),
             nameof(GXUser.Settings))]
         [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id)
             , nameof(GXAgentGroup.Name)
             , nameof(GXAgentGroup.Description))]
+        [IncludeSwagger(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
         public GXUser? Item
         {
             get;
@@ -111,6 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Favorites),
             nameof(GXUser.RestStatistics),
             nameof(GXUser.Tasks),
+            nameof(GXUser.Stamps),
             nameof(GXUser.Settings))]
         public GXUser? Filter
         {
@@ -137,7 +141,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -161,6 +165,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public string[]? Included
         {
             get;
             set;
@@ -201,6 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.IpAddresses),
                 nameof(GXUser.BlockSettings),
                 nameof(GXUser.Tasks),
+                nameof(GXUser.Stamps),
                 nameof(GXUser.Errors),
                 nameof(GXUser.Favorites),
                 nameof(GXUser.RestStatistics),
@@ -214,6 +231,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total count of the users.
         /// </summary>
+        /// <remarks>
+        /// With large databases reading the amount of the data can take a very long time.
+        /// In those cases the count is set to -1.
+        /// </remarks>
         [DataMember]
         [Description("Total count of the users.")]
         public int Count
@@ -243,6 +264,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.Errors),
                 nameof(GXUser.Favorites),
                 nameof(GXUser.Tasks),
+                nameof(GXUser.Stamps),
                 nameof(GXUser.RestStatistics))]
         [ExcludeSwagger(typeof(GXUserSetting),
                 nameof(GXUserSetting.User))]

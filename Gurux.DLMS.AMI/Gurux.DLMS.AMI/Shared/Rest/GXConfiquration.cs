@@ -105,7 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -129,6 +129,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;

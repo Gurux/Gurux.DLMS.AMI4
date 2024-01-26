@@ -79,6 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [IsRequired]
+        [Filter(FilterType.Exact)]
         public GXObjectTemplate? ObjectTemplate
         {
             get;
@@ -89,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Attribute index.
         /// </summary>
         [DataMember]
+        [Filter(FilterType.Exact, 0)]
         public int Index
         {
             get;

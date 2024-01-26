@@ -34,9 +34,11 @@ using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -119,6 +121,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Device groups where devices are added.
+        /// </summary>
+        [IncludeSwagger(typeof(GXDeviceGroup),
+            nameof(GXDeviceGroup.Id),
+            nameof(GXDeviceGroup.Name))]
+        public IEnumerable<GXDeviceGroup>? Groups
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -135,6 +149,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Guid[] Ids
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Device groups IDs where devices are added.
+        /// </summary>
+        public Guid[]? Groups
         {
             get;
             set;
@@ -211,7 +234,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -235,6 +258,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;
@@ -290,6 +325,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total count of the devices.
         /// </summary>
+        /// <remarks>
+        /// With large databases reading the amount of the data can take a very long time.
+        /// In those cases the count is set to -1.
+        /// </remarks>
         [DataMember]
         [Description("Total count of the devices.")]
         public int Count

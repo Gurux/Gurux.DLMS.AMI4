@@ -35,6 +35,11 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -120,7 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.Creator),
              nameof(GXSchedule.Objects),
              nameof(GXSchedule.Devices),
-             nameof(GXSchedule.ScriptMethods), 
+             nameof(GXSchedule.ScriptMethods),
              nameof(GXSchedule.DeviceGroups),
              nameof(GXSchedule.ScheduleGroups),
              nameof(GXSchedule.Triggers),
@@ -151,7 +156,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -175,6 +180,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;
@@ -321,5 +338,73 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class RemoveScheduleResponse
     {
-    }   
+    }
+
+    /// <summary>
+    /// Get module settings for the schedule.
+    /// </summary>
+    [DataContract]
+    public class GetModuleSettings : IGXRequest<GetModuleSettingsResponse>
+    {
+        /// <summary>
+        /// Module and schedule IDs.
+        /// </summary>
+        [DataMember]
+        public GXScheduleModule? Item
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Reply module settings for the schedule.
+    /// </summary>
+    [DataContract]
+    public class GetModuleSettingsResponse
+    {
+        /// <summary>
+        /// Module settings for the schedule.
+        /// </summary>
+        [DataMember]
+        public GXScheduleModule? Item
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Get module settings for the schedule.
+    /// </summary>
+    [DataContract]
+    public class UpdateModuleSettings : IGXRequest<UpdateModuleSettingsResponse>
+    {
+        /// <summary>
+        /// Module and schedule settings.
+        /// </summary>
+        [DataMember]
+        public GXScheduleModule? Item
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Reply module settings for the schedule.
+    /// </summary>
+    [DataContract]
+    public class UpdateModuleSettingsResponse
+    {
+        /// <summary>
+        /// Updated item.
+        /// </summary>
+        public GXScheduleModule? Item
+        {
+            get;
+            set;
+        }
+    }
+
 }

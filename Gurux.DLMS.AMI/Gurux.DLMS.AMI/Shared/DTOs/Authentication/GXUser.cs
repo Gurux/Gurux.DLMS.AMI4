@@ -30,6 +30,8 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -69,7 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             RestStatistics = new List<GXRestStatistic>();
             Settings = new List<GXUserSetting>();
             Favorites = new List<GXFavorite>();
-            Tasks = new List<GXTask>(); 
+            Tasks = new List<GXTask>();
         }
 
         /// <summary>
@@ -313,6 +315,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// User notifications.
+        /// </summary>
+        [Ignore(IgnoreType.Db)]
+        [DataMember]
+        [DefaultValue(null)]
+        public List<string>? Notifications
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// When was the user last updated.
         /// </summary>
         [DataMember]
@@ -538,6 +552,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember]
         public string? ProfilePicture { get; set; }
+
+        /// <summary>
+        /// User stamps tell what user has stamped and when.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXTask))]
+        [Filter(FilterType.Contains)]
+        public List<GXUserStamp>? Stamps
+        {
+            get;
+            set;
+        }
 
         /// <inheritdoc/>
         public override string ToString()

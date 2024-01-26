@@ -35,6 +35,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
@@ -64,6 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
             KeyManagementGroups = new List<GXKeyManagementGroup>();
             Logs = new List<GXKeyManagementLog>();
             Keys = new List<GXKeyManagementKey>();
+            TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
 
         /// <summary>
@@ -227,6 +230,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Ignore]
         [JsonIgnore]
         public bool Modified
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Used trace level.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(System.Diagnostics.TraceLevel.Error)]
+        [Description("Used trace level.")]
+        [IsRequired]
+        public TraceLevel? TraceLevel
         {
             get;
             set;

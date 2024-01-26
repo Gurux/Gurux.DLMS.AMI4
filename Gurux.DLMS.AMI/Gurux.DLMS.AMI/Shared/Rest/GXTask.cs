@@ -31,7 +31,11 @@
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -45,7 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Tasks to execute.
         /// </summary>
-        [DataMember]        
+        [DataMember]
         [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
         [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
         [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
@@ -125,12 +129,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
+        /// Admin user can access tasks from all users.
+        /// </summary>
+        /// <remarks>
+        /// If true, tasks from all users are retreaved, not just current user. 
+        /// </remarks>
+        public bool AllUsers
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// Selected extra information.
         /// </summary>
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public TargetType Select
+        public string[]? Select
         {
             get;
             set;
@@ -154,6 +171,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         /// <seealso cref="OrderBy"/>
         public bool Descending
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Included Ids.
+        /// </summary>
+        /// <remarks>
+        /// Included Ids can be used to get only part of large data.
+        /// </remarks>
+        public Guid[]? Included
         {
             get;
             set;
@@ -200,6 +229,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Total count of the tasks.
         /// </summary>
+        /// <remarks>
+        /// With large databases reading the amount of the data can take a very long time.
+        /// In those cases the count is set to -1.
+        /// </remarks>
         [DataMember]
         public int Count
         {
@@ -377,7 +410,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         {
             get;
             set;
-        }        
+        }
     }
 
     /// <summary>

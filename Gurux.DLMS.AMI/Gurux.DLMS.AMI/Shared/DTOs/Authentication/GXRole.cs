@@ -33,6 +33,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -50,7 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public string Id{get; set; } = "";
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Name of the role.
@@ -107,6 +108,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// The creator module.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        public GXModule? Module
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Time when role was removed.
         /// </summary>
         /// <remarks>
@@ -120,6 +132,37 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Role scopes.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXScope))]
+        [Filter(FilterType.Contains)]
+        public List<GXScope>? Scopes
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXRole()
+        {
+
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="name">Role name.</param>
+        public GXRole(string? name)
+        {
+            Name = name;
+            NormalizedName = name?.ToUpper();
+            Scopes = new List<GXScope>();
         }
 
         /// <inheritdoc/>

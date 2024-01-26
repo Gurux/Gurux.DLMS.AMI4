@@ -120,20 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Favorite target is removed.
-        /// </summary>
-        [DataMember]
-        [DefaultValue(false)]
-        [Filter(FilterType.Null)]
-        [IsRequired(true)]
-        public bool? Removed
-        {
-            get;
-            set;
-        }
+        }       
 
         /// <summary>
         /// Update creation time before update.
