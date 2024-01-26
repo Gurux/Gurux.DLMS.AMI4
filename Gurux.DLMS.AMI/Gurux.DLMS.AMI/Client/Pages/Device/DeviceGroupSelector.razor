@@ -1,0 +1,272 @@
+﻿@using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
+@using Gurux.DLMS.AMI.Components.Wizard
+@using Gurux.DLMS.AMI.Shared.DTOs
+@if (_edit)
+{
+    <WizardControl OnPageChanging="@OnPageChange" OnComplete="@OnComplete">
+        <ChildContent>
+            <WizardPage Name="Selected device groups"
+                        Description="Selected device groups">
+                <DeviceGroupsSelector DeviceGroups="@DeviceGroups">
+
+                </DeviceGroupsSelector>
+            </WizardPage>
+            @if (ObjectTemplates != null)
+            {
+                <WizardPage Name="Selected objects"
+                            Description="Selected objects">
+                    <ObjectTemplatesSelector DeviceTemplates="@_deviceTemplates"
+                                             ObjectTypes="@ObjectTypes"
+                                             IgnoredObjectTypes="@IgnoredObjectTypes"
+                                             Templates="@ObjectTemplates">
+                    </ObjectTemplatesSelector>
+                </WizardPage>
+            }
+            @if (AttributeTemplates != null)
+            {
+                <WizardPage Name="Selected attributes"
+                            Description="Selected attributes">
+                    <AttributeTemplatesSelector DeviceTemplates="@_deviceTemplates"
+                                                ObjectTypes="@ObjectTypes"
+                                                IgnoredObjectTypes="@IgnoredObjectTypes"
+                                                Templates="@AttributeTemplates">
+                    </AttributeTemplatesSelector>
+                </WizardPage>
+            }
+        </ChildContent>
+    </WizardControl>
+}
+else
+{
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@Edit" />
+        </ChildContent>
+    </MenuControl>
+
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true">
+            </span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <!--Show selected devices.-->
+            <TabPage Text=@Properties.Resources.DeviceGroups>
+                @if (DeviceGroups != null && DeviceGroups.Any())
+                {
+                    <DeviceGroups Columns="@DeviceGroupColumns"
+                                  AvailableDeviceGroups="@DeviceGroups"
+                                  CanEdit="false"
+                                  Header="false" />
+                }
+                else
+                {
+                    <label>
+                        No selected device groups.
+                    </label>
+                }
+            </TabPage>
+            @if (ObjectTemplates != null)
+            {
+                <!--Show selected objects.-->
+                <TabPage Text=@Properties.Resources.Objects>
+                    @if (ObjectTemplates != null && ObjectTemplates.Any())
+                    {
+                        <ObjectTemplates Columns="@ObjectColumns"
+                                         ObjectTypes="@ObjectTypes"
+                                         IgnoredObjectTypes="@IgnoredObjectTypes"
+                                         AvailableObjectTemplates="@ObjectTemplates"
+                                         CanEdit="false"
+                                         Header="false" />
+                    }
+                    else
+                    {
+                        <label>
+                            No selected objects.
+                        </label>
+                    }
+                </TabPage>
+            }
+            @if (AttributeTemplates != null)
+            {
+                <!--Show selected atttributes.-->
+                <TabPage Text=@Properties.Resources.Attributes>
+                    @if (AttributeTemplates != null && AttributeTemplates.Any())
+                    {
+                        <AttributeTemplates Columns="@AttributeColumns"
+                                            ObjectTypes="@ObjectTypes"
+                                            IgnoredObjectTypes="@IgnoredObjectTypes"
+                                            AvailableAttributeTemplates="@AttributeTemplates"
+                                            CanEdit="false"
+                                            Filter="false"
+                                            Header="false" />
+                    }
+                    else
+                    {
+                        <label>
+                            No selected attributes.
+                        </label>
+                    }
+                </TabPage>
+            }
+        </ChildContent>
+    </TabControl>
+}
+
+@code {
+
+    /// <summary>
+    /// Shown object types.
+    /// </summary>
+    /// <remarks>
+    /// All object types are shown if object types are not set.
+    /// </remarks>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? ObjectTypes { get; set; }
+
+    /// <summary>
+    /// Ignored object types.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
+
+    /// <summary>
+    /// Shown device group columns.
+    /// </summary>
+    private string[] DeviceGroupColumns = new string[] { "Name" };
+
+    /// <summary>
+    /// Shown object columns.
+    /// </summary>
+    private string[] ObjectColumns = new string[] { "ObjectType", "LogicalName", "Name" };
+
+    /// <summary>
+    /// Shown attribute columns.
+    /// </summary>
+    private string[] AttributeColumns = new string[] { "LogicalName", "ObjectName", "Index", "Name" };
+
+    /// <summary>
+    /// Selected device groups.
+    /// </summary>
+    [Parameter]
+    public List<GXDeviceGroup>? DeviceGroups { get; set; }
+
+    /// <summary>
+    /// Selected object templates.
+    /// </summary>
+    [Parameter]
+    public List<GXObjectTemplate>? ObjectTemplates { get; set; }
+
+    /// <summary>
+    /// Selected attribute templates.
+    /// </summary>
+    [Parameter]
+    public List<GXAttributeTemplate>? AttributeTemplates { get; set; }
+
+    /// <summary>
+    /// Origical device groups that are restored if user cancel the update.
+    /// </summary>
+    List<GXDeviceGroup> _originalDeviceGroups = new List<GXDeviceGroup>();
+
+    /// <summary>
+    /// Origical object templates that are restored if user cancel the update.
+    /// </summary>
+    List<GXObjectTemplate> _originalObjectTemplates = new List<GXObjectTemplate>();
+
+    /// <summary>
+    /// Origical attribute templates that are restored if user cancel the update.
+    /// </summary>
+    List<GXAttributeTemplate> _originalAttributeTemplates = new List<GXAttributeTemplate>();
+
+    /// <summary>
+    /// Selected device templates.
+    /// </summary>
+    List<GXDeviceTemplate> _deviceTemplates = new List<GXDeviceTemplate>();
+
+    private bool _edit;
+
+    /// <summary>
+    /// Edit the scheduled device.
+    /// </summary>
+    private void Edit()
+    {
+        _edit = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// User has changing the page.
+    /// </summary>
+    /// <param name="index"></param>
+    bool OnPageChange(int index)
+    {
+        if (index == 0)
+        {
+            if (DeviceGroups == null || !DeviceGroups.Any())
+            {
+                //User can't change the page before the device group is selected.
+                return false;
+            }
+            //TODO:Now all device templates are shown.
+            //This can be updated after device templates can be search using device group.
+            // _deviceTemplates.AddDistinct2(DeviceGroups.Select(w => w.Template));
+        }
+        else if (index == 1)
+        {
+            //Object page.
+        }
+        else if (index == 2)
+        {
+            //Attribute page.
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Accept or reject the changes.
+    /// </summary>
+    /// <param name="accept">Are changes accepted.</param>
+    void OnComplete(bool accept)
+    {
+        if (!accept)
+        {
+            if (DeviceGroups != null)
+            {
+                DeviceGroups.Clear();
+                DeviceGroups.AddRange(_originalDeviceGroups);
+            }
+            if (ObjectTemplates != null)
+            {
+                ObjectTemplates.Clear();
+                ObjectTemplates.AddRange(_originalObjectTemplates);
+            }
+            if (AttributeTemplates != null)
+            {
+                AttributeTemplates.Clear();
+                AttributeTemplates.AddRange(_originalAttributeTemplates);
+            }
+        }
+        _edit = false;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Original values are saved and restored if user cancel updates.
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        if (DeviceGroups != null)
+        {
+            _originalDeviceGroups.AddRange(DeviceGroups);
+        }
+        if (ObjectTemplates != null)
+        {
+            _originalObjectTemplates.AddRange(ObjectTemplates);
+        }
+        if (AttributeTemplates != null)
+        {
+            _originalAttributeTemplates.AddRange(AttributeTemplates);
+        }
+    }
+}

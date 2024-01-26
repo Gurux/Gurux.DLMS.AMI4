@@ -49,9 +49,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Shared;
-using System.Reflection;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -192,6 +190,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetScriptsByUser(userId, null);
             }
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXScript>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXScript>(w => request.Included.Contains(w.Id));
+            }
             if (request != null && request.Filter != null)
             {
                 if (request.Filter.Methods != null && request.Filter.Methods.Any())
@@ -200,10 +206,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Joins.AddInnerJoin<GXScript, GXScriptMethod>(j => j.Id, j => j.Script);
                 }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXScript>(w => !request.Exclude.Contains(w.Id));
-                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

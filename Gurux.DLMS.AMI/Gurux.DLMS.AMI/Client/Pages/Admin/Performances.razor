@@ -41,7 +41,7 @@
                             Target
                         </div>
                         <div class="card-body">
-                            @((TargetType)Active.TargetType)
+                            @Active.Target
                         </div>
                     </div>
                 </div>
@@ -139,34 +139,34 @@
 }
 <PageTitle>@Properties.Resources.Performance</PageTitle>
 
-<MenuControl RightCorner="true">
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Refresh" OnClick="@(async () => await Updated())" />
-        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-    </ChildContent>
-</MenuControl>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Refresh" OnClick="@(async () => await Updated())" />
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
 
-<GXTable @ref="table"
-         Context="performance"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Single"
-         OnSearch="@Updated"
-         ShowAllUsers="false"
-         ShowRemoved="false">
-    <FilterContent>
-        <th>
-            <input class="form-control" placeholder="Filter by start time..."
-                   type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <!--TargetType -->
-            <DropdownSearch Context="item"
-                            Immediate="true"
-            @bind-Value="TargetType"
-                            ItemsProvider="@GetTargetTypes">
-                <ItemContent>
-                    @item
+    <GXTable @ref="table"
+             Context="performance"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Single"
+             OnSearch="@Updated"
+             ShowAllUsers="false"
+             ShowRemoved="false">
+        <FilterContent>
+            <th>
+                <input class="form-control" placeholder="Filter by start time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <!--TargetType -->
+                <DropdownSearch Context="item"
+                                Immediate="true"
+                                @bind-Value="TargetType"
+                                ItemsProvider="@GetTargetTypes">
+                    <ItemContent>
+                        @item
                 </ItemContent>
             </DropdownSearch>
         </th>
@@ -179,16 +179,17 @@
     </FilterContent>
     <HeaderContent>
         <Th Id="Start" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
-        <Th Id="TargetType">@Properties.Resources.Target</Th>
-        <th>Total count</th>
-        <th>Total time</th>
-    </HeaderContent>
-    <ItemContent>
-        <td>
-            <LinkButton Target="@performance" OnClick="@Show"
-                        Text="@(performance.End != null ? performance.Start.ToString() : "Snapshot")" />
-        </td>
-        <td>@((TargetType)performance.TargetType)</td>
+            <Th Id="TargetType">@Properties.Resources.Target</Th>
+            <th>Total count</th>
+            <th>Total time</th>
+        </HeaderContent>
+        <ItemContent>
+            <td>
+                <LinkButton Target="@performance"
+                            OnClick="@Show"
+                            Text="@(performance.End != null ? performance.Start.ToString() : "Snapshot")" />
+            </td>
+            <td>@performance.Target</td>
         <td>@performance.TotalCount</td>
         <td>@performance.TotalTime</td>
     </ItemContent>
@@ -218,11 +219,7 @@
         }
     }
 
-    private TargetType TargetType
-    {
-        get;
-        set;
-    }
+    private string TargetType { get; set; } = Properties.Resources.All;
 
     GXPerformance? Active { get; set; }
 
@@ -299,13 +296,16 @@
     /// </summary>
     /// <param name="request"></param>
     /// <returns></returns>
-    private ValueTask<ItemsProviderResult<TargetType>> GetTargetTypes(GXItemsProviderRequest request)
+    private ValueTask<ItemsProviderResult<string>> GetTargetTypes(GXItemsProviderRequest request)
     {
-        TargetType[] values = Enum.GetValues<TargetType>();
+        var list = new List<string>();
+        list.Add(Properties.Resources.All);
+        list.AddRange(typeof(TargetType).GetFields().Select(s => s.Name));
+        string[] values = list.ToArray();
         int total = values.Length;
         if (!string.IsNullOrEmpty(request.Filter))
         {
-            List<TargetType> list = new List<TargetType>();
+            list = new List<string>();
             string filter = request.Filter.ToLower();
             foreach (var it in values)
             {
@@ -316,7 +316,7 @@
             }
             values = list.ToArray();
         }
-        return new(new ItemsProviderResult<TargetType>(values, values.Length));
+        return new(new ItemsProviderResult<string>(values, values.Length));
     }
 
     /// <summary>
@@ -403,7 +403,15 @@
         Notifier?.ProgressStart();
         try
         {
-            filter.TargetType = (UInt64)TargetType;
+            if (string.IsNullOrEmpty(TargetType) ||
+            TargetType == Properties.Resources.All)
+            {
+                filter.Target = null;
+            }
+            else
+            {
+                filter.Target = TargetType;
+            }
             ListPerformances req = new ListPerformances()
                 {
                     Index = request.StartIndex,

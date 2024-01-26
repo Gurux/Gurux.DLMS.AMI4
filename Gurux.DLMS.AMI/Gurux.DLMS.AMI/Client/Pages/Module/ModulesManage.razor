@@ -8,7 +8,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Module;
+    using Gurux.DLMS.AMI.Shared.DTOs.Module
 
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
@@ -29,7 +30,7 @@
 <GXTable @ref="table"
          Context="module"
          ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
+         SelectionMode="SelectionMode.Single"
          ShowRemoved="false"
          ShowAllUsers="false"
          OnSearch="@Updated">

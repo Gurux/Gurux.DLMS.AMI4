@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Service.Orm;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -41,6 +40,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Server.Cron;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -84,6 +84,36 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [HttpGet]
         [Authorize(Policy = GXModulePolicies.View)]
         public async Task<ActionResult<GetModuleResponse>> Get(string id)
+        {
+            return new GetModuleResponse()
+            {
+                Item = await _moduleRepository.ReadAsync(User, id)
+            };
+        }
+
+        /// <summary>
+        /// Get user module information.
+        /// </summary>
+        /// <param name="id">Module id.</param>
+        /// <returns>Module information for the user.</returns>
+        [HttpGet("user/{id}")]
+        [Authorize(Policy = GXModulePolicies.View)]
+        public async Task<ActionResult<GetModuleResponse>> GetUser(string id)
+        {
+            return new GetModuleResponse()
+            {
+                Item = await _moduleRepository.ReadAsync(User, id)
+            };
+        }
+
+        /// <summary>
+        /// Get schedule module information.
+        /// </summary>
+        /// <param name="id">Module id.</param>
+        /// <returns>Module information for the schedule.</returns>
+        [HttpGet("schedule/{id}")]
+        [Authorize(Policy = GXModulePolicies.View)]
+        public async Task<ActionResult<GetModuleResponse>> GetSchedule(string id)
         {
             return new GetModuleResponse()
             {
@@ -169,8 +199,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     bytes = await System.IO.File.ReadAllBytesAsync(path2, _cancellationToken);
                     list.Add(Convert.ToBase64String(bytes));
                 }
-                catch(Exception)
-                {                    
+                catch (Exception)
+                {
                     continue;
                 }
             }
@@ -199,9 +229,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         await file.CopyToAsync(fileStream);
                     }
                     GXModule module = await _moduleService.AddModuleAsync(User, zip, file.FileName);
-                    modules.Add(module);                   
+                    modules.Add(module);
                     //Enable module.
-                    res.Restart |= _moduleService.EnableModule(module);
+                    res.Restart |= _moduleService.EnableModule(User, module);
                 }
                 catch (Exception ex)
                 {
@@ -225,17 +255,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             UpdateModuleResponse ret = new UpdateModuleResponse();
             GXModule module = await _moduleRepository.ReadAsync(User, request.Module.Id);
+            //Update status.
+            request.Module.Status = module.Status;
             await _moduleRepository.UpdateAsync(User, request.Module);
             // Check is active state changed.
             if (request.Module.Active.HasValue && module.Active != request.Module.Active)
             {
                 if (request.Module.Active.Value)
                 {
-                    _moduleService.EnableModule(module);
+                    _moduleService.EnableModule(User, module);
                 }
                 else
                 {
-                    _moduleService.DisableModule(request.Module);
+                    _moduleService.DisableModule(User, request.Module);
                 }
             }
             //Update module settings.
@@ -306,7 +338,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         Message = Properties.Resources.ModuleInstalled
                     }
                 });
-                ret.Restart |= _moduleService.EnableModule(module2);
+                ret.Restart |= _moduleService.EnableModule(User, module2);
             }
             catch (Exception ex)
             {

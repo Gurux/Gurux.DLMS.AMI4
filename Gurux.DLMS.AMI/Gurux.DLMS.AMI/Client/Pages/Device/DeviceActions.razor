@@ -1,7 +1,6 @@
 ﻿@page "/DeviceActions"
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
-
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -36,6 +35,8 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.None"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
          ShowRemoved="false"
          OnSearch="@Updated">
     <FilterContent>
@@ -64,15 +65,15 @@
     <HeaderContent>
         <th>@Properties.Resources.Name</th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Type">@Properties.Resources.Type</Th>
-        <th>@Properties.Resources.Data</th>
+            <Th Id="Type">@Properties.Resources.Type</Th>
+            <th>@Properties.Resources.Data</th>
         <th>@Properties.Resources.Reply</th>
     </HeaderContent>
     <ItemContent>
         <td>@action.Device.Name</td>
         <Td Link="@("DeviceAction/Edit/" + action.Id)">@action.CreationTime</Td>
-        <td>@((DeviceActionType?)@action.Type)</td>
-        <td>@action.Data</td>
+            <td>@((DeviceActionType?)@action.Type)</td>
+            <td>@action.Data</td>
         <td>@action.Reply</td>
     </ItemContent>
 </GXTable>
@@ -81,7 +82,7 @@
          ConfirmationChanged="OnClearConfirmation"
          ConfirmationTitle=@Properties.Resources.ConfirmDataClear
          AllowDelete="false"
-         OkTitle="Clear" 
+         OkTitle="Clear"
          ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
 </Confirm>
 
@@ -136,6 +137,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

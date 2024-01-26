@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXComponentView" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -50,15 +52,6 @@
     /// Component view filter.
     /// </summary>
     private GXComponentView filter = new GXComponentView(null);
-
-    string? GetName(GXComponentView target)
-    {
-        return target.Name;
-    }
-    string? GetDescription(GXComponentView target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {

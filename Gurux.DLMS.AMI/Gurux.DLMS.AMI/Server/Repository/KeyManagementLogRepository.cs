@@ -202,6 +202,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXKeyManagementLog>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXKeyManagementLog>(w => request.Included.Contains(w.Id));
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)

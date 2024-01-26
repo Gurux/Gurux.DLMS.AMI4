@@ -1,13 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Text.Json;
-using Microsoft.AspNetCore.Components;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
 {
@@ -15,9 +14,7 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
     {
         private IUserRepository _userRepository;
         private IUserSettingRepository _userSettingRepository;
-        private TargetType _active = TargetType.None;
         private bool _allSelected = false;
-        public string SearchText = "";
 
         /// <summary>
         /// Constructor.
@@ -34,13 +31,16 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
         [TempData]
         public string? StatusMessage { get; set; }
 
+        /// <summary>
+        /// Notifications tooltip.
+        /// </summary>
         public string ToolTip
         {
             get
             {
                 return _allSelected ? "Disable all notifications" : "Enable all notifications.";
             }
-        }     
+        }
 
         /// <summary>
         /// Notification items.
@@ -60,7 +60,7 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
                 return NotFound($"Unable to load user with ID '{User}'.");
             }
             //All notifications are ignored as a default.
-            UInt64 ignored = UInt64.MaxValue;
+            string[]? ignored = null;
             //Get ignored notifications.
             GXUserSetting? settings = user.Settings.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
             if (settings != null && !string.IsNullOrEmpty(settings.Value))
@@ -68,14 +68,15 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
                 var s = JsonSerializer.Deserialize<PerformanceSettings>(settings.Value);
                 if (s != null)
                 {
-                    ignored = (UInt64) s.IgnoreNotification;
+                    ignored = s.IgnoreNotification;
                 }
             }
             try
             {
-                foreach (var it in ClientHelpers.GetNotifications())
+                foreach (var it in ClientHelpers.GetNotifications(false))
                 {
-                    Items.Add(new SelectListItem(it.ToString(), ((UInt64)it).ToString(), (ignored & (UInt64)it) == 0));
+                    Items.Add(new SelectListItem(it, it,
+                        !(ignored != null && ignored.Contains(it))));
                 }
             }
             catch (Exception ex)
@@ -103,22 +104,18 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             }
             else
             {
-                values = new string[0]; 
+                values = new string[0];
             }
-            UInt64 selected = 0;
-            foreach (var it in Enum.GetValues(typeof(TargetType)))
+            List<string> selected = new List<string>();
+            foreach (var it in typeof(TargetType).GetFields())
             {
-                selected |= (UInt64)it;
+                selected.Add(it.Name);
             }
-            selected &= ~(UInt64) TargetType.Cron;
-            selected &= ~(UInt64)TargetType.Role;
-            UInt64 value;
+            selected.Remove(TargetType.Cron);
+            selected.Remove(TargetType.Role);
             foreach (var it in values)
             {
-                if (UInt64.TryParse(it, out value))
-                {
-                    selected &= ~value;
-                }
+                selected.Remove(it);
             }
             GXUserSetting? settings = user.Settings?.Where(w => w.Name == GXConfigurations.Performance).SingleOrDefault();
             if (settings == null)
@@ -131,7 +128,7 @@ namespace Gurux.DLMS.AMI.Server.Areas.Identity.Pages.Account.Manage
             }
             PerformanceSettings s = new PerformanceSettings()
             {
-                IgnoreNotification = (TargetType) selected
+                IgnoreNotification = selected.ToArray()
             };
             settings.Value = JsonSerializer.Serialize(s);
             await _userSettingRepository.UpdateAsync(User, new GXUserSetting[] { settings });

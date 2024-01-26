@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Module;
 using System.Data;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -313,11 +314,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Reset manufacturer filter.
                 request.Filter.Manufacturer = null;
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXDeviceTemplate>(w => !request.Exclude.Contains(w.Id));
-                }
             }
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXDeviceTemplate>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXDeviceTemplate>(w => request.Included.Contains(w.Id));
+            }
+
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
@@ -332,7 +338,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             GXDeviceTemplate[] templates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
-            if (request != null && (request.Select & TargetType.Manufacturer) != 0)
+            if (request?.Select != null && request.Select.Contains("Manufacturer"))
             {
                 await UpdateManufacturers(templates);
             }
@@ -384,7 +390,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ret.DeviceTemplateGroups = _host.Connection.Select<GXDeviceTemplateGroup>(arg);
             if (!string.IsNullOrEmpty(ret.Settings))
             {
-                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(ret.Settings);
+                var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(ret.Settings);
                 if (!string.IsNullOrEmpty(s.Password))
                 {
                     try
@@ -418,7 +424,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             if (!string.IsNullOrEmpty(it.Settings))
             {
-                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(it.Settings);
+                var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(it.Settings);
                 if (!string.IsNullOrEmpty(s.Password))
                 {
                     s.Password = _cryproService.Encrypt(s.Password);

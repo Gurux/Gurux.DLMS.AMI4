@@ -39,6 +39,9 @@
          SelectionMode="SelectionMode.None"
          ShowRemoved="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -58,15 +61,15 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.User</th>
+            <th>@Properties.Resources.User</th>
         <Th Id="Target">@Properties.Resources.Target</Th>
-        <Th Id="Action">@Properties.Resources.Action</Th>
-        <Th Id="Status">@Properties.Resources.Status</Th>
-    </HeaderContent>
-    <ItemContent>
-        <td>@action.CreationTime</td>
+            <Th Id="Action">@Properties.Resources.Action</Th>
+            <Th Id="Status">@Properties.Resources.Status</Th>
+        </HeaderContent>
+        <ItemContent>
+            <td>@action.CreationTime</td>
         <td>@action.User?.UserName</td>
-        <td>@action.Target</td>
+        <td>@action.TargetType</td>
         <td>@action.Action</td>
         <td>@action.Status</td>
     </ItemContent>
@@ -126,6 +129,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

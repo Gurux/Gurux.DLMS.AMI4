@@ -33,6 +33,7 @@
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Module.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.Reflection;
 
 namespace Gurux.DLMS.AMI.Client

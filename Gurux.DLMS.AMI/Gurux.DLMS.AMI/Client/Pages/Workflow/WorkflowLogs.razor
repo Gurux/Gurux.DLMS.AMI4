@@ -16,62 +16,65 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 <PageTitle>@Properties.Resources.WorkflowLogs</PageTitle>
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowLogManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
-            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.WorkflowLogManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+                <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
 
-<GXTable @ref="table"
-         Context="error"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         Filter="@Filter"
-         OnSearch="@Updated">
-    <FilterContent>
-        <th>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by error..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <div>
-                <input class="form-control" type="text" placeholder="Filter by level..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
-            </div>
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by close time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-    </FilterContent>
-    <MenuContent>
-        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
-        <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
-    </MenuContent>
-    <HeaderContent>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.Error</th>
+    <GXTable @ref="table"
+             Context="error"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             Columns="@Columns"
+             CanEdit="@CanEdit"
+             OnSearch="@Updated">
+        <FilterContent>
+            <th>
+                <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by error..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <div>
+                    <input class="form-control" type="text" placeholder="Filter by level..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                </div>
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by close time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+        </FilterContent>
+        <MenuContent>
+            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+        </MenuContent>
+        <HeaderContent>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <th>@Properties.Resources.Error</th>
         <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Config/WorkflowLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@error.Message</td>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Config/WorkflowLog/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
@@ -138,6 +141,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -187,20 +208,20 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
     protected override void OnInitialized()
     {
-        Notifier?.ProgressStart();
-        Notifier?.ClearStatus();
+        Notifier.ProgressStart();
+        Notifier.ClearStatus();
         try
         {
             if (Notifier == null)
@@ -233,18 +254,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXWorkflowLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (ShowClosedErrors)
@@ -271,7 +292,12 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListWorkflowLogsResponse>("api/WorkflowLog/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXWorkflowLog>(ret.Logs, ret.Count);
+            if (ret.Logs != null)
+            {
+                //Mark workflow logs as seen.
+                await Notifier.Mark(Http, TargetType.WorkflowLog, ret.Logs.Max(s => s.CreationTime));
+                return new ItemsProviderResult<GXWorkflowLog>(ret.Logs, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {
@@ -280,11 +306,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -309,7 +335,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -332,7 +358,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -358,7 +384,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -374,7 +400,7 @@
 
     public void OnClear()
     {
-        Notifier?.ClearStatus();
+        Notifier.ClearStatus();
         ClearConfirmation?.Show();
     }
 
@@ -396,7 +422,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 }

@@ -1173,4 +1173,46 @@
   <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
     <value>Are you sure you want to clear performance counters?</value>
   </data>
+  <data name="Extension" xml:space="preserve">
+    <value>Extension</value>
+  </data>
+  <data name="Extensions" xml:space="preserve">
+    <value>Extensions</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Subtotals</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Subtotal</value>
+  </data>
+  <data name="SubtotalGroups" xml:space="preserve">
+    <value>Subtotal groups</value>
+  </data>
+  <data name="SubtotalGroup" xml:space="preserve">
+    <value>Subtotal group</value>
+  </data>
+  <data name="Interval" xml:space="preserve">
+    <value>Interval</value>
+  </data>
+  <data name="Calculated" xml:space="preserve">
+    <value>Calculated</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Calculate" xml:space="preserve">
+    <value>Calculate</value>
+  </data>
+  <data name="Operation" xml:space="preserve">
+    <value>Operation</value>
+  </data>
+  <data name="SubtotalLogs" xml:space="preserve">
+    <value>Subtotal logs</value>
+  </data>
+  <data name="Fill" xml:space="preserve">
+    <value>Fill empty value with zero value</value>
+  </data>
 </root>

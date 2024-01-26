@@ -17,18 +17,20 @@
 <SelectionContainer TItem="GXDeviceTemplate" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -51,16 +53,6 @@
     /// Device template filter.
     /// </summary>
     private GXDeviceTemplate filter = new GXDeviceTemplate(null);
-
-    string? GetName(GXDeviceTemplate target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXDeviceTemplate target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {

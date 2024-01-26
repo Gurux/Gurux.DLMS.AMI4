@@ -1330,6 +1330,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Subtotals can be used to improve the creation of reports from a large amount of data..
+        /// </summary>
+        internal static string SubtotalDescription {
+            get {
+                return ResourceManager.GetString("SubtotalDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Succeeded.
         /// </summary>
         internal static string Succeeded {

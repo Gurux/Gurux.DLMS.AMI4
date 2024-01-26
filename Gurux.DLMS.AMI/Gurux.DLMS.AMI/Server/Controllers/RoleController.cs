@@ -71,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Controllers
                 return BadRequest("Invalid roles");
             }
             UpdateRoleResponse ret = new UpdateRoleResponse();
-            ret.Ids = await _roleRepository.UpdateAsync(User, request.Roles);
+            ret.Ids = await _roleRepository.AddAsync(User, request.Roles);
             return ret;
         }
 

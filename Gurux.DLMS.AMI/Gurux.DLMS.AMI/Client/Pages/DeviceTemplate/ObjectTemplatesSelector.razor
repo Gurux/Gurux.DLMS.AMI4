@@ -1,0 +1,374 @@
+﻿@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+@using System.Text;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<SelectionContainer TItem="GXObjectTemplate" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems"
+                   OnAdded="OnAdded"
+                   OnRemoved="@Removed">
+        <DataContent>
+            @(context.LogicalName + " " + context.Name)
+        </DataContent>
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: right;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => RemoveAll())">
+                    &raquo;
+                </button>
+            </div>
+        </ButtonContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @(context.LogicalName + " " + context.Name)
+        </DataContent>
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByDevice"
+                    OnClickAsync="@SearchByDevice" />
+            <Search Placeholder="@Properties.Resources.FilterByDeviceType"
+                    OnClickAsync="@SearchByDeviceType" />
+        </FilterContent>
+        <ButtonContent>
+            <div>
+                <button style="float: left;" class="btn btn-outline-secondary border-left-0 border"
+                        type="button" onclick="@(() => AddAll())">
+                    &laquo;
+                </button>
+            </div>
+        </ButtonContent>
+    </SelectionList>
+</SelectionContainer>
+
+
+@code {
+
+    /// <summary>
+    /// Device templates where objects are asked.
+    /// </summary>
+    [Parameter]
+    public List<GXDeviceTemplate>? DeviceTemplates { get; set; }
+
+    /// <summary>
+    /// Shown object types.
+    /// </summary>
+    /// <remarks>
+    /// All object types are shown if object types are not set.
+    /// </remarks>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? ObjectTypes { get; set; }
+
+    /// <summary>
+    /// Ignored object types.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
+
+    /// <summary>
+    /// Available object templates.
+    /// </summary>
+    [Parameter]
+    public List<GXObjectTemplate>? Templates { get; set; }
+
+    SelectionList<GXObjectTemplate>? _selected;
+    SelectionList<GXObjectTemplate>? _available;
+    SelectionContainer<GXObjectTemplate>? _selectionContainer;
+    /// <summary>
+    /// Object filter.
+    /// </summary>
+    private GXObjectTemplate filter = new GXObjectTemplate(null);
+    /// <summary>
+    /// Selected object filter.
+    /// </summary>
+    private string? selectedNameFilter;
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected != null)
+            {
+                selectedNameFilter = name;
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                filter.Name = name;
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByDevice(string? deviceName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(deviceName))
+                {
+                    filter.DeviceTemplate = null;
+                }
+                else
+                {
+                    filter.DeviceTemplate = new GXDeviceTemplate()
+                        {
+                            Name = deviceName
+                        };
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByDeviceType(string? deviceType)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(deviceType))
+                {
+                    filter.DeviceTemplate = null;
+                }
+                else
+                {
+                    if (filter.DeviceTemplate == null)
+                    {
+                        filter.DeviceTemplate = new GXDeviceTemplate();
+                    }
+                    filter.DeviceTemplate.Name = deviceType;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Add all objects to selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task AddAll()
+    {
+        int max = 0;
+        //max 1000 items are added at the one time.
+        if (_available != null && _available.TotalCount > 1000)
+        {
+            max = 1000;
+        }
+        var ret = await GetItems(new GXItemsProviderRequest(0, max));
+        await OnAdded(ret.Items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    private List<GXObjectTemplate> GetObjects()
+    {
+        return Templates;
+    }
+
+    /// <summary>
+    /// Remove all objects from selected items.
+    /// </summary>
+    /// <returns></returns>
+    private async Task RemoveAll()
+    {
+        List<GXObjectTemplate> objects = GetObjects();
+        objects.Clear();
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            await _available.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// New object is added for selection list.
+    /// </summary>
+    public async Task OnAdded(IEnumerable<GXObjectTemplate> items)
+    {
+        List<GXObjectTemplate> objects = GetObjects();
+        objects.InsertRange(0, items);
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Item has removed from the lists.
+    /// </summary>
+    private async Task Removed(IEnumerable<GXObjectTemplate> items)
+    {
+        List<GXObjectTemplate> objects = GetObjects();
+        objects.RemoveAll(w => items.Contains(w));
+        if (_selected != null)
+        {
+            await _selected.RefreshDataAsync();
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXObjectTemplate>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        List<GXObjectTemplate> objects = GetObjects();
+        int total = objects.Count;
+        if (!string.IsNullOrEmpty(selectedNameFilter))
+        {
+            objects = objects.Where(w => w.Name.ToLower().Contains(selectedNameFilter.ToLower())).ToList();
+        }
+        return new(new ItemsProviderResult<GXObjectTemplate>(objects.Skip(request.StartIndex).Take(request.Count), total));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListObjectTemplates req = new ListObjectTemplates()
+                {
+                    Index = (UInt64)request.StartIndex,
+                    Count = (UInt64)request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Select = new string[] { "Device" },
+                    Exclude = GetObjects().Select(s => s.Id).ToArray()
+                };
+            if (ObjectTypes != null && ObjectTypes.Any())
+            {
+                req.ObjectTypes = ObjectTypes?.Cast<int>().ToArray();
+            }
+            if (IgnoredObjectTypes != null && IgnoredObjectTypes.Any())
+            {
+                req.IgnoredObjectTypes = IgnoredObjectTypes?.Cast<int>().ToArray();
+            }
+            if (DeviceTemplates != null && DeviceTemplates.Any())
+            {
+                req.DeviceTemplates = DeviceTemplates.Select(s => s.Id).ToArray();
+            }
+            var ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
+            if (ret?.ObjectTemplates != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (_selected == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (GetObjects() == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
+            }
+            if (_selected != null)
+            {
+                await _selected.RefreshDataAsync();
+            }
+            Notifier.UpdateButtons();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

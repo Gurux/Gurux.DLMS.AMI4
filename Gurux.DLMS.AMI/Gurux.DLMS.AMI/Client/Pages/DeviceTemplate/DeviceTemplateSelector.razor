@@ -1,0 +1,118 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject HttpClient Http
+<DropdownSearch Context="item"
+                @bind-Value="Value"
+                OnSelected="@((GXDeviceTemplate e) => SelectionChanged(e))"
+                ItemsProvider="@GetItems">
+    <ItemContent>
+        @item?.Name
+    </ItemContent>
+</DropdownSearch>
+
+@code {
+
+    /// <summary>
+    /// Selected device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? Value
+    {
+        get;
+        set;
+    }
+
+    private void SelectionChanged(GXDeviceTemplate? value)
+    {
+        ValueChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXDeviceTemplate?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Possible static values.
+    /// </summary>
+    /// <remarks>
+    /// If values are added they are not asked from the Gurux.DLMS.AMI.
+    /// </remarks>
+    [Parameter]
+    public IEnumerable<GXDeviceTemplate>? Values
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate?>> GetItems(GXItemsProviderRequest request)
+    {
+        if (Values != null && Values.Any())
+        {
+            IEnumerable<GXDeviceTemplate> values;
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                values = Values.Where(w => string.Compare(w.Name, request.Filter, true) == 0);
+            }
+            else
+            {
+                values = Values;
+            }
+            return new ItemsProviderResult<GXDeviceTemplate?>(values, values.Count());
+        }
+        GXDeviceTemplate? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search device templates by name
+            filter = new GXDeviceTemplate() { Name = request.Filter };
+        }
+        ListDeviceTemplates req = new ListDeviceTemplates()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+        var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
+        List<GXDeviceTemplate> list = new();
+        if (string.IsNullOrEmpty(request.Filter))
+        {
+            //Add empty device template.
+            list.Add(new GXDeviceTemplate() { Name = Properties.Resources.Nothing });
+        }
+        if (ret.Templates != null)
+        {
+            list.AddRange(ret.Templates);
+        }
+        if (Value != null && Value.Id != Guid.Empty)
+        {
+            foreach (var it in list)
+            {
+                if (it.Id == Value.Id)
+                {
+                    Value = it;
+                    StateHasChanged();
+                    break;
+                }
+            }
+        }
+        else
+        {
+            Value = list[0];
+        }
+        return new ItemsProviderResult<GXDeviceTemplate?>(list, ret.Count);
+    }
+}

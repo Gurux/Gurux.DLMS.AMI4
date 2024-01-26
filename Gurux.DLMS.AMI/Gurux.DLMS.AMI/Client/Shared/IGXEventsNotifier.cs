@@ -31,9 +31,21 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -958,5 +970,88 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="performances">Deleted performances.</param>
         Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances);
+      
+        /// <summary>
+        /// New subtotal is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="keys">Updated subtotals.</param>
+        /// <remarks>
+        /// Only the Id and the name of the subtotal are sent to keep message short.
+        /// </remarks>
+        Task SubtotalUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> keys);
+
+        /// <summary>
+        /// Subtotal is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">Deleted subtotals.</param>
+        /// <remarks>
+        /// Only the Id and the name of the subtotal are sent to keep message short.
+        /// </remarks>
+        Task SubtotalDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// New subtotal group is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated subtotal groups.</param>
+        Task SubtotalGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups);
+
+        /// <summary>
+        /// Subtotal group is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Deleted subtotal groups.</param>
+        Task SubtotalGroupDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups);
+
+        /// <summary>
+        /// New subtotal value is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="values">Updated subtotal values.</param>
+        Task SubtotalValueUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalValue> values);
+
+        /// <summary>
+        /// Subtotal value is calculated.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">Calculated subtotal values.</param>
+        Task SubtotalCalculate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// Subtotal values are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">Cleared subtotal values.</param>
+        Task SubtotalClear(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// Subtotal logs are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">List of cleared subtotals.</param>
+        Task ClearSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotal>? subtotals);
+
+        /// <summary>
+        /// New subtotal log item is added.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">New subtotal errors.</param>
+        Task AddSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals);
+
+        /// <summary>
+        /// Subtotal logs are closed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="subtotals">Closed errors.</param>
+        Task CloseSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals);
+
+        /// <summary>
+        /// User stamp is updated.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="stamps">Updates user stamps.</param>
+        Task UserStampUpdate(IReadOnlyList<string> users, IEnumerable<GXUserStamp> stamps);
     }
 }

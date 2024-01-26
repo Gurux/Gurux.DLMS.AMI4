@@ -32,7 +32,6 @@
 
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -45,6 +44,8 @@ using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared;
 using System.Data;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -218,6 +219,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXDeviceTemplateGroup>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXDeviceTemplateGroup>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && request.Count != 0)

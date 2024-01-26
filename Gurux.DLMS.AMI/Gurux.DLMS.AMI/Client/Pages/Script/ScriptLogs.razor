@@ -16,7 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 @implements IAmiComponent
 @if (Title)
@@ -39,6 +39,9 @@
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -70,13 +73,13 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Message">@Properties.Resources.Error</Th>
-        <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Config/ScriptLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@error.Message</td>
+            <Th Id="Message">@Properties.Resources.Error</Th>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Config/ScriptLog/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
@@ -144,6 +147,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -162,7 +183,7 @@
     /// </summary>
     protected ConfirmBase? CloseConfirmation;
 
-     /// <summary>
+    /// <summary>
     /// Active item.
     /// </summary>
     public GXScriptLog? Active
@@ -245,7 +266,7 @@
     private async ValueTask<ItemsProviderResult<GXScriptLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (ShowClosedErrors)
@@ -272,7 +293,12 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListScriptLogsResponse>("api/ScriptLog/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXScriptLog>(ret.Logs, ret.Count);
+            if (ret.Logs != null)
+            {
+                //Mark script logs as seen.
+                await Notifier.Mark(Http, TargetType.ScriptLog, ret.Logs.Max(s => s.CreationTime));
+                return new ItemsProviderResult<GXScriptLog>(ret.Logs, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {

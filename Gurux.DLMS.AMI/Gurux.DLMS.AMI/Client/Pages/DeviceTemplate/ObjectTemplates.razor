@@ -14,6 +14,7 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.Text;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 @attribute [Authorize(Roles = "Admin, TemplateManager")]
 @inject NavigationManager NavigationManager
@@ -30,35 +31,42 @@
 }
 else
 {
-    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TemplateManager)>
-        <MenuControl RightCorner="true">
-            <ChildContent>
-                <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
-            </ChildContent>
-        </MenuControl>
-    </AuthorizeView>
+    @if (Header)
+    {
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TemplateManager)>
+            <MenuControl RightCorner="true">
+                <ChildContent>
+                    <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+                </ChildContent>
+            </MenuControl>
+        </AuthorizeView>
+    }
 
     <GXTable @ref="table"
-         Context="template"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         Filter="@Filter"
-         OnSearch="@Updated">
+             Context="template"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             CanEdit="@CanEdit"
+             Columns="@Columns"
+             OnSearch="@Updated">
         <FilterContent>
-            <th>
+            <Fh Id="ObjectType">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
                        type="search"
-                   @oninput="@SearchByObjectType" />
-            </th>
-            <th>
+                       @oninput="@SearchByObjectType" />
+            </Fh>
+            <Fh Id="Name">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                        type="search"
-                   @oninput="@SearchByName" />
-            </th>
-            <th>
+                       @oninput="@SearchByName" />
+            </Fh>
+            <Fh Id="LogicalName">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByLogicalName"
-                   @oninput="@SearchByLogicalName" />
-            </th>
+                       @oninput="@SearchByLogicalName" />
+            </Fh>
         </FilterContent>
         <MenuContent>
             <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
@@ -66,29 +74,44 @@ else
         </MenuContent>
         <HeaderContent>
             <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
-            <Th Id="Name">@Properties.Resources.Name</Th>
-            <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
-            <th>Access rights</th>
-            <th>Expiration times</th>
-        </HeaderContent>
-        <ItemContent>
-            <td>@GetObjectType(template.ObjectType)</td>
-            <Td Link=@("ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
-            <td>@template.LogicalName</td>
-            <td>@GetAccessRights(template)</td>
-            <td>@GetExpirationTimes(template)</td>
-        </ItemContent>
-    </GXTable>
+                <Th Id="Name">@Properties.Resources.Name</Th>
+                <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
+                <Th Id="AccessRights">Access rights</Th>
+                <Th Id="ExpirationTime">Expiration times</Th>
+            </HeaderContent>
+            <ItemContent>
+                <Td Id="ObjectType">@GetObjectType(template.ObjectType)</Td>
+                <Td Id="Name" Link=@("ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
+                <Td Id="LogicalName">@template.LogicalName</Td>
+                <Td Id="AccessRights">@GetAccessRights(template)</Td>
+                <Td Id="ExpirationTime">@GetExpirationTimes(template)</Td>
+            </ItemContent>
+        </GXTable>
     <Confirm @ref="RemoveConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+             ConfirmationChanged="OnDeleteConfirmation"
+             OkTitle="@Properties.Resources.Remove"
+             ConfirmationMessage=""
+             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
     </Confirm>
 }
 
 <br />
 @code {
+    /// <summary>
+    /// Shown object types.
+    /// </summary>
+    /// <remarks>
+    /// All object types are shown if object types are not set.
+    /// </remarks>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? ObjectTypes { get; set; }
+
+    /// <summary>
+    /// Ignored object types.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
+
     /// <summary>
     /// Action.
     /// </summary>
@@ -103,6 +126,12 @@ else
 
     [CascadingParameter]
     private DeviceTemplateTab? Parent { get; set; }
+
+    /// <summary>
+    /// List of available device IDs.
+    /// </summary>
+    [Parameter]
+    public IEnumerable<GXObjectTemplate>? AvailableObjectTemplates { get; set; }
 
     /// <inheritdoc />
     public string? Icon
@@ -124,6 +153,24 @@ else
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.
@@ -212,7 +259,7 @@ else
 
     private string GetAccessRights(GXObjectTemplate template)
     {
-        if (template.Attributes == null)
+        if (template.Attributes == null || template.ObjectType == null)
         {
             return "";
         }
@@ -246,7 +293,7 @@ else
 
     private string GetExpirationTimes(GXObjectTemplate template)
     {
-        if (template.Attributes == null)
+        if (template.Attributes == null || template.ObjectType == null)
         {
             return "";
         }
@@ -290,6 +337,11 @@ else
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Object content is read on init.
+    /// </summary>
+    bool _init = true;
+
     protected override async Task OnInitializedAsync()
     {
         if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("ObjectTemplate/"))
@@ -304,7 +356,8 @@ else
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             //Get selected item.
-            if (Device == null)
+            if (Device == null &&
+                (AvailableObjectTemplates == null || !AvailableObjectTemplates.Any()))
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
@@ -327,8 +380,11 @@ else
                     }
                 }
             });
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            if (Header)
+            {
+                Notifier.Clear();
+                Notifier.UpdateButtons();
+            }
             if (table != null && Id != null)
             {
                 //Get last selected item.
@@ -378,24 +434,35 @@ else
 
     private async ValueTask<ItemsProviderResult<GXObjectTemplate>> GetItems(GXItemsProviderRequest request)
     {
-        if (Device?.Objects != null)
+        if (Device?.Objects != null || (!_init && AvailableObjectTemplates != null && AvailableObjectTemplates.Any()))
         {
             List<GXObjectTemplate> objects = new();
-            objects.AddRange(Device.Objects);
+            int count = 0;
+            if (Device?.Objects != null)
+            {
+                objects.AddRange(Device.Objects);
+                count = Device.Objects.Count;
+            }
+            if (AvailableObjectTemplates != null)
+            {
+                objects.AddRange(AvailableObjectTemplates);
+                count = AvailableObjectTemplates.Count();
+            }
             if (!string.IsNullOrEmpty(filterByObjectType))
             {
-                objects.RemoveAll(q => ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
+                objects.RemoveAll(q => q.ObjectType != null && ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
             }
             if (!string.IsNullOrEmpty(filterByName))
             {
-                objects.RemoveAll(q => q.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
+                objects.RemoveAll(q => q.Name != null && q.Name.ToUpper().Contains(filterByName.ToUpper()) == false);
             }
             if (!string.IsNullOrEmpty(filterByLogicalName))
             {
-                objects.RemoveAll(q => q.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
+                objects.RemoveAll(q => q.LogicalName != null && q.LogicalName.ToUpper().Contains(filterByLogicalName.ToUpper()) == false);
             }
-            return new ItemsProviderResult<GXObjectTemplate>(objects, Device.Objects.Count);
+            return new ItemsProviderResult<GXObjectTemplate>(objects, count);
         }
+        _init = false;
         //Don't clear status or error is lost.
         Notifier?.ProgressStart();
         try
@@ -420,9 +487,21 @@ else
                     OrderBy = request.OrderBy,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    //Attributes are also read.
-                    Select = TargetType.AttributeTemplate
+                    //Attribute templates are also read.
+                    Select = new string[] { TargetType.AttributeTemplate }
                 };
+            if (AvailableObjectTemplates != null && AvailableObjectTemplates.Any())
+            {
+                req.Included = AvailableObjectTemplates.Select(s => s.Id).ToArray();
+            }
+            if (ObjectTypes != null && ObjectTypes.Any())
+            {
+                req.ObjectTypes = ObjectTypes?.Cast<int>().ToArray();
+            }
+            if (IgnoredObjectTypes != null && IgnoredObjectTypes.Any())
+            {
+                req.IgnoredObjectTypes = IgnoredObjectTypes?.Cast<int>().ToArray();
+            }
             var ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
             return new ItemsProviderResult<GXObjectTemplate>(ret.ObjectTemplates, ret.Count);
         }

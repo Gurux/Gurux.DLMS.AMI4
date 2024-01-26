@@ -36,11 +36,12 @@ using Gurux.DLMS.AMI.Shared.DTOs;
 using System.Reflection;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Runtime.Loader;
-using Duende.IdentityServer.Models;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
@@ -88,7 +89,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             t.Start();
         }
 
-        /// <inheritdoc cref="IWorkflowHandler.Add"/>
+        /// <inheritdoc />
         public void Add(GXWorkflow item)
         {
             lock (Workflows)
@@ -97,7 +98,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
         }
 
-        /// <inheritdoc cref="IWorkflowHandler.Delete"/>
+        /// <inheritdoc />
         public void Delete(GXWorkflow item)
         {
             lock (Workflows)
@@ -106,7 +107,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
         }
 
-        /// <inheritdoc cref="IWorkflowHandler.Update"/>
+        /// <inheritdoc />
         public void Update(object source)
         {
             lock (Workflows)
@@ -129,7 +130,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
         }
 
-        /// <inheritdoc cref="IWorkflowHandler.Execute"/>
+        /// <inheritdoc />
         public void Execute(Type trigger, string activity, object? Sender)
         {
             lock (Actions)
@@ -301,12 +302,13 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
         }
 
-        /// <inheritdoc cref="IWorkflowHandler.AddScript"/>
+        /// <inheritdoc />
         public void AddScript(Guid id, AssemblyLoadContext alc)
         {
             LoadedScripts[id] = alc;
         }
-        /// <inheritdoc cref="IWorkflowHandler.UnloadScript"/>
+
+        /// <inheritdoc />
         [MethodImpl(MethodImplOptions.NoInlining)]
         public void UnloadScript(Guid id)
         {
@@ -339,7 +341,8 @@ namespace Gurux.DLMS.AMI.Server.Services
                 }
             }
         }
-        /// <inheritdoc cref="IWorkflowHandler.GetScript"/>
+
+        /// <inheritdoc />
         public AssemblyLoadContext? GetScript(Guid id)
         {
             return LoadedScripts[id];

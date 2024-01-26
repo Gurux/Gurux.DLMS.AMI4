@@ -19,7 +19,7 @@
         @if (_languages != null)
         {
             <label>@Properties.Resources.Language</label>
-            <select class="form-control" @bind="@SelectedLanguage">
+            <select class="form-select" @bind="@SelectedLanguage">
                 @foreach (var it in _languages)
                 {
                     <option value="@it.Id">@it.EnglishName</option>

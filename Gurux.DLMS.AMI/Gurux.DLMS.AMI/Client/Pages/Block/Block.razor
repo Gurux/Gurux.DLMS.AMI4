@@ -31,7 +31,7 @@
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Location</label>
-                    <select class="form-control" @bind="@Active.Location">
+                    <select class="form-select" @bind="@Active.Location">
                         @foreach (var it in blockList)
                         {
                             <option value="@it">@it</option>
@@ -40,7 +40,7 @@
                 </div>
                 <div class="form-group">
                     <label>Block type</label>
-                    <select class="form-control" @bind="@Active.BlockType">
+                    <select class="form-select" @bind="@Active.BlockType">
                         @foreach (var it in blockTypes)
                         {
                             <option value="@it">@it</option>
@@ -72,7 +72,7 @@
                     <label>@Properties.Resources.Component</label>
                     @if (componentList != null)
                     {
-                        <select class="form-control" @bind="@SelectedComponent">
+                        <select class="form-select" @bind="@SelectedComponent">
                             @foreach (var it in componentList)
                             {
                                 <option value="@it.ClassName">@it.Name</option>
@@ -124,9 +124,10 @@
                                 {
                                     builder.OpenComponent(0, type);
                                     builder.AddAttribute(1, "OnSettingsUpdated", onEdit);
+                                    int pos = 2;
                                     @foreach (var p in @_parameters)
                                     {
-                                        builder.AddAttribute(2, p.Key, p.Value);
+                                        builder.AddAttribute(pos++, p.Key, p.Value);
                                     }
                                     builder.CloseComponent();
                                 };
@@ -149,7 +150,7 @@
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.Script</label>
-                        <select class="form-control" @bind="SelectedScript">
+                        <select class="form-select" @bind="SelectedScript">
                             @foreach (var it in scriptList)
                             {
                                 <option value="@it.Name">@it.Name</option>
@@ -158,7 +159,7 @@
                     </div>
                     <div class="form-group">
                         <label>@Properties.Resources.Method</label>
-                        <select class="form-control" @bind="SelectedScriptMethod">
+                        <select class="form-select" @bind="SelectedScriptMethod">
                             @if (_selectedScript != null)
                             {
                                 @foreach (var it in _selectedScript.Methods)

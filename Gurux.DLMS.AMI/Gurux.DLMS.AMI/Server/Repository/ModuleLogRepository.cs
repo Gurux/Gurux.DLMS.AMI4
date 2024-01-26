@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -39,6 +38,7 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -67,16 +67,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task AddAsync(ClaimsPrincipal User, IEnumerable<GXModuleLog> errors)
         {
+            DateTime now = DateTime.Now;
             Dictionary<GXModuleLog, List<string>> updates = new Dictionary<GXModuleLog, List<string>>();
             foreach (GXModuleLog it in errors)
             {
-                it.CreationTime = DateTime.Now;
+                it.CreationTime = now;
                 updates[it] = await _moduleRepository.GetUsersAsync(User, it.Module.Id);
             }
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
             foreach (var it in updates)
             {
-                await _eventsNotifier.AddModuleLogs(it.Value, new GXModuleLog[] { it.Key });
+                GXModuleLog tmp = new GXModuleLog()
+                {
+                    Id = it.Key.Id,
+                    CreationTime = now,
+                    Level = it.Key.Level,
+                };
+                await _eventsNotifier.AddModuleLogs(it.Value, new GXModuleLog[] { tmp });
             }
         }
 
@@ -198,6 +205,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXModuleLog>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXModuleLog>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;

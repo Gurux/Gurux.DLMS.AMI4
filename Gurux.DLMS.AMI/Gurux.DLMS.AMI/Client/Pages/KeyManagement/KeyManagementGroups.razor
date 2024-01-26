@@ -33,6 +33,10 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -120,6 +124,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

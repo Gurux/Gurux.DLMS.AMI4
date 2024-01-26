@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXComponentViewGroup" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -52,17 +54,7 @@
     /// <summary>
     /// ComponentView group filter.
     /// </summary>
-    private GXComponentViewGroup filter = new GXComponentViewGroup(null);
-
-    public string? GetName(GXComponentViewGroup target)
-    {
-        return target.Name;
-    }
-
-    public string? GetDescription(GXComponentViewGroup target)
-    {
-        return target.Name;
-    }
+    private GXComponentViewGroup filter = new GXComponentViewGroup(null);   
 
     protected async Task SearchSelectedByName(string? name)
     {

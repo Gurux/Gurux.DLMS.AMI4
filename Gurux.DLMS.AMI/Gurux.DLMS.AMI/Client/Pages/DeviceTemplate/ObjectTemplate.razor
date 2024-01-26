@@ -30,12 +30,12 @@
                 <div class="form-group">
                     <label>@Properties.Resources.LogicalName</label>
                     <InputText id="name" disabled="disabled" class="form-control"
-                    @bind-Value="Active.LogicalName" />
+                               @bind-Value="Active.LogicalName" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Description</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                    @bind-Value="Active.Name" />
+                               @bind-Value="Active.Name" />
                 </div>
                 <table class="table table-striped" width="100%">
                     <thead>
@@ -81,7 +81,7 @@
                                             <InputNumber step="0.0001"
                                                          class="form-control"
                                                          id="scaler"
-                                            @bind-Value="@it.Scaler" />
+                                                         @bind-Value="@it.Scaler" />
                                         }
                                         else
                                         {
@@ -95,7 +95,7 @@
                                     <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
                                     <td>
                                         <button type="button" class="btn btn-primary"
-                                        @onclick="() => UpdateInstance(it, true)">
+                                                @onclick="() => UpdateInstance(it, true)">
                                             @Properties.Resources.Update
                                         </button>
                                         <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
@@ -160,7 +160,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                        @bind-Value="Active.Updated" />
+                                   @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -168,7 +168,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Remove</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                        @bind-Value="Active.Removed" />
+                                   @bind-Value="Active.Removed" />
                     </div>
                 }
             </div>

@@ -17,18 +17,20 @@
 <SelectionContainer TItem="GXGateway" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -42,6 +44,12 @@
     [CascadingParameter]
     private GatewayGroupTab? Parent { get; set; }
 
+    /// <summary>
+    /// Selected gateways.
+    /// </summary>
+    [Parameter]
+    public List<GXGateway>? Gateways { get; set; }
+
     SelectionList<GXGateway>? _selected;
     SelectionList<GXGateway>? _available;
     SelectionContainer<GXGateway>? _selectionContainer;
@@ -49,16 +57,6 @@
     /// Gateway filter.
     /// </summary>
     private GXGateway filter = new GXGateway(null);
-
-    string? GetName(GXGateway target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXGateway target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -144,6 +142,15 @@
         }
     }
 
+    private List<GXGateway> GetGateways()
+    {
+        if (Gateways != null)
+        {
+            return Gateways;
+        }
+        return Parent.Active.Gateways;
+    }
+
     /// <summary>
     /// Filter is done when SearchSelectedByName is called.
     /// </summary>
@@ -208,9 +215,9 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (Parent?.Active?.Gateways != null)
+            if (GetGateways() != null)
             {
-                _selected.Items = Parent.Active.Gateways;
+                _selected.Items = GetGateways();
             }
             else
             {

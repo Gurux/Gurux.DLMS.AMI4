@@ -60,6 +60,18 @@ using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.Text;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using System.Collections.Generic;
+using Gurux.DLMS.AMI.Client.Pages.Config;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -118,6 +130,7 @@ namespace Gurux.DLMS.AMI.Server
                 AddRolesConfiguration(configurations);
                 AddExternalAuthenticationServicesConfiguration(configurations);
                 AddKeyManagementConfiguration(configurations);
+                AddSubtotalConfiguration(configurations);
             }
             finally
             {
@@ -353,6 +366,22 @@ namespace Gurux.DLMS.AMI.Server
         }
 
         /// <summary>
+        /// Add subtotal configuration.
+        /// </summary>
+        internal static void AddSubtotalConfiguration(List<GXConfiguration> configurations)
+        {
+            GXConfiguration conf = new GXConfiguration()
+            {
+                Name = GXConfigurations.Subtotals,
+                Icon = "oi oi-calculator",
+                Description = Properties.Resources.SubtotalDescription,
+                Path = "config/Subtotal",
+                Order = 7
+            };
+            configurations.Add(conf);
+        }
+
+        /// <summary>
         /// Add manufacturer configuration.
         /// </summary>
         internal static void AddManufacturerConfiguration(List<GXConfiguration> configurations)
@@ -540,7 +569,7 @@ namespace Gurux.DLMS.AMI.Server
             {
                 GXConfiguration conf = connection.SingleOrDefault<GXConfiguration>(args);
                 ScriptSettings? settings = null;
-                if (!string.IsNullOrEmpty(conf.Settings))
+                if (!string.IsNullOrEmpty(conf?.Settings))
                 {
                     settings = JsonSerializer.Deserialize<ScriptSettings>(conf.Settings);
                 }
@@ -644,6 +673,11 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<IGatewayRepository, GatewayRepository>();
             services.AddTransient<IGatewayLogRepository, GatewayLogRepository>();
             services.AddSingleton<IPerformanceRepository, PerformanceRepository>();
+            services.AddTransient<ISubtotalGroupRepository, SubtotalGroupRepository>();
+            services.AddTransient<ISubtotalRepository, SubtotalRepository>();
+            services.AddTransient<ISubtotalValueRepository, SubtotalValueRepository>();
+            services.AddTransient<ISubtotalLogRepository, SubtotalLogRepository>();
+            services.AddTransient<IUserStampRepository, UserStampRepository>();
         }
 
         /// <summary>
@@ -819,6 +853,7 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXUserLogin>(false, false);
                         host.Connection.CreateTable<GXUserToken>(false, false);
                         host.Connection.CreateTable<GXKey>(false, false);
+                        host.Connection.CreateTable<GXUserStamp>(false, false);
                         AddDefaultConfigurationSettings(host);
                         UpdateComponentViews(host);
                         host.Connection.CommitTransaction(t);
@@ -922,6 +957,117 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXPerformance>(false, false);
                         //TraceLevel added to gateway.
                         host.Connection.UpdateTable<GXGateway>();
+                    }
+                    if (!host.Connection.TableExist<GXSubtotal>())
+                    {
+                        host.Connection.CreateTable<GXSubtotal>(false, false);
+                        host.Connection.CreateTable<GXSubtotalGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalGroupSubtotal>(false, false);
+                        host.Connection.CreateTable<GXSubtotalDevice>(false, false);
+                        host.Connection.CreateTable<GXSubtotalDeviceAttributeTemplate>(false, false);
+                        host.Connection.CreateTable<GXSubtotalDeviceGroupAttributeTemplate>(false, false);
+                        host.Connection.CreateTable<GXSubtotalGateway>(false, false);
+                        host.Connection.CreateTable<GXSubtotalGatewayGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalAgent>(false, false);
+                        host.Connection.CreateTable<GXSubtotalAgentGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalValue>(false, false);
+                        host.Connection.CreateTable<GXUserGroupSubtotalGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalDeviceGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalValue>(false, false);
+                        host.Connection.CreateTable<GXSubtotalLog>(false, false);
+                        host.Connection.CreateTable<GXSubtotalSchedule>(false, false);
+                        host.Connection.CreateTable<GXSubtotalScheduleGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalScript>(false, false);
+                        host.Connection.CreateTable<GXSubtotalScriptGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalWorkflow>(false, false);
+                        host.Connection.CreateTable<GXSubtotalWorkflowGroup>(false, false);
+                        host.Connection.CreateTable<GXSubtotalUser>(false, false);
+                        host.Connection.CreateTable<GXSubtotalUserGroup>(false, false);
+
+                        //Name, module type and protocol added to module.
+                        host.Connection.UpdateTable<GXModule>();
+                        //Schedule-specific module settings added.
+                        host.Connection.UpdateTable<GXScheduleModule>();
+                        //Condition and action scripts added to task.
+                        host.Connection.UpdateTable<GXTask>();
+
+                        //Module added to role.
+                        host.Connection.UpdateTable<GXRole>();
+                        //Module added to user settings.
+                        host.Connection.UpdateTable<GXUserSetting>();
+                        //Scope added.
+                        host.Connection.CreateTable<GXScope>(false, false);
+                        //Protocol property added.
+                        host.Connection.UpdateTable<GXDeviceTemplate>();
+                        //Schedule to object template added.
+                        host.Connection.CreateTable<GXScheduleToDeviceObjectTemplate>(false, false);
+                        //Schedule to attribute template added.
+                        host.Connection.CreateTable<GXScheduleToDeviceAttributeTemplate>(false, false);
+                        //Schedule to object template added.
+                        host.Connection.CreateTable<GXScheduleToDeviceGroupObjectTemplate>(false, false);
+                        //Schedule to attribute template added.
+                        host.Connection.CreateTable<GXScheduleToDeviceGroupAttributeTemplate>(false, false);
+                        //Parent property added.
+                        host.Connection.UpdateTable<GXBlock>();
+                        host.Connection.CreateTable<GXUserStamp>(false, false);
+                        //Target changed from UInt64 to string.
+                        host.Connection.UpdateTable<GXUserAction>();
+                        //Target changed from UInt64 to string.
+                        host.Connection.UpdateTable<GXPerformance>();
+                        //Description added to agent.
+                        host.Connection.UpdateTable<GXAgent>();
+                        //Description added to gateway.
+                        host.Connection.UpdateTable<GXGateway>();
+                        //Description added to schedule.
+                        host.Connection.UpdateTable<GXSchedule>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXWorkflowLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXUserError>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXSystemLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXScriptLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXScheduleLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXModuleLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXGatewayLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXDeviceError>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXAgentLog>();
+                        //Type added.
+                        host.Connection.UpdateTable<GXKeyManagementLog>();
+
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXKeyManagement>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXWorkflow>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXScript>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXSchedule>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXModule>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXGateway>();
+                        //TraceLevel added.
+                        host.Connection.UpdateTable<GXAgent>();
+                        List<GXConfiguration> configurations = new List<GXConfiguration>();
+                        //All values are saved using invariant culture.
+                        CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
+                        try
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+                            AddSubtotalConfiguration(configurations);
+                        }
+                        finally
+                        {
+                            CultureInfo.DefaultThreadCurrentUICulture = culture;
+                        }
+                        host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
                     }
                 }
             }

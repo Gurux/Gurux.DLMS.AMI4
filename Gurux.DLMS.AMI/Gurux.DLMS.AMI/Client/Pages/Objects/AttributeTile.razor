@@ -32,7 +32,7 @@
                 }
                 @if (Values != null && Values.Any())
                 {
-                    <select class="form-control" @bind="InternalText" disabled="@IsDisabled()">
+                    <select class="form-select" @bind="InternalText" disabled="@IsDisabled()">
                         @foreach (string it in Values)
                         {
                             <option value="@it">@it</option>
@@ -51,7 +51,8 @@
             {
                 <div class="form-group">
                     <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
-                    <Switch Text="@(Attribute.Template.Index + " " + Attribute.Template.Name)" Checked="@IsChecked()" Disabled="@IsDisabled()">
+                    <Switch Text="@(Attribute.Template.Index + " " + Attribute.Template.Name)"
+                            Value="@IsChecked()" Disabled="@IsDisabled()">
                         @if (Attribute != null && Attribute.Modified)
                         {
                             <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" blue-color />
@@ -67,8 +68,8 @@
                         <label>@GetName()</label>
                         &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                     </Tooltip>
-                    <select class="form-control" value="@GetAttributeValue(@Attribute)"
-                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
+                    <select class="form-select" value="@GetAttributeValue(@Attribute)"
+                            @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
                         @foreach (var li in Attribute.Template.ListItems)
                         {
@@ -92,8 +93,8 @@
                 <div class="form-group">
                     <Tooltip Title="@LastRead"><label>@GetName()</label></Tooltip>
                     &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
-                    <select class="form-control" value="@GetAttributeValue(@Attribute)"
-                    @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
+                    <select class="form-select" value="@GetAttributeValue(@Attribute)"
+                            @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
                         @foreach (var li in Values)
                         {
@@ -135,7 +136,7 @@
                     @if (!HideValue)
                     {
                         <input type="text" class="form-control" disabled="@IsDisabled()" value="@GetAttributeValue(@Attribute)"
-                        @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
+                               @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
                     }
                 </div>
             }

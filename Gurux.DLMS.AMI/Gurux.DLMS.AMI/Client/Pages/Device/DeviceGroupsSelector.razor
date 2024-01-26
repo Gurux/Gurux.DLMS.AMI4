@@ -1,6 +1,7 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Agent;
 @using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
 @using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
@@ -22,10 +23,11 @@
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription"
                    OnAdded="OnAdded"
                    OnRemoved="@Removed">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
@@ -40,9 +42,10 @@
         </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -77,6 +80,8 @@
     [CascadingParameter]
     private ScheduleTab? ScheduleParent { get; set; }
 
+    [CascadingParameter]
+    private SubtotalTab? SubtotalParent { get; set; }
 
     SelectionList<GXDeviceGroup>? _selected;
     SelectionList<GXDeviceGroup>? _available;
@@ -91,14 +96,14 @@
     /// </summary>
     private GXDeviceGroup selectedFilter = new GXDeviceGroup();
 
-    public string? GetName(GXDeviceGroup target)
+    /// <summary>
+    /// Available device groups.
+    /// </summary>
+    [Parameter]
+    public List<GXDeviceGroup>? DeviceGroups
     {
-        return target.Name;
-    }
-
-    public string? GetDescription(GXDeviceGroup target)
-    {
-        return target.Name;
+        get;
+        set;
     }
 
     protected async Task SearchSelectedByName(string? name)
@@ -241,6 +246,10 @@
 
     private List<GXDeviceGroup> GetDeviceGroups()
     {
+        if (DeviceGroups != null)
+        {
+            return DeviceGroups;
+        }
         if (UserGroupParent?.Active?.DeviceGroups != null)
         {
             return UserGroupParent.Active.DeviceGroups;
@@ -252,12 +261,25 @@
         if (AgentGroupParent?.Active?.DeviceGroups != null)
         {
             return AgentGroupParent.Active.DeviceGroups;
-        }        
+        }
         if (ScheduleParent?.Active?.DeviceGroups != null)
         {
             return ScheduleParent.Active.DeviceGroups;
-        }        
-        return GatewayParent?.Active?.DeviceGroups;
+        }
+        if (GatewayParent?.Active?.DeviceGroups != null)
+        {
+            return GatewayParent.Active.DeviceGroups;
+        }
+        return SubtotalParent?.Active?.DeviceGroups;
+    }
+
+    public Task Update()
+    {
+        if (_selected == null)
+        {
+            return Task.CompletedTask;
+        }
+        return _selected.RefreshDataAsync();
     }
 
     /// <summary>

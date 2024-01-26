@@ -39,9 +39,9 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using System.Net.Http.Headers;
 using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -178,6 +178,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXManufacturer>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXManufacturer>(w => request.Included.Contains(w.Id));
+                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -205,7 +209,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
-                if ((request.Select & TargetType.Version) != 0)
+                if (request?.Select != null && request.Select.Contains("Version"))
                 {
                     //Get model versions
                     if (!joinAdded)
@@ -224,7 +228,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Select device template ID and name.
                     arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
                 }
-                if ((request.Select & TargetType.Model) != 0)
+                if (request?.Select != null && request.Select.Contains("Model"))
                 {
                     //Get models
                     if (!joinAdded)

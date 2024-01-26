@@ -35,6 +35,7 @@
          Context="trace"
          ItemsProvider="@GetItems"
          Filter="@Filter"
+         ShowAllUsers="@Header"
          OnSearch="@Updated"
          SelectionMode="SelectionMode.None"
          ShowRemoved="false">
@@ -61,13 +62,13 @@
     <HeaderContent>
         <th>@Properties.Resources.Device</th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.Type</th>
+            <th>@Properties.Resources.Type</th>
         <th>@Properties.Resources.Data</th>
     </HeaderContent>
     <ItemContent>
         <td>@trace.Device?.Name</td>
         <Td Link="@("DeviceTrace/Edit/" + trace.Id)">@trace.CreationTime</Td>
-        <td>@GetDirection(trace)</td>
+            <td>@GetDirection(trace)</td>
         <td>@trace.Frame</td>
     </ItemContent>
 </GXTable>
@@ -149,6 +150,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -158,7 +177,7 @@
     /// Device trace log filter.
     /// </summary>
     private GXDeviceTrace filter = new GXDeviceTrace() { Device = new GXDevice() };
-    
+
     /// <summary>
     /// User is verified before device traces are cleared.
     /// </summary>

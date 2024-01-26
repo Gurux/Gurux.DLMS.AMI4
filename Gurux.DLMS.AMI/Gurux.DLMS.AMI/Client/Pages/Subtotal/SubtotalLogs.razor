@@ -1,0 +1,460 @@
+﻿@page "/config/Subtotal/Logs"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, SubtotalLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.SubtotalLogs (@Properties.Resources.Total: @Total)</PageTitle>
+}
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalLog)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="Filter by creation time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by subtotal..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Subtotal.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by error..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <div>
+                <input class="form-control" type="text" placeholder="Filter by level..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+            </div>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+        <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="Message">@Properties.Resources.Error</Th>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("config/Subtotal/Log/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@(error.Subtotal != null ? error.Subtotal.Name : "")</td>
+            <td>@error.Message</td>
+        <td>@ClientHelpers.LevelToString(error.Level)</td>
+        <td>@error.Closed</td>
+    </ItemContent>
+</GXTable>
+
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
+</Confirm>
+
+<Confirm @ref="CloseConfirmation"
+         ConfirmationChanged="OnCloseConfirmation"
+         ConfirmationTitle="Confirm close"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Close"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected schedule group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.SubtotalLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the subtotal errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Subtotal error filter.
+    /// </summary>
+    private GXSubtotalLog filter = new GXSubtotalLog()
+        {
+            Subtotal = new GXSubtotal()
+        };
+    /// <summary>
+    /// User is verified before subtotal errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+
+    /// <summary>
+    /// User is verified before subtotal errors are closed.
+    /// </summary>
+    protected ConfirmBase? CloseConfirmation;
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    protected GXTable<GXSubtotalLog>? table;
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXSubtotalLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXSubtotal>?>(this, nameof(IGXHubEvents.ClearSubtotalLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXSubtotalLog>>(this, nameof(IGXHubEvents.AddSubtotalLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXSubtotalLog>>(this, nameof(IGXHubEvents.CloseSubtotalLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXSubtotalLog() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXSubtotalLog>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier.ProgressStart();
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+            if (filter.Message == string.Empty)
+            {
+                filter.Message = null;
+            }
+            ListSubtotalLogs req = new ListSubtotalLogs()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListSubtotalLogsResponse>("api/SubtotalLog/List", req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                //Mark subtotal logs as seen.
+                await Notifier.Mark(Http, TargetType.SubtotalLog, ret.Logs.Max(s => s.CreationTime));
+            }
+            Total = ret.Count;
+            //Get only selected amount of the subtotal logs.
+            if (Total != 0)
+            {
+                ret.Count = Total;
+            }
+            return new ItemsProviderResult<GXSubtotalLog>(ret.Logs, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show subtotal error details.
+    /// </summary>
+    void OnShow()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/SubtotalLog/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public void OnClose()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public async Task OnCloseConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                CloseSubtotalLog req = new CloseSubtotalLog()
+                    {
+                        Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<CloseSubtotalLogResponse>("api/SubtotalLog/Close", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the subtotal error list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the subtotal error list.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                await Http.PostAsJson<ClearSubtotalLogsResponse>("api/SubtotalLog/Clear", new ClearSubtotalLogs());
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+}

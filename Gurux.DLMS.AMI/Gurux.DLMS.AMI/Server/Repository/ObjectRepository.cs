@@ -41,6 +41,10 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using System.Data;
+using System.Linq;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -169,10 +173,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             if (request != null)
             {
-                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                if (request.Devices != null && request.Devices.Any())
+                {
+                    arg.Where.And<GXDevice>(w => request.Devices.Contains(w.Id));
+                }
+
+                if (request.Select != null && request.Select.Contains("DeviceTemplate"))
                 {
                 }
-                else if ((request.Select & TargetType.Device) != 0)
+                else if (request.Select != null && request.Select.Contains("Device"))
                 {
                 }
                 if (request.Filter?.Device != null)
@@ -214,12 +223,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     request.Filter.Device = null;
                 }
-                if (request?.Filter?.Template != null)
+                if (request.Filter?.Template != null)
                 {
                     objectTemplate = request.Filter.Template;
                     request.Filter.Template = null;
                 }
                 arg.Where.FilterBy(request.Filter);
+                if (request.ObjectTypes != null && request.ObjectTypes.Any())
+                {
+                    int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
+                }
+                if (request.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
+                {
+                    int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
+                }
             }
             //Get devices before template filter or device is not retured if all objects are late binded.
             GXDevice[] devs = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
@@ -228,16 +247,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(objectTemplate);
             }
             UInt32 count2 = 0;
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXObject>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXObject>(w => request.Included.Contains(w.Id));
+            }
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
                 GXSelectArgs total = GXSelectArgs.Select<GXObject>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    total.Where.And<GXObject>(w => !request.Exclude.Contains(w.Id));
-                }
                 if (response != null)
                 {
                     response.Count = _host.Connection.SingleOrDefault<int>(total);
@@ -376,10 +399,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 if (obj.Device != null)
                 {
-                    obj.Device = new GXDevice() {Id = obj.Device.Id, Name = obj.Device.Name};
+                    obj.Device = new GXDevice() { Id = obj.Device.Id, Name = obj.Device.Name };
                 }
             }
-            if (request != null && (request.Select & TargetType.Attribute) != 0)
+            if (request?.Select != null && request.Select.Contains("Attribute"))
             {
                 arg = GXSelectArgs.Select<GXAttribute>(s => new { s.Id, s.Template, s.Value });
                 arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
@@ -469,7 +492,66 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return obj;
         }
 
-        internal static async Task<GXObject> CreateLateBindObject(IGXHost host, 
+        /// <summary>
+        /// Return device object using device ID and logical name of the object.
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="userId"></param>
+        /// <param name="device"></param>
+        /// <param name="logicalName"></param>
+        /// <returns></returns>
+        internal static async Task<GXObject> GetDeviceObjectUsingLogicalName(
+            IGXHost host,
+            IDbTransaction? transaction,
+            string userId,
+            GXDevice device,
+            string logicalName)
+        {
+            Guid deviceId = device.Id;
+            GXSelectArgs args = GXQuery.GetObjectsByUser(userId);
+            args.Columns.Add<GXObjectTemplate>();
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(o => o.Template, a => a.Id);
+            args.Where.And<GXDevice>(q => q.Id == deviceId);
+            args.Where.And<GXObject>(q => q.Removed == null);
+            args.Where.And<GXObjectTemplate>(q => q.Removed == null && q.LogicalName == logicalName);
+            return await host.Connection.SingleOrDefaultAsync<GXObject>(transaction, args);
+        }
+
+        /// <summary>
+        /// Return device object using device ID and logical name of the object.
+        /// </summary>
+        /// <param name="host">Host.</param>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="userId">User ID.</param>
+        /// <param name="deviceId">Device ID.</param>
+        /// <param name="logicalName">Logical name of the object.</param>
+        /// <param name="index">Attribute index</param>
+        /// <returns></returns>
+        internal static async Task<GXAttribute?> GetDeviceAttributeUsingLogicalName(
+            IGXHost host,
+            IDbTransaction? transaction,
+            string userId,
+            Guid deviceId,
+            string logicalName,
+            int index)
+        {
+            GXSelectArgs args = GXQuery.GetAttributesByUser(userId);
+            args.Columns.Add<GXObjectTemplate>();
+            args.Columns.Add<GXAttributeTemplate>();
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(o => o.Template, a => a.Id);
+            args.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(o => o.Template, a => a.Id);
+            args.Where.And<GXDevice>(q => q.Id == deviceId);
+            args.Where.And<GXObject>(q => q.Removed == null);
+            args.Where.And<GXObjectTemplate>(q => q.Removed == null && q.LogicalName == logicalName);
+            args.Where.And<GXAttribute>(q => q.Removed == null);
+            args.Where.And<GXAttributeTemplate>(q => q.Removed == null && q.Index == index);
+            return await host.Connection.SingleOrDefaultAsync<GXAttribute>(transaction, args);
+        }
+
+        internal static async Task<GXObject> CreateLateBindObject(IGXHost host,
             IDbTransaction? transaction,
             string userId, GXDevice device, Guid objectId)
         {

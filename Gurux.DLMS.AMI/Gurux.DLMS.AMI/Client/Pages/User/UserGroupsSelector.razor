@@ -8,6 +8,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.Module;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Client.Pages.Script;
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
 @using Gurux.DLMS.AMI.Client.Pages.Trigger;
 @using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -29,18 +30,20 @@
 <SelectionContainer TItem="GXUserGroup" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -84,6 +87,9 @@
     [CascadingParameter]
     private GatewayGroupTab? GatewayGroupParent { get; set; }
 
+    [CascadingParameter]
+    private SubtotalGroupTab? SubtotalGroupParent { get; set; }
+
     SelectionList<GXUserGroup>? _selected;
     SelectionList<GXUserGroup>? _available;
     SelectionContainer<GXUserGroup>? _selectionContainer;
@@ -92,21 +98,6 @@
     /// User group filter.
     /// </summary>
     private GXUserGroup filter = new GXUserGroup(null);
-
-    string? GetName(GXUserGroup target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXUserGroup target)
-    {
-        string? str = target.Description;
-        if (string.IsNullOrEmpty(str))
-        {
-            str = target.Name;
-        }
-        return str;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -313,6 +304,11 @@
             {
                 _selected.Items = GatewayGroupParent.Active.UserGroups;
                 action = ClientHelpers.GetAction(GatewayGroupParent.Action);
+            }
+            else if (SubtotalGroupParent?.Active?.UserGroups != null)
+            {
+                _selected.Items = SubtotalGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(SubtotalGroupParent.Action);
             }
             else
             {

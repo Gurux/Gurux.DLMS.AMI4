@@ -11,41 +11,59 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentManager + "," + GXRoles.AgentGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
-<TabControl>
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+<TabControl Active="@Path" SelectionChanged="@SelectionChanged">
     <TabTextTemplate>
-        <span class=@context.Icon aria-hidden="true"></span>
+        <span class=@context.Icon aria-hidden="true">
+            @if (context.PadgeCount != 0)
+            {
+                <span class="@context.GetPadgeClass()">
+                    @context.PadgeCount
+                    <span class="visually-hidden">@context.Padge</span>
+                </span>
+            }
+        </span>
         @context.Text
     </TabTextTemplate>
     <ChildContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SystemLogManager)>
-            <TabPage Path="Logs/SystemLog"  Text=@Properties.Resources.SystemLogs Icon="oi oi-warning">
-                <div style="position: relative; width: 100%; ">
-                    <SystemLog></SystemLog>
-                </div>
+            <TabPage Path="Logs/SystemLog"
+                     Text=@Properties.Resources.SystemLogs
+                     Padge="New system logs"
+                     PadgeCount="@_systemLog.GetCount()"
+                     PadgeType="@_systemLog.GetTraceLevel()"
+                     Icon="oi oi-warning">
+                <SystemLog></SystemLog>
             </TabPage>
         </AuthorizeView>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TaskManager)>
-            <TabPage Path="Logs/Task" Text=@Properties.Resources.Tasks Icon="oi oi-pulse">
-                <div style="position: relative; width: 100%; ">
-                    <Tasks></Tasks>
-                </div>
+            <TabPage Path="Logs/Task"
+                     Text=@Properties.Resources.Tasks
+                     Padge="New tasks"
+                     PadgeCount="@_task.GetCount()"
+                     PadgeType="@_task.GetTraceLevel()"
+                     Icon="oi oi-pulse">
+                <Tasks></Tasks>
             </TabPage>
         </AuthorizeView>
         <AuthorizeView Roles="Admin">
-            <TabPage Path="Logs/RestStatistic" Text=@Properties.Resources.RESTStatistic Icon="oi oi-transfer">
-                <div style="position: relative; width: 100%; ">
-                    <RestStatistic></RestStatistic>
-                </div>
+            <TabPage Path="Logs/RestStatistic"
+                     Text=@Properties.Resources.RESTStatistic
+                     Padge="New logs"
+                     Icon="oi oi-transfer">
+                <RestStatistic></RestStatistic>
             </TabPage>
-            <TabPage Path="Logs/Performances" Text=@Properties.Resources.Performance>
-                <div style="position: relative; width: 100%; ">
-                    <Performances></Performances>
-                </div>
+            <TabPage Path="Logs/Performances"
+                     Padge="New logs"
+                     Text=@Properties.Resources.Performance>
+                <Performances></Performances>
             </TabPage>
         </AuthorizeView>
     </ChildContent>
@@ -61,6 +79,16 @@
     private string? Path { get; set; }
 
     /// <summary>
+    /// System log stamps.
+    /// </summary>
+    private GXUserStamp _systemLog = new GXUserStamp();
+
+    /// <summary>
+    /// Task stamps.
+    /// </summary>
+    private GXUserStamp _task = new GXUserStamp();
+
+    /// <summary>
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
@@ -73,6 +101,33 @@
     {
         //Get selected tab from the url.
         Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _systemLog = Notifier.GetUserStamps(TargetType.SystemLog);
+        _task = Notifier.GetUserStamps(TargetType.Task);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        {
+            bool updated = false;
+            foreach (var it in stamps)
+            {
+                if (it.TargetType == TargetType.SystemLog)
+                {
+                    updated = true;
+                }
+                else if (it.TargetType == TargetType.Task)
+                {
+                    updated = true;
+                }
+            }
+            if (updated)
+            {
+                StateHasChanged();
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
     }
 }
 

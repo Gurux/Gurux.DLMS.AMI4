@@ -2,6 +2,8 @@
 @page "/Schedule/{Action}/{Id:guid?}"
 
 @using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
+@using Gurux.DLMS.AMI.Client.Pages.Module
 @using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Rest;
@@ -12,78 +14,74 @@
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Globalization;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
-<CascadingValue Value="this">
-    <TabControl>
-        <TabTextTemplate>
-            <span class=@context.Icon aria-hidden="true"></span>
-            @context.Text
-        </TabTextTemplate>
-        <ChildContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
-                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
+@if (_modulesSelector?.Active != null)
+{
+    <ScheduleEdit @ref="_scheduleEdit"
+                  Module="@_modulesSelector.Active"
+                  Schedule="@Active"></ScheduleEdit>
+}
+else
+{
+    <CascadingValue Value="this">
+        <TabControl InitialTab="@_initialTab">
+            <TabTextTemplate>
+                <span class=@context.Icon aria-hidden="true"></span>
+                @context.Text
+            </TabTextTemplate>
+            <ChildContent>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
+                    <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-timer">
                         <Schedule Action="@Action"></Schedule>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager, GXRoles.UserGroup)>
-                <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager, GXRoles.UserGroup)>
+                    <TabPage Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
                         <ScheduleGroupsSelector></ScheduleGroupsSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
-                <TabPage Text=@Properties.Resources.Attributes Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <AttributesSelector></AttributesSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
-                <TabPage Text=@Properties.Resources.Objects Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <ObjectsSelector></ObjectsSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
-                <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <DevicesSelector></DevicesSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager, GXRoles.DeviceGroup)>
-                <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <DeviceGroupsSelector></DeviceGroupsSelector>
-                    </div>
-                </TabPage>
-            </AuthorizeView>
-        </ChildContent>
-    </TabControl>
-</CascadingValue>
-<br />
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager, GXRoles.Device)>
+                    <TabPage Text=@Properties.Resources.DevicesTitle Icon="oi oi-timer">
+                        <DeviceSelector Devices="@Active.Devices"
+                                        ObjectTemplates="@Active.DeviceObjectTemplates"
+                                        AttributeTemplates="@Active.DeviceAttributeTemplates">
+                        </DeviceSelector>
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager, GXRoles.DeviceGroup)>
+                    <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
+                        <DeviceGroupSelector DeviceGroups="@Active.DeviceGroups"
+                                             ObjectTemplates="@Active.DeviceGroupObjectTemplates"
+                                             AttributeTemplates="@Active.DeviceGroupAttributeTemplates">
+                        </DeviceGroupSelector>
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                    <TabPage Text=@Properties.Resources.ModulesTitle Icon="oi oi-timer">
+                        <ModulesSelector @ref="_modulesSelector"></ModulesSelector>
+                    </TabPage>
+                </AuthorizeView>
+            </ChildContent>
+        </TabControl>
+    </CascadingValue>
+}
 @code {
     [Parameter]
     public string? Action { get; set; }
 
-    /// <summary>
-    /// Active page.
-    /// </summary>
-    [Parameter]
-    public string? Page { get; set; }
+    int _initialTab = 0;
 
     [Parameter]
     public Guid? Id { get; set; }
 
+    ModulesSelector? _modulesSelector;
+    ScheduleEdit? _scheduleEdit;
     private string? Title;
 
     /// <summary>
@@ -93,6 +91,36 @@
         {
             Start = new GXDateTime(@"*/*/* *:00:00", CultureInfo.InvariantCulture).ToFormatString()
         };
+
+    /// <summary>
+    /// Close module edit if user is editing
+    /// the schedule module.
+    /// </summary>
+    /// <returns>True, if user is edit the module settings.</returns>
+    internal async Task<bool> AcceptChanges(bool cancel)
+    {
+        if (_modulesSelector != null &&
+            _modulesSelector.Active != null)
+        {
+            if (!cancel && _scheduleEdit != null)
+            {
+                await _scheduleEdit.SaveAsync();
+            }
+            _initialTab = 6;
+            _modulesSelector.Active = null;
+            StateHasChanged();
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// ModulesSelector asks schedule to update the UI.
+    /// </summary>
+    internal void Update()
+    {
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {

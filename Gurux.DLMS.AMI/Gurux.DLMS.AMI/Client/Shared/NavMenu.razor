@@ -1,12 +1,17 @@
 ﻿@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.Rest
 @using Microsoft.Extensions.Logging
+@using System.Diagnostics
 
 @inject GXModuleService modules
 @inject IHttpClientFactory HttpClientFactory
 @inject HttpClient Http
 @inject ILogger<App> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IGXNotifier2 Notifier
+@implements IDisposable
 
 <div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Gurux.DLMS.AMI</a>
@@ -25,14 +30,36 @@
         <AuthorizeView Roles="Admin, DeviceManager, DeviceGroupManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="Device">
-                    <span class="oi oi-tablet" aria-hidden="true"></span>@Properties.Resources.Devices
+                    <span class="oi oi-tablet" aria-hidden="true">
+                        @if (_deviceErrorStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_deviceErrorStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New device logs</span>
+                            </span>
+                        }
+                        else if (_deviceLogStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_deviceLogStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New device errors</span>
+                            </span>
+                        }
+                    </span>
+                    @Properties.Resources.Devices
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, ScheduleManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="Schedule">
-                    <span class="oi oi-timer" aria-hidden="true"></span>@Properties.Resources.SchedulesTitle
+                    <span class="oi oi-timer" aria-hidden="true">
+                        @if (_scheduleLogStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_scheduleLogStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        }
+                    </span>
+                    @Properties.Resources.SchedulesTitle
                 </NavLink>
             </li>
         </AuthorizeView>
@@ -46,31 +73,72 @@
         <AuthorizeView Roles="Admin, UserManager, UserGroupManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="User">
-                    <span class="oi oi-people" aria-hidden="true"></span>&nbsp; @Properties.Resources.UserManagement
+                    <span class="oi oi-people" aria-hidden="true">
+                    </span>
+                    &nbsp; @Properties.Resources.UserManagement
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, AgentManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="Agent">
-                    <span class="oi oi-wifi" aria-hidden="true"></span>@Properties.Resources.Agents
+                    <span class="oi oi-wifi" aria-hidden="true">
+                        @if (_agentLogStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_agentLogStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        }
+                    </span>
+                    @Properties.Resources.Agents
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, GatewayManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="Gateway">
-                    <span class="oi oi-cloud-download" aria-hidden="true"></span>@Properties.Resources.Gateways
+                    <span class="oi oi-cloud-download" aria-hidden="true">
+                        @if (_gatewayLogStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_gatewayLogStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        }
+                    </span>
+                    @Properties.Resources.Gateways
                 </NavLink>
             </li>
         </AuthorizeView>
         <AuthorizeView Roles="Admin, LogManager">
             <li class="nav-item">
                 <NavLink class="nav-link" href="logs">
-                    <span class="oi oi-info" aria-hidden="true"></span> @Properties.Resources.Logs
+                    <span class="oi oi-info" aria-hidden="true">
+                        @if (_systemLogStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_systemLogStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        }
+                        else if (_taskStamp.GetCount() != 0)
+                        {
+                            <span class="@GetPadgeClass(_taskStamp.GetTraceLevel())">
+                                <span class="visually-hidden">New alerts</span>
+                            </span>
+                        }
+                    </span>
+                    @Properties.Resources.Logs
                 </NavLink>
             </li>
         </AuthorizeView>
+        @if (_modules)
+        {
+            <li class="nav-item">
+                <NavLink class="nav-link" href="Extensions">
+                    <span class="oi oi-puzzle-piece" aria-hidden="true"></span>
+                    @Properties.Resources.Extension
+                </NavLink>
+            </li>
+        }
         <AuthorizeView Roles="Admin">
             <li class="nav-item">
                 <NavLink class="nav-link" href="Config">
@@ -78,17 +146,6 @@
                 </NavLink>
             </li>
         </AuthorizeView>
-        @foreach (var comp in navItems)
-        {
-            @foreach (Gurux.DLMS.AMI.Module.AmiNavItem item in comp.Value)
-            {
-                <li class="nav-item">
-                    <NavLink class="nav-link" href="@("Module/" + comp.Key + "/" + item.Component.Name)">
-                        <span class="@item.Icon" aria-hidden="true"></span> @item.Name
-                    </NavLink>
-                </li>
-            }
-        }
         <AuthorizeView>
             <li class="nav-item">
                 <NavLink class="nav-link" href="Favorites">
@@ -108,11 +165,97 @@
     }
 
     //Module navigation items.
-    List<KeyValuePair<string, Gurux.DLMS.AMI.Module.AmiNavItem[]>> navItems = new();
+    bool _modules = false;
 
     private bool collapseNavMenu = true;
 
-    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private static string GetPadgeClass(TraceLevel value)
+    {
+        string str;
+        switch (value)
+        {
+            case TraceLevel.Error:
+                str = "bg-danger";
+                break;
+            case TraceLevel.Warning:
+                str = "bg-warning";
+                break;
+            case TraceLevel.Info:
+                str = "bg-info";
+                break;
+            default:
+                str = "bg-light";
+                break;
+        }
+        return "position-absolute top-0 start-100 translate-middle p-1 " + str + " border border-light rounded-circle";
+    }
+
+    /// <summary>
+    /// System log stamps.
+    /// </summary>
+    private GXUserStamp _systemLogStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.SystemLog.ToString()
+        };
+
+    /// <summary>
+    /// Agent stamps.
+    /// </summary>
+    private GXUserStamp _agentLogStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.AgentLog.ToString()
+        };
+
+
+    /// <summary>
+    /// Task stamps.
+    /// </summary>
+    private GXUserStamp _taskStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.Task.ToString()
+        };
+
+
+    /// <summary>
+    /// Device log stamps.
+    /// </summary>
+    private GXUserStamp _deviceLogStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.DeviceLog.ToString()
+        };
+
+
+
+    /// <summary>
+    /// Device error stamps.
+    /// </summary>
+    private GXUserStamp _deviceErrorStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.DeviceError.ToString()
+        };
+
+
+
+    /// <summary>
+    /// Gateway log stamps.
+    /// </summary>
+    private GXUserStamp _gatewayLogStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.GatewayLog.ToString()
+        };
+
+
+    /// <summary>
+    /// Schedule log stamps.
+    /// </summary>
+    private GXUserStamp _scheduleLogStamp = new GXUserStamp()
+        {
+            TargetType = TargetType.ScheduleLog.ToString()
+        };
+
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
 
     private void ToggleNavMenu()
     {
@@ -123,9 +266,38 @@
     {
         try
         {
+            List<GXUserStamp> updateStamps = new List<GXUserStamp>();
+            updateStamps.Add(_systemLogStamp);
+            updateStamps.Add(_agentLogStamp);
+            updateStamps.Add(_taskStamp);
+            updateStamps.Add(_deviceLogStamp);
+            updateStamps.Add(_deviceErrorStamp);
+            updateStamps.Add(_gatewayLogStamp);
+            updateStamps.Add(_scheduleLogStamp);
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             if (authState.User.Identity != null && authState.User.Identity.IsAuthenticated)
             {
+                Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+                {
+                    bool updated = false;
+                    foreach (var it in stamps)
+                    {
+                        foreach (var stamp in updateStamps)
+                        {
+                            if (stamp.TargetType == it.TargetType)
+                            {
+                                it.CopyTo(stamp);
+                                updated = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        StateHasChanged();
+                    }
+                });
+
                 if (!modules.Assemblies.Any())
                 {
                     Logger.LogInformation("Loading assemblies.");
@@ -135,43 +307,17 @@
                 {
                     Logger.LogInformation("Assemblies already loaded.");
                 }
-                if (modules.Assemblies != null)
-                {
-                    foreach (var asm in modules.Assemblies)
-                    {
-                        string? name = null;
-                        List<AmiNavItem> items = new List<AmiNavItem>();
-                        foreach (var type in asm.GetExportedTypes())
-                        {
-                            if (type.IsAbstract || !type.IsClass || type.FullName == null)
-                            {
-                                continue;
-                            }
-                            if (type.GetInterfaces().Contains(typeof(IAmiModule)))
-                            {
-                                IAmiModule? tmp = (IAmiModule?)asm.CreateInstance(type.FullName);
-                                name = tmp?.Name;
-                            }
-                            else if (type.GetInterfaces().Contains(typeof(IAMINavigation)))
-                            {
-                                IAMINavigation? tmp = (IAMINavigation?)asm.CreateInstance(type.FullName);
-                                if (tmp?.NavItems != null && tmp.NavItems.Any())
-                                {
-                                    items.AddRange(tmp.NavItems);
-                                }
-                            }
-                        }
-                        if (!string.IsNullOrEmpty(name) && items.Any())
-                        {
-                            navItems.Add(new KeyValuePair<string, AmiNavItem[]>(name, items.ToArray()));
-                        }
-                    }
-                }
+                _modules = modules.Types != null && modules.Types.Any();
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "An error occurred.");
         }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
     }
 }

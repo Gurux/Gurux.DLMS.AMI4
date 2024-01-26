@@ -40,6 +40,8 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
+using System.Linq;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -151,6 +153,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXAttributeTemplate>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXAttributeTemplate>(w => request.Included.Contains(w.Id));
+                }
+                if (request.DeviceTemplates != null && request.DeviceTemplates.Any())
+                {
+                    arg.Where.And<GXDeviceTemplate>(w => request.DeviceTemplates.Contains(w.Id));
+                }
+                if (request.ObjectTypes != null && request.ObjectTypes.Any())
+                {
+                    int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
+                }
+                if (request.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
+                {
+                    int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
+                }
             }
             if (request != null && request.Count != 0)
             {
@@ -165,17 +185,32 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Index = (UInt32)request.Index;
                 arg.Count = (UInt32)request.Count;
             }
-            arg.Descending = true;
-            GXAttributeTemplate[] objects = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToArray();
+            if (request != null && !string.IsNullOrEmpty(request.OrderBy))
+            {
+                arg.Descending = request.Descending;
+                arg.OrderBy.Add<GXAttributeTemplate>(request.OrderBy);
+            }
+            else
+            {
+                arg.Descending = true;
+                arg.OrderBy.Add<GXAttributeTemplate>(q => q.Id);
+            }
+            if (request?.Select != null && request.Select.Contains(TargetType.ObjectTemplate))
+            {
+                //If client wants to know object template information.
+                arg.Columns.Add<GXObjectTemplate>(w => new { w.Id, w.Name, w.LogicalName });
+                arg.Columns.Exclude<GXObjectTemplate>(e => e.Attributes);
+            }
+            GXAttributeTemplate[] templates = (await _host.Connection.SelectAsync<GXAttributeTemplate>(arg)).ToArray();
             if (response != null)
             {
-                response.AttributeTemplates = objects;
+                response.AttributeTemplates = templates;
                 if (response.Count == 0)
                 {
-                    response.Count = objects.Length;
+                    response.Count = templates.Length;
                 }
             }
-            return objects;
+            return templates;
         }
 
         /// <inheritdoc />

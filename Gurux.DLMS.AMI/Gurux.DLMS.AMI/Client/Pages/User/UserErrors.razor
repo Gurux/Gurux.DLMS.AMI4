@@ -40,6 +40,9 @@
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -73,13 +76,13 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.User</th>
+            <th>@Properties.Resources.User</th>
         <Th Id="Message">@Properties.Resources.Error</Th>
-        <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <td>@error.CreationTime</td>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <td>@error.CreationTime</td>
         <td>@(error.User != null ? error.User.UserName : "")</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
@@ -147,6 +150,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

@@ -29,6 +29,11 @@
                     <ValidationMessage For="@(() => Active.Name)" />
                 </div>
                 <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
                     <label>@Properties.Resources.Identifier</label>
                     <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Identifier" class="form-control"
                                placeholder=@Properties.Resources.Identifier />
@@ -44,17 +49,27 @@
                         &nbsp;
                         @if (Active.Agent != null)
                         {
-                            <a target="_blank" href="@("Config/Agent/Edit/" + Active.Agent.Id)">
+                            <a target="_blank" href="@("Agent/Edit/" + Active.Agent.Id)">
                                 @Properties.Resources.Manage
                             </a>
                         }
                     </div>
                 </div>
+                @if (Active.Detected != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Detected</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" 
+                        id="detected" readonly="readonly" class="form-control"
+                        @bind-Value="Active.Detected" />
+                    </div>
+                }
                 @if (Active.CreationTime != DateTime.MinValue)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                        <InputDate Type="@InputDateType.DateTimeLocal" 
+                        id="generation" readonly="readonly" class="form-control"
                         @bind-Value="Active.CreationTime" />
                     </div>
                 }
@@ -62,7 +77,8 @@
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                        <InputDate Type="@InputDateType.DateTimeLocal" 
+                        id="updated" readonly="readonly" class="form-control"
                         @bind-Value="Active.Updated" />
                     </div>
                 }
@@ -70,7 +86,8 @@
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                        <InputDate Type="@InputDateType.DateTimeLocal" 
+                        id="removed" class="form-control"
                         @bind-Value="Active.Removed" />
                     </div>
                 }

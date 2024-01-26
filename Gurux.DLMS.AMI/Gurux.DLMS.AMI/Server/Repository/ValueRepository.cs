@@ -39,10 +39,7 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Org.BouncyCastle.Asn1.Cms;
-using System.Linq;
-using System;
-using Gurux.DLMS.AMI.Client.Pages.Objects;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -322,6 +319,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXValue>();
             arg.Distinct = true;
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXValue>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXValue>(w => request.Included.Contains(w.Id));
+            }
             if (request != null && request.Filter != null)
             {
                 if (request.Filter.Attribute != null)
@@ -349,10 +354,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXValue>(w => !request.Exclude.Contains(w.Id));
-                }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {

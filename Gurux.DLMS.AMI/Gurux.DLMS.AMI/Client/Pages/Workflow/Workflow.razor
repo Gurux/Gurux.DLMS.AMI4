@@ -37,7 +37,7 @@
                 </div>
                 <div class="form-group">
                     <label>Trigger</label>
-                    <select class="form-control" @bind="@SelectedTrigger">
+                    <select class="form-select" @bind="@SelectedTrigger">
                         @foreach (var it in triggers)
                         {
                             <option value="@it.ClassName">@it.Name</option>
@@ -46,7 +46,7 @@
                 </div>
                 <div class="form-group">
                     <label>Activities</label>
-                    <select class="form-control" @bind="@SelectedActivity">
+                    <select class="form-select" @bind="@SelectedActivity">
                         @foreach (var it in Activities)
                         {
                             <option value="@it.Name">@it.Name</option>
@@ -57,7 +57,7 @@
                 {
                     <div class="form-group">
                         <label>Condition</label>
-                        <select class="form-control" @bind="SelectedCondition">
+                        <select class="form-select" @bind="SelectedCondition">
                             @foreach (var it in _scriptMethods)
                             {
                                 <option value="@it.Name">@it.Name</option>

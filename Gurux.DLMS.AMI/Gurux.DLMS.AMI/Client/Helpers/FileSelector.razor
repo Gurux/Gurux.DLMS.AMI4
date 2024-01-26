@@ -1,0 +1,165 @@
+﻿@using System.Text;
+@using System.Globalization;
+@using Microsoft.AspNetCore.Components.Rendering;
+@typeparam TType
+
+@inject IGXNotifier Notifier
+@implements IAsyncDisposable
+
+<fieldset disabled="@Disabled" style="@Style">
+    <div @ref="dropZoneElement"
+         class="drop-zone" style="width:100%;height:100%">
+        <p><GXInputFile @ref="inputFile" OnChange="@LoadFile" /></p>
+        @ChildContent
+    </div>
+</fieldset>
+@code {
+
+    [Inject]
+    public IJSRuntime? JSRuntime { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Accepted file types.
+    /// </summary>
+    [Parameter]
+    public string? Filter { get; set; }
+
+    /// <summary>
+    /// Is file selector disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Content of the file.
+    /// </summary>
+    [Parameter]
+    public TType? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Style settings.
+    /// </summary>
+    [Parameter]
+    public string? Style
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when value is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TType?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// The file will start uploading.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string> OnLoading { get; set; }
+
+    /// <summary>
+    /// Maximum allowed file size in bytes. Defaults is 500 KB.
+    /// </summary>
+    [Parameter]
+    public int MaxFileSize { get; set; } = 512000;
+
+    /// <summary>
+    /// The file has been uploaded.
+    /// </summary>
+    [Parameter]
+    public Action<TType?>? OnLoaded { get; set; }
+
+    private ElementReference dropZoneElement;
+    private GXInputFile? inputFile;
+
+    /// <summary>
+    /// Load content of the file.
+    /// </summary>
+    private async Task LoadFile(InputFileChangeEventArgs e)
+    {
+        if (Disabled)
+        {
+            return;
+        }
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            await OnLoading.InvokeAsync(e.File.Name);
+            using var ms = new MemoryStream();
+            using (var stream = e.File.OpenReadStream(MaxFileSize))
+            {
+                await stream.CopyToAsync(ms);
+            }
+            if (typeof(TType) == typeof(string))
+            {
+                string str = ASCIIEncoding.ASCII.GetString(ms.ToArray());
+                if (BindConverter.TryConvertTo<TType>(str,
+                    CultureInfo.InvariantCulture, out TType? value))
+                {
+                    Value = value;
+                    await ValueChanged.InvokeAsync(Value);
+                    OnLoaded?.Invoke(Value);
+                }
+                else
+                {
+                    throw new Exception("Invalid file content.");
+                }
+            }
+            else if (typeof(TType) == typeof(byte[]))
+            {
+                byte[] bytes = ms.ToArray();
+                if (BindConverter.TryConvertTo<TType>(bytes,
+                    CultureInfo.InvariantCulture, out TType? value))
+                {
+                    Value = value;
+                    await ValueChanged.InvokeAsync(Value);
+                    OnLoaded?.Invoke(Value);
+                }
+                else
+                {
+                    throw new Exception("Invalid file content.");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    IJSObjectReference? _dropZoneInstance;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IJSObjectReference module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./drop.js");
+        if (inputFile == null)
+        {
+            throw new ArgumentNullException("inputFile");
+        }
+        _dropZoneInstance = await module.InvokeAsync<IJSObjectReference>("initializeFileDropZone",
+            dropZoneElement, inputFile.Element);
+        inputFile.Filter = Filter;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dropZoneInstance != null)
+        {
+            await _dropZoneInstance.InvokeVoidAsync("dispose");
+            await _dropZoneInstance.DisposeAsync();
+        }
+    }
+}

@@ -1,4 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -18,10 +19,11 @@
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription"
                    OnAdded="OnAdded"
                    OnRemoved="@Removed">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
@@ -36,9 +38,10 @@
         </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -61,6 +64,12 @@
     [CascadingParameter]
     private AgentGroupTab? Parent { get; set; }
 
+    /// <summary>
+    /// Selected agents.
+    /// </summary>
+    [Parameter]
+    public List<GXAgent>? Agents { get; set; }
+
     SelectionList<GXAgent>? _selected;
     SelectionList<GXAgent>? _available;
     SelectionContainer<GXAgent>? _selectionContainer;
@@ -72,15 +81,6 @@
     /// Selected agent filter.
     /// </summary>
     private GXAgent selectedFilter = new GXAgent();
-
-    string? GetName(GXAgent target)
-    {
-        return target.Name;
-    }
-    string? GetDescription(GXAgent target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -224,6 +224,10 @@
 
     private List<GXAgent> GetAgents()
     {
+        if (Agents != null)
+        {
+            return Agents;
+        }
         return Parent.Active.Agents;
     }
 

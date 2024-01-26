@@ -11,12 +11,13 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = "Admin, ModuleLogManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 @if (Title)
@@ -39,8 +40,10 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
-         ShowAllUsers="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -49,13 +52,15 @@
                    @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
         </th>
         <th>
-            <input class="form-control" type="text" placeholder="Filter by error..."
+            <ModuleSelector @bind-Value="@filter.Module"></ModuleSelector>
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by log..."
                    @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
         </th>
         <th>
             <div>
-                <input class="form-control" type="text" placeholder="Filter by level..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                <TraceLevelSearch @bind-Value="@TraceLevel"></TraceLevelSearch>
             </div>
         </th>
         <th>
@@ -70,12 +75,14 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <th>@Properties.Resources.Module</th>
         <th>@Properties.Resources.Error</th>
         <th>@Properties.Resources.Level</th>
         <th>@Properties.Resources.CloseTime</th>
     </HeaderContent>
     <ItemContent>
         <Td Link="@("Config/ModuleLog/Edit/" + item.Id)">@item.CreationTime</Td>
+            <td>@item.Module</td>
         <td>@item.Message</td>
         <td>@ClientHelpers.LevelToString(item.Level)</td>
         <td>@item.Closed</td>
@@ -119,6 +126,29 @@
         }
     }
 
+    private TraceLevel TraceLevel
+    {
+        get
+        {
+            return (TraceLevel)filter.Level.GetValueOrDefault();
+        }
+        set
+        {
+            if (filter != null)
+            {
+                if (value == TraceLevel.Off)
+                {
+                    //If filter is not used.
+                    filter.Level = null;
+                }
+                else
+                {
+                    filter.Level = (int)value;
+                }
+            }
+        }
+    }
+
     /// <inheritdoc />
     public Type? ConfigurationUI
     {
@@ -148,6 +178,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.
@@ -202,13 +250,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -253,18 +301,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXModuleLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (ShowClosedErrors)
@@ -276,6 +324,18 @@
             {
                 //Show active errors.
                 filter.Closed = null;
+            }
+            if (string.IsNullOrEmpty(filter.Module?.Id))
+            {
+                filter.Module = null;
+            }
+            else
+            {
+                //Send only ID if module filter is used.
+                filter.Module = new GXModule()
+                    {
+                        Id = filter.Module.Id
+                    };
             }
             ListModuleLogs req = new ListModuleLogs()
                 {
@@ -291,7 +351,12 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListModuleLogsResponse>("api/ModuleLog/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXModuleLog>(ret.Logs, ret.Count);
+            if (ret.Logs != null)
+            {
+                //Mark module logs as seen.
+                await Notifier.Mark(Http, TargetType.ModuleLog, ret.Logs.Max(s => s.CreationTime));
+                return new ItemsProviderResult<GXModuleLog>(ret.Logs, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {
@@ -300,11 +365,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -329,7 +394,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -352,7 +417,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -378,7 +443,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -387,7 +452,7 @@
     /// </summary>
     public void OnClear()
     {
-        Notifier?.ClearStatus();
+        Notifier.ClearStatus();
         ClearConfirmation?.Show();
     }
 
@@ -409,7 +474,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 

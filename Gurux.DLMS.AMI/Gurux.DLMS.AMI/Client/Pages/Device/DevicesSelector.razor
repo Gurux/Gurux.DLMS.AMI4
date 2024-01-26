@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -20,10 +21,11 @@
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription"
                    OnAdded="OnAdded"
                    OnRemoved="@Removed">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
@@ -38,9 +40,10 @@
         </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -59,6 +62,12 @@
 </SelectionContainer>
 
 @code {
+    /// <summary>
+    /// Selected devices.
+    /// </summary>
+    [Parameter]
+    public List<GXDevice>? Devices { get; set; }
+
     [CascadingParameter]
     private DeviceGroupTab? DeviceGropParent { get; set; }
 
@@ -67,6 +76,9 @@
 
     [CascadingParameter]
     private GatewayTab? GatewayParent { get; set; }
+
+    [CascadingParameter]
+    private SubtotalTab? SubtotalParent { get; set; }
 
     SelectionList<GXDevice>? _selected;
     SelectionList<GXDevice>? _available;
@@ -80,16 +92,6 @@
     /// Selected device filter.
     /// </summary>
     private GXDevice selectedFilter = new GXDevice(null);
-
-    string? GetName(GXDevice target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXDevice target)
-    {
-        return target.Name;
-    }
 
     /// <summary>
     /// Search selected items by name.
@@ -237,6 +239,10 @@
 
     private List<GXDevice>? GetDevices()
     {
+        if (Devices != null)
+        {
+            return Devices;
+        }
         if (DeviceGropParent?.Active?.Devices != null)
         {
             return DeviceGropParent.Active.Devices;
@@ -245,7 +251,11 @@
         {
             return ScheduleParent.Active.Devices;
         }
-        return GatewayParent?.Active.Devices;
+        if (GatewayParent?.Active.Devices != null)
+        {
+            return GatewayParent.Active.Devices;
+        }
+        return SubtotalParent.Active.Devices;
     }
 
     /// <summary>

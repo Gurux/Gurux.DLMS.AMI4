@@ -51,7 +51,7 @@
                 </div>
                 <div class="form-group">
                     <label>Run cron every</label>
-                    <select class="form-control" @bind="@_settings.Interval">
+                    <select class="form-select" @bind="@_settings.Interval">
                         @foreach (var it in Intervals)
                         {
                             <option value="@it.Key">@it.Value</option>

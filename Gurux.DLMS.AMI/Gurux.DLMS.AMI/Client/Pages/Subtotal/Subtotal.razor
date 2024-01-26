@@ -1,0 +1,299 @@
+﻿@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.SubtotalManager)]
+@inject NavigationManager NavigationManager
+@inject ILogger<Subtotal> Logger
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
+                    <label>Subtotal type</label>
+                    <select class="form-select" @bind="@Active.Type">
+                        @foreach (var it in subtotalTypes)
+                        {
+                            <option value="@Convert.ToByte(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Subtotal operation</label>
+                    <select class="form-select" @bind="@Active.Operation">
+                        @foreach (var it in subtotalOperations)
+                        {
+                            <option value="@Convert.ToByte(it)">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Total" @bind-Value="Active.Total" />
+                </div>
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Fill" @bind-Value="Active.Fill" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Interval</label>
+                    <InputIntegerTimeSpan id="interval" disabled="@IsDeleting"
+                                          @bind-Value="Active.Interval" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.TraceLevels</label>
+                    <NullableTraceLevelSelector @bind-Value="Active.TraceLevel">
+                    </NullableTraceLevelSelector>
+                </div>
+                @if (Active.Calculated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Calculated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="calculated" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.Calculated" />
+                    </div>
+                }
+                @if (Active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.CreationTime" />
+                    </div>
+                }
+                @if (Active.Updated != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Updated</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                                   @bind-Value="Active.Updated" />
+                    </div>
+                }
+                @if (Active.Removed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Removed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                                   @bind-Value="Active.Removed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    private SubtotalTab? Parent { get; set; }
+
+    private GXSubtotal? _active;
+
+    private GXSubtotal? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    ///Subtotal operations.
+    /// </summary>
+    List<SubtotalOperation> subtotalOperations = new List<SubtotalOperation>();
+
+    /// <summary>
+    ///Subtotal types.
+    /// </summary>
+    List<SubtotalType> subtotalTypes = new List<SubtotalType>();
+
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the subtotal content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null && string.IsNullOrEmpty(Active.Name))
+        {
+            sender.AddError(() => Active.Name, "Invalid name.");
+        }
+        if (Active != null && Active.Interval < 0)
+        {
+            sender.AddError(() => Active.Interval, "Invalid interval.");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            subtotalOperations.AddRange(Enum.GetValues<SubtotalOperation>());
+            subtotalTypes.AddRange(Enum.GetValues<SubtotalType>());
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get subtotal data.
+                var tmp = (await Http.GetAsJsonAsync<GetSubtotalResponse>(string.Format("api/Subtotal?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save subtotal.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveSubtotalResponse>("api/Subtotal/Delete", new RemoveSubtotal()
+                    {
+                        Ids = new Guid[] { Active.Id }
+                    });
+            }
+            else
+            {
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/Subtotal/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/Subtotal/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateSubtotalResponse>(address, new UpdateSubtotal() { Subtotals = new List<GXSubtotal>() { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
+

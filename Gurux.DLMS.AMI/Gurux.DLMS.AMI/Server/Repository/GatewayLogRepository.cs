@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
@@ -39,6 +38,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -67,16 +67,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task AddAsync(ClaimsPrincipal User, IEnumerable<GXGatewayLog> errors)
         {
+            DateTime now = DateTime.Now;
             Dictionary<GXGatewayLog, List<string>> updates = new Dictionary<GXGatewayLog, List<string>>();
             foreach (GXGatewayLog it in errors)
             {
-                it.CreationTime = DateTime.Now;
+                it.CreationTime = now;
                 updates[it] = await _gatewayRepository.GetUsersAsync(User, it.Gateway.Id);
             }
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
             foreach (var it in updates)
             {
-                await _eventsNotifier.AddGatewayLogs(it.Value, new GXGatewayLog[] { it.Key });
+                GXGatewayLog tmp = new GXGatewayLog()
+                {
+                    Id = it.Key.Id,
+                    CreationTime = it.Key.CreationTime,
+                    Level = it.Key.Level
+                };
+                await _eventsNotifier.AddGatewayLogs(it.Value, new GXGatewayLog[] { tmp });
             }
         }
 
@@ -202,6 +209,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXGatewayLog>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXGatewayLog>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && request.Count != 0)

@@ -20,7 +20,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject IGXNotifier Notifier
-@inject ILogger<Module> Logger
+@inject ILogger<ModuleView> Logger
 @inject GXModuleService modules
 @implements IDisposable
 
@@ -88,7 +88,7 @@
                     if (type.GetInterfaces().Contains(typeof(IAmiModule)))
                     {
                         IAmiModule? tmp = (IAmiModule?)asm.CreateInstance(type.FullName);
-                        if (string.Compare(Target, tmp?.Name, true) != 0)
+                        if (string.Compare(Target, tmp?.Id, true) != 0)
                         {
                             break;
                         }

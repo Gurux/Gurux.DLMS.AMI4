@@ -39,6 +39,10 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -146,6 +150,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetBlocksByUser(userId, null);
             }
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXBlock>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXBlock>(w => request.Included.Contains(w.Id));
+            }
             if (request?.Filter != null)
             {
                 //User is already filtered. It can be removed.
@@ -154,10 +166,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     request.Filter.User = null;
                     arg.Where.FilterBy(request.Filter);
-                    if (request.Exclude != null && request.Exclude.Any())
-                    {
-                        arg.Where.And<GXBlock>(w => !request.Exclude.Contains(w.Id));
-                    }
                 }
                 finally
                 {

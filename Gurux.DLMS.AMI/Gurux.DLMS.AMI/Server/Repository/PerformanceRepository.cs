@@ -49,11 +49,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IUserRepository _userRepository;
 
         /// <inheritdoc />
-        public List<GXPerformance> Snapshots
+        public Dictionary<string, GXPerformance> Snapshots
         {
             get;
             private set;
-        } = new List<GXPerformance>();
+        } = new Dictionary<string, GXPerformance>();
 
         /// <summary>
         /// Constructor.
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 throw new UnauthorizedAccessException();
             }
-            lock(Snapshots)
+            lock (Snapshots)
             {
                 Snapshots.Clear();
             }
@@ -99,6 +99,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null && request.Count != 0)
             {
+                if (request.Count != 0)
+                {
+                    lock (Snapshots)
+                    {
+                        request.Index -= Snapshots.Count;
+                        request.Count -= Snapshots.Count;
+                    }
+                    if (request.Index < 0)
+                    {
+                        request.Index = 0;
+                    }
+                    if (request.Count < 0)
+                    {
+                        request.Count = 0;
+                    }
+                }
                 //Return total row count. This can be used for paging.
                 GXSelectArgs total = GXSelectArgs.Select<GXPerformance>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
@@ -121,16 +137,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.OrderBy.Add<GXPerformance>(q => q.Start);
             }
             List<GXPerformance> performances = (await _host.Connection.SelectAsync<GXPerformance>(arg)).ToList();
-            if (Snapshots.Any())
+            lock (Snapshots)
             {
-                //Add snapshot values.
-                if (arg.Descending)
+                if (Snapshots.Any())
                 {
-                    performances.InsertRange(0, Snapshots);
-                }
-                else
-                {
-                    performances.AddRange(Snapshots);
+                    if (response != null)
+                    {
+                        response.Count += Snapshots.Count;
+                    }
+                    //Add snapshot values.
+                    if (arg.Descending)
+                    {
+                        performances.InsertRange(0, Snapshots.Values);
+                    }
+                    else
+                    {
+                        performances.AddRange(Snapshots.Values);
+                    }
+                    if (!string.IsNullOrEmpty(request?.Filter?.Target))
+                    {
+                        //Remove snapshots using the filter.
+                        performances.RemoveAll(w => w.Target != request.Filter.Target);
+                    }
                 }
             }
             if (response != null)

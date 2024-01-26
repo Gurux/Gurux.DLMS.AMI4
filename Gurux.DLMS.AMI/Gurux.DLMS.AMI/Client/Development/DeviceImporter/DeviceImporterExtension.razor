@@ -1,0 +1,436 @@
+﻿@using Gurux.DLMS.AMI.Module;
+@using Gurux.DLMS.AMI.Module.Enums;
+@using Gurux.DLMS.AMI.Shared.DTOs;
+@using System.Security.Claims;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using System.Text.Json;
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<ProgressBar @ref="_progressBar"
+             Description="Importing devices">
+</ProgressBar>
+<fieldset style="width:100%; height:100%"
+          disabled="@(_progressBar != null && _progressBar.Current != 0)">
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Import" Icon="oi oi-flash" OnClick="@(async () => await Import())" />
+        </ChildContent>
+    </MenuControl>
+    <div class="row">
+        <div style="width:100%">
+            <div class="form-group">
+                <label>@Properties.Resources.DefaultDeviceTemplate</label>
+                <DropdownSearch Context="item"
+                                @bind-Value="DefaultDeviceTemplate"
+                                ItemsProvider="@GetItems">
+                    <ItemContent>
+                        @item.Name
+                    </ItemContent>
+                </DropdownSearch>
+            </div>
+            <div class="form-group">
+                <label>Batch size</label>
+                <select class="form-select" @bind="@BatchSize">
+                    @foreach (var it in BatchSizes)
+                    {
+                        <option value="@it">@it</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <Switch Text="Meter establishes the connection." Value="@AutoConnect"
+                        OnChange="AutoConnectionUpdated" />
+            </div>
+            <div class="form-group">
+                <Switch Text="Update existing devices." Value="@UpdateExistingDevices" />
+            </div>
+            <div class="form-group">
+                <label>Batch name</label>
+                <InputText id="batchName" class="form-control"
+                           @bind-Value="@BatchName" />
+            </div>
+        </div>
+    </div>
+    <!--FileSelector is disabled until user has selected device template.-->
+    <FileSelector Disabled="@(DefaultDeviceTemplate.Id == Guid.Empty)"
+                  Style="width:100%; height:70%"
+                  Filter=".txt, .csv" @bind-Value="@Text">
+        <textarea id="devices" @bind="Text"
+                  placeholder="@HelpText"
+                  class="textarea fill" />
+    </FileSelector>
+</fieldset>
+
+@code {
+    [Parameter]
+    public DeviceImportSettings Settings
+    {
+        get;
+        set;
+    } = new DeviceImportSettings();
+
+    /// <summary>
+    /// Save user settings.
+    /// </summary>
+    [Parameter]
+    public EventCallback<object> SettingsChanged
+    {
+        get;
+        set;
+    }
+
+    GXDeviceTemplate _defaultDeviceTemplate = new GXDeviceTemplate(Properties.Resources.Nothing);
+
+    private byte _security;
+    private bool _preEstablished;
+    private int _securitySuite;
+    private bool _dirty;
+
+    private GXDeviceTemplate DefaultDeviceTemplate
+    {
+        get
+        {
+            return _defaultDeviceTemplate;
+        }
+        set
+        {
+            _defaultDeviceTemplate = value;
+            //Get settings to update help.
+            GXDLMSSettings? settings = null;
+            if (!string.IsNullOrEmpty(_defaultDeviceTemplate.Settings))
+            {
+                settings = JsonSerializer.Deserialize<GXDLMSSettings>(_defaultDeviceTemplate.Settings);
+            }
+            if (settings != null)
+            {
+                _security = settings.Security;
+                _securitySuite = settings.SecuritySuite;
+                _preEstablished = settings.PreEstablished;
+            }
+            else
+            {
+                _security = 0;
+                _securitySuite = 0;
+                _preEstablished = false;
+            }
+            if (Settings != null)
+            {
+                if (value.Id == Guid.Empty)
+                {
+                    Settings.DefaultDeviceTemplate = null;
+                }
+                else
+                {
+                    if (Settings.DefaultDeviceTemplate != value.Id)
+                    {
+                        _dirty = true;
+                    }
+                    Settings.DefaultDeviceTemplate = value.Id;
+                }
+            }
+        }
+    }
+
+    private int[] BatchSizes = new int[] { 100, 1000, 10000 };
+
+    private int BatchSize
+    {
+        get
+        {
+            return Settings.BatchSize;
+        }
+        set
+        {
+            _dirty = true;
+            Settings.BatchSize = value;
+        }
+    }
+
+    public ProgressBar? _progressBar;
+
+    /// <summary>
+    /// Help is updated when auto connection is changed.
+    /// </summary>
+    private void AutoConnectionUpdated(bool value)
+    {
+        AutoConnect = value;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Batch name is used to identify each device batch.
+    /// </summary>
+    private string? BatchName
+    {
+        get
+        {
+            return Settings.BatchName;
+        }
+        set
+        {
+            _dirty = true;
+            Settings.BatchName = value;
+        }
+    }
+
+    private string HelpText
+    {
+        get
+        {
+            string help = "#Import format is" + Environment.NewLine +
+            "#Device Name;";
+            if (!AutoConnect)
+            {
+                help += ";IP Address;IP Port;";
+            }
+            //If security is used.
+            if (_security != 0)
+            {
+                if (_preEstablished)
+                {
+                    help += "Server system title;";
+                }
+                else
+                {
+                    help += "Client system title;Authentication key;Block Cipher key.";
+                }
+            }
+            return help;
+        }
+    }
+
+    [Parameter]
+    public string Text { get; set; } = "";
+
+    private void TextChanged()
+    {
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// In default devices are appended to the database.
+    /// </summary>
+    bool UpdateExistingDevices { get; set; }
+
+    /// <summary>
+    /// If the meter establishes the connection and IP address is not used..
+    /// </summary>
+    bool AutoConnect { get; set; }
+
+    /// <summary>
+    /// Import devices.
+    /// </summary>
+    public async Task Import()
+    {
+        Notifier.ClearStatus();
+        Notifier.ProgressStart();
+        //Hide progress bar.
+        _progressBar?.Reset(0, 0);
+        try
+        {
+            if (_defaultDeviceTemplate == null ||
+            _defaultDeviceTemplate.Id == Guid.Empty)
+            {
+                throw new Exception("Device template is not selected.");
+            }
+            //Save user settings if changed.
+            if (_dirty)
+            {
+                await SettingsChanged.InvokeAsync(Settings);
+                _dirty = false;
+            }
+
+            //All lines are handled first to check that all data is valid.
+            string[] lines = Text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+            List<GXDevice> devices = new List<GXDevice>();
+            Gurux.Net.GXNet net = new Net.GXNet();
+            _progressBar?.Reset(0, 2 * lines.Length);
+            foreach (var it in lines)
+            {
+                _progressBar?.Step();
+                if (!it.StartsWith("#"))
+                {
+                    string[] line = it.Split(new char[] { ';', ',' });
+                    if (_security != 0)
+                    {
+                        //If security is used.
+                        if (_preEstablished)
+                        {
+                            if (line.Length != 7)
+                            {
+                                throw new Exception(string.Format("Invalid device import format.{0}", it));
+                            }
+                        }
+                        else if (line.Length != 6)
+                        {
+                            throw new Exception(string.Format("Invalid device import format.{0}", it));
+                        }
+                    }
+                    else
+                    {
+                        if (line.Length != 3)
+                        {
+                            throw new Exception(string.Format("Invalid device import format.{0}", it));
+                        }
+                    }
+                    int pos = 1;
+                    if (!AutoConnect)
+                    {
+                        net.HostName = line[pos];
+                        ++pos;
+                        net.Port = int.Parse(line[pos]);
+                        ++pos;
+                    }
+                    GXDevice device = new GXDevice()
+                        {
+                            Template = _defaultDeviceTemplate,
+                            Name = line[0],
+                            MediaType = "Gurux.Net.GXNet",
+                            MediaSettings = net.Settings
+                        };
+                    GXDLMSSettings? settings = null;
+                    if (_security != 0)
+                    {
+                        //If security is used.
+                        settings = new GXDLMSSettings();
+                        if (_preEstablished)
+                        {
+                            if (GXDLMSTranslator.HexToBytes(line[pos]).Length != 8)
+                            {
+                                throw new ArgumentException(string.Format("Invalid server system title {0}.", line[pos]));
+                            }
+                            settings.DeviceSystemTitle = line[pos];
+                        }
+                        ++pos;
+                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != 8)
+                        {
+                            throw new ArgumentException(string.Format("Invalid client system title {0}.", line[pos]));
+                        }
+                        settings.ClientSystemTitle = line[pos];
+                        ++pos;
+                        int keySize = _securitySuite == 2 ? 32 : 16;
+                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
+                        {
+                            throw new ArgumentException(string.Format("Invalid authentication key {0}.", line[pos]));
+                        }
+                        settings.AuthenticationKey = line[pos];
+                        ++pos;
+                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
+                        {
+                            throw new ArgumentException(string.Format("Invalid block cipher key {0}.", line[pos]));
+                        }
+                        settings.BlockCipherKey = line[pos];
+                    }
+                    if (settings != null)
+                    {
+                        device.Settings = JsonSerializer.Serialize(settings);
+                    }
+                    devices.Add(device);
+                }
+            }
+            if (!devices.Any())
+            {
+                throw new Exception("No devices to import.");
+            }
+            GXDeviceGroup? batch = null;
+            if (!string.IsNullOrEmpty(BatchName))
+            {
+                //Add batch device group.
+                batch = new GXDeviceGroup()
+                    {
+                        Name = BatchName
+                    };
+                batch.Id = (await Http.PostAsJson<AddDeviceGroupResponse>("api/DeviceGroup/Add", new AddDeviceGroup()
+                    {
+                        DeviceGroups = new GXDeviceGroup[] { batch },
+                    })).Ids[0];
+            }
+            int index = 0;
+            while (index < devices.Count)
+            {
+                await Http.PostAsJson<UpdateDeviceResponse>("api/Device/Add", new UpdateDevice()
+                    {
+                        Devices = devices.Skip(index).Take(BatchSize).ToArray(),
+                        LateBinding = true,
+                        Groups = batch == null ? null : new GXDeviceGroup[] { batch }
+                    });
+                index += BatchSize;
+                _progressBar?.Step(BatchSize, string.Format("Importing devices {0}/{1}", index, _progressBar.Maximum));
+            }
+            //Hide progress bar automatically
+            // only when import succeeded.
+            _progressBar?.Reset(0, 0);
+            Notifier?.ShowInformation(string.Format("{0}Meters imported.", devices.Count));
+            //Enable UI again.
+            //StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXDeviceTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            GXDeviceTemplate? filter = null;
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                //Search device templates by name
+                filter = new GXDeviceTemplate() { Name = request.Filter };
+            }
+            ListDeviceTemplates req = new ListDeviceTemplates()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            var ret = await Http.PostAsJson<ListDeviceTemplatesResponse>("api/DeviceTemplate/List", req, request.CancellationToken);
+            List<GXDeviceTemplate> list = new();
+            //Add empty device template.
+            list.Add(new GXDeviceTemplate() { Name = Properties.Resources.Nothing });
+            if (ret.Templates != null)
+            {
+                list.AddRange(ret.Templates);
+            }
+            if (Settings?.DefaultDeviceTemplate != null)
+            {
+                foreach (var it in list)
+                {
+                    if (it.Id == Settings?.DefaultDeviceTemplate)
+                    {
+                        _defaultDeviceTemplate = it;
+                        StateHasChanged();
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                _defaultDeviceTemplate = list[0];
+            }
+            return new ItemsProviderResult<GXDeviceTemplate>(list, ret.Count);
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        return default;
+    }
+}

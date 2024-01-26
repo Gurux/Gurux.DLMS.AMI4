@@ -1,0 +1,189 @@
+﻿@page "/config/subtotal/{Id:guid?}"
+@page "/config/subtotal/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Agent
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Gateway
+@using Gurux.DLMS.AMI.Client.Pages.Objects
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
+    using Gurux.DLMS.AMI.Shared.DTOs.Agent
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.SubtotalManager + "," + GXRoles.SubtotalGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-browser">
+                    <Subtotal Action="@Action">
+                    </Subtotal>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
+                <TabPage Text=@Properties.Resources.SubtotalGroups Icon="oi oi-timer">
+                    <SubtotalGroupsSelector>
+                    </SubtotalGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Device)>
+                <TabPage Text=@Properties.Resources.Devices Icon="oi oi-timer">
+                    <DeviceSelector Devices="@Active.Devices"
+                                    ObjectTypes="@ObjectTypes"
+                                    AttributeTemplates="@Active.DeviceAttributeTemplates">
+                    </DeviceSelector>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager)>
+                <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer">
+                    <DeviceGroupSelector DeviceGroups="@Active.DeviceGroups"
+                                         ObjectTypes="@ObjectTypes"
+                                         AttributeTemplates="@Active.DeviceGroupAttributeTemplates">
+                    </DeviceGroupSelector>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent)>
+                <TabPage Text=@Properties.Resources.Agents Icon="oi oi-wifi">
+                    <AgentsSelector Agents="@Active.Agents">
+                    </AgentsSelector>
+                </TabPage>
+                <TabPage Text=@Properties.Resources.AgentGroups Icon="oi oi-wifi">
+                    <AgentGroupsSelector AgentGroups="@Active.AgentGroups">
+                    </AgentGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Gateway)>
+                <TabPage Text=@Properties.Resources.Gateways Icon="oi oi-wifi">
+                    <GatewaysSelector Gateways="@Active.Gateways">
+                    </GatewaysSelector>
+                </TabPage>
+                <TabPage Text=@Properties.Resources.GatewayGroups Icon="oi oi-wifi">
+                    <GatewayGroupsSelector Action="@Action" 
+                        GatewayGroups="@Active.GatewayGroups">
+                    </GatewayGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+
+    /// <summary>
+    /// Return shown object types.
+    /// </summary>
+    private Gurux.DLMS.Enums.ObjectType[] ObjectTypes
+    {
+        get
+        {
+            return new Gurux.DLMS.Enums.ObjectType[]
+            {
+            Gurux.DLMS.Enums.ObjectType.Data,
+            Gurux.DLMS.Enums.ObjectType.Register,
+            Gurux.DLMS.Enums.ObjectType.RegisterMonitor,
+            Gurux.DLMS.Enums.ObjectType.RegisterActivation,
+            Gurux.DLMS.Enums.ObjectType.ExtendedRegister,
+            };
+        }
+    }
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXSubtotal Active = new GXSubtotal(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Subtotal;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get subtotal data.
+                var tmp = (await Http.GetAsJsonAsync<GetSubtotalResponse>(string.Format("api/Subtotal?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

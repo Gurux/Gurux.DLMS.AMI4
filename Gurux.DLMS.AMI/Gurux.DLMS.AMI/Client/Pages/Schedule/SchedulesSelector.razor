@@ -17,18 +17,20 @@
 <SelectionContainer TItem="GXSchedule" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -49,16 +51,6 @@
     /// Schedule filter.
     /// </summary>
     private GXSchedule filter = new GXSchedule(null);
-
-    string? GetName(GXSchedule target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXSchedule target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {

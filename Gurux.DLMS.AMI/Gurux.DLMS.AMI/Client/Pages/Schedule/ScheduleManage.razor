@@ -10,11 +10,13 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager + "," + GXRoles.ScheduleLog + "," + GXRoles.ScheduleLogManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
+@implements IDisposable
 
 <!--If user adds a new item or modifies the existing one.-->
 @if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
@@ -30,13 +32,21 @@
     else if (string.Compare(Path, "ScheduleLog", true) == 0)
     {
         <ScheduleLog Id="@Id"></ScheduleLog>
-    }    
+    }
 }
 else
 {
     <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
         <TabTextTemplate>
-            <span class=@context.Icon aria-hidden="true"></span>
+            <span class=@context.Icon aria-hidden="true">
+                @if (context.PadgeCount != 0)
+                {
+                    <span class="@context.GetPadgeClass()">
+                        @context.PadgeCount
+                        <span class="visually-hidden">@context.Padge</span>
+                    </span>
+                }
+            </span>
             @context.Text
         </TabTextTemplate>
         <ChildContent>
@@ -49,16 +59,17 @@ else
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleGroupManager)>
                 <TabPage Path="ScheduleGroup" Text=@Properties.Resources.ScheduleGroups Icon="oi oi-timer">
-                    <div style="position: relative; width: 100%; ">
-                        <ScheduleGroups Id="@Id"></ScheduleGroups>
-                    </div>
+                    <ScheduleGroups Id="@Id"></ScheduleGroups>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog, GXRoles.ScheduleLogManager)>
-                <TabPage Path="ScheduleLog" Text=@Properties.Resources.ScheduleLogs Icon="oi oi-warning">
-                    <div style="position: relative; width: 100%; ">
-                        <ScheduleLogs Id="@Id"></ScheduleLogs>
-                    </div>
+                <TabPage Path="ScheduleLog"
+                         Text=@Properties.Resources.ScheduleLogs
+                         Padge="New schedule logs"
+                         PadgeCount="@_log.GetCount()"
+                         PadgeType="@_log.GetTraceLevel()"
+                         Icon="oi oi-warning">
+                    <ScheduleLogs Id="@Id"></ScheduleLogs>
                 </TabPage>
             </AuthorizeView>
         </ChildContent>
@@ -81,6 +92,11 @@ else
     private string? Path { get; set; }
 
     /// <summary>
+    /// Stamp.
+    /// </summary>
+    private GXUserStamp _log = new GXUserStamp();
+
+    /// <summary>
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
@@ -93,6 +109,27 @@ else
     {
         //Get selected tab from the url.
         Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _log = Notifier.GetUserStamps(TargetType.ScheduleLog);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        {
+            bool updated = false;
+            foreach (var it in stamps)
+            {
+                if (it.TargetType == TargetType.ScheduleLog)
+                {
+                    updated = true;
+                }
+            }
+            if (updated)
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
     }
 }
 

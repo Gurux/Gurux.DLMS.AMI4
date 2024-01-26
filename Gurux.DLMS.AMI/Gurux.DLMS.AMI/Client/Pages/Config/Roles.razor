@@ -36,7 +36,7 @@
                 </th>
                 <th>
                     <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                       @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                           @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
                 </th>
             </tr>
             <tr>
@@ -52,7 +52,7 @@
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox"
                                    checked="@it.Default"
-                           @onchange="@((e) => it.Default = Convert.ToBoolean(e.Value))" />
+                                   @onchange="@((e) => it.Default = Convert.ToBoolean(e.Value))" />
                         </div>
                     </td>
                     <td>

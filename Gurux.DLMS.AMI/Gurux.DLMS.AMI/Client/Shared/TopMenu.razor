@@ -1,6 +1,8 @@
 ﻿@using Gurux.DLMS.AMI.Client.Shared
+@using Gurux.DLMS.AMI.Module;
 @using Gurux.DLMS.AMI.Shared.DIs
 
+@inject GXModuleService modules
 @inject IGXNotifier2 Notifier
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -34,7 +36,15 @@
         string str = "https://gurux.fi/gurux.dlms.ami4";
         if (!string.IsNullOrEmpty(_page))
         {
-            str += "/" + _page;
+            if (_page.StartsWith("https://") ||
+                _page.StartsWith("http://"))
+            {
+                str = _page;
+            }
+            else
+            {
+                str += "/" + _page;
+            }
         }
         return str;
     }
@@ -46,6 +56,48 @@
         if (path.ToLower().StartsWith("config/"))
         {
             start = 7;
+        }
+        //Find extension help.
+        if (path.ToLower().StartsWith("extension/edit/"))
+        {
+            path = path.Substring(15);
+            foreach (var asm in modules.Assemblies)
+            {
+                foreach (var type in asm.GetExportedTypes())
+                {
+                    if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                    {
+                        continue;
+                    }
+                    if (type.GetInterfaces().Contains(typeof(IAmiModule)))
+                    {
+                        IAmiModule? tmp = (IAmiModule?)asm.CreateInstance(type.FullName);
+                        if (string.Compare(path, tmp?.Id, true) == 0)
+                        {
+                            _page = tmp.Help;
+                            StateHasChanged();
+                            return;
+                        }
+                    }
+                }
+            }
+            foreach (var type in modules.Types)
+            {
+                if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                {
+                    continue;
+                }
+                if (type.GetInterfaces().Contains(typeof(IAmiModule)))
+                {
+                    IAmiModule? tmp = (IAmiModule?)Activator.CreateInstance(type);
+                    if (string.Compare(path, tmp?.Id, true) == 0)
+                    {
+                        _page = tmp.Help;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+            }
         }
         int pos = path.IndexOf('/', start);
         if (pos != -1)

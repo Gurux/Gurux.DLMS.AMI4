@@ -1,0 +1,282 @@
+﻿@page "/extensions"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject GXModuleService modules
+@implements IDisposable
+@implements IAmiComponent
+
+@if (Title)
+{
+    <h1>@Properties.Resources.Extensions</h1>
+}
+
+<GXTable @ref="table"
+         Context="module"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         Filter="@Filter"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Id = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="Name" SortMode="SortMode.Descending">@Properties.Resources.Name</Th>
+            <th>@Properties.Resources.Description</th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("Extension/Edit/" + module.Id)">
+            <span class=@(ClientHelpers.GetActiveDot(module.Active))>
+            </span><span class="@module.Icon" aria-hidden="true"></span>@module.Id
+        </Td>
+        <td>
+            @module.Description
+        </td>
+    </ItemContent>
+</GXTable>
+<br />
+@code {
+    [Parameter]
+    public Gurux.DLMS.AMI.Client.Pages.Module.ModuleManage? Parent { get; set; }
+
+    /// <summary>
+    /// Selected module ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Extensions;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-puzzle-piece";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the modules shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Module filter. Show only installed and activated modules.
+    /// </summary>
+    private GXModule filter = new GXModule()
+        {
+            Active = true,
+            Type = ModuleType.Extension,
+            Status = (ModuleStatus.Installed | ModuleStatus.CustomBuild)
+        };
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXModule>? table;
+
+    /// <summary>
+    /// Module settings.
+    /// </summary>
+    private ModuleSettings? _settings;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+           {
+               try
+               {
+                   if (configurations != null)
+                   {
+                       foreach (var it in configurations)
+                       {
+                           if (it.Name == GXConfigurations.Modules && !string.IsNullOrEmpty(it.Settings))
+                           {
+                               _settings = JsonSerializer.Deserialize<ModuleSettings>(it.Settings);
+                               StateHasChanged();
+                               break;
+                           }
+                       }
+                   }
+               }
+               catch (Exception ex)
+               {
+                   Notifier?.ProcessError(ex);
+               }
+           });
+            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleUpdate), async (modules) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXModule>>(this, nameof(IGXHubEvents.ModuleDelete), async (modules) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXModule() { Id = Id };
+            }
+            //Get configuration data.
+            if (!string.IsNullOrEmpty(Parent?.Parent?.Active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<ModuleSettings>(Parent.Parent.Active.Settings);
+            }
+            else
+            {
+                _settings = new ModuleSettings();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListModules req = new ListModules()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            //Get extension modules.
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
+            if (ret.Modules != null)
+            {
+                return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

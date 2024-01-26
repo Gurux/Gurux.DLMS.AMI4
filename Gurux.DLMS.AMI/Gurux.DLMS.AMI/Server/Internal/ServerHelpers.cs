@@ -30,19 +30,29 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Client.Pages.Objects;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -225,7 +235,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             await host.Connection.InsertAsync(GXInsertArgs.InsertRange(newTriggers));
             newTriggers.AddRange(updatedTriggers);
             return newTriggers;
-        }
+        }        
 
         /// <summary>
         /// Add distinct items to the list.
@@ -1325,6 +1335,71 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 return _hostedService.PerformanceDelete(users, performances);
             }
 
+            /// <inheritdoc/>
+            public Task SubtotalCalculate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+            {
+                return _hostedService.SubtotalCalculate(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalClear(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+            {
+                return _hostedService.SubtotalClear(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+            {
+                return _hostedService.SubtotalDelete(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalGroupDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
+            {
+                return _hostedService.SubtotalGroupDelete(users, groups);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
+            {
+                return _hostedService.SubtotalGroupUpdate(users, groups);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+            {
+                return _hostedService.SubtotalUpdate(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task SubtotalValueUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalValue> values)
+            {
+                return _hostedService.SubtotalValueUpdate(users, values);
+            }
+
+            /// <inheritdoc/>
+            public Task AddSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals)
+            {
+                return _hostedService.AddSubtotalLogs(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task ClearSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotal>? subtotals)
+            {
+                return _hostedService.ClearSubtotalLogs(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task CloseSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals)
+            {
+                return _hostedService.CloseSubtotalLogs(users, subtotals);
+            }
+
+            /// <inheritdoc/>
+            public Task UserStampUpdate(IReadOnlyList<string> users, IEnumerable<GXUserStamp> stamps)
+            {
+                return _hostedService.UserStampUpdate(users, stamps);
+            }
         }
 
         /// <summary>

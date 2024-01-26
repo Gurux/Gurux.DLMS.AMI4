@@ -21,43 +21,43 @@
 
 <PageTitle>@Properties.Resources.Actions</PageTitle>
 
-<MenuControl RightCorner="true">
-    <ChildContent>
-        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-    </ChildContent>
-</MenuControl>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
 
-<GXTable @ref="table"
-         Context="stat"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.None"
-         ShowAllUsers="false"
-         ShowRemoved="false">
-    <FilterContent>
-        <th>
-        </th>
-        <th>
-            <!--Path -->
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by start time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by end time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.End = Convert.ToDateTime(__e.Value))" />
-        </th>     
-    </FilterContent>
-    <HeaderContent>
-        <th>@Properties.Resources.ExecutionTime</th>
+    <GXTable @ref="table"
+             Context="stat"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.None"
+             ShowAllUsers="false"
+             ShowRemoved="false">
+        <FilterContent>
+            <th>
+            </th>
+            <th>
+                <!--Path -->
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by start time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Start = Convert.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by end time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.End = Convert.ToDateTime(__e.Value))" />
+            </th>
+        </FilterContent>
+        <HeaderContent>
+            <th>@Properties.Resources.ExecutionTime</th>
         <Th Id="Path">@Properties.Resources.Path</Th>
-        <Th Id="Start" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
-        <Th Id="End">@Properties.Resources.Ready</Th>
-    </HeaderContent>
-    <ItemContent>
-        <td>@GetTime(stat)</td>
+            <Th Id="Start" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
+            <Th Id="End">@Properties.Resources.Ready</Th>
+        </HeaderContent>
+        <ItemContent>
+            <td>@GetTime(stat)</td>
         <td>@stat.Path</td>
         <td>@stat.Start</td>
         <td>@stat.End</td>

@@ -93,6 +93,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXRestStatistic>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXRestStatistic>(w => request.Included.Contains(w.Id));
+                }
             }
             if (request != null && request.Count != 0)
             {

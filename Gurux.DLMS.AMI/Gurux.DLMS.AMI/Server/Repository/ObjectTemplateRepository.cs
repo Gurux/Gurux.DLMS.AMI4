@@ -40,6 +40,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -151,6 +152,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXObjectTemplate>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXObjectTemplate>(w => request.Included.Contains(w.Id));
+                }
+                if (request.DeviceTemplates != null && request.DeviceTemplates.Any())
+                {
+                    arg.Where.And<GXDeviceTemplate>(w => request.DeviceTemplates.Contains(w.Id));
+                }
+                if (request.ObjectTypes != null && request.ObjectTypes.Any())
+                {
+                    int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
+                }
+                if (request.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
+                {
+                    int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
                 }
             }
             if (request != null && request.Count != 0)

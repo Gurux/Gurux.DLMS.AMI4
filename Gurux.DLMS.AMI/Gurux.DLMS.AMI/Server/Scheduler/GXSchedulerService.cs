@@ -43,6 +43,10 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server;
 using Gurux.DLMS.AMI.Server.Repository;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {
@@ -112,7 +116,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
             _configurationRepository.Updated += async (configurations) =>
             {
-                //If maintenance configuration is updated.
+                //If statistics configuration is updated.
                 foreach (GXConfiguration it in configurations)
                 {
                     if (it.Name == GXConfigurations.Statistic && it.Settings != null)
@@ -162,14 +166,6 @@ namespace Gurux.DLMS.AMI.Scheduler
                 log.Schedule = schedule;
                 log.Message = "Scheduler ended.";
                 await _scheduleLogRepository.AddAsync(User, new GXScheduleLog[] { log });
-            }
-        }
-
-        private void GetDeviceTasks(List<GXDevice> devices)
-        {
-            foreach (var it in devices)
-            {
-
             }
         }
 
@@ -356,6 +352,19 @@ namespace Gurux.DLMS.AMI.Scheduler
                     tasks.Add(t);
                 }
             }
+            if (schedule.Modules != null)
+            {
+                foreach (GXModule it in schedule.Modules)
+                {
+                    GXTask t = new GXTask()
+                    {
+                        TriggerSchedule = schedule,
+                        Module = it,
+                        TaskType = TaskType.Action,
+                    };
+                    tasks.Add(t);
+                }
+            }
             schedule.ExecutionTime = now;
             _scheduleRepository.UpdateExecutionTime(schedule);
             await _eventsNotifier.ScheduleCompleate(users, new[] { schedule });
@@ -383,10 +392,11 @@ namespace Gurux.DLMS.AMI.Scheduler
                 {
                     Filter = new GXSchedule()
                     {
-                        Removed = null
+                        Removed = null,
+                        Active = true
                     },
                     //Select user and roles information.
-                    Select = TargetType.User | TargetType.Role
+                    Select = new string[] { "User", "Role" }
                 };
                 List<GXTask> tasks = new List<GXTask>();
                 GXSchedule[] schedules = await _scheduleRepository.ListAsync(User, req, null, CancellationToken.None);
@@ -401,7 +411,6 @@ namespace Gurux.DLMS.AMI.Scheduler
                 }
                 if (tasks.Any())
                 {
-                    //tasks[0].Creator;
                     using (IServiceScope scope = _serviceProvider.CreateScope())
                     {
                         ITaskRepository taskRepository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();

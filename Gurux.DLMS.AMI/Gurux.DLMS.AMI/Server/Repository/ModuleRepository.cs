@@ -43,6 +43,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared;
 using System.Diagnostics;
+using System.Linq;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -166,7 +169,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             GXSelectArgs arg;
-            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            if (User.IsInRole(GXRoles.Admin))
             {
                 //Admin can see all the modules.
                 arg = GXSelectArgs.SelectAll<GXModule>();
@@ -179,10 +182,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Columns.Add<GXModule>();
             }
             ModuleStatus? status = null;
-            if (request != null && request.Filter != null && request.Filter.Status != null)
+            ModuleType? type = null;
+            if (request != null && request.Filter != null)
             {
-                status = request.Filter.Status;
-                request.Filter.Status = null;
+                if (request.Filter.Status != null)
+                {
+                    status = request.Filter.Status;
+                    request.Filter.Status = null;
+                }
+                if (request.Filter.Type != null)
+                {
+                    type = request.Filter.Type;
+                    request.Filter.Type = null;
+                }
             }
 
             if (request != null)
@@ -191,6 +203,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXModule>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXModule>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;
@@ -220,6 +236,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (status != null)
             {
                 modules.RemoveAll(w => (w.Status & status) == 0);
+            }
+            if (type != null)
+            {
+                modules.RemoveAll(w => (w.Type & type) == 0);
             }
             if (response != null)
             {

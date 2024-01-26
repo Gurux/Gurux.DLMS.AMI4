@@ -47,6 +47,10 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -239,7 +243,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Where.FilterBy(request.Filter.Template);
                 request.Filter.Template = null;
             }
-            if (request != null && (request.Select & TargetType.DeviceTemplate) != 0)
+            if (request?.Select != null && request.Select.Contains("DeviceTemplate"))
             {
                 arg.Columns.Add<GXDeviceTemplate>();
                 arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(x => x.Template, y => y.Id);
@@ -252,6 +256,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXDevice>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXDevice>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;
@@ -289,20 +297,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 it.Tasks = null;
                 it.Traces = null;
                 it.Keys = null;
-                if (request != null && (request.Select & TargetType.Object) != 0)
+                if (request?.Select != null && request.Select.Contains("Object"))
                 {
                     //Get objects.
                     arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
-                    if (request != null && (request.Select & TargetType.ObjectTemplate) != 0)
+                    if (request.Select.Contains("ObjectTemplate"))
                     {
                         arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.Attributes });
                         arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
                     }
-                    if (request != null && (request.Select & TargetType.Attribute) != 0)
+                    if (request.Select.Contains("Attribute"))
                     {
                         arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template });
                         arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
-                        if (request != null && (request.Select & TargetType.AttributeTemplate) != 0)
+                        if (request.Select.Contains("AttributeTemplate"))
                         {
                             arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
                             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
@@ -314,7 +322,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     it.Objects = null;
                 }
-                if (request != null && (request.Select & TargetType.DeviceGroup) != 0)
+                if (request?.Select != null && request.Select.Contains("DeviceGroup"))
                 {
                     //Get device groups.
                     arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
@@ -365,7 +373,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             //The Agent ask keys from the key management.
             if (!string.IsNullOrEmpty(device.Settings))
             {
-                var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(device.Settings);
+                var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(device.Settings);
                 if (s != null && s.HexPassword == null)
                 {
                     if (s.Authentication != (byte)Enums.Authentication.None ||
@@ -377,7 +385,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             {
                                 Device = device
                             },
-                            Select = TargetType.KeyManagementKey
+                            Select = new string[] { "KeyManagementKey" }
                         };
                         var list = await _keyManagementRepository.ListAsync(User, req, null, default);
                         //Update password.
@@ -502,7 +510,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
             Expression<Func<GXDevice, object?>>? columns,
-            bool lateBinding)
+            bool lateBinding,
+            IEnumerable<GXDeviceGroup>? groups)
         {
             DateTime now = DateTime.Now;
             GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
@@ -551,6 +560,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
             using IDbTransaction transaction = _host.Connection.BeginTransaction();
             try
             {
+                //Add batch device groups.
+                if (groups != null && groups.Any())
+                {
+                    //Create new device groups.
+                    foreach (var group in groups)
+                    {
+                        if (group.Id == Guid.Empty)
+                        {
+                            await _deviceGroupRepository.UpdateAsync(User,
+                                new GXDeviceGroup[] { group });
+                        }
+                        defaultGroups?.Add(group);
+                    }
+                    foreach (var it in updatedDevices)
+                    {
+                        //Add batch groups.
+                        deviceGroups[it].AddRange(groups);
+                    }
+                }
                 List<GXKeyManagement> keys = new List<GXKeyManagement>();
                 foreach (GXDevice device in devices)
                 {
@@ -567,7 +595,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get device keys and save them to key manager table.
                     if (!string.IsNullOrEmpty(device.Settings))
                     {
-                        var s = JsonSerializer.Deserialize<Shared.DTOs.GXDLMSSettings>(device.Settings);
+                        var s = JsonSerializer.Deserialize<Shared.DTOs.Device.GXDLMSSettings>(device.Settings);
                         if (s?.HexPassword != null ||
                             !string.IsNullOrEmpty(s?.Password) ||
                             !string.IsNullOrEmpty(s?.BlockCipherKey) ||
@@ -693,8 +721,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             e.Objects,
                             e.Updated,
                             e.Removed,
+                            e.DeviceGroups,
+                            e.Parameters
                         });
                         await _host.Connection.InsertAsync(transaction, args);
+                        foreach(var device in newDevices)
+                        {
+                            //Add device parameters.
+                            await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
+                            //Add device to the default device group.
+                            await AddDeviceToDeviceGroups(transaction, device.Id, device?.DeviceGroups, cancellationToken);
+                        }
                         updated = newDevices.Select(s => s.Id).ToList();
                     }
                     else
@@ -951,7 +988,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="groups">Device groups where the device is added.</param>
         public Task AddDeviceToDeviceGroups(IDbTransaction transaction,
             Guid deviceTemplateId,
-            IEnumerable<GXDeviceGroup> groups,
+            IEnumerable<GXDeviceGroup>? groups,
             CancellationToken cancellationToken)
         {
             DateTime now = DateTime.Now;

@@ -26,7 +26,7 @@
 {
     <h2>Client notifications</h2>
     <input type="search" value="@SearchText"
-       @oninput="@Search" placeholder="Search by type" />
+           @oninput="@Search" placeholder="Search by type" />
     <EditForm Model="@_settings">
         <table class="table table-striped" width="100%">
             <thead>
@@ -45,9 +45,9 @@
                     <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
                         <td>
                             <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox"
-                                   checked="@GetIgnoredState(@it)"
-                           @onchange="@((e) => UpdateIgnoredState(@it, e.Value))" />
+                                <input class="form-check-input" type="checkbox"
+                                       checked="@IsEnabled(@it)"
+                                       @onchange="@((e) => UpdateIgnoredState(@it, e.Value))" />
                             </div>
                         </td>
                         <td>
@@ -89,20 +89,20 @@
     }
 
 
-    protected string GetSelectedClass(TargetType selected)
+    protected string GetSelectedClass(string selected)
     {
         return selected == _active ? "table-info" : "table-striped";
     }
 
-    protected void RowSelected(TargetType selected)
+    protected void RowSelected(string selected)
     {
         _active = selected;
     }
-    private TargetType _active = TargetType.None;
+    private string? _active;
     private string SearchText = "";
     private bool _allSelected = false;
 
-    IEnumerable<TargetType> Notifications = ClientHelpers.GetNotifications();
+    IEnumerable<string> Notifications = ClientHelpers.GetNotifications(false);
 
     private void ToggleAll(bool select)
     {
@@ -111,17 +111,11 @@
         {
             if (select)
             {
-                foreach (var it in Notifications)
-                {
-                    _settings.IgnoreNotification &= ~it;
-                }
+                _settings.IgnoreNotification = null;
             }
             else
             {
-                foreach (var it in Notifications)
-                {
-                    _settings.IgnoreNotification |= it;
-                }
+                _settings.IgnoreNotification = Notifications.ToArray();
             }
         }
     }
@@ -132,14 +126,14 @@
     private void Search(ChangeEventArgs args)
     {
         String? value = Convert.ToString(args.Value);
-        Notifications = ClientHelpers.GetNotifications();
+        Notifications = ClientHelpers.GetNotifications(false);
         if (!string.IsNullOrEmpty(value))
         {
             value = value.ToLower();
-            List<TargetType> tmp = new List<TargetType>();
+            List<string> tmp = new List<string>();
             foreach (var it in Notifications)
             {
-                if (it.ToString().ToLower().Contains(value))
+                if (it.Contains(value))
                 {
                     tmp.Add(it);
                 }
@@ -149,23 +143,30 @@
         StateHasChanged();
     }
 
-    private bool GetIgnoredState(TargetType value)
+    private bool IsEnabled(string? value)
     {
-        return _settings != null && (_settings.IgnoreNotification & value) == 0;
+        return _settings?.IgnoreNotification == null ||
+            !_settings.IgnoreNotification.Contains(value);
     }
 
-    private void UpdateIgnoredState(TargetType value, object? ignored)
+    private void UpdateIgnoredState(string value, object? ignored)
     {
         if (_settings != null)
         {
+            List<string> list = new List<string>();
+            if (_settings.IgnoreNotification != null)
+            {
+                list.AddRange(_settings.IgnoreNotification);
+            }
             if (Convert.ToBoolean(ignored))
             {
-                _settings.IgnoreNotification &= ~value;
+                list.Remove(value);
             }
             else
             {
-                _settings.IgnoreNotification |= value;
+                list.Add(value);
             }
+            _settings.IgnoreNotification = list.ToArray();
         }
     }
 
@@ -200,7 +201,14 @@
             Notifier.UpdateButtons();
             if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
             {
-                _settings = JsonSerializer.Deserialize<PerformanceSettings>(Parent.Active.Settings);
+                try
+                {
+                    _settings = JsonSerializer.Deserialize<PerformanceSettings>(Parent.Active.Settings);
+                }
+                catch (Exception)
+                {
+                    _settings = new PerformanceSettings();
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)

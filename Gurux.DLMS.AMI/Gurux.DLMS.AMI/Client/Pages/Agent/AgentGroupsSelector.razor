@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -20,10 +21,11 @@
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription"
                    OnAdded="OnAdded"
                    OnRemoved="@Removed">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
@@ -38,9 +40,10 @@
         </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -65,6 +68,12 @@
     [CascadingParameter]
     private AgentTab? AgentParent { get; set; }
 
+    /// <summary>
+    /// Selected agent groups.
+    /// </summary>
+    [Parameter]
+    public List<GXAgentGroup>? AgentGroups { get; set; }
+
     SelectionList<GXAgentGroup>? _selected;
     SelectionList<GXAgentGroup>? _available;
     SelectionContainer<GXAgentGroup>? _selectionContainer;
@@ -81,15 +90,6 @@
     /// Selected agent group filter.
     /// </summary>
     private GXAgentGroup selectedFilter = new GXAgentGroup(null);
-
-    public string? GetName(GXAgentGroup target)
-    {
-        return target.Name;
-    }
-    public string? GetDescription(GXAgentGroup target)
-    {
-        return target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -229,8 +229,12 @@
         }
     }
 
-    List<GXAgentGroup>? GetGroups()
+    List<GXAgentGroup> GetGroups()
     {
+        if (AgentGroups != null)
+        {
+            return AgentGroups;
+        }
         if (DeviceGroupParent?.Active != null)
         {
             return DeviceGroupParent.Active.AgentGroups;
@@ -256,7 +260,7 @@
             groups = groups.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
         }
         return new(new ItemsProviderResult<GXAgentGroup>(
-        groups.Skip(request.StartIndex).Take(request.Count), total));
+            groups.Skip(request.StartIndex).Take(request.Count), total));
     }
 
     private async ValueTask<ItemsProviderResult<GXAgentGroup>> GetItems(GXItemsProviderRequest request)
@@ -272,7 +276,7 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items.Select(s => s.Id).ToArray()
+                    Exclude = GetGroups().Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListAgentGroupsResponse>("api/AgentGroup/List", req, request.CancellationToken);
             if (ret?.AgentGroups != null && _selected != null)

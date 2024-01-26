@@ -39,6 +39,7 @@ using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {

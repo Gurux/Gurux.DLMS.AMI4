@@ -1,0 +1,454 @@
+﻿@page "/AttributeTemplate/{Action}"
+@page "/AttributeTemplate/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.Objects;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
+{
+    <CascadingValue Value="this">
+        <AttributeTemplate Action="@Action" Id="@Id"></AttributeTemplate>
+    </CascadingValue>
+}
+else
+{
+    @if (Header)
+    {
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.TemplateManager)>
+            <MenuControl RightCorner="true">
+                <ChildContent>
+                    <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+                </ChildContent>
+            </MenuControl>
+        </AuthorizeView>
+    }
+
+    <GXTable @ref="table"
+             Context="template"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             CanEdit="@CanEdit"
+             Columns="@Columns"
+             OnSearch="@Updated">
+        <FilterContent>
+        </FilterContent>
+        <MenuContent>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </MenuContent>
+        <HeaderContent>
+            <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
+                <Th Id="ObjectName">@Properties.Resources.Name</Th>
+                <Th Id="Index">@Properties.Resources.Index</Th>
+                <Th Id="Name">@Properties.Resources.Name</Th>
+            </HeaderContent>
+            <ItemContent>
+                <Td Id="LogicalName">@template.ObjectTemplate?.LogicalName</Td>
+                <Td Id="ObjectName">@template.ObjectTemplate?.Name</Td>
+                <Td Id="Index">@template.Index</Td>
+                <Td Id="Name">@template.Name</Td>
+            </ItemContent>
+        </GXTable>
+    <Confirm @ref="RemoveConfirmation"
+             ConfirmationChanged="OnDeleteConfirmation"
+             OkTitle="@Properties.Resources.Remove"
+             ConfirmationMessage=""
+             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+    </Confirm>
+}
+
+<br />
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected Attribute template ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    [CascadingParameter]
+    private DeviceTemplateTab? Parent { get; set; }
+
+    /// <summary>
+    /// List of available device IDs.
+    /// </summary>
+    [Parameter]
+    public IEnumerable<GXAttributeTemplate>? AvailableAttributeTemplates { get; set; }
+
+    /// <summary>
+    /// Shown object types.
+    /// </summary>
+    /// <remarks>
+    /// All object types are shown if object types are not set.
+    /// </remarks>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? ObjectTypes { get; set; }
+
+    /// <summary>
+    /// Ignored object types.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the Attribute templates shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Device filter.
+    /// </summary>
+    private GXAttributeTemplate filter = new GXAttributeTemplate();
+
+    /// <summary>
+    /// Filter using Attribute type.
+    /// </summary>
+    private string? filterByAttributeType;
+    /// <summary>
+    /// Filter using Attribute name.
+    /// </summary>
+    private string? filterByName;
+    /// <summary>
+    /// Filter by logical name of the Attribute.
+    /// </summary>
+    private string? filterByLogicalName;
+
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase? RemoveConfirmation;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXAttributeTemplate>? table;
+
+    private GXDeviceTemplate? _device;
+    /// <summary>
+    /// Active device.
+    /// </summary>
+    public GXDeviceTemplate? Device
+    {
+        get
+        {
+            if (_device != null)
+            {
+                return _device;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Active Attribute template.
+    /// </summary>
+    public GXAttributeTemplate? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (NavigationManager.ToBaseRelativePath(NavigationManager.Uri).StartsWith("AttributeTemplate/"))
+        {
+            //If Attribute template is shown.
+            return;
+        }
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            if (Device == null &&
+                (AvailableAttributeTemplates == null || !AvailableAttributeTemplates.Any()))
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.On<IEnumerable<GXAttributeTemplate>>(this, nameof(IGXHubEvents.AttributeTemplateUpdate), async (templates) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXAttributeTemplate>>(this, nameof(IGXHubEvents.AttributeTemplateDelete), async (templates) =>
+            {
+                await Updated();
+            });
+            if (Header)
+            {
+                Notifier.Clear();
+                Notifier.UpdateButtons();
+            }
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXAttributeTemplate() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Search by Attribute type.
+    /// </summary>
+    private async Task SearchByAttributeType(ChangeEventArgs args)
+    {
+        filterByAttributeType = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    /// <summary>
+    /// Search by name.
+    /// </summary>
+    private async Task SearchByName(ChangeEventArgs args)
+    {
+        filterByName = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    /// <summary>
+    /// Search by logical name.
+    /// </summary>
+    private async Task SearchByLogicalName(ChangeEventArgs args)
+    {
+        filterByLogicalName = Convert.ToString(args.Value);
+        await Updated();
+    }
+
+    private async ValueTask<ItemsProviderResult<GXAttributeTemplate>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListAttributeTemplates req = new ListAttributeTemplates()
+                {
+                    Index = (UInt64)request.StartIndex,
+                    Count = (UInt64)request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    //Object template information are also read.
+                    Select = new string[] { TargetType.ObjectTemplate }
+                };
+            if (AvailableAttributeTemplates != null && AvailableAttributeTemplates.Any())
+            {
+                req.Included = AvailableAttributeTemplates.Select(s => s.Id).ToArray();
+            }
+            if (ObjectTypes != null && ObjectTypes.Any())
+            {
+                req.ObjectTypes = ObjectTypes?.Cast<int>().ToArray();
+            }
+            if (IgnoredObjectTypes != null && IgnoredObjectTypes.Any())
+            {
+                req.IgnoredObjectTypes = IgnoredObjectTypes?.Cast<int>().ToArray();
+            }
+            var ret = await Http.PostAsJson<ListAttributeTemplatesResponse>("api/AttributeTemplate/List", req, request.CancellationToken);
+            if (ret.AttributeTemplates != null)
+            {
+                return new ItemsProviderResult<GXAttributeTemplate>(ret.AttributeTemplates, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Edit Attribute template.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (Device == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/AttributeTemplate/Edit/" + Device.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove selected Attribute templates.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected Attribute templates.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveAttributeTemplate req = new RemoveAttributeTemplate()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveAttributeTemplateResponse>("api/AttributeTemplate/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

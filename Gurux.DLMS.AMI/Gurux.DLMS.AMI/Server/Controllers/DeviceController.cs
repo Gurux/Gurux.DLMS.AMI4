@@ -34,7 +34,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Models;
-using Gurux.DLMS.AMI.Server.Repository;
 
 namespace Gurux.DLMS.AMI.Server.Controllers
 {
@@ -72,7 +71,8 @@ namespace Gurux.DLMS.AMI.Server.Controllers
                 request.Devices,
                 cancellationToken,
                 null,
-                request.LateBinding));
+                request.LateBinding,
+                request.Groups));
             return ret;
         }
 

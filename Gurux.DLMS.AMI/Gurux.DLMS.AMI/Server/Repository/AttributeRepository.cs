@@ -40,6 +40,9 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -167,15 +170,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             if (request != null)
             {
-                if ((request.Select & TargetType.DeviceTemplate) != 0)
+                if (request.Devices != null && request.Devices.Any())
                 {
-                }
-                else if ((request.Select & TargetType.Device) != 0)
-                {
+                    arg.Where.And<GXDevice>(w => request.Devices.Contains(w.Id));
                 }
                 if (request.Filter?.Object != null)
                 {
-                    var dg = request.Filter.Object?.Device?.DeviceGroups?.FirstOrDefault();
+                    var dg = request.Filter.Object.Device?.DeviceGroups?.FirstOrDefault();
                     if (dg != null)
                     {
                         var ug = dg.UserGroups?.FirstOrDefault();
@@ -198,43 +199,63 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             }
                         }
                     }
-                    else if (request.Filter.Object?.Device?.Id is Guid id && id != Guid.Empty)
+                    else if (request.Filter.Object.Device?.Id is Guid id && id != Guid.Empty)
                     {
                         arg.Where.And<GXDevice>(w => w.Id == id);
                     }
-                    if (request.Filter.Object?.Device?.Name is string dn)
+                    if (request.Filter.Object.Device?.Name is string dn)
                     {
                         arg.Where.And<GXDevice>(w => w.Name.Contains(dn));
                     }
-                    if (request.Filter.Object?.Device?.Template?.Name is string tn)
+                    if (request.Filter.Object.Device?.Template?.Name is string tn)
                     {
                         arg.Where.And<GXDeviceTemplate>(w => w.Name.Contains(tn));
                     }
                     request.Filter.Object.Device = null;
                 }
-                if (request?.Filter?.Template != null)
+                if (request.Filter?.Template != null)
                 {
                     attributeTemplate = request.Filter.Template;
                     request.Filter.Template = null;
                 }
                 arg.Where.FilterBy(request.Filter);
+                if (request.ObjectTypes != null && request.ObjectTypes.Any())
+                {
+                    int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
+                }
+                if (request.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
+                {
+                    int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                    arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
+                }
             }
+            arg.OrderBy.Add<GXDevice>(q => q.Id);
+            arg.Count = 1;
             //Get devices before template filter or device is not retured if all objects are late binded.
             GXDevice[] devs = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToArray();
             if (attributeTemplate != null)
             {
                 arg.Where.FilterBy(attributeTemplate);
             }
+            if (request != null)
+            {
+                if (request.Exclude != null && request.Exclude.Any())
+                {
+                    arg.Where.And<GXAttribute>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXAttribute>(w => request.Included.Contains(w.Id));
+                }
+            }
+
             if (request != null && request.Count != 0)
             {
                 //Return total row count. This can be used for paging.
                 GXSelectArgs total = GXSelectArgs.Select<GXAttribute>(q => GXSql.DistinctCount(q.Id));
                 total.Joins.Append(arg.Joins);
                 total.Where.Append(arg.Where);
-                if (request?.Exclude != null && request.Exclude.Any())
-                {
-                    total.Where.And<GXObject>(w => !request.Exclude.Contains(w.Id));
-                }
                 if (response != null)
                 {
                     response.Count = _host.Connection.SingleOrDefault<int>(total);
@@ -266,10 +287,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 arg.Where.FilterBy(attributeTemplate);
             }
+            if (request?.ObjectTypes != null && request.ObjectTypes.Any())
+            {
+                int?[] tmp = request.ObjectTypes.Cast<int?>().ToArray();
+                arg.Where.And<GXObjectTemplate>(w => tmp.Contains(w.ObjectType));
+            }
+            if (request?.IgnoredObjectTypes != null && request.IgnoredObjectTypes.Any())
+            {
+                int?[] tmp = request.IgnoredObjectTypes.Cast<int?>().ToArray();
+                arg.Where.And<GXObjectTemplate>(w => !tmp.Contains(w.ObjectType));
+            }
             GXDeviceTemplate[] deviceTemplates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
             //Remove all attributes that are saved, but not found from the template.
             //Filter might cause this.
-            foreach(var dev in devs)
+            foreach (var dev in devs)
             {
                 if (dev.Objects != null)
                 {

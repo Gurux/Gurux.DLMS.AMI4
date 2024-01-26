@@ -7,7 +7,8 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Module;
+    using Gurux.DLMS.AMI.Shared.DTOs.Module
 
 @attribute [Authorize(Roles = GXRoles.Admin)]
 @inject NavigationManager NavigationManager
@@ -25,8 +26,10 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         Columns="@Columns"
          ShowRemoved="false"
          ShowAllUsers="false"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -113,6 +116,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

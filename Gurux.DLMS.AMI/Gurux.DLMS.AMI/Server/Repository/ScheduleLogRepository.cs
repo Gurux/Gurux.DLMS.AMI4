@@ -32,16 +32,13 @@
 
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Diagnostics;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using System.Linq;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -70,10 +67,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task AddAsync(ClaimsPrincipal User, IEnumerable<GXScheduleLog> errors)
         {
+            DateTime now = DateTime.Now;
             Dictionary<GXScheduleLog, List<string>> updates = new Dictionary<GXScheduleLog, List<string>>();
             foreach (GXScheduleLog it in errors)
             {
-                it.CreationTime = DateTime.Now;
+                it.CreationTime = now;
                 if (it.Schedule != null)
                 {
                     updates[it] = await _scheduleRepository.GetUsersAsync(User, it.Schedule.Id);
@@ -87,7 +85,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
             foreach (var it in updates)
             {
-                await _eventsNotifier.AddScheduleLog(it.Value, new GXScheduleLog[] { it.Key });
+                GXScheduleLog tmp = new GXScheduleLog()
+                {
+                    Id = it.Key.Id,
+                    CreationTime = now,
+                    Level = it.Key.Level
+                };
+                await _eventsNotifier.AddScheduleLog(it.Value,
+                    new GXScheduleLog[] { tmp });
             }
         }
 
@@ -212,6 +217,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXScheduleLog>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXScheduleLog>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;

@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
@@ -39,6 +38,9 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -70,10 +72,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task AddAsync(ClaimsPrincipal User, IEnumerable<GXDeviceError> errors)
         {
+            DateTime now = DateTime.Now;
             Dictionary<GXDeviceError, List<string>> updates = new Dictionary<GXDeviceError, List<string>>();
             foreach (GXDeviceError it in errors)
             {
-                it.CreationTime = DateTime.Now;
+                it.CreationTime = now;
                 updates[it] = await _deviceRepository.GetUsersAsync(User, it.Device.Id);
             }
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
@@ -81,7 +84,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 foreach (var it in updates)
                 {
-                    await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] { it.Key });
+                    GXDeviceError tmp = new GXDeviceError(it.Key.Level.GetValueOrDefault(1))
+                    {
+                        CreationTime = now,
+                        Message = it.Key.Message,
+                        Device = new GXDevice()
+                        {
+                            Id = it.Key.Device.Id,
+                            Name = it.Key.Device.Name,
+                        },
+                    };
+                    await _eventsNotifier.AddDeviceErrors(it.Value, new GXDeviceError[] {
+                        tmp
+                    });
                 }
             }
         }
@@ -94,7 +109,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 CreationTime = DateTime.Now,
                 Message = ex.Message,
-                Device = device
+                Device = new GXDevice()
+                {
+                    Id = device.Id,
+                    Name = device.Name,
+                },
             };
             await _host.Connection.InsertAsync(GXInsertArgs.Insert(error));
             if (_performanceSettings.Notify(TargetType.DeviceError))
@@ -217,6 +236,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXDeviceError>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXDeviceError>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;

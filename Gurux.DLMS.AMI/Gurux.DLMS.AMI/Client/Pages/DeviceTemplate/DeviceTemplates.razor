@@ -35,6 +35,10 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         CanEdit="@CanEdit"
+         Columns="@Columns"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -43,7 +47,7 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Manufacturer"
                        type="text"
-                @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => filter.Manufacturer.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
@@ -52,7 +56,7 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Model"
                        type="text"
-                @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => mod.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
@@ -61,23 +65,23 @@
             {
                 <input class="form-control" placeholder="@Properties.Resources.Version"
                        type="text"
-                @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
+                       @onchange="@((ChangeEventArgs __e) => ver.Name = Convert.ToString(__e.Value))" />
             }
         </th>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                    type="text"
-            @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
         </th>
         <th>
             <input class="form-control" placeholder="Filter by updated time..."
                    type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
         </th>
     </FilterContent>
     <MenuContent>
@@ -91,15 +95,15 @@
         <th>@Properties.Resources.Model</th>
         <th>@Properties.Resources.Version</th>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Updated">@Properties.Resources.Updated</Th>
-    </HeaderContent>
-    <ItemContent>
-        <td>@template.Manufacturer?.Name</td>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Updated">@Properties.Resources.Updated</Th>
+        </HeaderContent>
+        <ItemContent>
+            <td>@template.Manufacturer?.Name</td>
         <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Name</td>
         <td>@GetVersionName(template)</td>
         <Td Link="@("DeviceTemplate/Edit/" + template.Id)">@template.Name</Td>
-        <td>@template.CreationTime</td>
+            <td>@template.CreationTime</td>
         <td>@template.Updated</td>
     </ItemContent>
 </GXTable>
@@ -166,6 +170,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.
@@ -282,7 +304,7 @@
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     //Get manufacturer settings.
-                    Select = TargetType.Manufacturer
+                    Select = new string[] { "Manufacturer" }
                 };
             if (Count != 0)
             {

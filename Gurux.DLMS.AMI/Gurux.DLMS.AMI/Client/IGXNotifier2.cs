@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Components;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
 
 namespace Gurux.DLMS.AMI.Client
@@ -47,7 +48,7 @@ namespace Gurux.DLMS.AMI.Client
             get;
             set;
         }
-            
+
         /// <summary>
         /// Clear page history.
         /// </summary>
@@ -59,14 +60,14 @@ namespace Gurux.DLMS.AMI.Client
         /// <param name="page"></param>
         /// <param name="data"></param>
         void UpdateData(string page, object? data);
-   
+
         /// <summary>
         /// Get page data.
         /// </summary>
         /// <param name="page">Page</param>
         /// <returns>Page data.</returns>
         object? GetData(string page);
-       
+
         /// <summary>
         /// CRUD action.
         /// </summary>
@@ -80,6 +81,21 @@ namespace Gurux.DLMS.AMI.Client
         /// Invoke that property has changed.
         /// </summary>
         Task ChangedAsync<T>(string methodName, T value);
+
+        /// <summary>
+        /// Mark user stamp as handled.
+        /// </summary>
+        /// <param name="http">Http client.</param>
+        /// <param name="type">Target type.</param>
+        /// <param name="datetime">Mark time.</param>
+        Task Mark(HttpClient http, string type, DateTime? datetime);
+
+        /// <summary>
+        /// Get not user stamp by type.
+        /// </summary>
+        /// <param name="type">User stamp type.</param>
+        /// <returns>User stamp.</returns>
+        GXUserStamp GetUserStamps(string type);
 
         /// <summary>
         /// Progress has started.

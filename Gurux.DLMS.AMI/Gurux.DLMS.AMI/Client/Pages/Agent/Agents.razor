@@ -1,6 +1,7 @@
 ﻿@page "/agents"
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Gurux.DLMS.AMI.Shared.DTOs.Enums
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
@@ -11,7 +12,7 @@
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
 @using System.ComponentModel;
-@using System.ComponentModel.DataAnnotations;
+@using System.ComponentModel.DataAnnotations
 
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
@@ -39,6 +40,9 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
          Total="@Total"
          Menu="@Menu"
          OnSearch="@Updated">
@@ -75,14 +79,14 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Detected">@Properties.Resources.Detected</Th>
-        <Th Id="Status">@Properties.Resources.Status</Th>
-        <Th Id="Version">@Properties.Resources.Version</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Agent/Edit/" + agent.Id)"><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</Td>
-        <td>@agent.CreationTime</td>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Detected">@Properties.Resources.Detected</Th>
+            <Th Id="Status">@Properties.Resources.Status</Th>
+            <Th Id="Version">@Properties.Resources.Version</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Agent/Edit/" + agent.Id)"><span class=@(ClientHelpers.GetActiveDot(agent.Active))></span>@agent.Name</Td>
+            <td>@agent.CreationTime</td>
         <td>@agent.Detected</td>
         <td>@agent.Status</td>
         @if (IsNewVersionAvailable(agent))
@@ -168,6 +172,24 @@
     [Parameter]
     [Display(Name = "ShowFilter", ResourceType = typeof(Properties.Resources))]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Show total count.

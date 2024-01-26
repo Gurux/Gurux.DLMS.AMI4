@@ -43,11 +43,10 @@ using Gurux.DLMS.AMI.Scheduler;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using System.Data;
-using Gurux.DLMS.AMI.Client.Pages.Schedule;
-using Swashbuckle.AspNetCore.SwaggerGen;
-using Gurux.DLMS.AMI.Client.Pages.Device;
-using Org.BouncyCastle.Crypto;
-using System.Linq;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -101,6 +100,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
+        /// Returns modules that are bind for the schedule.
+        /// </summary>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <returns>List of modules.</returns>
+        private async Task<List<GXModule>> GetModulesByScheduleId(IDbTransaction transaction, Guid scheduleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXModule>();
+            arg.Joins.AddInnerJoin<GXModule, GXScheduleModule>(a => a.Id, b => b.ModuleId);
+            arg.Where.And<GXScheduleModule>(where => where.Removed == null && where.ScheduleId == scheduleId);
+            return (await _host.Connection.SelectAsync<GXModule>(transaction, arg));
+        }
+
+        /// <summary>
         /// Returns devices that are added for the schedule.
         /// </summary>
         /// <param name="scheduleId">Schedule ID.</param>
@@ -119,7 +131,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
         /// <returns>List of objects.</returns>
-        private async Task<List<GXObject>> GetObjectsByScheduleId(IDbTransaction transaction, Guid scheduleId)
+        private async Task<List<GXObject>> GetObjectsByScheduleId(
+            IDbTransaction transaction,
+            Guid scheduleId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXObject>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXObject, GXScheduleToObject>(a => a.Id, b => b.ObjectId);
@@ -130,14 +144,81 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <summary>
         /// Returns attributes that are added for the schedule.
         /// </summary>
+        /// <param name="transaction">Transaction.</param>
         /// <param name="scheduleId">Schedule ID.</param>
-        /// <returns>List of devices.</returns>
-        private async Task<List<GXAttribute>> GetAttributesByScheduleId(Guid scheduleId)
+        /// <returns>List of attributes.</returns>
+        private async Task<List<GXAttribute>> GetAttributesByScheduleId(
+                        IDbTransaction transaction,
+                        Guid scheduleId)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttribute>(where => where.Removed == null);
             arg.Joins.AddInnerJoin<GXAttribute, GXScheduleToAttribute>(a => a.Id, b => b.AttributeId);
             arg.Where.And<GXScheduleToAttribute>(where => where.Removed == null && where.ScheduleId == scheduleId);
-            return (await _host.Connection.SelectAsync<GXAttribute>(arg));
+            return (await _host.Connection.SelectAsync<GXAttribute>(transaction, arg));
+        }
+
+        /// <summary>
+        /// Returns device object templates that are added for the schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <returns>List of object templates.</returns>
+        private async Task<List<GXObjectTemplate>> GetDeviceObjectTemplatesByScheduleId(
+            IDbTransaction transaction,
+            Guid scheduleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXObjectTemplate, GXScheduleToDeviceObjectTemplate>(a => a.Id, b => b.ObjectTemplateId);
+            arg.Where.And<GXScheduleToDeviceObjectTemplate>(where => where.Removed == null && where.ScheduleId == scheduleId);
+            return (await _host.Connection.SelectAsync<GXObjectTemplate>(transaction, arg));
+        }
+
+        /// <summary>
+        /// Returns device group object templates that are added for the schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <returns>List of object templates.</returns>
+        private async Task<List<GXObjectTemplate>> GetDeviceGroupObjectTemplatesByScheduleId(
+            IDbTransaction transaction,
+            Guid scheduleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXObjectTemplate>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXObjectTemplate, GXScheduleToDeviceGroupObjectTemplate>(a => a.Id, b => b.ObjectTemplateId);
+            arg.Where.And<GXScheduleToDeviceGroupObjectTemplate>(where => where.Removed == null && where.ScheduleId == scheduleId);
+            return (await _host.Connection.SelectAsync<GXObjectTemplate>(transaction, arg));
+        }
+
+        /// <summary>
+        /// Returns device attribute templates that are added for the schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <returns>List of attribute templates.</returns>
+        private async Task<List<GXAttributeTemplate>> GetDeviceAttributeTemplatesByScheduleId(
+            IDbTransaction transaction,
+            Guid scheduleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXScheduleToDeviceAttributeTemplate>(a => a.Id, b => b.AttributeTemplateId);
+            arg.Where.And<GXScheduleToDeviceAttributeTemplate>(where => where.Removed == null && where.ScheduleId == scheduleId);
+            return (await _host.Connection.SelectAsync<GXAttributeTemplate>(transaction, arg));
+        }
+
+        /// <summary>
+        /// Returns device group attribute templates that are added for the schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <returns>List of attribute templates.</returns>
+        private async Task<List<GXAttributeTemplate>> GetDeviceGroupAttributeTemplatesByScheduleId(
+            IDbTransaction transaction,
+            Guid scheduleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(where => where.Removed == null);
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXScheduleToDeviceGroupAttributeTemplate>(a => a.Id, b => b.AttributeTemplateId);
+            arg.Where.And<GXScheduleToDeviceGroupAttributeTemplate>(where => where.Removed == null && where.ScheduleId == scheduleId);
+            return (await _host.Connection.SelectAsync<GXAttributeTemplate>(transaction, arg));
         }
 
         /// <inheritdoc/>
@@ -241,6 +322,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXSchedule>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXSchedule>(w => request.Included.Contains(w.Id));
+                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0)
@@ -266,7 +351,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.OrderBy.Add<GXSchedule>(q => q.CreationTime);
                 arg.Descending = true;
             }
-            if (request != null && (request.Select & TargetType.User) != 0)
+
+            if (request?.Select != null && request.Select.Contains("User"))
             {
                 //User info is also read.
                 arg.Columns.Add<GXUser>(s => new { s.Id, s.UserName });
@@ -359,6 +445,44 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Joins.AddInnerJoin<GXScriptMethod, GXScheduleScript>(s => s.Id, o => o.ScriptMethodId);
             arg.Where.And<GXScheduleScript>(w => w.ScheduleId == id && w.Removed == null);
             schedule.ScriptMethods = _host.Connection.Select<GXScriptMethod>(arg);
+            //Get modules with own query. It's faster for some DBs.
+            arg = GXSelectArgs.Select<GXModule>(s => new { s.Id, s.Name, s.Active });
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXModule, GXScheduleModule>(s => s.Id, o => o.ModuleId);
+            arg.Where.And<GXScheduleModule>(w => w.ScheduleId == id && w.Removed == null);
+            schedule.Modules = _host.Connection.Select<GXModule>(arg);
+
+            //Get device object templates with own query. It's faster for some DBs.
+            arg = GXSelectArgs.Select<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName }, q => q.Removed == null);
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXObjectTemplate, GXScheduleToDeviceObjectTemplate>(s => s.Id, o => o.ObjectTemplateId);
+            arg.Where.And<GXScheduleToDeviceObjectTemplate>(w => w.ScheduleId == id && w.Removed == null);
+            schedule.DeviceObjectTemplates = _host.Connection.Select<GXObjectTemplate>(arg);
+            //Get device attribute templates with own query. It's faster for some DBs.
+            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate }, q => q.Removed == null);
+            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
+            arg.Columns.Exclude<GXObjectTemplate>(s => s.Attributes);
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXScheduleToDeviceAttributeTemplate>(s => s.Id, o => o.AttributeTemplateId);
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(s => s.ObjectTemplate, o => o.Id);
+            arg.Where.And<GXScheduleToDeviceAttributeTemplate>(w => w.ScheduleId == id && w.Removed == null);
+            schedule.DeviceAttributeTemplates = _host.Connection.Select<GXAttributeTemplate>(arg);
+
+            //Get device group object templates with own query. It's faster for some DBs.
+            arg = GXSelectArgs.Select<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName }, q => q.Removed == null);
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXObjectTemplate, GXScheduleToDeviceGroupObjectTemplate>(s => s.Id, o => o.ObjectTemplateId);
+            arg.Where.And<GXScheduleToDeviceGroupObjectTemplate>(w => w.ScheduleId == id && w.Removed == null);
+            schedule.DeviceGroupObjectTemplates = _host.Connection.Select<GXObjectTemplate>(arg);
+            //Get device group attribute templates with own query. It's faster for some DBs.
+            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate }, q => q.Removed == null);
+            arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
+            arg.Columns.Exclude<GXObjectTemplate>(s => s.Attributes);
+            arg.Distinct = true;
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXScheduleToDeviceGroupAttributeTemplate>(s => s.Id, o => o.AttributeTemplateId);
+            arg.Joins.AddInnerJoin<GXAttributeTemplate, GXObjectTemplate>(s => s.ObjectTemplate, o => o.Id);
+            arg.Where.And<GXScheduleToDeviceGroupAttributeTemplate>(w => w.ScheduleId == id && w.Removed == null);
+            schedule.DeviceGroupAttributeTemplates = _host.Connection.Select<GXAttributeTemplate>(arg);
             return schedule;
         }
 
@@ -382,7 +506,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Dictionary<GXSchedule, List<string>> updates = new Dictionary<GXSchedule, List<string>>();
             List<GXScheduleGroup>? defaultGroups = null;
             var newGroups = schedulers.Where(w => w.Id == Guid.Empty).ToList();
-            var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();            
+            var updatedGroups = schedulers.Where(w => w.Id != Guid.Empty).ToList();
             //Map schedule groups to schedule.
             Dictionary<GXSchedule, List<GXScheduleGroup>> scheduleGroups = new Dictionary<GXSchedule, List<GXScheduleGroup>>();
             using (IServiceScope scope = _serviceProvider.CreateScope())
@@ -486,7 +610,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.Devices,
                         q.DeviceGroups,
                         q.ScriptMethods,
-                        q.Creator
+                        q.Creator,
+                        q.Modules,
+                        q.DeviceAttributeTemplates,
+                        q.DeviceObjectTemplates,
+                        q.DeviceGroupAttributeTemplates,
+                        q.DeviceGroupObjectTemplates,
                     });
                     _host.Connection.Update(transaction, args);
                     //Map schedule to schedule groups.
@@ -505,10 +634,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     //Map attributes to schedule.
                     {
-                        List<GXAttribute> attributes = await GetAttributesByScheduleId(schedule.Id);
+                        List<GXAttribute> attributes = await GetAttributesByScheduleId(transaction, schedule.Id);
                         var comparer = new UniqueAttributeComparer();
-                        List<GXAttribute> removed = attributes.Except(schedule.Attributes, comparer).ToList();
-                        List<GXAttribute> added = schedule.Attributes.Except(attributes, comparer).ToList();
+                        List<GXAttribute> removed, added;
+                        if (schedule.Attributes == null)
+                        {
+                            removed = attributes;
+                            added = new List<GXAttribute>();
+                        }
+                        else
+                        {
+                            removed = attributes.Except(schedule.Attributes, comparer).ToList();
+                            added = schedule.Attributes.Except(attributes, comparer).ToList();
+                        }
                         if (removed.Any())
                         {
                             RemoveAttributesFromSchedule(transaction, schedule.Id, removed);
@@ -523,8 +661,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         List<GXObject> objects = await GetObjectsByScheduleId(transaction, schedule.Id);
                         var comparer = new UniqueObjectComparer();
-                        List<GXObject> removed = objects.Except(schedule.Objects, comparer).ToList();
-                        List<GXObject> added = schedule.Objects.Except(objects, comparer).ToList();
+                        List<GXObject> removed, added;
+                        if (schedule.Objects == null)
+                        {
+                            removed = objects;
+                            added = new List<GXObject>();
+                        }
+                        else
+                        {
+                            removed = objects.Except(schedule.Objects, comparer).ToList();
+                            added = schedule.Objects.Except(objects, comparer).ToList();
+                        }
                         if (removed.Any())
                         {
                             RemoveObjectsFromSchedule(transaction, schedule.Id, removed);
@@ -538,8 +685,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         List<GXDevice> devices = await GetDevicesByScheduleId(schedule.Id);
                         var comparer = new UniqueComparer<GXDevice, Guid>();
-                        List<GXDevice> removed = devices.Except(schedule.Devices, comparer).ToList();
-                        List<GXDevice> added = schedule.Devices.Except(devices, comparer).ToList();
+                        List<GXDevice> removed, added;
+                        if (schedule.Devices == null)
+                        {
+                            removed = devices;
+                            added = new List<GXDevice>();
+                        }
+                        else
+                        {
+                            removed = devices.Except(schedule.Devices, comparer).ToList();
+                            added = schedule.Devices.Except(devices, comparer).ToList();
+                        }
                         if (removed.Any())
                         {
                             RemoveDevicesFromSchedule(transaction, schedule.Id, removed);
@@ -553,8 +709,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         List<GXDeviceGroup> devicegroups = await GetDeviceGroupsByScheduleId(schedule.Id);
                         var comparer = new UniqueComparer<GXDeviceGroup, Guid>();
-                        List<GXDeviceGroup> removed = devicegroups.Except(schedule.DeviceGroups, comparer).ToList();
-                        List<GXDeviceGroup> added = schedule.DeviceGroups.Except(devicegroups, comparer).ToList();
+                        List<GXDeviceGroup> removed, added;
+                        if (schedule.DeviceGroups == null)
+                        {
+                            removed = devicegroups;
+                            added = new List<GXDeviceGroup>();
+                        }
+                        else
+                        {
+                            removed = devicegroups.Except(schedule.DeviceGroups, comparer).ToList();
+                            added = schedule.DeviceGroups.Except(devicegroups, comparer).ToList();
+                        }
                         if (removed.Any())
                         {
                             RemoveDeviceGroupsFromSchedule(transaction, schedule.Id, removed);
@@ -568,8 +733,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         List<GXScriptMethod> scripts = await GetScriptsByScheduleId(schedule.Id);
                         var comparer = new UniqueComparer<GXScriptMethod, Guid>();
-                        List<GXScriptMethod> removed = scripts.Except(schedule.ScriptMethods, comparer).ToList();
-                        List<GXScriptMethod> added = schedule.ScriptMethods.Except(scripts, comparer).ToList();
+                        List<GXScriptMethod> removed, added;
+                        if (schedule.ScriptMethods == null)
+                        {
+                            removed = scripts;
+                            added = new List<GXScriptMethod>();
+                        }
+                        else
+                        {
+                            removed = scripts.Except(schedule.ScriptMethods, comparer).ToList();
+                            added = schedule.ScriptMethods.Except(scripts, comparer).ToList();
+                        }
                         if (removed.Any())
                         {
                             RemoveScriptMethodsFromSchedule(transaction, schedule.Id, removed);
@@ -577,6 +751,139 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         if (added.Any())
                         {
                             AddScriptMethodsToSchedule(transaction, schedule.Id, added);
+                        }
+                    }
+                    //Map modules to schedule.
+                    {
+                        List<GXModule> modules = await GetModulesByScheduleId(transaction, schedule.Id);
+                        var comparer = new UniqueComparer<GXModule, string>();
+                        List<GXModule> removed, added;
+                        if (schedule.Modules == null)
+                        {
+                            removed = modules;
+                            added = new List<GXModule>();
+                        }
+                        else
+                        {
+                            removed = modules.Except(schedule.Modules, comparer).ToList();
+                            added = schedule.Modules.Except(modules, comparer).ToList();
+                        }
+                        if (removed.Any())
+                        {
+                            RemoveModulesFromSchedule(transaction, schedule.Id, removed);
+                        }
+                        if (added.Any())
+                        {
+                            AddModulesToSchedule(transaction, schedule.Id, added);
+                        }
+                    }
+
+                    //Map device attribute templates to schedule.
+                    {
+                        List<GXAttributeTemplate> attributes = await GetDeviceAttributeTemplatesByScheduleId(transaction,
+                            schedule.Id);
+                        var comparer = new UniqueComparer<GXAttributeTemplate, Guid>();
+                        List<GXAttributeTemplate> removed, added;
+                        if (schedule.DeviceAttributeTemplates == null)
+                        {
+                            removed = attributes;
+                            added = new List<GXAttributeTemplate>();
+                        }
+                        else
+                        {
+                            removed = attributes.Except(schedule.DeviceAttributeTemplates, comparer).ToList();
+                            added = schedule.DeviceAttributeTemplates.Except(attributes, comparer).ToList();
+                        }
+                        if (removed.Any())
+                        {
+                            RemoveDeviceAttributeTemplatesFromSchedule(transaction,
+                                schedule.Id, removed);
+                        }
+                        if (added.Any())
+                        {
+                            await AddDeviceAttributeTemplatesToSchedule(transaction,
+                                schedule.Id, added);
+                        }
+                    }
+
+                    //Map device object templates to schedule.
+                    {
+                        List<GXObjectTemplate> objects = await GetDeviceObjectTemplatesByScheduleId(transaction, schedule.Id);
+                        var comparer = new UniqueComparer<GXObjectTemplate, Guid>();
+                        List<GXObjectTemplate> removed, added;
+                        if (schedule.DeviceObjectTemplates == null)
+                        {
+                            removed = objects;
+                            added = new List<GXObjectTemplate>();
+                        }
+                        else
+                        {
+                            removed = objects.Except(schedule.DeviceObjectTemplates, comparer).ToList();
+                            added = schedule.DeviceObjectTemplates.Except(objects, comparer).ToList();
+                        }
+                        if (removed.Any())
+                        {
+                            RemoveDeviceObjectTemplatesFromSchedule(transaction,
+                                schedule.Id, removed);
+                        }
+                        if (added.Any())
+                        {
+                            await AddDeviceObjectTemplatesToSchedule(transaction, schedule.Id, added);
+                        }
+                    }
+                    //Map device group attribute templates to schedule.
+                    {
+                        List<GXAttributeTemplate> attributes = await GetDeviceGroupAttributeTemplatesByScheduleId(transaction,
+                            schedule.Id);
+                        var comparer = new UniqueComparer<GXAttributeTemplate, Guid>();
+                        List<GXAttributeTemplate> removed;
+                        List<GXAttributeTemplate> added;
+                        if (schedule.DeviceGroupAttributeTemplates == null)
+                        {
+                            removed = attributes;
+                            added = new List<GXAttributeTemplate>();
+                        }
+                        else
+                        {
+                            removed = attributes.Except(schedule.DeviceGroupAttributeTemplates, comparer).ToList();
+                            added = schedule.DeviceGroupAttributeTemplates.Except(attributes, comparer).ToList();
+                        }
+                        if (removed.Any())
+                        {
+                            RemoveDeviceGroupAttributeTemplatesFromSchedule(transaction,
+                                schedule.Id, removed);
+                        }
+                        if (added.Any())
+                        {
+                            await AddDeviceGroupAttributeTemplatesToSchedule(transaction,
+                                schedule.Id, added);
+                        }
+                    }
+
+                    //Map device group object templates to schedule.
+                    {
+                        List<GXObjectTemplate> objects = await GetDeviceGroupObjectTemplatesByScheduleId(transaction, schedule.Id);
+                        var comparer = new UniqueComparer<GXObjectTemplate, Guid>();
+                        List<GXObjectTemplate> removed;
+                        List<GXObjectTemplate> added;
+                        if (schedule.DeviceGroupObjectTemplates == null)
+                        {
+                            removed = objects;
+                            added = new List<GXObjectTemplate>();
+                        }
+                        else
+                        {
+                            removed = objects.Except(schedule.DeviceGroupObjectTemplates, comparer).ToList();
+                            added = schedule.DeviceGroupObjectTemplates.Except(objects, comparer).ToList();
+                        }
+                        if (removed.Any())
+                        {
+                            RemoveDeviceGroupObjectTemplatesFromSchedule(transaction,
+                                schedule.Id, removed);
+                        }
+                        if (added.Any())
+                        {
+                            await AddDeviceGroupObjectTemplatesToSchedule(transaction, schedule.Id, added);
                         }
                     }
                 }
@@ -872,6 +1179,51 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _host.Connection.Delete(transaction, args);
         }
 
+        /// <summary>
+        /// Add modules to schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="modules">Modules that are added for the schedule.</param>
+        public void AddModulesToSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXModule> modules)
+        {
+            DateTime now = DateTime.Now;
+            List<GXScheduleModule> list = new List<GXScheduleModule>();
+            foreach (GXModule it in modules)
+            {
+                list.Add(new GXScheduleModule()
+                {
+                    ScheduleId = scheduleId,
+                    ModuleId = it.Id,
+                    CreationTime = now
+                });
+            }
+            _host.Connection.Insert(transaction, GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove modules from schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="modules">Modules that are removed from the schedule.</param>
+        public void RemoveModulesFromSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXModule> modules)
+        {
+            var args = GXDeleteArgs.DeleteAll<GXScheduleModule>();
+            foreach (GXModule it in modules)
+            {
+                args.Where.Or<GXScheduleModule>(w => w.ModuleId == it.Id &&
+                w.ScheduleId == scheduleId);
+            }
+            _host.Connection.Delete(transaction, args);
+        }
+
         /// <inheritdoc/>
         public async Task RunAsync(ClaimsPrincipal User, Guid id)
         {
@@ -884,6 +1236,250 @@ namespace Gurux.DLMS.AMI.Server.Repository
             schedule.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             IGXScheduleService scheduleHandler = _serviceProvider.GetRequiredService<IGXScheduleService>();
             await scheduleHandler.RunAsync(User, schedule);
+        }
+
+        /// <inheritdoc/>
+        public async Task<GXScheduleModule?> GetModuleSettingsAsync(
+            ClaimsPrincipal user,
+            GXScheduleModule? settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
+            }
+            GXSelectArgs args = GXSelectArgs.SelectAll<GXScheduleModule>(w => w.Removed == null
+            && w.ScheduleId == settings.ScheduleId &&
+            w.ModuleId == settings.ModuleId);
+            var tmp = await _host.Connection.SingleOrDefaultAsync<GXScheduleModule>(args);
+            if (tmp != null && tmp.ScheduleId == Guid.Empty)
+            {
+                tmp = null;
+            }
+            return tmp;
+        }
+
+        /// <inheritdoc/>
+        public async Task UpdateModuleSettingsAsync(
+            ClaimsPrincipal user,
+            GXScheduleModule? settings)
+        {
+            if (settings == null)
+            {
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
+            }
+            GXSelectArgs m = GXSelectArgs.Select<GXScheduleModule>(q => new { q.ScheduleId, q.ConcurrencyStamp },
+                w => w.Removed == null && w.ScheduleId == settings.ScheduleId &&
+                w.ModuleId == settings.ModuleId);
+            GXScheduleModule? item = _host.Connection.SingleOrDefault<GXScheduleModule>(m);
+            if (!string.IsNullOrEmpty(item?.ConcurrencyStamp) && item.ConcurrencyStamp != settings.ConcurrencyStamp)
+            {
+                throw new ArgumentException(Properties.Resources.ContentEdited);
+            }
+            if (item == null || item.ScheduleId == Guid.Empty)
+            {
+                settings.CreationTime = DateTime.Now;
+                settings.ConcurrencyStamp = Guid.NewGuid().ToString();
+                GXInsertArgs args = GXInsertArgs.Insert(settings);
+                await _host.Connection.InsertAsync(args);
+            }
+            else
+            {
+                settings.Updated = DateTime.Now;
+                settings.ConcurrencyStamp = Guid.NewGuid().ToString();
+                GXUpdateArgs args = GXUpdateArgs.Update(settings,
+                    u => new { u.Updated, u.ConcurrencyStamp, u.Settings });
+                args.Where.And<GXScheduleModule>(w => w.Removed == null &&
+                w.ScheduleId == settings.ScheduleId && w.ModuleId == settings.ModuleId);
+                await _host.Connection.UpdateAsync(args);
+            }
+        }
+
+        /// <summary>
+        /// Add device objects to schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="objects">ObjectTemplatess that are added for the schedule.</param>
+        public async Task AddDeviceObjectTemplatesToSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXObjectTemplate> objects)
+        {
+            DateTime now = DateTime.Now;
+            List<GXScheduleToDeviceObjectTemplate> list = new List<GXScheduleToDeviceObjectTemplate>();
+            foreach (GXObjectTemplate it in objects)
+            {
+                list.Add(new GXScheduleToDeviceObjectTemplate()
+                {
+                    ScheduleId = scheduleId,
+                    ObjectTemplateId = it.Id,
+                    CreationTime = now
+                });
+            }
+            await _host.Connection.InsertAsync(transaction,
+                GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove device objects from schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="objects">ObjectTemplatess that are removed from the schedule.</param>
+        public void RemoveDeviceObjectTemplatesFromSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXObjectTemplate> objects)
+        {
+            var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceObjectTemplate>();
+            foreach (var it in objects)
+            {
+                args.Where.Or<GXScheduleToDeviceObjectTemplate>(w =>
+                w.ObjectTemplateId == it.Id &&
+                w.ScheduleId == scheduleId);
+            }
+            _host.Connection.Delete(transaction, args);
+        }
+
+        /// <summary>
+        /// Add device group objects to schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="objects">Object templates that are added for the schedule.</param>
+        public async Task AddDeviceGroupObjectTemplatesToSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXObjectTemplate> objects)
+        {
+            DateTime now = DateTime.Now;
+            List<GXScheduleToDeviceGroupObjectTemplate> list = new List<GXScheduleToDeviceGroupObjectTemplate>();
+            foreach (GXObjectTemplate it in objects)
+            {
+                list.Add(new GXScheduleToDeviceGroupObjectTemplate()
+                {
+                    ScheduleId = scheduleId,
+                    ObjectTemplateId = it.Id,
+                    CreationTime = now
+                });
+            }
+            await _host.Connection.InsertAsync(transaction,
+                GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove device group objects from schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="objects">ObjectTemplatess that are removed from the schedule.</param>
+        public void RemoveDeviceGroupObjectTemplatesFromSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXObjectTemplate> objects)
+        {
+            var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceGroupObjectTemplate>();
+            foreach (var it in objects)
+            {
+                args.Where.Or<GXScheduleToDeviceGroupObjectTemplate>(w =>
+                w.ObjectTemplateId == it.Id &&
+                w.ScheduleId == scheduleId);
+            }
+            _host.Connection.Delete(transaction, args);
+        }
+
+        /// <summary>
+        /// Add device attributes to schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="attributes">Device attribute templates that are added for the schedule.</param>
+        public async Task AddDeviceAttributeTemplatesToSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXAttributeTemplate> attributes)
+        {
+            DateTime now = DateTime.Now;
+            List<GXScheduleToDeviceAttributeTemplate> list = new List<GXScheduleToDeviceAttributeTemplate>();
+            foreach (GXAttributeTemplate it in attributes)
+            {
+                list.Add(new GXScheduleToDeviceAttributeTemplate()
+                {
+                    ScheduleId = scheduleId,
+                    AttributeTemplateId = it.Id,
+                    CreationTime = now
+                });
+            }
+            await _host.Connection.InsertAsync(transaction,
+                GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove device attributes from schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="attributes">Device attribute templatess that are removed from the schedule.</param>
+        public void RemoveDeviceAttributeTemplatesFromSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXAttributeTemplate> attributes)
+        {
+            var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceAttributeTemplate>();
+            foreach (var it in attributes)
+            {
+                args.Where.Or<GXScheduleToDeviceAttributeTemplate>(w =>
+                w.AttributeTemplateId == it.Id &&
+                w.ScheduleId == scheduleId);
+            }
+            _host.Connection.Delete(transaction, args);
+        }
+
+        /// <summary>
+        /// Add device group attribute templates to schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="attributes">Device group attribute templates that are added for the schedule.</param>
+        public async Task AddDeviceGroupAttributeTemplatesToSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXAttributeTemplate> attributes)
+        {
+            DateTime now = DateTime.Now;
+            List<GXScheduleToDeviceGroupAttributeTemplate> list = new List<GXScheduleToDeviceGroupAttributeTemplate>();
+            foreach (GXAttributeTemplate it in attributes)
+            {
+                list.Add(new GXScheduleToDeviceGroupAttributeTemplate()
+                {
+                    ScheduleId = scheduleId,
+                    AttributeTemplateId = it.Id,
+                    CreationTime = now
+                });
+            }
+            await _host.Connection.InsertAsync(transaction,
+                GXInsertArgs.InsertRange(list));
+        }
+
+        /// <summary>
+        /// Remove device group attributes from schedule.
+        /// </summary>
+        /// <param name="transaction">Transaction.</param>
+        /// <param name="scheduleId">Schedule ID.</param>
+        /// <param name="attributes">Device group attribute templatess that are removed from the schedule.</param>
+        public void RemoveDeviceGroupAttributeTemplatesFromSchedule(
+            IDbTransaction transaction,
+            Guid scheduleId,
+            IEnumerable<GXAttributeTemplate> attributes)
+        {
+            var args = GXDeleteArgs.DeleteAll<GXScheduleToDeviceGroupAttributeTemplate>();
+            foreach (var it in attributes)
+            {
+                args.Where.Or<GXScheduleToDeviceGroupAttributeTemplate>(w =>
+                w.AttributeTemplateId == it.Id &&
+                w.ScheduleId == scheduleId);
+            }
+            _host.Connection.Delete(transaction, args);
         }
     }
 }

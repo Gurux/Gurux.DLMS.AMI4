@@ -1,4 +1,5 @@
 ﻿@page "/tasks"
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -15,7 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 @implements IAmiComponent
 
@@ -36,70 +37,71 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
          Filter="@Filter"
          OnSearch="@Updated">
     <FilterContent>
         <th>
             <!--Target-->
         </th>
-        <th>
+        <Fh>
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-        </th>
-        <th>
-            <div>
-                <input class="form-control" placeholder="Filter by start time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
-            </div>
-        </th>
-        <th>
+        </Fh>
+        <Fh Visibility="Visibility.ExtraSmall">
+            <!--Task type-->
+        </Fh>
+        <Fh Visibility="Visibility.Small">
+            <input class="form-control" placeholder="Filter by start time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+        <Fh Visibility="Visibility.Medium">
             <input class="form-control" placeholder="Filter by end time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
+        </Fh>
+        <Fh Visibility="Visibility.Large">
             <!--Result.-->
-        </th>
+        </Fh>
     </FilterContent>
     <HeaderContent>
         <Th Id="Target">@Properties.Resources.Target</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="TaskType">@Properties.Resources.TaskType</Th>
-        <Th Id="Start">@Properties.Resources.StartTime</Th>
-        <Th Id="Ready">@Properties.Resources.CompletedTime</Th>
-        <Th Id="Result">@Properties.Resources.Result</Th>
-    </HeaderContent>
-    <ItemContent>
-        <td>@task.Target</td>
-        <td>@task.CreationTime</td>
-        <td>@TaskTypeToString(task.TaskType)</td>
-        <td>@task.Start</td>
-        <td>@task.Ready</td>
-        <td>@task.Result</td>
-    </ItemContent>
-</GXTable>
-<br />
-<Confirm @ref="RemoveConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="TaskType" Visibility="Visibility.ExtraSmall">@Properties.Resources.TaskType</Th>
+            <Th Id="Start" Visibility="Visibility.Small">@Properties.Resources.StartTime</Th>
+            <Th Id="Ready" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</Th>
+            <Th Id="Result" Visibility="Visibility.Large">@Properties.Resources.Result</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td>@task.Target</Td>
+            <Td>@task.CreationTime</Td>
+            <Td Visibility="Visibility.ExtraSmall">@TaskTypeToString(task.TaskType)</Td>
+            <Td Visibility="Visibility.Small">@task.Start</Td>
+            <Td Visibility="Visibility.Medium">@task.Ready</Td>
+            <Td Visibility="Visibility.Large">@task.Result</Td>
+        </ItemContent>
+    </GXTable>
+    <br />
+    <Confirm @ref="RemoveConfirmation"
+             ConfirmationChanged="OnDeleteConfirmation"
+             AllowDelete="false"
+             OkTitle="@Properties.Resources.Remove"
+             ConfirmationMessage=""
+             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+    </Confirm>
 
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-         AllowDelete="false"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
-</Confirm>
+    <Confirm @ref="ClearConfirmation"
+             ConfirmationChanged="OnClearConfirmation"
+             ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+             AllowDelete="false"
+             OkTitle="@Properties.Resources.Clear"
+             ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
+    </Confirm>
 
-@code {
+    @code {
     /// <summary>
     /// Action.
     /// </summary>
@@ -150,6 +152,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.
@@ -225,13 +245,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -287,10 +307,6 @@
         await Task.Delay(1);
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), async (tasks) =>
@@ -326,18 +342,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXTask>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             ListTasks req = new ListTasks()
@@ -346,14 +362,20 @@
                     Count = request.Count,
                     Filter = filter,
                     OrderBy = request.OrderBy,
-                    Descending = request.Descending
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
                 };
             if (Count != 0)
             {
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListTasksResponse>("api/Task/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
+            if (ret.Tasks != null)
+            {
+                //Mark tasks as seen.
+                await Notifier.Mark(Http, TargetType.Task, ret.Tasks.Max(s => s.CreationTime));
+                return new ItemsProviderResult<GXTask>(ret.Tasks, ret.Count);
+            }
         }
         catch (TaskCanceledException)
         {
@@ -362,11 +384,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -390,7 +412,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -422,7 +444,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -445,7 +467,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 

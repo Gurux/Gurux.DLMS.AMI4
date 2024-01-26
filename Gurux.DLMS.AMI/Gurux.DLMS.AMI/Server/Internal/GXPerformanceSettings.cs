@@ -43,7 +43,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
     /// </summary>
     public class GXPerformanceSettings
     {
-        private TargetType IgnoreNotification;
+        private string[]? IgnoreNotification;
 
         /// <summary>
         /// Constructor.
@@ -55,7 +55,14 @@ namespace Gurux.DLMS.AMI.Server.Internal
             GXConfiguration[] confs = configurationRepository.ListAsync(User, req, null, CancellationToken.None).Result;
             if (confs.Length == 1)
             {
-                IgnoreNotification = JsonSerializer.Deserialize<PerformanceSettings>(confs[0].Settings).IgnoreNotification;
+                try
+                {
+                    IgnoreNotification = JsonSerializer.Deserialize<PerformanceSettings>(confs[0].Settings)?.IgnoreNotification;
+                }
+                catch (Exception)
+                {
+                    //Ignore notification is changed from UInt64 to string.
+                }
             }
             configurationRepository.Updated += (configurations) =>
             {
@@ -64,7 +71,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 {
                     if (it.Name == GXConfigurations.Performance && it.Settings != null)
                     {
-                        IgnoreNotification = JsonSerializer.Deserialize<PerformanceSettings>(it.Settings).IgnoreNotification;
+                        IgnoreNotification = JsonSerializer.Deserialize<PerformanceSettings>(it.Settings)?.IgnoreNotification;
                         break;
                     }
                 }
@@ -76,9 +83,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// </summary>
         /// <param name="type">Notify type.</param>
         /// <returns></returns>
-        public bool Notify(TargetType type)
+        public bool Notify(string type)
         {
-            return (IgnoreNotification & type) == 0;
+            return IgnoreNotification == null ||
+                !IgnoreNotification.Contains(type);
         }
     }
 }

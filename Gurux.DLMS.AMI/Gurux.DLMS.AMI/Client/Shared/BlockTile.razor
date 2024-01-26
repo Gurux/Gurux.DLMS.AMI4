@@ -236,6 +236,7 @@
                         {
                             _blocks.Clear();
                             _blocks.AddRange(ret.Blocks);
+                            _blocks.RemoveAll(w => w.Parent != null);
                         }
                     }
                 }

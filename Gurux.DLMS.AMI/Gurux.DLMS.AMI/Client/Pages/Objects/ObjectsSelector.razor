@@ -1,4 +1,5 @@
 ﻿@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -12,6 +13,7 @@
 @using Gurux.DLMS.AMI.Module
 @using System.Linq
 @using System.Text;
+    using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
@@ -21,10 +23,11 @@
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
                    ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription"
                    OnAdded="OnAdded"
                    OnRemoved="@Removed">
+        <DataContent>
+            @(context.Template?.LogicalName + " " + context.Template?.Name)
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
@@ -39,9 +42,10 @@
         </ButtonContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @(context.Template?.LogicalName + " " + context.Template?.Name)
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -79,25 +83,6 @@
     /// Selected object filter.
     /// </summary>
     private string? selectedNameFilter;
-
-    string? GetName(GXObject target)
-    {
-        return target.Template?.Name;
-    }
-
-    string? GetDescription(GXObject target)
-    {
-        StringBuilder sb = new StringBuilder();
-        if (target.Device?.Name != null)
-        {
-            sb.Append(target.Device.Name);
-            sb.Append(' ');
-        }
-        sb.Append(target.Template?.LogicalName);
-        sb.Append(' ');
-        sb.Append(target.Template?.Name);
-        return sb.ToString();
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -249,16 +234,19 @@
         }
     }
 
+    private List<GXObject> GetObjects()
+    {
+        return ScheduleParent.Active.Objects;
+    }
+
     /// <summary>
     /// Remove all objects from selected items.
     /// </summary>
     /// <returns></returns>
     private async Task RemoveAll()
     {
-        if (ScheduleParent?.Active.Objects != null)
-        {
-            ScheduleParent.Active.Objects.Clear();
-        }
+        List<GXObject> objects = GetObjects();
+        objects.Clear();
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -274,10 +262,8 @@
     /// </summary>
     public async Task OnAdded(IEnumerable<GXObject> items)
     {
-        if (ScheduleParent?.Active?.Objects != null)
-        {
-            ScheduleParent.Active.Objects.InsertRange(0, items);
-        }
+        List<GXObject> objects = GetObjects();
+        objects.InsertRange(0, items);
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -289,10 +275,8 @@
     /// </summary>
     private async Task Removed(IEnumerable<GXObject> items)
     {
-        if (ScheduleParent?.Active?.Objects != null)
-        {
-            ScheduleParent.Active.Objects.RemoveAll(w => items.Contains(w));
-        }
+        List<GXObject> objects = GetObjects();
+        objects.RemoveAll(w => items.Contains(w));
         if (_selected != null)
         {
             await _selected.RefreshDataAsync();
@@ -306,13 +290,13 @@
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXObject>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        var objects = ScheduleParent.Active.Objects;
-        int total = ScheduleParent.Active.Objects.Count;
+        List<GXObject> objects = GetObjects();
+        int total = objects.Count;
         if (!string.IsNullOrEmpty(selectedNameFilter))
         {
             objects = objects.Where(w => w.Template.Name.ToLower().Contains(selectedNameFilter.ToLower())).ToList();
         }
-        return new(new ItemsProviderResult<GXObject>(objects.Skip(request.StartIndex).Take(request.Count),total));
+        return new(new ItemsProviderResult<GXObject>(objects.Skip(request.StartIndex).Take(request.Count), total));
     }
 
     private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)
@@ -328,8 +312,8 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Select = TargetType.Device,
-                    Exclude = ScheduleParent?.Active?.Objects?.Select(s => s.Id).ToArray()
+                    Select = new string[] { "Device" },
+                    Exclude = GetObjects().Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
             if (ret?.Objects != null && _selected != null)
@@ -365,7 +349,7 @@
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            if (ScheduleParent?.Active?.Objects == null)
+            if (GetObjects() == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }

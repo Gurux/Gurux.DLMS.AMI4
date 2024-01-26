@@ -23,7 +23,7 @@
                     <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox"
-                            @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
+                                   @onchange="@((ChangeEventArgs __e) => ShowAllUserData = @StatusTile.ToBoolean(__e.Value))" />
                             <label>@Properties.Resources.ShowDataForAllUsers</label>
                         </div>
                     </AuthorizeView>
@@ -41,15 +41,16 @@
         }
         <ul class="dropzone @dropClass"
             ondragover="event.preventDefault();"
-        @ondragstart="HandleDragStart"
-        @ondrop="HandleDrop"
-        @ondragenter="HandleDragEnter"
-        @ondragleave="HandleDragLeave">
+            @ondragstart="HandleDragStart"
+            @ondrop="HandleDrop"
+            @ondragenter="HandleDragEnter"
+            @ondragleave="HandleDragLeave">
 
             @foreach (var it in GetItems())
             {
                 <CascadingValue Value="this">
-                    <SelectionItem Target="@it" />
+                    <SelectionItem Target="@it"
+                                   DataContent="@DataContent" />
                 </CascadingValue>
             }
         </ul>
@@ -126,20 +127,7 @@
     [Parameter]
     public bool Total { get; set; } = true;
 
-    /// <summary>
-    /// Get name for the object.
-    /// </summary>
-    [Parameter]
-    public GetNameEventHandler? GetName { get; set; }
-
-    /// <summary>
-    /// Get description for the object.
-    /// </summary>
-    [Parameter]
-    public GetDescriptionEventHandler? GetDescription { get; set; }
-
     internal List<int> Pages = new List<int>();
-
 
     /// <summary>
     /// Current page.
@@ -235,6 +223,24 @@
     public bool Filter { get; set; } = false;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Button content.
     /// </summary>
     [Parameter]
@@ -245,6 +251,9 @@
     /// </summary>
     [Parameter]
     public RenderFragment? FilterContent { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem>? DataContent { get; set; }
 
     /// <summary>
     /// A new item has added for the list.
@@ -297,6 +306,14 @@
                 Container.DragSource = null;
             }
         }
+    }
+
+    /// <summary>
+    /// Update UI.
+    /// </summary>
+    public void Update()
+    {
+        StateHasChanged();
     }
 
     /// <summary>

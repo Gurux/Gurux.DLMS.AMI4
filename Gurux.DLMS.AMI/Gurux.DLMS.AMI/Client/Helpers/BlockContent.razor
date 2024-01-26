@@ -1,0 +1,86 @@
+﻿@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Collections.Concurrent
+
+@inject ILogger<BlockContent> Logger
+<!--
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=500, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Error</title>
+    <link href="~/css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+    <link href="~/css/app.css" rel="stylesheet" asp-append-version="true" />
+</head>
+-->
+@if (Value != null)
+{
+    @if (Value.BlockType == BlockType.Html && !string.IsNullOrWhiteSpace(Value.Body))
+    {
+        <div class="@Value.CssClass" role="@Value.CssRole" style="@Value.Style">
+            @if (!string.IsNullOrWhiteSpace(Value.Title))
+            {
+                <p class='markup'>@((MarkupString)Value.Title)</p>
+            }
+            <p class='markup'>@((MarkupString)Value.Body)</p>
+        </div>
+    }
+    else if (Value.BlockType == BlockType.Component && Value.ComponentView != null)
+    {
+        if (!string.IsNullOrWhiteSpace(Value.Title))
+        {
+            <p class='markup'>@((MarkupString)Value.Title)</p>
+        }
+        Type? type = Type.GetType(Value.ComponentView.ClassName);
+        if (type != null && !string.IsNullOrEmpty(Value.Name))
+        {
+            RenderFragment renderFragment = (builder) =>
+            {
+                builder.OpenComponent(0, type);
+                @if (Values.ContainsKey(Value.Name))
+                {
+                    object? target = Values[Value.Name];
+                    if (target != null)
+                    {
+                        foreach (var it in Values[Value.Name].GetType().GetProperties())
+                        {
+                            if (it.Name != "ChildContent" && it.CanRead && it.CanWrite && it.GetCustomAttributes(typeof(ParameterAttribute), false).Any())
+                            {
+                                builder.AddAttribute(0, it.Name, it.GetValue(target));
+                            }
+                        }
+                    }
+                }
+                builder.CloseComponent();
+            };
+            @renderFragment
+        }
+        else
+        {
+            Logger.LogError("Unknown component {0}", Value.ComponentView.ClassName);
+        }
+    }
+    else if (Value.BlockType == BlockType.Script && Value.Name != null && Values.ContainsKey(Value.Name))
+    {
+        <div class="@Value.CssClass" role="@Value.CssRole" style="@Value.Style">
+            @if (!string.IsNullOrWhiteSpace(Value.Title))
+            {
+                <p class='markup'>@((MarkupString)Value.Title)</p>
+            }
+            <p class='markup'>@(new MarkupString((string)Values[Value.Name]))</p>
+        </div>
+    }
+}
+@code
+{
+    [Parameter]
+    public GXBlock? Value { get; set; }
+
+    /// <summary>
+    /// CSS style.
+    /// </summary>
+    [Parameter]
+    public string? CssStyle { get; set; }
+
+    [Parameter]
+    public ConcurrentDictionary<string, object?>? Values { get; set; }
+}

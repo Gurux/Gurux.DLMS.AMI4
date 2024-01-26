@@ -66,7 +66,7 @@
     internal CrudAction Action;
     internal PropertyInfo? Selected;
 
-    internal Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? Settings;
+    internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings;
 
     private bool ShouldSkip(PropertyInfo pi)
     {
@@ -153,7 +153,7 @@
         }
     }
 
-    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s, bool renderOnSuccess = true)
     {
         Settings = s;
         if (renderOnSuccess)
@@ -162,11 +162,11 @@
         }
     }
 
-    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
     }
 
-    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
     }
 
@@ -206,7 +206,7 @@
 
     protected override void OnInitialized()
     {
-        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {
             Settings = s;
         }

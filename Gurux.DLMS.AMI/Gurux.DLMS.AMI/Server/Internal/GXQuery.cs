@@ -30,9 +30,21 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Security.Claims;
@@ -1328,7 +1340,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
         /// Get agent errors that user can access.
         /// </summary>
         /// <param name="userId">User Id</param>
-        /// <param name="agentId">Device Id</param>
+        /// <param name="agentId">Agent Id</param>
         /// <returns>List of agents that user can access.</returns>
         public static GXSelectArgs GetAgentErrorsByUser(string userId, Guid? agentId = null)
         {
@@ -1336,6 +1348,21 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Columns.Clear();
             args.Columns.Add<GXAgentLog>();
             args.Joins.AddInnerJoin<GXAgent, GXAgentLog>(j => j.Id, j => j.Agent);
+            return args;
+        }
+
+        /// <summary>
+        /// Get subtotal errors that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="subtotalId">Subtotal Id</param>
+        /// <returns>List of subtotals that user can access.</returns>
+        public static GXSelectArgs GetSubtotalErrorsByUser(string userId, Guid? subtotalId = null)
+        {
+            GXSelectArgs args = GetSubtotalsByUser(userId);
+            args.Columns.Clear();
+            args.Columns.Add<GXSubtotalLog>();
+            args.Joins.AddInnerJoin<GXSubtotal, GXSubtotalLog>(j => j.Id, j => j.Subtotal);
             return args;
         }
 
@@ -2832,6 +2859,166 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Columns.Clear();
             args.Columns.Add<GXGatewayLog>();
             args.Joins.AddInnerJoin<GXGateway, GXGatewayLog>(j => j.Id, j => j.Gateway);
+            return args;
+        }
+
+        /// <summary>
+        /// Get subtotal groups that user can access.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="groupId">Subtotal group id.</param>
+        /// <returns>List of subtotal groups that user can access.</returns>
+        public static GXSelectArgs GetSubtotalGroupsByUser(string userId, Guid? groupId = null)
+        {
+            GXSelectArgs userGroups = GetUserGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXUserGroupSubtotalGroup>(s => s.SubtotalGroupId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXSubtotalGroup>();
+            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(j => j.SubtotalGroupId, j => j.Id);
+            args.Where.And<GXUserGroupSubtotalGroup>(q => GXSql.Exists<GXUserGroupSubtotalGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
+            if (groupId != null)
+            {
+                args.Where.And<GXSubtotalGroup>(q => q.Id == groupId);
+            }
+            args.Where.And<GXSubtotalGroup>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the subtotal group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupId">Subtotal group id.</param>
+        /// <returns>List of users who can access the subtotal group.</returns>
+        public static GXSelectArgs GetUsersBySubtotalGroup(string userId, Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupId != null)
+            {
+                args.Where.And<GXSubtotalGroup>(q => q.Removed == null && q.Id == groupId);
+            }
+            else
+            {
+                args.Where.And<GXSubtotalGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the subtotal group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupIds">Subtotal group ids.</param>
+        /// <returns>List of users who can access the subtotal group.</returns>
+        public static GXSelectArgs GetUsersBySubtotalGroups(string userId, IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupIds != null)
+            {
+                args.Where.And<GXSubtotalGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXSubtotalGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get subtotals that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="subtotalId">Device Id</param>
+        /// <returns>List of subtotals that user can access.</returns>
+        public static GXSelectArgs GetSubtotalsByUser(string userId, Guid? subtotalId = null)
+        {
+            GXSelectArgs subtotalGroups = GetSubtotalGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXSubtotalGroupSubtotal>(s => s.SubtotalId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXSubtotal>();
+            args.Joins.AddInnerJoin<GXSubtotalGroupSubtotal, GXSubtotal>(j => j.SubtotalId, j => j.Id);
+            args.Where.And<GXSubtotalGroupSubtotal>(q => GXSql.Exists<GXSubtotalGroupSubtotal, GXSubtotalGroup>(j => j.SubtotalGroupId, j => j.Id, subtotalGroups));
+            if (subtotalId != null)
+            {
+                args.Where.And<GXSubtotal>(q => q.Id == subtotalId);
+            }
+            args.Where.And<GXSubtotal>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the subtotal.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="subtotalId">Subtotal id.</param>
+        /// <returns>List of users who can access the subtotal group.</returns>
+        public static GXSelectArgs GetUsersBySubtotal(string userId, Guid? subtotalId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXSubtotalGroup, GXSubtotalGroupSubtotal>(a => a.Id, b => b.SubtotalGroupId);
+            args.Joins.AddInnerJoin<GXSubtotalGroupSubtotal, GXSubtotal>(a => a.SubtotalId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXSubtotalGroup>(where => where.Removed == null);
+            if (subtotalId != null && subtotalId != Guid.Empty)
+            {
+                args.Where.And<GXSubtotal>(where => where.Removed == null && where.Id == subtotalId);
+            }
+            else
+            {
+                args.Where.And<GXSubtotal>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the subtotal.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="subtotalIds">Subtotal ids.</param>
+        /// <returns>List of users who can access the subtotal group.</returns>
+        public static GXSelectArgs GetUsersBySubtotals(string userId, IEnumerable<Guid>? subtotalIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupSubtotalGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupSubtotalGroup, GXSubtotalGroup>(a => a.SubtotalGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXSubtotalGroup, GXSubtotalGroupSubtotal>(a => a.Id, b => b.SubtotalGroupId);
+            args.Joins.AddInnerJoin<GXSubtotalGroupSubtotal, GXSubtotal>(a => a.SubtotalId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXSubtotalGroup>(where => where.Removed == null);
+            if (subtotalIds != null && subtotalIds.Any())
+            {
+                args.Where.And<GXSubtotal>(where => where.Removed == null && subtotalIds.Contains(where.Id));
+            }
+            else
+            {
+                args.Where.And<GXSubtotal>(where => where.Removed == null);
+            }
             return args;
         }
     }

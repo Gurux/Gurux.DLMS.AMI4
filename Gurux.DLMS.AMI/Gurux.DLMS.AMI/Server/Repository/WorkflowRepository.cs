@@ -32,7 +32,6 @@
 
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -43,6 +42,9 @@ using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -175,12 +177,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 string? userId = ServerHelpers.GetUserId(user);
                 arg = GXQuery.GetWorkflowsByUser(userId, null);
             }
-            if (request != null && request.Filter != null)
+            if (request != null)
             {
                 arg.Where.FilterBy(request.Filter);
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXWorkflow>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXWorkflow>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;

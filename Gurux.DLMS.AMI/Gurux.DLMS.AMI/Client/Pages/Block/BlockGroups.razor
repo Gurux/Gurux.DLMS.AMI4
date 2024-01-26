@@ -25,13 +25,15 @@
     </MenuControl>
 </AuthorizeView>
 
-
-<GXTable @ref="table" 
-    Context="group" 
-    ItemsProvider="@GetItems" 
-    SelectionMode="SelectionMode.Multiple" 
-    Filter="@Filter" 
-    OnSearch="@Updated">
+<GXTable @ref="table"
+         Context="group"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -56,12 +58,12 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Updated">@Properties.Resources.Updated</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Config/BlockGroup/Edit/" + group.Id)">@group.Name</Td>
-        <td>@group.CreationTime</td>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Updated">@Properties.Resources.Updated</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Config/BlockGroup/Edit/" + group.Id)">@group.Name</Td>
+            <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
 </GXTable>
@@ -118,6 +120,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

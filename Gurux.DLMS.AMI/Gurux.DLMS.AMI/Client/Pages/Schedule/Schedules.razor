@@ -16,7 +16,7 @@
 @attribute [Authorize(Roles = "Admin, ScheduleManager")]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 @implements IAmiComponent
 @if (Title)
@@ -33,7 +33,15 @@
     </MenuControl>
 </AuthorizeView>
 
-<GXTable @ref="table" Context="schedule" ItemsProvider="@GetItems" SelectionMode="SelectionMode.Multiple" Filter="@Filter" OnSearch="@Updated">
+<GXTable @ref="table" Context="schedule"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
     <FilterContent>
         <th>
             <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
@@ -69,14 +77,14 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="Start">@Properties.Resources.StartTime</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Updated">@Properties.Resources.Updated</Th>
-        <Th Id="ExecutionTime">@Properties.Resources.LastExecutionTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("Schedule/Edit/" + schedule.Id)">@schedule.Name</Td>
-        <td>@schedule.Start</td>
+            <Th Id="Start">@Properties.Resources.StartTime</Th>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Updated">@Properties.Resources.Updated</Th>
+            <Th Id="ExecutionTime">@Properties.Resources.LastExecutionTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("Schedule/Edit/" + schedule.Id)"><span class=@(ClientHelpers.GetActiveDot(schedule.Active))></span>@schedule.Name</Td>
+            <td>@schedule.Start</td>
         <td>@schedule.CreationTime</td>
         <td>@schedule.Updated</td>
         <td>@schedule.ExecutionTime</td>
@@ -137,6 +145,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -165,13 +191,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -210,18 +236,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXSchedule>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (request.Removed)
@@ -253,6 +279,8 @@
                 {
                     it.Start = new GXDateTime(it.Start, CultureInfo.InvariantCulture).ToFormatString();
                 }
+                //Mark schedules as seen.
+                await Notifier.Mark(Http, TargetType.Schedule, ret.Schedules.Max(s => s.CreationTime));
                 return new ItemsProviderResult<GXSchedule>(ret.Schedules, ret.Count);
             }
         }
@@ -263,11 +291,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -294,11 +322,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
@@ -317,7 +345,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -341,7 +369,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -365,7 +393,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -392,7 +420,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 

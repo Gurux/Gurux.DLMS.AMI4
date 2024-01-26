@@ -1,5 +1,6 @@
 ﻿@page "/AgentLogs"
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -14,7 +15,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 @if (Title)
@@ -36,6 +37,8 @@
          SelectionMode="SelectionMode.Multiple"
          ShowRemoved="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -69,15 +72,15 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="Message">@Properties.Resources.Error</Th>
-        <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("AgentLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@(error.Agent != null ? error.Agent.Name : "")</td>
-        <td>@error.Message</td>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="Message">@Properties.Resources.Error</Th>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("AgentLog/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@(error.Agent != null ? error.Agent.Name : "")</td>
+            <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
@@ -153,6 +156,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -210,13 +231,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -225,10 +246,6 @@
     {
         try
         {
-            if (Notifier == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidNotifier);
-            }
             Notifier.ClearStatus();
             Notifier.On<IEnumerable<GXAgent>?>(this, nameof(IGXHubEvents.ClearAgentLogs), async (logs) =>
             {
@@ -256,14 +273,14 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXAgentLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (ShowClosedErrors)
@@ -294,6 +311,11 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListAgentLogsResponse>("api/AgentLog/List", req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                //Mark agent logs as seen.
+                await Notifier.Mark(Http, TargetType.AgentLog, ret.Logs.Max(s => s.CreationTime));
+            }
             Total = ret.Count;
             //Get only selected amount of the agent logs.
             if (Total != 0)
@@ -317,11 +339,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -346,7 +368,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -369,7 +391,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -395,7 +417,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -410,7 +432,7 @@
 
     public void OnClear()
     {
-        Notifier?.ClearStatus();
+        Notifier.ClearStatus();
         ClearConfirmation?.Show();
     }
 
@@ -432,7 +454,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 }

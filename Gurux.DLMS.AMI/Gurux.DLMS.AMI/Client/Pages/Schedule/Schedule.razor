@@ -1,5 +1,6 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DIs
 
+@using Gurux.DLMS.AMI.Shared.DTOs.Schedule
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -21,15 +22,23 @@
         <div class="row">
             <div style="width:100%">
                 <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                </div>
+                <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control"
                                placeholder=@Properties.Resources.ScheduleName />
                     <ValidationMessage For="@(() => Active.Name)" />
                 </div>
                 <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
                     <label>@Properties.Resources.ScheduleExecutionTime</label>
                     <input type="text" id="start" disabled="@IsDeleting" value="@GetDateTime()" class="form-control"
-                       @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
+                           @onchange="@((ChangeEventArgs __e) => SetDateTime(Convert.ToString(__e.Value)))" placeholder=@Properties.Resources.ScheduleExecutionTime />
                     <ValidationMessage For="@(() => Active.Start)" />
                 </div>
                 @if (Active.CreationTime != DateTime.MinValue)
@@ -37,7 +46,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.CreationTime</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.CreationTime" />
+                                   @bind-Value="Active.CreationTime" />
                     </div>
                 }
                 @if (Active.Updated != null)
@@ -45,7 +54,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                           @bind-Value="Active.Updated" />
+                                   @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -53,7 +62,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Removed</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                           @bind-Value="Active.Removed" />
+                                   @bind-Value="Active.Removed" />
                     </div>
                 }
                 @if (action == CrudAction.Delete)
@@ -244,73 +253,76 @@
     /// </summary>
     public async void OnSave()
     {
-        try
+        if (!(Parent != null && await Parent.AcceptChanges(false)))
         {
-            _scheduleValidator?.ClearErrors();
-            if (Active == null)
+            try
             {
-                throw new Exception(Properties.Resources.InvalidTarget);
-            }
-            if (_scheduleValidator != null && !_scheduleValidator.Validate())
-            {
-                return;
-            }
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            if (action == CrudAction.Delete)
-            {
-                await Http.PostAsJson<RemoveScheduleResponse>("api/Schedule/Delete",
-                    new RemoveSchedule()
-                        {
-                            Ids = new Guid[] { Active.Id },
-                            Delete = DeleteTarget
-                        }
-                    );
-            }
-            else
-            {
-                string address;
-                if (action == CrudAction.Create)
-                {
-                    address = "api/Schedule/Add";
-                }
-                else if (action == CrudAction.Update)
-                {
-                    address = "api/Schedule/Update";
-                }
-                else
+                _scheduleValidator?.ClearErrors();
+                if (Active == null)
                 {
                     throw new Exception(Properties.Resources.InvalidTarget);
                 }
-                string? dt = Active.Start;
-                try
+                if (_scheduleValidator != null && !_scheduleValidator.Validate())
                 {
-                    //Convert start time from UI culture to invariant culture.
-                    Active.Start = new GXDateTime(Active.Start).ToFormatString(CultureInfo.InvariantCulture);
-                    await Http.PostAsJson<UpdateScheduleResponse>(address, new UpdateSchedule()
+                    return;
+                }
+                Notifier.ProgressStart();
+                Notifier.ClearStatus();
+                if (action == CrudAction.Delete)
+                {
+                    await Http.PostAsJson<RemoveScheduleResponse>("api/Schedule/Delete",
+                        new RemoveSchedule()
+                            {
+                                Ids = new Guid[] { Active.Id },
+                                Delete = DeleteTarget
+                            }
+                        );
+                }
+                else
+                {
+                    string address;
+                    if (action == CrudAction.Create)
                     {
-                        Schedules = new List<GXSchedule>() { Active }
-                    });
+                        address = "api/Schedule/Add";
+                    }
+                    else if (action == CrudAction.Update)
+                    {
+                        address = "api/Schedule/Update";
+                    }
+                    else
+                    {
+                        throw new Exception(Properties.Resources.InvalidTarget);
+                    }
+                    string? dt = Active.Start;
+                    try
+                    {
+                        //Convert start time from UI culture to invariant culture.
+                        Active.Start = new GXDateTime(Active.Start).ToFormatString(CultureInfo.InvariantCulture);
+                        await Http.PostAsJson<UpdateScheduleResponse>(address, new UpdateSchedule()
+                            {
+                                Schedules = new List<GXSchedule>() { Active }
+                            });
+                    }
+                    finally
+                    {
+                        Active.Start = dt;
+                    }
                 }
-                finally
-                {
-                    Active.Start = dt;
-                }
+                ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
             }
-            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
-        }
-        catch (AccessTokenNotAvailableException exception)
-        {
-            exception.Redirect();
-        }
-        catch (Exception ex)
-        {
-            Notifier?.ProcessError(ex);
-        }
-        finally
-        {
-            Notifier.ProgressEnd();
-            StateHasChanged();
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier.ProgressEnd();
+                StateHasChanged();
+            }
         }
     }
 
@@ -319,6 +331,10 @@
     /// </summary>
     private void OnCancel()
     {
-        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        if (!(Parent != null && Parent.AcceptChanges(true).Result))
+        {
+            //Close schedule UI.
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
     }
 }

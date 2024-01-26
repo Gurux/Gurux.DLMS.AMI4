@@ -40,6 +40,8 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using System.Text.Json;
+using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
@@ -55,12 +57,6 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         private readonly IConfigurationRepository _configurationRepository;
         private readonly IPerformanceRepository _performanceRepository;
         private Timer? _timer;
-
-        /// <summary>
-        /// Current performance.
-        /// </summary>
-        private readonly Dictionary<UInt64, GXPerformance> _performances = new();
-
         StatisticSettings? statistic;
 
         /// <summary>
@@ -97,85 +93,75 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 }
             };
             _performanceRepository = performanceRepository;
-            if (statistic.PerformanceInterval == 0)
+            if (statistic.PerformanceInterval != 0)
             {
-                statistic.PerformanceInterval = 60;
+                TimeSpan start = DateTime.Now.AddSeconds(statistic.PerformanceInterval - (DateTime.Now.Second % statistic.PerformanceInterval)) - DateTime.Now;
+                _timer = new Timer(DoWork, null, start, TimeSpan.FromSeconds(statistic.PerformanceInterval));
             }
-            TimeSpan start = DateTime.Now.AddSeconds(statistic.PerformanceInterval - (DateTime.Now.Second % statistic.PerformanceInterval)) - DateTime.Now;
-            _timer = new Timer(DoWork, null, start, TimeSpan.FromSeconds(statistic.PerformanceInterval));
         }
 
         private async void DoWork(object? state)
         {
-            foreach (var it in _performances)
+            Dictionary<string, GXPerformance> list = new Dictionary<string, GXPerformance>();
+            lock (_performanceRepository.Snapshots)
             {
-                await GetPerformance((TargetType)it.Key, true);
+                foreach (var it in _performanceRepository.Snapshots)
+                {
+                    list.Add(it.Key, it.Value);
+                }
+            }
+            //Save performance values.
+            foreach (var it in list)
+            {
+                await GetPerformance(it.Key, true);
             }
         }
 
-        private async Task<GXPerformance> GetPerformance(TargetType type,
+        private async Task<GXPerformance?> GetPerformance(string type,
             bool force = false)
         {
+            if (statistic == null || statistic.PerformanceInterval == 0)
+            {
+                return null;
+            }
             DateTime now = DateTime.Now;
             now = now.AddMilliseconds(-now.Millisecond);
             GXPerformance? value = null;
             GXPerformance? savedValue = null;
-            lock (_performances)
+            lock (_performanceRepository.Snapshots)
             {
-                if (_performances.TryGetValue((UInt64)type, out GXPerformance? v))
+                if (_performanceRepository.Snapshots.TryGetValue(type, out GXPerformance? v))
                 {
                     if (v != null)
                     {
                         value = v;
                         //Values are saved for the database once a minute if there are any actions.
-                        if (force || now.Second == 0 ||
+                        if (force ||
                             (now - value.Start.GetValueOrDefault()).TotalSeconds >= statistic.PerformanceInterval)
                         {
                             value.End = now;
                             savedValue = value;
-                            value = new GXPerformance()
-                            {
-                                TargetType = (UInt64)type,
-                                Start = now,
-                            };
-                            _performances[(UInt64)type] = value;
+                            //Remove snapshot value.
+                            _performanceRepository.Snapshots.Remove(type);
                         }
                     }
                 }
                 if (value == null)
                 {
+                    //Add new snapshot value.
                     value = new GXPerformance()
                     {
-                        TargetType = (UInt64)type,
+                        Target = type,
                         Start = now,
                     };
-                    _performances[(UInt64)type] = value;
-                    lock (_performanceRepository.Snapshots)
-                    {
-                        _performanceRepository.Snapshots.Clear();
-                        _performanceRepository.Snapshots.AddRange(_performances.Values);
-                    }
-
+                    _performanceRepository.Snapshots[type] = value;
                 }
             }
-            if (savedValue != null && savedValue.TotalCount != 0)
+            if (savedValue != null)
             {
-                lock (_performanceRepository.Snapshots)
+                if (savedValue.TotalCount != 0)
                 {
-                    //Remove snapshot value.
-                    _performanceRepository.Snapshots.RemoveAll(w => w.TargetType == (UInt64)type);
-                }
-                await _performanceRepository.AddAsync(null, new[] { savedValue });
-            }
-            else
-            {
-                lock (_performanceRepository.Snapshots)
-                {
-                    //Add new snapshot value.
-                    if (!_performanceRepository.Snapshots.Where(w => w.TargetType == (UInt64)type).Any())
-                    {
-                        _performanceRepository.Snapshots.Add(value);
-                    }
+                    await _performanceRepository.AddAsync(null, new[] { savedValue });
                 }
             }
             return value;
@@ -185,7 +171,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         {
             DateTime start = DateTime.Now;
             CrudAction action = CrudAction.None;
-            TargetType type = TargetType.None;
+            string? type = null;
             string? id = ServerHelpers.GetUserId(context.User, false);
             try
             {
@@ -195,18 +181,26 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             {
                 //It's OK if this fails.
             }
-            bool isApi = context.Request.Path.StartsWithSegments("/api");          
+            bool isApi = context.Request.Path.StartsWithSegments("/api");
             //Save user actions.
             if (id != null && statistic != null && statistic.UserActions && isApi)
             {
-                string[] items = context.Request.Path.Value.Split('/', StringSplitOptions.RemoveEmptyEntries);
-                if (items.Length == 3)
+                string[]? items = context.Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                if (items != null && items.Length == 3)
                 {
-                    if (!Enum.TryParse<TargetType>(items[1], true, out type))
+                    if (ClientHelpers.GetNotifications(true).Contains(items[1].ToLower()))
+                    {
+                        type = items[1];
+                    }
+                    else
                     {
                         _logger.LogInformation("Unknown Target type '{0}'", context.Request.Path.Value);
                     }
-                    if (!Enum.TryParse<CrudAction>(items[2], true, out action))
+                    if (string.Compare(items[2], "add", true) == 0)
+                    {
+                        action = CrudAction.Create;
+                    }
+                    else if (!Enum.TryParse(items[2], true, out action))
                     {
                         _logger.LogInformation("Unknown action '{0}'", context.Request.Path.Value);
                     }
@@ -217,33 +211,36 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 }
             }
             GXPerformance? _performance = null;
-            if (action != CrudAction.None && type != TargetType.None)
+            if (action != CrudAction.None && type != null)
             {
                 _performance = await GetPerformance(type);
-                //Increase performance counters.
-                switch (action)
+                if (_performance != null)
                 {
-                    case CrudAction.Create:
-                        _performance.AddCount = _performance.AddCount.GetValueOrDefault() + 1; ;
-                        break;
-                    case CrudAction.Read:
-                        _performance.ReadCount = _performance.ReadCount.GetValueOrDefault() + 1; ;
-                        break;
-                    case CrudAction.Update:
-                        _performance.UpdateCount = _performance.UpdateCount.GetValueOrDefault() + 1; ;
-                        break;
-                    case CrudAction.Delete:
-                        _performance.DeleteCount = _performance.DeleteCount.GetValueOrDefault() + 1; ;
-                        break;
-                    case CrudAction.List:
-                        _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
-                        break;
-                    case CrudAction.Clear:
-                        _performance.ClearCount = _performance.ClearCount.GetValueOrDefault() + 1;
-                        break;
-                    case CrudAction.Next:
-                        _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
-                        break;
+                    //Increase performance counters.
+                    switch (action)
+                    {
+                        case CrudAction.Create:
+                            _performance.AddCount = _performance.AddCount.GetValueOrDefault() + 1; ;
+                            break;
+                        case CrudAction.Read:
+                            _performance.ReadCount = _performance.ReadCount.GetValueOrDefault() + 1; ;
+                            break;
+                        case CrudAction.Update:
+                            _performance.UpdateCount = _performance.UpdateCount.GetValueOrDefault() + 1; ;
+                            break;
+                        case CrudAction.Delete:
+                            _performance.DeleteCount = _performance.DeleteCount.GetValueOrDefault() + 1; ;
+                            break;
+                        case CrudAction.List:
+                            _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
+                            break;
+                        case CrudAction.Clear:
+                            _performance.ClearCount = _performance.ClearCount.GetValueOrDefault() + 1;
+                            break;
+                        case CrudAction.Next:
+                            _performance.ListCount = _performance.ListCount.GetValueOrDefault() + 1;
+                            break;
+                    }
                 }
                 string request = await LogRequest(context);
                 await LogResponse(context, action, type, request);
@@ -254,7 +251,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             }
             try
             {
-                if (action != CrudAction.None && type != TargetType.None)
+                if (action != CrudAction.None && type != null)
                 {
                     if (_performance != null)
                     {
@@ -341,7 +338,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         /// </summary>
         private async Task AddLog(HttpContext context,
             CrudAction action,
-            TargetType target,
+            string target,
             string data,
             string text)
         {
@@ -369,7 +366,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                 GXUser user = await _host.Connection.SingleOrDefaultAsync<GXUser>(args);
                 GXUserAction log = new GXUserAction()
                 {
-                    Target = target,
+                    TargetType = target,
                     User = user,
                     CreationTime = DateTime.Now,
                     Action = action,
@@ -390,7 +387,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
 
         private async Task LogResponse(HttpContext context,
             CrudAction action,
-            TargetType type,
+            string type,
             string data)
         {
             var originalBodyStream = context.Response.Body;

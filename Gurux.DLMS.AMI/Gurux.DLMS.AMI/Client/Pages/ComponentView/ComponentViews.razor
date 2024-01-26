@@ -33,6 +33,7 @@
          ShowAllData="true"
          ShowRemoved="false"
          ShowAllUsers="false"
+         Columns="@Columns"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -110,6 +111,12 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

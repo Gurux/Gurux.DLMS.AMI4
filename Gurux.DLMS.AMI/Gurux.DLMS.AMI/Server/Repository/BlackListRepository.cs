@@ -37,7 +37,7 @@ using Gurux.Service.Orm;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
-    /// <inheritdoc cref="BlackListRepository"/>
+    /// <inheritdoc/>
     public class BlackListRepository : IBlackListRepository
     {
         private readonly List<UInt64> blockedList;
@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IBlackListRepository.Add"/>
+        /// <inheritdoc/>
         public void Add(ulong address)
         {
             lock (blockedList)
@@ -68,7 +68,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IBlackListRepository.AddRange"/>
+        /// <inheritdoc/>
         public void AddRange(IEnumerable<ulong> list)
         {
             lock (blockedList)
@@ -77,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IBlackListRepository.IsBlocked"/>
+        /// <inheritdoc/>
         public bool IsBlocked(ulong address)
         {
             lock (blockedList)
@@ -86,7 +86,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IBlackListRepository.Delete"/>
+        /// <inheritdoc/>
         public void Delete(ulong address)
         {
             lock (blockedList)
@@ -95,7 +95,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
         }
 
-        /// <inheritdoc cref="IBlackListRepository.RemoveRange"/>
+        /// <inheritdoc/>
         public void RemoveRange(IEnumerable<ulong> list)
         {
             lock (blockedList)

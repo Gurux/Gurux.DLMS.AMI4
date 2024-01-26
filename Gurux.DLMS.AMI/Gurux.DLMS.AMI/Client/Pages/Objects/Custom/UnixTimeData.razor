@@ -85,6 +85,22 @@
         }
     }
 
+    /// <summary>
+    /// Initialize settings.
+    /// </summary>
+    public void Initialize()
+    {
+
+    }
+
+    /// <summary>
+    /// Initialize async settings.
+    /// </summary>
+    public Task InitializeAsync()
+    {
+        return Task.CompletedTask;
+    }
+
     /// <inheritdoc/>
     [Parameter]
     public EventCallback<IEnumerable<AMIReadArgument>> OnRead { get; set; }

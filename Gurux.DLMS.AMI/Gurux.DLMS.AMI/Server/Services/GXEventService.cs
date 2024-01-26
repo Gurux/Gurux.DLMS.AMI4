@@ -35,12 +35,22 @@ using Gurux.DLMS.AMI.Hubs;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Microsoft.AspNetCore.SignalR;
 
 namespace Gurux.DLMS.AMI.Services
@@ -317,7 +327,29 @@ namespace Gurux.DLMS.AMI.Services
         public event Action? OnPerformanceClear;
         /// <inheritdoc/>
         public event Action<IEnumerable<Guid>>? OnPerformanceDelete;
-     
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotal>>? OnSubtotalUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotal>>? OnSubtotalDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotal>>? OnSubtotalCalculate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotal>>? OnSubtotalClear;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotalGroup>>? OnSubtotalGroupUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotalGroup>>? OnSubtotalGroupDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotalValue>>? OnSubtotalValueUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotalLog>>? OnAddSubtotalLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotal?>>? OnClearSubtotalLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXSubtotalLog>>? OnCloseSubtotalLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXUserStamp>>? OnStampUpdate;
+
         /// <inheritdoc/>
         public async Task AddAgentLogs(IReadOnlyList<string> users, IEnumerable<GXAgentLog> agents)
         {
@@ -1268,5 +1300,80 @@ namespace Gurux.DLMS.AMI.Services
             await _hubContext.Clients.Users(users).PerformanceDelete(performances);
         }
 
+        /// <inheritdoc/>
+        public async Task SubtotalCalculate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+        {
+            OnSubtotalCalculate?.Invoke(subtotals);
+            await _hubContext.Clients.Users(users).SubtotalCalculate(subtotals);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalClear(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+        {
+            OnSubtotalClear?.Invoke(subtotals);
+            await _hubContext.Clients.Users(users).SubtotalClear(subtotals);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+        {
+            OnSubtotalDelete?.Invoke(subtotals);
+            await _hubContext.Clients.Users(users).SubtotalDelete(subtotals);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalGroupDelete(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
+        {
+            OnSubtotalGroupDelete?.Invoke(groups);
+            await _hubContext.Clients.Users(users).SubtotalGroupDelete(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalGroup> groups)
+        {
+            OnSubtotalGroupUpdate?.Invoke(groups);
+            await _hubContext.Clients.Users(users).SubtotalGroupUpdate(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotal> subtotals)
+        {
+            OnSubtotalUpdate?.Invoke(subtotals);
+            await _hubContext.Clients.Users(users).SubtotalUpdate(subtotals);
+        }
+
+        /// <inheritdoc/>
+        public async Task SubtotalValueUpdate(IReadOnlyList<string> users, IEnumerable<GXSubtotalValue> values)
+        {
+            OnSubtotalValueUpdate?.Invoke(values);
+            await _hubContext.Clients.Users(users).SubtotalValueUpdate(values);
+        }
+
+        /// <inheritdoc/>
+        public async Task AddSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> logs)
+        {
+            OnAddSubtotalLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).AddSubtotalLogs(logs);
+        }
+        /// <inheritdoc/>
+        public async Task ClearSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotal>? logs)
+        {
+            OnClearSubtotalLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).ClearSubtotalLogs(logs);
+        }
+
+        /// <inheritdoc/>
+        public async Task CloseSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> logs)
+        {
+            OnCloseSubtotalLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).CloseSubtotalLogs(logs);
+        }
+
+        /// <inheritdoc/>
+        public async Task UserStampUpdate(IReadOnlyList<string> users, IEnumerable<GXUserStamp> stamps)
+        {
+            OnStampUpdate?.Invoke(stamps);
+            await _hubContext.Clients.Users(users).StampUpdate(stamps);
+        }
     }
 }

@@ -47,8 +47,10 @@
 <GXTable @ref="table"
          Context="module"
          ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
+         SelectionMode="SelectionMode.Single"
          Filter="@Filter"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          ShowRemoved="false"
          ShowAllUsers="false"
          OnSearch="@Updated">
@@ -82,7 +84,7 @@
         <th>@Properties.Resources.Name</th>
         <th>@Properties.Resources.Version</th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.Updated</th>
+            <th>@Properties.Resources.Updated</th>
     </HeaderContent>
     <ItemContent>
         <Td Link="@("Config/Module/Edit/" + module.Id)">
@@ -150,6 +152,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

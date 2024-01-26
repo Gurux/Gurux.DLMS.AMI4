@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
@@ -39,6 +38,7 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Diagnostics;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -67,16 +67,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task AddAsync(ClaimsPrincipal User, IEnumerable<GXAgentLog> errors)
         {
+            DateTime now = DateTime.Now;
             Dictionary<GXAgentLog, List<string>> updates = new Dictionary<GXAgentLog, List<string>>();
             foreach (GXAgentLog it in errors)
             {
-                it.CreationTime = DateTime.Now;
+                it.CreationTime = now;
                 updates[it] = await _agentRepository.GetUsersAsync(User, it.Agent.Id);
             }
             await _host.Connection.InsertAsync(GXInsertArgs.InsertRange(errors));
             foreach (var it in updates)
             {
-                await _eventsNotifier.AddAgentLogs(it.Value, new GXAgentLog[] { it.Key });
+                GXAgentLog tmp = new GXAgentLog()
+                {
+                    Id = it.Key.Id,
+                    CreationTime = now,
+                    Level = it.Key.Level,
+                };
+                await _eventsNotifier.AddAgentLogs(it.Value, new GXAgentLog[] { tmp });
             }
         }
 
@@ -202,6 +209,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXAgentLog>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXAgentLog>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && request.Count != 0)

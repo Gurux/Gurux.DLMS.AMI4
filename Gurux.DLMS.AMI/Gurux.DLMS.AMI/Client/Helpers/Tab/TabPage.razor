@@ -1,9 +1,12 @@
 ﻿@namespace Gurux.DLMS.AMI.Components.Tab
+@using System.Diagnostics
 
-@if (Parent.ActivePage == this)
-{
-    @ChildContent
-}
+<div style="position: relative; width: 100%; ">
+    @if (Parent?.ActivePage == this)
+    {
+        @ChildContent
+    }
+</div>
 
 @code {
     [CascadingParameter]
@@ -38,6 +41,51 @@
 
     [Parameter]
     public bool Active { get; set; }
+
+    ///<summary>
+    ///Padge text.
+    ///</summary>
+    [Parameter]
+    public string? Padge { get; set; }
+
+    ///<summary>
+    ///The number of padge stamps.
+    ///</summary>
+    [Parameter]
+    public int PadgeCount { get; set; }
+
+    /// <summary>
+    /// Notified when number of padge stamps is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<int> PadgeCountChanged { get; set; }
+
+    ///<summary>
+    ///Padge type.
+    ///</summary>
+    [Parameter]
+    public TraceLevel PadgeType { get; set; } = TraceLevel.Error;
+
+    public string GetPadgeClass()
+    {
+        string str = "position-absolute top-0 start-100 translate-middle badge rounded-pill ";
+        switch (PadgeType)
+        {
+            case TraceLevel.Error:
+                str += "bg-danger";
+                break;
+            case TraceLevel.Warning:
+                str += "bg-warning";
+                break;
+            case TraceLevel.Info:
+                str += "bg-info";
+                break;
+            default:
+                str += "bg-light";
+                break;
+        }
+        return str;
+    }
 
     /// <summary>
     /// Page index number.

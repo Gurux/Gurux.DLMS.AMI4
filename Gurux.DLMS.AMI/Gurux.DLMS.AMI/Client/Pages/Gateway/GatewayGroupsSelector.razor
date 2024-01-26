@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXGatewayGroup" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -40,11 +42,23 @@
 </SelectionContainer>
 
 @code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
     [CascadingParameter]
     private UserGroupTab? UserGroupParent { get; set; }
 
     [CascadingParameter]
     private GatewayTab? GatewayParent { get; set; }
+
+    /// <summary>
+    /// Selected gateway groups.
+    /// </summary>
+    [Parameter]
+    public List<GXGatewayGroup>? GatewayGroups { get; set; }
 
     SelectionList<GXGatewayGroup>? _selected;
     SelectionList<GXGatewayGroup>? _available;
@@ -55,35 +69,18 @@
     /// </summary>
     private GXGatewayGroup filter = new GXGatewayGroup(null);
 
-
-    public string? GetName(GXGatewayGroup target)
-    {
-        return target.Name;
-    }
-    public string? GetDescription(GXGatewayGroup target)
-    {
-        return target.Name;
-    }
+    /// <summary>
+    /// Selected gateway group filter.
+    /// </summary>
+    private GXGatewayGroup selectedFilter = new GXGatewayGroup(null);
 
     protected async Task SearchSelectedByName(string? name)
     {
         try
         {
-            if (_selected?.Items != null)
+            if (_selected != null)
             {
-                _selected.HiddenItems.Clear();
-                if (!string.IsNullOrEmpty(name))
-                {
-                    name = name.ToLower();
-                    foreach (var it in _selected.Items)
-                    {
-                        if (it.Name != null && !it.Name.ToLower().Contains(name))
-                        {
-                            _selected.HiddenItems.Add(it);
-                        }
-                    }
-                }
-                Notifier?.ClearStatus();
+                selectedFilter.Name = name;
                 await _selected.RefreshDataAsync();
             }
         }
@@ -154,12 +151,19 @@
     /// <returns></returns>
     private ValueTask<ItemsProviderResult<GXGatewayGroup>> GetSelectedItems(GXItemsProviderRequest request)
     {
-        if (_selected?.Items == null)
+        var groups = GetGroups();
+        if (groups == null)
         {
-            return default;
+            return new(new ItemsProviderResult<GXGatewayGroup>(new GXGatewayGroup[0], 0));
         }
-        //ToArray makes a clone from the items. Don't remove it.
-        return new(new ItemsProviderResult<GXGatewayGroup>(_selected.Items.ToArray(), _selected.Items.Count));
+        int total = groups.Count;
+        if (!string.IsNullOrEmpty(selectedFilter.Name))
+        {
+            groups = groups.Where(w => w.Name.ToLower().Contains(selectedFilter.Name.ToLower())).ToList();
+        }
+        return new(new ItemsProviderResult<GXGatewayGroup>(
+            groups.Skip(request.StartIndex).Take(request.Count), 
+            total));
     }
 
     private async ValueTask<ItemsProviderResult<GXGatewayGroup>> GetItems(GXItemsProviderRequest request)
@@ -175,7 +179,7 @@
                     Filter = filter,
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
-                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                    Exclude = GetGroups().Select(s => s.Id).ToArray()
                 };
             var ret = await Http.PostAsJson<ListGatewayGroupsResponse>("api/GatewayGroup/List", req, request.CancellationToken);
             if (ret?.GatewayGroups != null && _selected != null)
@@ -199,6 +203,19 @@
         return default;
     }
 
+    List<GXGatewayGroup>? GetGroups()
+    {
+        if (GatewayGroups != null)
+        {
+            return GatewayGroups;
+        }
+        if (UserGroupParent?.Active != null)
+        {
+            return UserGroupParent.Active.GatewayGroups;
+        }
+        return GatewayParent?.Active.GatewayGroups;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         //Wait until table is loaded. Don't remove this or selector is null.
@@ -211,23 +228,9 @@
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            CrudAction action;
-            if (UserGroupParent?.Active?.GatewayGroups != null)
-            {
-                //Add selected gateways.
-                _selected.Items = UserGroupParent.Active.GatewayGroups;
-                action = ClientHelpers.GetAction(UserGroupParent.Action);
-            }
-            else if (GatewayParent?.Active?.GatewayGroups != null)
-            {
-                //Add selected gateways.
-                _selected.Items = GatewayParent.Active.GatewayGroups;
-                action = ClientHelpers.GetAction(GatewayParent.Action);
-            }
-            else
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
+            //Add selected gateways.
+            _selected.Items = GetGroups();
+            CrudAction action = ClientHelpers.GetAction(Action);
             bool addDefaultGroups = action == CrudAction.Create && !_selected.Items.Any();
             if (addDefaultGroups)
             {

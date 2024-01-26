@@ -1,0 +1,276 @@
+﻿@namespace Gurux.DLMS.AMI.Components.Wizard
+
+@inject NavigationManager NavigationManager
+@inject IGXNotifier Notifier
+
+<div class="d-inline-flex container-fluid h-100">
+    <div>
+        <div class="container-fluid h-100">
+            <div style="height: 3.5rem;">
+            </div>
+            <ul class="nav flex-column">
+                @foreach (var it in _pages)
+                {
+                    <li class="nav-item" role="presentation" style="@GetDescriptionStyle(it)">
+                        @if (string.IsNullOrEmpty(it.Link))
+                        {
+                            <label style="@GetActiveStyle(it)">
+                                @it.Name
+                            </label>
+                        }
+                        else
+                        {
+                            <a class="@GetDescriptionClass(it)" style="@GetActiveStyle(it)" aria-current="page" href="@it.Link">
+                                @it.Name
+                            </a>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    <div class="card container-fluid">
+        @if (ActivePage != null)
+        {
+            <div class="card-header">
+                <h2>
+                    @ActivePage.Description
+                </h2>
+            </div>
+        }
+        <div class="card-body">
+            <CascadingValue Value="this">
+                @ChildContent
+            </CascadingValue>
+        </div>
+        <div class="card-footer container-fluid">
+            <ProgressBar Minimum="0"
+                         Current="@_index"
+                         Maximum="@(_pages.Count - 1)"></ProgressBar>
+            <ul class="nav justify-content-center">
+                <li class="nav-item">
+                    <NavLink class="nav-link btn btn-link" @onclick="@OnCancel">
+                        @Cancel
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="@PrevClass" @onclick="@PrevPage">
+                        @Previous
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="@NextClass" @onclick="@NextPage">
+                        @NextText
+                    </NavLink>
+                </li>
+                @if (!string.IsNullOrEmpty(Finish))
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link btn btn-link" @onclick="@Complete">
+                            @Finish
+                        </NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private string PrevClass
+    {
+        get
+        {
+            if (_index == 0)
+            {
+                return "nav-link disabled";
+            }
+            return "nav-link btn btn-link";
+        }
+    }
+
+    private string GetDescriptionClass(WizardPage page)
+    {
+        return page == ActivePage ? "nav-link active" : "nav-link";
+    }
+
+    private string? GetDescriptionStyle(WizardPage page)
+    {
+        if (ActivePage == page)
+        {
+            return "border-top-right-radius: 20%;border-bottom-right-radius: 20%;background-color:#0d6efd;";
+        }
+        return null;
+    }
+
+    private string? GetActiveStyle(WizardPage page)
+    {
+        if (ActivePage == page)
+        {
+            return "color:#d7d7d7;";
+        }
+        return null;
+    }
+
+    private string NextClass
+    {
+        get
+        {
+            if (_index == _pages.Count)
+            {
+                return "nav-link disabled";
+            }
+            return "nav-link btn btn-link";
+        }
+    }
+
+    /// <summary>
+    /// User has changing the active page.
+    /// </summary>
+    /// <param name="index">Zero based page index.</param>
+    public delegate bool PageChangingEventHandler(int index);
+
+    /// <summary>
+    /// User has complete the changes.
+    /// </summary>
+    /// <param name="accept">True, if user has accept the changes.</param>
+    public delegate void CompleteEventHandler(bool accept);
+
+    /// <summary>
+    /// User has changing the active page.
+    /// </summary>
+    [Parameter]
+    public PageChangingEventHandler? OnPageChanging { get; set; }
+
+    /// <summary>
+    /// User has complete the changes.
+    /// </summary>
+    [Parameter]
+    public CompleteEventHandler? OnComplete { get; set; }
+
+    private int _index = 0;
+
+    private void NextPage()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (1 + _index == _pages.Count)
+            {
+                //Accept changes.
+                OnComplete?.Invoke(true);
+            }
+            else
+            {
+                //Select next page.
+                if (!(OnPageChanging != null && !OnPageChanging.Invoke(_index)))
+                {
+                    ++_index;
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    private void Complete()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            //Accept changes.
+            OnComplete?.Invoke(true);
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    private void PrevPage()
+    {
+        --_index;
+        StateHasChanged();
+    }
+
+    private void OnCancel()
+    {
+        OnComplete?.Invoke(false);
+    }
+
+    /// <summary>
+    /// Text for the cancel button.
+    /// </summary>
+    [Parameter]
+    public string Cancel { get; set; } = "Cancel";
+
+    /// <summary>
+    /// Text for the Next button.
+    /// </summary>
+    [Parameter]
+    public string Next { get; set; } = "Next";
+
+    /// <summary>
+    /// Text for the Previous button.
+    /// </summary>
+    [Parameter]
+    public string Previous { get; set; } = "Prev";
+
+    /// <summary>
+    /// Text for the Submit button.
+    /// </summary>
+    [Parameter]
+    public string Submit { get; set; } = "Submit";
+
+    /// <summary>
+    /// Text for the finish button.
+    /// </summary>
+    [Parameter]
+    public string Finish { get; set; } = "Finish";
+
+    private string NextText
+    {
+        get
+        {
+            if (1 + _index == _pages.Count)
+            {
+                return Submit;
+            }
+            return Next;
+        }
+    }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    internal WizardPage? ActivePage
+    {
+        get
+        {
+            if (_index < _pages.Count)
+            {
+                return _pages[_index];
+            }
+            return null;
+        }
+    }
+
+    List<WizardPage> _pages = new List<WizardPage>();
+
+    internal void AddPage(WizardPage page)
+    {
+        bool first = !_pages.Any();
+        _pages.Add(page);
+        if (first)
+        {
+            StateHasChanged();
+        }
+    }
+}

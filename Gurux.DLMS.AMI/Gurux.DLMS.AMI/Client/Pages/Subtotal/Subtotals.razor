@@ -1,0 +1,459 @@
+﻿@page "/subtotals"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = "Admin, SubtotalManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+            <MenuItem Text="@Properties.Resources.Calculate" Icon="oi oi-flash" OnClick="@(async () => await OnCalculate())" />
+            <MenuItem Text="@Properties.Resources.Rebuild" Icon="oi oi-reload" OnClick="@(async () => await OnRebuild())" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="subtotal"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="Name">
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="Calculated">
+            <!--Calculated.-->
+        </Fh>
+        <Fh Id="Status">
+            <!--Status.-->
+        </Fh>
+        <Fh Id="Type">
+            <!--Type.-->
+        </Fh>
+        <Fh Id="Operation">
+            <!--Operation.-->
+        </Fh>
+        <Fh Id="Interval">
+            <!--Interval.-->
+        </Fh>
+        <Fh Id="Description">
+            <!--Description.-->
+        </Fh>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalManager)>
+            <ContextMenuItem Text="@Properties.Resources.Calculate" Icon="oi oi-flash" OnClick="@(async () => await OnCalculate())"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Rebuild" Icon="oi oi-reload" OnClick="@(async () => await OnRebuild())"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="Calculated">@Properties.Resources.Calculated</Th>
+            <Th Id="Status">@Properties.Resources.Status</Th>
+            <Th Id="Type">@Properties.Resources.Type</Th>
+            <Th Id="Operation">@Properties.Resources.Operation</Th>
+            <Th Id="Interval">@Properties.Resources.Interval</Th>
+            <Th Id="Description">@Properties.Resources.Description</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Id="Name" Link="@("config/Subtotal/Edit/" + subtotal.Id)"><span class=@(ClientHelpers.GetActiveDot(subtotal.Active))></span>@subtotal.Name</Td>
+            <Td Id="Calculated">@subtotal.Calculated</Td>
+            <Td Id="Status">@subtotal.Status</Td>
+            <Td Id="Type">@((SubtotalType)subtotal.Type)</Td>
+            <Td Id="Operation">@((SubtotalOperation)subtotal.Operation)</Td>
+            <Td Id="Interval">@(TimeSpan.FromSeconds(subtotal.Interval))</Td>
+            <Td Id="Description">@subtotal.Description</Td>
+        </ItemContent>
+    </GXTable>
+    <br />
+    <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+             OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
+             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+    </Confirm>
+
+    @code {
+    /// <summary>
+    /// Selected subtotal ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Subtotals;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-calculator";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the subtotals shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Subtotal filter.
+    /// </summary>
+    private GXSubtotal filter = new GXSubtotal();
+    /// <summary>
+    /// User is verified before subtotal is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXSubtotal>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXSubtotal>>(this, nameof(IGXHubEvents.SubtotalUpdate), async (subtotals) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXSubtotal>>(this, nameof(IGXHubEvents.SubtotalDelete), async (subtotals) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXSubtotal() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXSubtotal>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListSubtotals req = new ListSubtotals()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListSubtotalsResponse>("api/Subtotal/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXSubtotal>(ret.Subtotals, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new subtotal.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "config/Subtotal/Add");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit subtotal.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "config/Subtotal/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Count selected subtotals.
+    /// </summary>
+    public async Task OnCalculate()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            CalculateSubtotal req = new CalculateSubtotal();
+            if (table != null && table.SelectedItems.Any())
+            {
+                req.Ids = table.SelectedItems.Select(s => s.Id).ToArray();
+            }
+            else if (table?.Active != null)
+            {
+                req.Ids = new Guid[] { table.Active.Id };
+            }
+            else
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            await Http.PostAsJson<ListSubtotalsResponse>("api/Subtotal/Calculate", req);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Count selected subtotals.
+    /// </summary>
+    public async Task OnRebuild()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            ClearSubtotal req = new ClearSubtotal();
+            if (table != null && table.SelectedItems.Any())
+            {
+                req.Ids = table.SelectedItems.Select(s => s.Id).ToArray();
+            }
+            else if (table?.Active != null)
+            {
+                req.Ids = new Guid[] { table.Active.Id };
+            }
+            else
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            await Http.PostAsJson<ClearSubtotalResponse>("api/Subtotal/Clear", req);
+            await OnCalculate();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Remove selected subtotal.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected subtotals.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveSubtotal req = new RemoveSubtotal()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveSubtotalResponse>("api/Subtotal/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

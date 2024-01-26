@@ -36,6 +36,11 @@
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
                 </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
                 <ScriptEditor @bind-SourceCode="Active.SourceCode" @bind-SourceCode:event="ScriptChanged" />
                 <button class="btn button" @onclick="OnValidate">
                     <div class="oi oi-flash"></div>

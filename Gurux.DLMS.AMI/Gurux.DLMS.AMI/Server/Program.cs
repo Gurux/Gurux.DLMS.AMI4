@@ -69,6 +69,8 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 using Microsoft.AspNetCore.DataProtection;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 
 var builder = WebApplication.CreateBuilder(args);
 // builder.Logging.AddFilter("Microsoft.AspNetCore.SignalR", LogLevel.Trace);
@@ -144,6 +146,10 @@ if (host != null)
 builder.Services.AddTransient<IAmiCryproService, GXCryproService>();
 //Add workflow service
 builder.Services.AddSingleton<IWorkflowHandler, GXWorkflowService>();
+//Add task late bind service
+builder.Services.AddSingleton<ITaskLateBindHandler, GXTaskLateBindService>();
+//Add subtotal service
+builder.Services.AddHostedService<ISubtotal, GXSubtotalService>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>()
     .AddRoles<IdentityRole>()
@@ -231,7 +237,7 @@ builder.Services.AddControllersWithViews().AddJsonOptions(options =>
 
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
-
+SystemSettings? systemSettings = null;
 if (host != null)
 {
     SecuritySettings? o = ServerSettings.GetServerSettings<SecuritySettings>(host, "Security");
@@ -242,6 +248,7 @@ if (host != null)
             ServerSettings.UpdateSecuritySettings(options, o);
         }
     });
+    systemSettings = ServerSettings.GetServerSettings<SystemSettings>(host, "System");
 }
 
 builder.Services.AddHttpClient("Gurux.DLMS.AMI.ServerAPI", client => client.BaseAddress = new Uri(ServerSettings.ServerAddress));
@@ -325,22 +332,45 @@ if (host != null)
         foreach (GXAgent agent in agents)
         {
             await agentRepository.UpdateStatusAsync(
-                ServerHelpers.CreateClaimsPrincipalFromUser(agent.Creator), agent.Id, AgentStatus.Offline, null);
+                ServerHelpers.CreateClaimsPrincipalFromUser(agent.Creator),
+                agent.Id, AgentStatus.Offline, null);
         }
     }
+    //Get connected gateways and change status to offline.
+    arg = GXSelectArgs.SelectAll<GXGateway>(w => w.Removed == null && w.Status != GatewayStatus.Offline);
+    arg.Columns.Add<GXUser>(s => s.Id);
+    arg.Joins.AddInnerJoin<GXGateway, GXUser>(j => j.Creator, j => j.Id);
+    List<GXGateway> gateways = host.Connection.Select<GXGateway>(arg);
+    IGatewayRepository? gatewayRepository = app.Services.GetService<IGatewayRepository>();
+    if (gatewayRepository != null)
+    {
+        foreach (GXGateway it in gateways)
+        {
+            await gatewayRepository.UpdateStatusAsync(
+                ServerHelpers.CreateClaimsPrincipalFromUser(it.Creator),
+                it.Id, GatewayStatus.Offline);
+        }
+    }
+
 }
 //Hub.
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+//Add swagger support for development or when it's selected from the settings
+if (app.Environment.IsDevelopment() ||
+    (systemSettings != null && systemSettings.UseSwagger))
 {
-    app.UseMigrationsEndPoint();
-    app.UseWebAssemblyDebugging();
     //Add support for Swagger.
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Gurux.DLMS.AMI v1");
     });
+}
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseMigrationsEndPoint();
+    app.UseWebAssemblyDebugging();
 }
 else
 {
@@ -406,9 +436,10 @@ if (appLifetime != null)
         app.Logger.LogInformation("Gurux.DLMS.AMI stopped.");
     });
 }
+
 //Update start time.
 IConfigurationRepository? configurationRepository = app.Services.GetService<IConfigurationRepository>();
-if (configurationRepository != null && host != null && host.Connection != null)
+if (configurationRepository != null && host?.Connection != null)
 {
     ListConfiguration req = new ListConfiguration() { Filter = new GXConfiguration() { Name = "Status" } };
     var cp = ServerSettings.GetDefaultAdminUser(host);

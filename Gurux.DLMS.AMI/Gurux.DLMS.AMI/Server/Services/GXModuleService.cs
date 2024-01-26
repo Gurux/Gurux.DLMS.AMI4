@@ -34,7 +34,6 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.Loader;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Module;
 using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
@@ -48,6 +47,10 @@ using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Microsoft.AspNetCore.Mvc;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 
 namespace Gurux.DLMS.AMI.Server.Services
 {
@@ -93,16 +96,20 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// <summary>
         /// Enable installed module.
         /// </summary>
+        /// <param name="user">Current user.</param>
         /// <param name="module">Module to enable.</param>
         /// <returns>True, if server restart is required before module can be used.</returns>
-        bool EnableModule(GXModule module);
+        bool EnableModule(ClaimsPrincipal user,
+            GXModule module);
 
         /// <summary>
         /// Disable installed module.
         /// </summary>
+        /// <param name="user">Current user.</param>
         /// <param name="module">Module to disable.</param>
         /// <returns>True, if server restart is required before module can be unloaded.</returns>
-        bool DisableModule(GXModule module);
+        bool DisableModule(ClaimsPrincipal user,
+            GXModule module);
 
         /// <summary>
         /// Update module settings for the module.
@@ -116,7 +123,18 @@ namespace Gurux.DLMS.AMI.Server.Services
         /// <param name="user">Current user.</param>
         /// <param name="module">Deleted module.</param>
         /// <returns>True, if server restart is required before module can be unloaded.</returns>
-        bool DeleteModule(ClaimsPrincipal user, GXModule module);
+        bool DeleteModule(ClaimsPrincipal user,
+            GXModule module);
+
+        /// <summary>
+        /// Execute module async.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="module">Module to execute.</param>
+        /// <param name="settings">Schedule settings.</param>
+        Task ExecuteAsync(ClaimsPrincipal user,
+            GXModule module,
+            string? settings);
     }
 
     /// <summary>
@@ -177,9 +195,12 @@ namespace Gurux.DLMS.AMI.Server.Services
             List<AssemblyPart> list = new List<AssemblyPart>();
             foreach (var module in _modules.Values)
             {
-                foreach (var it in module.AssemblyLoadContext.Assemblies)
+                if (module.AssemblyLoadContext != null)
                 {
-                    list.Add(new AssemblyPart(it));
+                    foreach (var it in module.AssemblyLoadContext.Assemblies)
+                    {
+                        list.Add(new AssemblyPart(it));
+                    }
                 }
             }
             return list.ToArray();
@@ -242,23 +263,37 @@ namespace Gurux.DLMS.AMI.Server.Services
             {
                 throw new ArgumentException("Invalid module {0}.", name);
             }
-            string searchPath = Path.Combine(path, module.Id, module.Version);
-            GXAssemblyLoadContext alc = new GXAssemblyLoadContext(module.Id, searchPath);
-            alc.Resolving += ModuleResolving;
-            string path2 = Path.Combine(searchPath, module.FileName);
-            Assembly asm = alc.LoadFromAssemblyPath(path2);
-            //Create services.
-            IAmiModule? server = (IAmiModule?)asm.CreateInstance(module.Class);
-            if (server == null)
+            string? searchPath = null;
+            string path2;
+            IAmiModule? server;
+            GXModuleInfo info;
+            GXAssemblyLoadContext? alc = null;
+            if (module.Version != null)
             {
-                throw new ArgumentNullException();
+                searchPath = Path.Combine(path, module.Id, module.Version);
+                alc = new GXAssemblyLoadContext(module.Id, searchPath);
+                alc.Resolving += ModuleResolving;
+                path2 = Path.Combine(searchPath, module.FileName);
+                Assembly asm = alc.LoadFromAssemblyPath(path2);
+                //Create services.
+                server = (IAmiModule?)asm.CreateInstance(module.Class);
+                if (server == null)
+                {
+                    throw new ArgumentNullException();
+                }
+                AssemblyPart ap = new AssemblyPart(asm);
+                info = new GXModuleInfo()
+                {
+                    AssemblyLoadContext = alc,
+                    Module = server,
+                };
             }
-            AssemblyPart ap = new AssemblyPart(asm);
-            GXModuleInfo info = new GXModuleInfo()
+            else
             {
-                AssemblyLoadContext = alc,
-                Module = server,
-            };
+                //Internal module.                
+                info = _modules[module.Id];
+                server = info.Module;
+            }
             var cfgBuilder = new ConfigurationBuilder();
             IConfigurationBuilder b = cfgBuilder.AddInMemoryCollection(info.Settings);
             IConfiguration cfg = cfgBuilder.Build();
@@ -300,7 +335,8 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             _modules.Add(module.Id, info);
             //Load assemblies.
-            if (module.Assemblies != null)
+            if (module.Assemblies != null && searchPath != null &&
+                alc != null)
             {
                 foreach (var it in module.Assemblies)
                 {
@@ -393,8 +429,8 @@ namespace Gurux.DLMS.AMI.Server.Services
                         GC.Collect();
                         GC.WaitForPendingFinalizers();
                     }
+                    _modules.Remove(module);
                 }
-                _modules.Remove(module);
             }
             return info;
         }
@@ -414,11 +450,88 @@ namespace Gurux.DLMS.AMI.Server.Services
                 Directory.CreateDirectory(path);
             }
             List<IAmiModule> list = new List<IAmiModule>();
+            var user = ServerSettings.GetDefaultAdminUser(host);
+            if (user != null)
+            {
+                //Modules are installed after the first user is created.
+                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    try
+                    {
+                        foreach (var type in assembly.GetExportedTypes())
+                        {
+                            if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                            {
+                                continue;
+                            }
+                            if (typeof(IAmiModule).IsAssignableFrom(type))
+                            {
+                                IAmiModule? m = (IAmiModule?)Activator.CreateInstance(type);
+                                if (!_modules.ContainsKey(m.Id))
+                                {
+                                    args = GXSelectArgs.SelectAll<GXModule>(w => w.Id == m.Id);
+                                    GXModule module = host.Connection.SingleOrDefault<GXModule>(args);
+                                    if (module == null)
+                                    {
+                                        list.Add(m);
+                                        module = new GXModule()
+                                        {
+                                            //New module is inactive as a default.
+                                            Active = false,
+                                            Status = ModuleStatus.CustomBuild,
+                                            Creator = new GXUser()
+                                            {
+                                                Id = ServerHelpers.GetUserId(user)
+                                            },
+                                            Id = m.Id,
+                                            Name = m.Name,
+                                            Icon = m.Icon,
+                                            Class = type.FullName,
+                                            Description = m.Description,
+                                            CreationTime = DateTime.Now,
+                                        };
+                                        if (m.CanSchedule)
+                                        {
+                                            module.Type = module.Type.GetValueOrDefault() | ModuleType.Schedule;
+                                        }
+                                        if (m.Extension != null)
+                                        {
+                                            module.Type = module.Type.GetValueOrDefault() | ModuleType.Extension;
+                                            module.ExtensionUI = m.Extension.FullName;
+                                        }
+                                        if (m.Configuration != null)
+                                        {
+                                            module.Type = module.Type.GetValueOrDefault() | ModuleType.Settings;
+                                            module.ConfigurationUI = m.Configuration.FullName;
+                                        }
+
+                                        GXInsertArgs ins = GXInsertArgs.Insert(module);
+                                        host.Connection.Insert(ins);
+                                        modules.Add(module);
+                                    }
+                                    GXModuleInfo info = new GXModuleInfo()
+                                    {
+                                        AssemblyLoadContext = null,
+                                        Module = m,
+                                    };
+                                    _modules.Add(module.Id, info);
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        //It's OK if this fails. Assembly is skipped.
+                    }
+                }
+            }
             foreach (GXModule module in modules)
             {
                 try
                 {
-                    if ((module.Status & (ModuleStatus.Installed | ModuleStatus.CustomBuild)) != 0)
+                    if ((module.Status & (ModuleStatus.Installed | ModuleStatus.CustomBuild)) != 0 &&
+                        //Internal module is not loaded.
+                        module.Version != null)
                     {
                         LoadModule(host, module.Id, services);
                     }
@@ -436,6 +549,31 @@ namespace Gurux.DLMS.AMI.Server.Services
                                 ex.Message,
                     };
                     host.Connection.Insert(GXInsertArgs.Insert(error));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Execute module actions.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="module">Module to execute.</param>
+        /// <param name="serviceProvider">Service provider.</param>
+        /// <param name="settings">Module global settings.</param>
+        /// <param name="instanceSettings">Module instance settings.</param>
+        internal async Task ExecuteAsync(
+            ClaimsPrincipal user,
+            string module,
+            IServiceProvider serviceProvider, string? settings,
+            string? instanceSettings)
+        {
+            if (_modules.TryGetValue(module, out GXModuleInfo? info))
+            {
+                if (info.Module != null)
+                {
+                    await info.Module.ExecuteAsync(
+                        user, serviceProvider,
+                        settings, instanceSettings);
                 }
             }
         }
@@ -521,7 +659,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                 }
                 catch (Exception ex)
                 {
-                    GXModule module = new GXModule() { Id = it.Name };
+                    GXModule module = new GXModule() { Id = it.Id };
                     module.Active = false;
                     host.Connection.Update(GXUpdateArgs.Update(module, c => c.Active));
                     var error = new GXModuleLog(TraceLevel.Error)
@@ -563,13 +701,17 @@ namespace Gurux.DLMS.AMI.Server.Services
                         name == "Gurux.DLMS.AMI.Module" ||
                         name == "Gurux.DLMS.AMI.Shared" ||
                         name == "Gurux.DLMS.AMI.Script" ||
-                        name == "Gurux.DLMS.AMI.UI")
+                        name == "Gurux.DLMS.AMI.UI" ||
+                        name == "Newtonsoft.Json" ||
+                        name == "BrowserDebugProxy" ||
+                        name == "BrowserDebugHost" ||
+                        name == "Microsoft.CodeAnalysis")
                     {
                         continue;
                     }
 
                     GXModuleAssembly ma = new GXModuleAssembly()
-                    {                        
+                    {
                         FileName = fileName.Replace(tempFolder + Path.DirectorySeparatorChar, ""),
                         //FileName = Path.GetFileName(fileName),
                         Module = module
@@ -591,20 +733,30 @@ namespace Gurux.DLMS.AMI.Server.Services
                             }
                             if (typeof(IAmiModule).IsAssignableFrom(type))
                             {
-
                                 server = (IAmiModule?)asm.CreateInstance(type.FullName);
                                 if (server == null)
                                 {
                                     throw new Exception(string.Format("Failed to create {0} module", type.FullName));
                                 }
+                                if (server.CanSchedule)
+                                {
+                                    module.Type = module.Type.GetValueOrDefault() | ModuleType.Schedule;
+                                }
                                 module.CreationTime = DateTime.Now;
-                                module.Id = server.Name;
+                                module.Id = server.Id;
+                                module.Name = server.Name;
                                 module.FileName = Path.GetFileName(fileName);
                                 servers.Add(module.FileName);
                                 module.Class = type.FullName;
                                 module.Description = server.Description;
+                                if (server.Extension != null)
+                                {
+                                    module.Type = module.Type.GetValueOrDefault() | ModuleType.Extension;
+                                    module.ExtensionUI = server.Extension.FullName;
+                                }
                                 if (server.Configuration != null)
                                 {
+                                    module.Type = module.Type.GetValueOrDefault() | ModuleType.Settings;
                                     module.ConfigurationUI = server.Configuration.FullName;
                                 }
                                 FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
@@ -615,12 +767,12 @@ namespace Gurux.DLMS.AMI.Server.Services
                                 }
                                 module.Icon = server.Icon;
                                 //Check is module already installed.
-                                existing = _host.Connection.SelectById<GXModule>(server.Name);
+                                existing = _host.Connection.SelectById<GXModule>(server.Id);
                                 if (existing != null &&
                                     (existing.Status & ModuleStatus.Installed) != 0 &&
                                     existing.Version == module.Version)
                                 {
-                                    throw new Exception(string.Format("{0} module version {1} already installed.", server.Name, module.Version));
+                                    throw new Exception(string.Format("{0} module version {1} already installed.", server.Id, module.Version));
                                 }
                                 if (existing != null)
                                 {
@@ -724,7 +876,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                         await _host.Connection.InsertAsync(args);
                     }
 
-                    server.Update(user, _serviceProvider, existing, module);
+                    server.Update(user, _serviceProvider, existing?.Version, module?.Version);
                     //Read updated module methods, etc...
                     module = await _moduleRepository.ReadAsync(user, module.Id);
                     if (module.Scripts != null)
@@ -776,7 +928,9 @@ namespace Gurux.DLMS.AMI.Server.Services
         }
 
         ///<inheritdoc />
-        public bool EnableModule(GXModule module)
+        public bool EnableModule(
+            ClaimsPrincipal user,
+            GXModule module)
         {
             try
             {
@@ -786,16 +940,26 @@ namespace Gurux.DLMS.AMI.Server.Services
                 GXModuleInfo info = _modulesService.LoadModule(_host, module.Id, null);
                 if (info.Module != null)
                 {
+                    if ((module.Status & ModuleStatus.Installed) == 0)
+                    {
+                        info.Module.InstallAsync(user, _serviceProvider, module);
+                        info.Module.Install(user, _serviceProvider, module);
+                        module.Status |= ModuleStatus.Installed;
+                        _host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Status }));
+                    }
                     info.Module.Start(_serviceProvider);
                 }
-                foreach (var it in info.AssemblyLoadContext.Assemblies)
+                if (info.AssemblyLoadContext != null)
                 {
-                    _partManager.ApplicationParts.Add(new AssemblyPart(it));
-                }
-                // Notify from the change.
-                if (info.AssemblyLoadContext.Assemblies.Any())
-                {
-                    _actionDescriptorChangeProvider.TokenSource.Cancel();
+                    foreach (var it in info.AssemblyLoadContext.Assemblies)
+                    {
+                        _partManager.ApplicationParts.Add(new AssemblyPart(it));
+                    }
+                    // Notify from the change.
+                    if (info.AssemblyLoadContext.Assemblies.Any())
+                    {
+                        _actionDescriptorChangeProvider.TokenSource.Cancel();
+                    }
                 }
                 return info.Restart;
             }
@@ -804,7 +968,11 @@ namespace Gurux.DLMS.AMI.Server.Services
                 //Disable module if there is an error.
                 module.Active = false;
                 module.Updated = DateTime.Now;
-                _host.Connection.Update(GXUpdateArgs.Update(module, c => new { c.Active, c.Updated }));
+                _host.Connection.Update(GXUpdateArgs.Update(module, c => new
+                {
+                    c.Active,
+                    c.Updated
+                }));
                 var error = new GXModuleLog(TraceLevel.Error)
                 {
                     CreationTime = DateTime.Now,
@@ -857,7 +1025,8 @@ namespace Gurux.DLMS.AMI.Server.Services
         }
 
         ///<inheritdoc />
-        public bool DisableModule(GXModule module)
+        public bool DisableModule(
+            ClaimsPrincipal user, GXModule module)
         {
             try
             {
@@ -868,12 +1037,15 @@ namespace Gurux.DLMS.AMI.Server.Services
                     {
                         info.Module.Stop(_serviceProvider);
                     }
-                    foreach (var it in info.AssemblyLoadContext.Assemblies)
+                    if (info.AssemblyLoadContext != null)
                     {
-                        _partManager.ApplicationParts.Remove(new AssemblyPart(it));
+                        foreach (var it in info.AssemblyLoadContext.Assemblies)
+                        {
+                            _partManager.ApplicationParts.Remove(new AssemblyPart(it));
+                        }
+                        // Notify change
+                        _actionDescriptorChangeProvider.TokenSource.Cancel();
                     }
-                    // Notify change
-                    _actionDescriptorChangeProvider.TokenSource.Cancel();
                     return info.Restart;
                 }
                 return false;
@@ -893,6 +1065,50 @@ namespace Gurux.DLMS.AMI.Server.Services
                 _host.Connection.Insert(GXInsertArgs.Insert(error));
             }
             return true;
+        }
+
+        ///<inheritdoc />
+        public async Task ExecuteAsync(
+            ClaimsPrincipal user,
+            GXModule module,
+            string? instanceSettings)
+        {
+            try
+            {
+                await _modulesService.ExecuteAsync(
+                    user,
+                    module.Id,
+                    _serviceProvider,
+                    module.Settings,
+                    instanceSettings);
+
+                var repository = _serviceProvider.GetService<IModuleLogRepository>();
+                if (repository != null)
+                {
+                    var log = new GXModuleLog(TraceLevel.Info)
+                    {
+                        Module = module,
+                        CreationTime = DateTime.Now,
+                        Message = "Scheduled module executed.",
+                    };
+                    await repository.AddAsync(user, new GXModuleLog[] { log });
+                }
+            }
+            catch (Exception ex)
+            {
+                var repository = _serviceProvider.GetService<IModuleLogRepository>();
+                if (repository != null)
+                {
+                    var error = new GXModuleLog(TraceLevel.Error)
+                    {
+                        Module = module,
+                        CreationTime = DateTime.Now,
+                        Message = "Failed to execute module. " + module.Class + Environment.NewLine +
+                                ex.Message,
+                    };
+                    await repository.AddAsync(user, new GXModuleLog[] { error });
+                }
+            }
         }
     }
 }

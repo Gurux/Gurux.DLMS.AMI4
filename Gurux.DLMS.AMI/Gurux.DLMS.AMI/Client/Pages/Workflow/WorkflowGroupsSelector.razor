@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXWorkflowGroup" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Name
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -52,17 +54,7 @@
     /// <summary>
     /// WorkflowGroup filter.
     /// </summary>
-    private GXWorkflowGroup filter = new GXWorkflowGroup(null);
-
-    string? GetName(GXWorkflowGroup target)
-    {
-        return target.Name;
-    }
-
-    string? GetDescription(GXWorkflowGroup target)
-    {
-        return target.Name;
-    }
+    private GXWorkflowGroup filter = new GXWorkflowGroup(null);   
 
     protected async Task SearchSelectedByName(string? name)
     {

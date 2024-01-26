@@ -107,6 +107,11 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddGatewayGroupRequirements(options, issuer);
             AddGatewayRequirements(options, issuer);
             AddGatewayLogRequirements(options, issuer);
+            AddSubtotalRequirements(options, issuer);
+            AddSubtotalGroupRequirements(options, issuer);
+            AddSubtotalValueRequirements(options, issuer);
+            AddSubtotalLogRequirements(options, issuer);
+            //Add roles from the database.
         }
 
         /// <summary>
@@ -1470,6 +1475,62 @@ namespace Gurux.DLMS.AMI.Server.Internal
         }
 
         /// <summary>
+        /// Add subtotal value requirements that are used for policy.
+        /// </summary>
+        private static void AddSubtotalValueRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXSubtotalValuePolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalValuePolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ComponentViewGroupManager } });
+            });
+            options.AddPolicy(GXSubtotalValuePolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalValuePolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ComponentViewGroupManager } });
+            });
+            options.AddPolicy(GXSubtotalValuePolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalValuePolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ComponentViewGroupManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add subtotal log requirements that are used for policy.
+        /// </summary>
+        private static void AddSubtotalLogRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXSubtotalLogPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalLogPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalLogManager } });
+            });
+            options.AddPolicy(GXSubtotalLogPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalLogPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalLogManager } });
+            });
+            options.AddPolicy(GXSubtotalLogPolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalLogPolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalLogManager } });
+            });
+            options.AddPolicy(GXSubtotalLogPolicies.Close, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalLogPolicies.Close, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalLogManager } });
+            });
+        }
+
+        /// <summary>
         /// Add object requirements that are used for policy.
         /// </summary>
         private static void AddObjectRequirements(AuthorizationOptions options, string issuer)
@@ -1774,5 +1835,80 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 { Roles = new string[] { GXRoles.Admin, GXRoles.GatewayLogManager } });
             });
         }
+
+        /// <summary>
+        /// Add subtotal requirements that are used for policy.
+        /// </summary>
+        private static void AddSubtotalRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXSubtotalPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+            options.AddPolicy(GXSubtotalPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+            options.AddPolicy(GXSubtotalPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+            options.AddPolicy(GXSubtotalPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+            options.AddPolicy(GXSubtotalPolicies.Calculate, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.Calculate, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+            options.AddPolicy(GXSubtotalPolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalPolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalManager } });
+            });
+        }
+
+        /// <summary>
+        /// Add subtotal group requirements that are used for policy.
+        /// </summary>
+        private static void AddSubtotalGroupRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXSubtotalGroupPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+            });
+            options.AddPolicy(GXSubtotalGroupPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+            });
+            options.AddPolicy(GXSubtotalGroupPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+            });
+            options.AddPolicy(GXSubtotalGroupPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+            });
+        }
+
     }
 }

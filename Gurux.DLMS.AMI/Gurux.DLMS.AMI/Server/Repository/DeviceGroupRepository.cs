@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -41,6 +40,10 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using System.Data;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -240,27 +243,39 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
-                //If device groups are filtered by user.
-                if (request.Filter?.UserGroups != null)
+                //Get only included device groups.
+                if (request.Included != null && request.Included.Any())
                 {
-                    var ug = request.Filter.UserGroups.FirstOrDefault();
-                    if (ug?.Users != null && ug.Users.Any())
-                    {
-                        var user = ug.Users.FirstOrDefault();
-                        if (user != null)
-                        {
-                            arg.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
-                            arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
-                            arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
-                            arg.Where.FilterBy(user);
-                        }
-                    }
-                    request.Filter.UserGroups = null;
+                    arg.Where.And<GXDeviceGroup>(w => request.Included.Contains(w.Id));
                 }
-                arg.Where.FilterBy(request.Filter);
+                else
+                {
+                    //If device groups are filtered by user.
+                    if (request.Filter?.UserGroups != null)
+                    {
+                        var ug = request.Filter.UserGroups.FirstOrDefault();
+                        if (ug?.Users != null && ug.Users.Any())
+                        {
+                            var user = ug.Users.FirstOrDefault();
+                            if (user != null)
+                            {
+                                arg.Joins.AddLeftJoin<GXUserGroupDeviceGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id);
+                                arg.Joins.AddLeftJoin<GXUserGroup, GXUserGroupUser>(j => j.Id, j => j.UserGroupId);
+                                arg.Joins.AddLeftJoin<GXUserGroupUser, GXUser>(j => j.UserId, j => j.Id);
+                                arg.Where.FilterBy(user);
+                            }
+                        }
+                        request.Filter.UserGroups = null;
+                    }
+                    arg.Where.FilterBy(request.Filter);
+                }
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXDeviceGroup>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXDeviceGroup>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && request.Count != 0)
@@ -444,7 +459,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var it in newGroups)
                     {
                         list.Add(it.Id);
-                    }                    
+                    }
                 }
                 foreach (var it in updatedGroups)
                 {

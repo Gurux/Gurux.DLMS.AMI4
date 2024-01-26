@@ -308,12 +308,8 @@
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                         <div class="form-group row">
                             <label>@Properties.Resources.TraceLevels</label>
-                            <select class="form-select" @bind="Active.TraceLevel">
-                                @foreach (var it in TraceLevels)
-                                {
-                                    <option value="@it">@it</option>
-                                }
-                            </select>
+                            <NullableTraceLevelSelector @bind-Value="Active.TraceLevel">
+                            </NullableTraceLevelSelector>
                         </div>
                     </div>
                     @if (Active.CreationTime != DateTime.MinValue)
@@ -736,11 +732,11 @@
             if (Active.Template != null
                 && !string.IsNullOrEmpty(Active.Template.Settings))
             {
-                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
+                _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Template.Settings);
             }
             if (!string.IsNullOrEmpty(Active.Settings))
             {
-                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+                _settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
             }
             else
             {
@@ -825,7 +821,7 @@
         {
             settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
                 {
-                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings()
                     {
                         Authentication = (byte)current
                     })
@@ -873,7 +869,7 @@
             //Default authentication is added.
             settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
                 {
-                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                    Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings()
                     {
                         Security = (byte)current
                     })
@@ -885,17 +881,17 @@
 
     Gurux.DLMS.Enums.InterfaceType GetInterfaceType(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
     {
-        return (Gurux.DLMS.Enums.InterfaceType)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).InterfaceType;
+        return (Gurux.DLMS.Enums.InterfaceType)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings).InterfaceType;
     }
 
     Gurux.DLMS.Enums.Security GetSecurity(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
     {
-        return (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Security;
+        return (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings).Security;
     }
 
     Gurux.DLMS.Enums.Authentication GetAuthenticationLevel(AMI.Shared.DTOs.Manufacturer.GXDeviceSettings value)
     {
-        return (Gurux.DLMS.Enums.Authentication)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Authentication;
+        return (Gurux.DLMS.Enums.Authentication)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings).Authentication;
     }
 
     /// <summary>
@@ -919,15 +915,8 @@
 
     List<Gurux.DLMS.Enums.InterfaceType> InterfaceList = new List<Gurux.DLMS.Enums.InterfaceType>();
     Dictionary<string, string> MediaList = new Dictionary<string, string>();
-    private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _settings;
-    private Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? _templateSettings;
-
-    TraceLevel[] TraceLevels = new TraceLevel[]
-       {
-        TraceLevel.Off,
-        TraceLevel.Info,
-        TraceLevel.Verbose
-       };
+    private Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? _settings;
+    private Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? _templateSettings;
 
     Gurux.DLMS.Enums.InterfaceType InterfaceType
     {
@@ -1210,7 +1199,7 @@
                                 if (!string.IsNullOrEmpty(Active.Settings))
                                 {
                                     //Get device template settings when device is selected for the first time.
-                                    _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+                                    _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
                                 }
                             }
                         }
@@ -1248,7 +1237,7 @@
                         Active.MediaSettings = it.MediaSettings;
                         Active.Settings = it.Settings;
                         //Update template settings.
-                        _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Template.Settings);
+                        _settings = _templateSettings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Template.Settings);
                         //Update interfaces.
                         if (_templateSettings?.Profiles != null && _templateSettings.Profiles.Any())
                         {
@@ -1424,7 +1413,7 @@
             //Check password.
             if (!string.IsNullOrEmpty(Active.Settings))
             {
-                var settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+                var settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
                 if (settings != null && settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.None &&
                 settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighGMAC &&
                 settings.Authentication != (byte)Gurux.DLMS.Enums.Authentication.HighECDSA)

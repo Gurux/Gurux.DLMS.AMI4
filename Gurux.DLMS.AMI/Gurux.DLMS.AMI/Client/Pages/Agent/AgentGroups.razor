@@ -1,6 +1,7 @@
 ﻿@page "/agentgroups"
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -30,6 +31,9 @@
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -55,12 +59,12 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Updated">@Properties.Resources.Updated</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("AgentGroup/Edit/" + group.Id)">@group.Name</Td>
-        <td>@group.CreationTime</td>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <Th Id="Updated">@Properties.Resources.Updated</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("AgentGroup/Edit/" + group.Id)">@group.Name</Td>
+            <td>@group.CreationTime</td>
         <td>@group.Updated</td>
     </ItemContent>
 </GXTable>
@@ -117,6 +121,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

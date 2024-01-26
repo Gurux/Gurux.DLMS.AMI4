@@ -71,9 +71,9 @@ namespace Gurux.DLMS.AMI.Scheduler
             _configurationRepository = configurationRepository;
         }
 
-        private void AddModuleVersion(ClaimsPrincipal user, Shared.DTOs.GXModule module, Update.GXVersion version)
+        private void AddModuleVersion(ClaimsPrincipal user, Shared.DTOs.Module.GXModule module, Update.GXVersion version)
         {
-            var ver = new Shared.DTOs.GXModuleVersion();
+            var ver = new Shared.DTOs.Module.GXModuleVersion();
             ver.Module = module;
             ver.CreationTime = version.CreationTime;
             ver.Number = version.Number;
@@ -83,7 +83,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             ver.Description = version.Description;
             if (module.Versions == null)
             {
-                module.Versions = new List<Shared.DTOs.GXModuleVersion>();
+                module.Versions = new List<Shared.DTOs.Module.GXModuleVersion>();
             }
             module.Versions.Add(ver);
             try
@@ -101,9 +101,9 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
         }
 
-        private static void AddAgentVersion(Shared.DTOs.GXAgent agent, Update.GXVersion version)
+        private static void AddAgentVersion(Shared.DTOs.Agent.GXAgent agent, Update.GXVersion version)
         {
-            var ver = new Shared.DTOs.GXAgentVersion();
+            var ver = new Shared.DTOs.Agent.GXAgentVersion();
             ver.Agent = agent;
             ver.CreationTime = version.CreationTime;
             ver.Number = version.Number;
@@ -113,7 +113,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             ver.Description = version.Description;
             if (agent.Versions == null)
             {
-                agent.Versions = new List<Shared.DTOs.GXAgentVersion>();
+                agent.Versions = new List<Shared.DTOs.Agent.GXAgentVersion>();
             }
             agent.Versions.Add(ver);
             agent.AvailableVersion = version.Number;
@@ -129,7 +129,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             //Check agents and update agent templates.
             string address = "/ami4/agent/agent.json";
             GXAgent? loadAgent = await GetAsync<GXAgent>(address);
-            List<Shared.DTOs.GXAgent> newAgents = new List<Shared.DTOs.GXAgent>();
+            List<Shared.DTOs.Agent.GXAgent> newAgents = new List<Shared.DTOs.Agent.GXAgent>();
             if (loadAgent != null && loadAgent.Versions.Any() && installerAgents.Any())
             {
                 foreach (var version in loadAgent.Versions)
@@ -139,7 +139,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                         var installedVersion = a.Versions.Where(q => q.Number == version.Number).SingleOrDefault();
                         if (installedVersion == null)
                         {
-                            Shared.DTOs.GXAgent agent;
+                            Shared.DTOs.Agent.GXAgent agent;
                             if (!newAgents.Any())
                             {
                                 agent = await _agentRepository.ReadAsync(user, a.Id);
@@ -157,7 +157,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
             else
             {
-                Shared.DTOs.GXAgent a = new Shared.DTOs.GXAgent(loadAgent.Name);
+                Shared.DTOs.Agent.GXAgent a = new Shared.DTOs.Agent.GXAgent(loadAgent.Name);
                 a.Template = true;
                 if (a.Name == null)
                 {
@@ -222,12 +222,12 @@ namespace Gurux.DLMS.AMI.Scheduler
             //Check modules.
             string address = "/ami4/modules/modules.json";
             GXModule[]? availableModules = await GetAsync<GXModule[]>(address);
-            List<Shared.DTOs.GXModule> newModules = new List<Shared.DTOs.GXModule>();
+            List<Shared.DTOs.Module.GXModule> newModules = new List<Shared.DTOs.Module.GXModule>();
             if (availableModules != null)
             {
                 foreach (var aModule in availableModules)
                 {
-                    Shared.DTOs.GXModule? iModule = inatalledModules.Where(w => w.Id == aModule.Name).SingleOrDefault();
+                    Shared.DTOs.Module.GXModule? iModule = inatalledModules.Where(w => w.Id == aModule.Name).SingleOrDefault();
                     if (iModule != null)
                     {
                         //Installed module.
@@ -255,7 +255,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                     else
                     {
                         //If new module.
-                        iModule = new Shared.DTOs.GXModule(aModule.Name);
+                        iModule = new Shared.DTOs.Module.GXModule(aModule.Name);
                         iModule.CreationTime = now;
                         iModule.Active = false;
                         iModule.Status = ModuleStatus.Installable;
@@ -316,7 +316,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                 {
                     Template = true
                 },
-                Select = Shared.Enums.TargetType.Version
+                Select = new string[] { "Version" }
             };
             installedManufacturers.AddRange(await _manufacturerRepository.ListAsync(user, request, null, CancellationToken.None));
             //Check manufacturers.

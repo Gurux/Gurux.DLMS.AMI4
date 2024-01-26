@@ -198,7 +198,7 @@
                     //Get serial number object.
                     ListObjects req2 = new ListObjects()
                         {
-                            Select = TargetType.Attribute,
+                            Select = new string[] { "Attribute" },
                             Filter = new GXObject()
                             {
                                 Device = new GXDevice() { Id = tmp.Item.Id },
@@ -245,7 +245,7 @@
                 {
                     Filter = filter2,
                     //Get model and version info.
-                    Select = TargetType.Version
+                    Select = new string[] { "Version" }
                 });
             List<GXManufacturer> tmp2 = new List<GXManufacturer>(ret2.Manufacturers);
             //Add custom manufacturer.

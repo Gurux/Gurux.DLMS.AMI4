@@ -1,0 +1,145 @@
+﻿@using Gurux.DLMS.AMI.Module;
+@using System.Security.Claims;
+@using Gurux.DLMS.AMI.Shared.DTOs;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Microsoft.AspNetCore.Authorization
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@implements IAmiUIExtension
+@attribute [Authorize(Roles = "ClockUpdater")]
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Update" Icon="oi oi-flash" OnClick="@(async () => await Update())" />
+    </ChildContent>
+</MenuControl>
+
+<DeviceGroupsSelector DeviceGroups="@DeviceGroups"
+                      @ref="@_deviceGroupsSelector"></DeviceGroupsSelector>
+@code {
+
+    [Parameter]
+    public ClockUpdaterSettings Settings
+    {
+        get;
+        set;
+    } = new ClockUpdaterSettings();
+
+    /// <summary>
+    /// Save user settings.
+    /// </summary>
+    [Parameter]
+    public EventCallback<object> SettingsChanged
+    {
+        get;
+        set;
+    }
+
+    DeviceGroupsSelector? _deviceGroupsSelector;
+
+    /// <summary>
+    /// Scheduler saves clock updater settings.
+    /// </summary>
+    /// <returns></returns>
+    public async Task SaveAsync()
+    {
+        Settings.DeviceGroups.Clear();
+        Settings.DeviceGroups.AddRange(DeviceGroups.Select(s => s.Id));
+        await SettingsChanged.InvokeAsync(Settings);
+    }
+
+    /// <summary>
+    /// UI is initialized async.
+    /// </summary>
+    public async Task InitializedAsync()
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (Settings.DeviceGroups.Any())
+            {
+                //Get selected device groups.
+                ListDeviceGroups req = new ListDeviceGroups()
+                    {
+                        Included = Settings.DeviceGroups.ToArray()
+                    };
+                var ret = await Http.PostAsJson<ListDeviceGroupsResponse>("api/DeviceGroup/List", req);
+                if (ret?.DeviceGroups != null)
+                {
+                    DeviceGroups.AddRange(ret.DeviceGroups);
+                    if (_deviceGroupsSelector != null)
+                    {
+                        await _deviceGroupsSelector.Update();
+                    }
+                }
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Create a taks that Update clock for all devices
+    /// in the the selected device groups.
+    /// </summary>
+    public async Task Update()
+    {
+        Notifier.ClearStatus();
+        Notifier.ProgressStart();
+        try
+        {
+            List<GXTask> tasks = new List<GXTask>();
+            foreach (var it in DeviceGroups)
+            {
+                GXTask task = new GXTask();
+                task.TaskType = AMI.Shared.Enums.TaskType.Write;
+                task.DeviceGroup = it;
+                GXAttribute att = new GXAttribute(2, null);
+                task.Object = new((int)Gurux.DLMS.Enums.ObjectType.Clock, "0.0.1.0.0.255")
+                    {
+                        Attributes = new List<GXAttribute>() { att }
+                    };
+                tasks.Add(task);
+            }
+            Settings.DeviceGroups.Clear();
+            Settings.DeviceGroups.AddRange(DeviceGroups.Select(s => s.Id));
+            AddTask req = new AddTask();
+            req.Tasks = tasks.ToArray();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+            Notifier.ShowInformation("Clock update tasks added.", true);
+            await SettingsChanged.InvokeAsync(Settings);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Selected device groups.
+    /// </summary>
+    private List<GXDeviceGroup> DeviceGroups
+    {
+        get;
+        set;
+    } = new List<GXDeviceGroup>();
+}

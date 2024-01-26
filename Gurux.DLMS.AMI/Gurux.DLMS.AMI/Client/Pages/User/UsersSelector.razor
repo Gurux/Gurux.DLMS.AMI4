@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXUser" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.UserName
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.UserName
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -48,21 +50,6 @@
     /// User filter.
     /// </summary>
     private GXUser filter = new GXUser(null);
-
-    string? GetName(GXUser target)
-    {
-        return target.UserName;
-    }
-
-    string? GetDescription(GXUser target)
-    {
-        string? str = target.GivenName + " " + target.Surname;
-        if (string.IsNullOrEmpty(target.GivenName) && string.IsNullOrEmpty(target.Surname))
-        {
-            str = target.UserName;
-        }
-        return str;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {

@@ -18,18 +18,20 @@
 <SelectionContainer TItem="GXKeyManagement" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.SystemTitle
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedBySystemTitle" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.SystemTitle
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchBySystemTitle" />
@@ -50,16 +52,6 @@
     /// KeyManagement filter.
     /// </summary>
     private GXKeyManagement filter = new GXKeyManagement(null);
-
-    string? GetName(GXKeyManagement target)
-    {
-        return target.SystemTitle;
-    }
-
-    string? GetDescription(GXKeyManagement target)
-    {
-        return target.SystemTitle;
-    }
 
     protected async Task SearchSelectedBySystemTitle(string? systemTitle)
     {

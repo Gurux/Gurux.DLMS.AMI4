@@ -1,0 +1,124 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.SubtotalLog)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="disabled" @bind-Value="_active.Message" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.ErrorSeverityLevel</label>
+                    <input type="text" id="level" disabled="disabled"
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                </div>
+                @if (_active.Subtotal != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Subtotal</label>
+                        <InputText id="subtotal" disabled="disabled" @bind-Value="_active.Subtotal.Name" class="form-control" />
+                    </div>
+                }
+                @if (string.IsNullOrEmpty(_active.StackTrace))
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.StackTrace</label>
+                        <textarea id="stackTrace" value="@_active.StackTrace"
+                                  rows="15" disabled="disabled" class="form-control" />
+                    </div>
+                }
+                @if (_active.CreationTime != DateTime.MinValue)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Closed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Closed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                           @bind-Value="_active.Closed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private GXSubtotalLog? _active;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            if (Id == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+            //Read subtotal log item.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/SubtotalLog?id={0}", Id));
+            ClientHelpers.ValidateStatusCode(response);
+            _active = (await response.Content.ReadFromJsonAsync<GetSubtotalLogResponse>())?.Item;
+            if (_active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

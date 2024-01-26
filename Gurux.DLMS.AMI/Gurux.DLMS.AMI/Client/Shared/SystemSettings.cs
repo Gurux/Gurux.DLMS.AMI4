@@ -1,7 +1,7 @@
 ﻿namespace Gurux.DLMS.AMI.Client.Shared
 {
     /// <summary>
-    /// Cron settings.
+    /// System settings.
     /// </summary>
     public class SystemSettings
     {

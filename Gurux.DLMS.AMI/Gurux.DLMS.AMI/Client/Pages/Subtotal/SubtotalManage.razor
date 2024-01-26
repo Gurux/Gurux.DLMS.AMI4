@@ -1,0 +1,167 @@
+﻿@page "/config/subtotalmanage"
+@page "/config/subtotal"
+@page "/config/subtotalGroup"
+@page "/config/subtotal/deviceGroup"
+@page "/config/subtotal/device"
+@page "/config/subtotal/agent"
+@page "/config/subtotal/agentGroup"
+@page "/config/subtotal/gateway"
+@page "/config/subtotal/gatewayGroup"
+@page "/config/subtotal/log/{Id:guid?}"
+@page "/config/subtotal/log/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Subtotal
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using static Gurux.DLMS.AMI.Client.Pages.Subtotal.SubtotalValues
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.SubtotalManager + "," + GXRoles.SubtotalGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "Subtotal", true) == 0)
+    {
+        <SubtotalTab Action="@Action" Id="@Id"></SubtotalTab>
+    }
+    else if (string.Compare(Path, "SubtotalGroup", true) == 0)
+    {
+        <SubtotalGroupTab Action="@Action" Id="@Id"></SubtotalGroupTab>
+    }
+    else if (string.Compare(Path, "Log", true) == 0)
+    {
+        <SubtotalLog Action="@Action" Id="@Id"></SubtotalLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true">
+                @if (context.PadgeCount != 0)
+                {
+                    <span class="@context.GetPadgeClass()">
+                        @context.PadgeCount
+                        <span class="visually-hidden">@context.Padge</span>
+                    </span>
+                }
+            </span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalManager)>
+                <TabPage Path="config/subtotal" Text=@Properties.Resources.Subtotals Icon="oi oi-browser">
+                    <Subtotals Id="@Id"></Subtotals>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalGroupManager)>
+                <TabPage Path="config/subtotalGroup" Text=@Properties.Resources.SubtotalGroups Icon="oi oi-timer">
+                    <SubtotalGroups Id="@Id"></SubtotalGroups>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
+                <TabPage Path="config/subtotal/device" Text=@Properties.Resources.Devices>
+                    <SubtotalValues Target="SubtotalTarget.Device" />
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
+                <TabPage Path="config/subtotal/devicegroup" Text=@Properties.Resources.DeviceGroups>
+                    <SubtotalValues Target="SubtotalTarget.DeviceGroup" />
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
+                <TabPage Path="config/subtotal/agent" Text=@Properties.Resources.Agents>
+                    <SubtotalValues Target="SubtotalTarget.Agent" />
+                </TabPage>
+                <TabPage Path="config/subtotal/agentgroup" Text=@Properties.Resources.AgentGroups>
+                    <SubtotalValues Target="SubtotalTarget.AgentGroup" />
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
+                <TabPage Path="config/subtotal/gateway" Text=@Properties.Resources.Gateways>
+                    <SubtotalValues Target="SubtotalTarget.Gateway" />
+                </TabPage>
+                <TabPage Path="config/subtotal/gatewaygroup" Text=@Properties.Resources.GatewayGroups>
+                    <SubtotalValues Target="SubtotalTarget.GatewayGroup" />
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalLog, GXRoles.SubtotalLogManager)>
+                <TabPage Path="config/subtotal/log"
+                         Text=@Properties.Resources.SubtotalLogs
+                         Padge="New subtotal logs"
+                         PadgeCount="@_log.GetCount()"
+                         PadgeType="@_log.GetTraceLevel()"
+                         Icon="oi oi-warning">
+                    <SubtotalLogs Id="@Id"></SubtotalLogs>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// Stamp.
+    /// </summary>
+    private GXUserStamp _log = new GXUserStamp();
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _log = Notifier.GetUserStamps(TargetType.SubtotalLog);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+       {
+           bool updated = false;
+           foreach (var it in stamps)
+           {
+               if (it.TargetType == TargetType.SubtotalLog)
+               {
+                   updated = true;
+               }
+           }
+           if (updated)
+           {
+               StateHasChanged();
+               StateHasChanged();
+           }
+       });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

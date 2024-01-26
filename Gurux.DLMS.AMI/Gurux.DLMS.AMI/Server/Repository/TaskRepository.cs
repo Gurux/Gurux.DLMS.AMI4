@@ -45,6 +45,12 @@ using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Data;
 using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Server.Services;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -59,6 +65,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         private readonly IAttributeRepository _attributeRepository;
         private readonly IObjectRepository _objectRepository;
         private readonly IDeviceRepository _deviceRepository;
+        private readonly ITaskLateBindHandler _taskHandler;
+        private readonly IScriptRepository _scriptRepository;
+        private readonly IGXModuleService _moduleService;
+        private readonly IScheduleRepository _scheduleRepository;
 
         /// <summary>
         /// Constructor.
@@ -71,6 +81,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <param name="attributeRepository">Attribute repository.</param>
         /// <param name="objectRepository">Object repository.</param>
         /// <param name="deviceRepository">Device repository.</param>
+        /// <param name="taskHandler">Task handler.</param>
+        /// <param name="scriptRepository">Script repository.</param>
+        /// <param name="moduleService">Module service.</param>
+        /// <param name="scheduleRepository">Schedule repository.</param>
         public TaskRepository(
             IGXHost host,
             IUserRepository userRepository,
@@ -79,7 +93,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IGXEventsNotifier eventsNotifier,
             IAttributeRepository attributeRepository,
             IObjectRepository objectRepository,
-            IDeviceRepository deviceRepository)
+            IDeviceRepository deviceRepository,
+            ITaskLateBindHandler taskHandler,
+            IScriptRepository scriptRepository,
+            IGXModuleService moduleService,
+            IScheduleRepository scheduleRepository)
         {
             _host = host;
             _userManager = userManager;
@@ -89,6 +107,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             _attributeRepository = attributeRepository;
             _objectRepository = objectRepository;
             _deviceRepository = deviceRepository;
+            _taskHandler = taskHandler;
+            _scriptRepository = scriptRepository;
+            _moduleService = moduleService;
+            _scheduleRepository = scheduleRepository;
         }
 
         /// <summary>
@@ -174,10 +196,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListTasksResponse? response,
             CancellationToken cancellationToken = default)
         {
-            string userId = _userManager.GetUserId(User);
-            //Get all tasks that user has triggered.
-            GXUser user = new GXUser() { Id = userId };
-            GXSelectArgs arg = GXSelectArgs.SelectAll<GXTask>(w => w.TriggerUser == user);
+            GXSelectArgs arg;
+            if (request != null && request.AllUsers && User.IsInRole(GXRoles.Admin))
+            {
+                //Admin can see all the tasks.
+                arg = GXSelectArgs.SelectAll<GXTask>();
+            }
+            else
+            {
+                //Get all tasks that user has created.
+                string userId = ServerHelpers.GetUserId(User);
+                GXUser user = new GXUser() { Id = userId };
+                arg = GXSelectArgs.SelectAll<GXTask>(w => w.Creator == user);
+            }
             arg.Distinct = true;
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -196,6 +227,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXTask>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXTask>(w => request.Included.Contains(w.Id));
+                }
             }
             if (request != null && request.Count != 0)
             {
@@ -205,17 +240,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 total.Where.Append(arg.Where);
                 if (response != null)
                 {
-                    response.Count = _host.Connection.SingleOrDefault<int>(total);
+                    try
+                    {
+                        response.Count = await _host.Connection.SingleOrDefaultAsync<int>(total,
+                                                cancellationToken, 5);
+                    }
+                    catch (TimeoutException)
+                    {
+                        //Return -1 if amount of the tasks is too large.
+                        response.Count = -1;
+                    }
+                    arg.Index = (UInt32)request.Index;
+                    arg.Count = (UInt32)request.Count;
                 }
-                arg.Index = (UInt32)request.Index;
-                arg.Count = (UInt32)request.Count;
             }
             DateTime now = DateTime.Now;
             List<GXTask> list = new List<GXTask>();
             GXTask[] tasks = new GXTask[0];
             if (request != null)
             {
-                if ((request.Select & TargetType.Device) != 0)
+                if (request.Select != null && request.Select.Contains("Device"))
                 {
                     //Select devices.
                     arg = GXSelectArgs.SelectAll<GXTask>();
@@ -236,7 +280,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
                     list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
                 }
-                if ((request.Select & TargetType.Attribute) != 0)
+                if (request.Select != null && request.Select.Contains("Attribute"))
                 {
                     //Select attributes.
                     arg = GXSelectArgs.SelectAll<GXTask>();
@@ -257,7 +301,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Columns.Exclude<GXAttributeTemplate>(e => new { e.ObjectTemplate, e.Updated, e.CreationTime, e.ExpirationTime, e.Name });
                     list.AddRange(await _host.Connection.SelectAsync<GXTask>(arg));
                 }
-                if ((request.Select & TargetType.Object) != 0)
+                if (request.Select != null && request.Select.Contains("Object"))
                 {
                     //Select objects.
                     arg = GXSelectArgs.SelectAll<GXTask>();
@@ -280,7 +324,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 tasks = list.OrderBy(o => o.Order).ToArray();
             }
-            if (request == null || (request.Select & (TargetType.Attribute | TargetType.Object)) == 0)
+            if (request == null || request.Select == null ||
+                (!request.Select.Contains("Attribute") && !request.Select.Contains("Object")))
             {
                 tasks = (await _host.Connection.SelectAsync<GXTask>(arg)).ToArray();
             }
@@ -424,13 +469,40 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         //Get devices that belong to this device group.
                         var devices = DeviceGroupRepository.GetDevicessByDeviceGroupId(_host, user, it.DeviceGroup.Id);
-                        foreach (var dev2 in devices)
+                        //If user wants to read attributes from the selected device groups.
+                        if (it.Object?.Attributes != null && it.Object.Attributes.Any())
                         {
-                            GXTask t = ClientHelpers.Clone(it);
-                            t.DeviceGroup = null;
-                            t.Device = dev2;
-                            t.Creator = it.Creator;
-                            deviceTasks.Add(t);
+                            foreach (var dev2 in devices)
+                            {
+                                tasks2.Clear();
+                                foreach (var att in it.Object.Attributes)
+                                {
+                                    GXTask t = ClientHelpers.Clone(it);
+                                    t.TargetDevice = dev2.Id;
+                                    t.DeviceGroup = null;
+                                    t.Attribute = ClientHelpers.Clone(att);
+                                    t.Index = att.Template.Index;
+                                    //Update attribute object.
+                                    t.Attribute.Object = it.Object;
+                                    t.Creator = it.Creator;
+                                    tasks2.Add(t);
+                                }
+                                //ToArray makes a copy from the tasks.
+                                //Don't remove it.
+                                _taskHandler.AddRange(user, tasks2.ToArray());
+                            }
+                            return new Guid[0];
+                        }
+                        else
+                        {
+                            foreach (var dev2 in devices)
+                            {
+                                GXTask t = ClientHelpers.Clone(it);
+                                t.DeviceGroup = null;
+                                t.Device = dev2;
+                                t.Creator = it.Creator;
+                                deviceTasks.Add(t);
+                            }
                         }
                         removed.Add(it);
                     }
@@ -449,7 +521,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         it.Order = 0;
                     }
-                    if (it.Device == null && it.Object == null && it.Attribute == null)
+                    if (it.Device == null && it.Object == null && it.Attribute == null &&
+                        it.ScriptMethod == null && it.Module == null)
                     {
                         throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
                     }
@@ -499,6 +572,25 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     else if (it.Attribute != null)
                     {
+                        if (it.Attribute.Id == Guid.Empty)
+                        {
+                            //Target device must set when attribute is find by logical name and index.
+                            if (it.TargetDevice == null)
+                            {
+                                throw new ArgumentException(Properties.Resources.UnknownTarget);
+                            }
+                            //Get attribute with device id, object logical name and attribute index.
+                            GXAttribute? att2 = await ObjectRepository.GetDeviceAttributeUsingLogicalName(_host,
+                                transaction, creator.Id, it.TargetDevice.Value, it.Object.Template.LogicalName, it.Index.Value);
+                            if (att2 != null)
+                            {
+                                it.Attribute.Id = att2.Id;
+                            }
+                            else
+                            {
+                                //If object is not created yet.
+                            }
+                        }
                         arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
                         arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
                         arg.Where.And<GXAttribute>(w => w.Removed == null && w.Id == it.Attribute.Id);
@@ -545,14 +637,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 //Get object template from attribute template.
                                 arg = GXSelectArgs.Select<GXObjectTemplate>(s => new { s.Id, s.Name }, w => w.Removed == null);
                                 arg.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(j => j.Id, j => j.ObjectTemplate);
-                                arg.Where.And<GXAttributeTemplate>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                                if (it.Attribute.Id == Guid.Empty)
+                                {
+                                    arg.Where.And<GXObjectTemplate>(w => w.LogicalName == it.Object.Template.LogicalName);
+                                    arg.Where.And<GXAttributeTemplate>(w => w.Removed == null && w.Index == it.Index);
+                                }
+                                else
+                                {
+                                    arg.Where.And<GXAttributeTemplate>(w => w.Removed == null && w.Id == it.Attribute.Id);
+                                }
                                 var objTemplate = (await _host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(transaction, arg));
                                 if (objTemplate == null)
                                 {
                                     throw new ArgumentException(Properties.Resources.UnknownTarget);
                                 }
                                 obj = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, objTemplate.Id);
-                                it.Attribute = obj.Attributes?.Where(w => w.Template.Id == it.Attribute.Id).SingleOrDefault();
+                                if (it.Attribute.Id == Guid.Empty)
+                                {
+                                    //Search attribute by index.
+                                    it.Attribute = obj.Attributes?.Where(w => w.Template.Index == it.Index).SingleOrDefault();
+                                }
+                                else
+                                {
+                                    //Search attribute by Id.
+                                    it.Attribute = obj.Attributes?.Where(w => w.Template.Id == it.Attribute.Id).SingleOrDefault();
+                                }
                             }
                         }
                         //Get device ID from the database.
@@ -584,8 +693,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             await _host.Connection.UpdateAsync(transaction,
                                 GXUpdateArgs.Update(it.Attribute, u => u.Value));
                         }
+                        it.Object = null;
                     }
-                    if (it.TargetDevice == null)
+                    if (it.TargetDevice == null &&
+                        it.ScriptMethod != null &&
+                        it.Module != null)
                     {
                         throw new ArgumentNullException(Properties.Resources.UnknownTaskTarget);
                     }
@@ -671,6 +783,28 @@ namespace Gurux.DLMS.AMI.Server.Repository
                                 it.TargetGateway = gw.Id;
                             }
                         }
+                    }
+                    else if (it.ScriptMethod != null)
+                    {
+                        if (user == null)
+                        {
+                            user = ServerHelpers.CreateClaimsPrincipalFromUser(it.TriggerUser);
+                        }
+                        await _scriptRepository.RunAsync(user, it.ScriptMethod.Id);
+                    }
+                    else if (it.Module != null)
+                    {
+                        if (user == null)
+                        {
+                            user = ServerHelpers.CreateClaimsPrincipalFromUser(it.TriggerUser);
+                        }
+                        GXScheduleModule? tmp = new GXScheduleModule()
+                        {
+                            ModuleId = it.Module.Id,
+                            ScheduleId = it.TriggerSchedule.Id,
+                        };
+                        tmp = await _scheduleRepository.GetModuleSettingsAsync(user, tmp);
+                        await _moduleService.ExecuteAsync(user, it.Module, tmp?.Settings);
                     }
                 }
                 await _host.Connection.InsertAsync(transaction, GXInsertArgs.InsertRange(tasks2));
@@ -906,6 +1040,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 list.Add(new GXTask()
                 {
                     Id = it.Id,
+                    CreationTime = it.CreationTime,
                     TargetAgent = it.TargetAgent,
                     TargetGateway = it.TargetGateway,
                     TargetDevice = it.TargetDevice
@@ -1067,7 +1202,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get all tasks that are created with the same batch and are not executed.
                     ListTasks lt = new ListTasks()
                     {
-                        Select = TargetType.Device | TargetType.Object | TargetType.Attribute,
+                        Select = new string[] { "Device", "Object", "Attribute" },
                         Filter = new GXTask()
                         {
                             Batch = task.Batch

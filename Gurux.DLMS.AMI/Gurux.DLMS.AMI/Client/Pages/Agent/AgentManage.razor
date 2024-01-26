@@ -9,13 +9,15 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.Agent + "," +
     GXRoles.AgentManager + "," + GXRoles.AgentGroup + "," + GXRoles.AgentGroupManager +
     GXRoles.AgentLog + "," + GXRoles.AgentLogManager)]
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
+@implements IDisposable
 
 <!--If user adds a new item or modifies the existing one.-->
 @if (Path != null && string.Compare(Action, "Add", true) == 0 || (Id != null && string.Compare(Action, "Edit", true) == 0))
@@ -43,26 +45,37 @@
 else
 {
     <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true">
+                @if (context.PadgeCount != 0)
+                {
+                    <span class="@context.GetPadgeClass()">
+                        @context.PadgeCount
+                        <span class="visually-hidden">@context.Padge</span>
+                    </span>
+                }
+            </span>
+            @context.Text
+        </TabTextTemplate>
         <ChildContent>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent, GXRoles.AgentManager)>
                 <TabPage Path="Agent" Text=@Properties.Resources.Agents Icon="oi oi-wifi">
-                    <div style="position: relative; width: 100%; ">
-                        <Agents Id="@Id"></Agents>
-                    </div>
+                    <Agents Id="@Id"></Agents>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroup, GXRoles.AgentGroupManager)>
                 <TabPage Path="AgentGroup" Text=@Properties.Resources.AgentGroups>
-                    <div style="position: relative; width: 100%; ">
-                        <AgentGroups Id="@Id"></AgentGroups>
-                    </div>
+                    <AgentGroups Id="@Id"></AgentGroups>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentLog, GXRoles.AgentLogManager)>
-                <TabPage Path="AgentLog" Text=@Properties.Resources.AgentLogs Icon="oi oi-warning">
-                    <div style="position: relative; width: 100%; ">
-                        <AgentLogs Id="@Id"></AgentLogs>
-                    </div>
+                <TabPage Path="AgentLog"
+                         Text=@Properties.Resources.AgentLogs
+                         Padge="New agent logs"
+                         PadgeCount="@_log.GetCount()"
+                         PadgeType="@_log.GetTraceLevel()"
+                         Icon="oi oi-warning">
+                    <AgentLogs Id="@Id"></AgentLogs>
                 </TabPage>
             </AuthorizeView>
         </ChildContent>
@@ -85,6 +98,11 @@ else
     private string? Path { get; set; }
 
     /// <summary>
+    /// Stamp.
+    /// </summary>
+    private GXUserStamp _log = new GXUserStamp();
+
+    /// <summary>
     /// User has selected a new tab.
     /// </summary>
     /// <param name="page">Tab page.</param>
@@ -97,6 +115,28 @@ else
     {
         //Get selected tab from the url.
         Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _log = Notifier.GetUserStamps(TargetType.AgentLog);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        {
+            bool updated = false;
+            foreach (var it in stamps)
+            {
+                if (it.TargetType == TargetType.AgentLog)
+                {
+                    updated = true;
+                }
+            }
+            if (updated)
+            {
+                StateHasChanged();
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
     }
 }
 

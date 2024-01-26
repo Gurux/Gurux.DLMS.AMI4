@@ -42,7 +42,12 @@
                     {
                         @if (IsAdding)
                         {
-                            <p><InputFile OnChange="@LoadFile" /></p>
+                            <!--FileSelector is disabled until user has selected device template.-->
+                            <FileSelector Value="@_value"
+                                          Style="width:100%"
+                                          MaxFileSize="10000000"
+                                          OnLoaded="@UpdateDeviceTemplates"
+                                          Filter=".gxc" />
                         }
                         @if (IsAdding && templates != null && templates.Any())
                         {
@@ -63,7 +68,7 @@
                 </th>
                 <th>
                     <InputText id="name" disabled="@IsDeleting"
-                    @bind-Value="TemplateName"
+                               @bind-Value="TemplateName"
                                placeholder="Device template name" />
                 </th>
             </tr>
@@ -73,7 +78,7 @@
                 </th>
                 <th>
                     <InputNumber id="waitTime" disabled="@IsDeleting"
-                    @bind-Value="Active.WaitTime" />
+                                 @bind-Value="Active.WaitTime" />
                 </th>
             </tr>
             <tr>
@@ -82,7 +87,7 @@
                 </th>
                 <th>
                     <InputNumber id="resendCount" disabled="@IsDeleting"
-                    @bind-Value="Active.ResendCount" />
+                                 @bind-Value="Active.ResendCount" />
                 </th>
             </tr>
             <tr>
@@ -91,7 +96,7 @@
                 </th>
                 <th>
                     <InputSelect id="type" class="form-select"
-                    @bind-Value="Authentication" disabled="true">
+                                 @bind-Value="Authentication" disabled="true">
                         @foreach (var it in GetAuthentications())
                         {
                             <option value="@Convert.ToInt32(@it)">@it</option>
@@ -103,7 +108,7 @@
                 <th>
                     <InputHexAscii @ref="@_password"
                                    Disabled="@(IsDeleting || IsPasswordTileDisabled())"
-                    @bind-Value="DevicePassword"
+                                   @bind-Value="DevicePassword"
                                    Title="@Properties.Resources.Password">
                     </InputHexAscii>
                     <ValidationMessage For="@(() => _password)" />
@@ -132,14 +137,14 @@
         <div class="form-group">
             <label>@Properties.Resources.CreationTime</label>
             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-            @bind-Value="Active.CreationTime" />
+                       @bind-Value="Active.CreationTime" />
         </div>
         @if (Active.Updated != null)
         {
             <div class="form-group">
                 <label>@Properties.Resources.Updated</label>
                 <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                @bind-Value="Active.Updated" />
+                           @bind-Value="Active.Updated" />
             </div>
         }
         @if (Active.Removed != null)
@@ -147,7 +152,7 @@
             <div class="form-group">
                 <label>@Properties.Resources.Remove</label>
                 <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                @bind-Value="Active.Removed" />
+                           @bind-Value="Active.Removed" />
             </div>
         }
     </EditForm>
@@ -158,6 +163,8 @@
     private Ciphering? _ciphering;
     private Advanced? _advanced;
     private Profiles? _profiles;
+
+    private string? _value;
 
     [CascadingParameter]
     private DeviceTemplateTab? Parent { get; set; }
@@ -264,7 +271,7 @@
         return list;
     }
 
-    internal Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings? Settings;
+    internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings;
     private byte Authentication
     {
         get
@@ -302,12 +309,12 @@
         get;
         set;
     }
-    
+
     /// <summary>
     /// Get device templates from the XML.
     /// </summary>
     /// <param name="xml"></param>
-    private void UpdateDeviceTemplates(string xml)
+    private void UpdateDeviceTemplates(string? xml)
     {
         try
         {
@@ -334,27 +341,6 @@
         }
     }
 
-    private async Task LoadFile(InputFileChangeEventArgs e)
-    {
-        fileName = e.File.Name;
-        try
-        {
-            templates.Clear();
-            Notifier?.ClearStatus();
-            string xml;
-            using (StreamReader reader = new StreamReader(e.File.OpenReadStream(8000000)))
-            {
-                xml = await reader.ReadToEndAsync();
-            }
-            await Task.Run(() => UpdateDeviceTemplates(xml));
-        }
-        catch (Exception ex)
-        {
-            fileName = null;
-            Notifier?.ProcessError(ex);
-        }
-    }
-
     /// <summary>
     /// Device template tab asks to update the UI.
     /// </summary>
@@ -362,7 +348,7 @@
     {
         if (Active?.Settings != null)
         {
-            Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
             if (Settings != null)
             {
                 DevicePassword = GXDLMSTranslator.HexToBytes(Settings?.Password);
@@ -417,7 +403,7 @@
 
             if (action == CrudAction.Update && Active.Settings != null)
             {
-                Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+                Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
                 if (Settings != null)
                 {
                     DevicePassword = Settings.HexPassword;

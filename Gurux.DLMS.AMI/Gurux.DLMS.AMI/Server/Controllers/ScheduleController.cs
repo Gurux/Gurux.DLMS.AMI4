@@ -128,5 +128,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
             await _schedulerRepository.RunAsync(User, id);
             return Ok();
         }
+
+        /// <summary>
+        /// Get module settings for the schedule.
+        /// </summary>
+        [HttpPost("GetModuleSettings")]
+        [Authorize(Policy = GXSchedulePolicies.View)]
+        public async Task<ActionResult<GetModuleSettingsResponse>> Post(
+            GetModuleSettings request)
+        {
+            GetModuleSettingsResponse ret = new GetModuleSettingsResponse();
+            ret.Item = await _schedulerRepository.GetModuleSettingsAsync(User, request.Item);
+            return ret;
+        }
+
+        /// <summary>
+        /// Update module settings to the schedule.
+        /// </summary>
+        [HttpPost("UpdateModuleSettings")]
+        [Authorize(Policy = GXSchedulePolicies.View)]
+        public async Task<ActionResult<UpdateModuleSettingsResponse>> Post(
+            UpdateModuleSettings request)
+        {
+            UpdateModuleSettingsResponse ret = new UpdateModuleSettingsResponse();
+            await _schedulerRepository.UpdateModuleSettingsAsync(User, request.Item);
+            return ret;
+        }
     }
 }

@@ -1,13 +1,15 @@
 ﻿@page "/Agent/{Id:guid?}"
 @page "/Agent/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
 @using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs;
+    using Gurux.DLMS.AMI.Shared.DTOs.Agent
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentManager + "," + GXRoles.AgentGroupManager)]
 @inject NavigationManager NavigationManager

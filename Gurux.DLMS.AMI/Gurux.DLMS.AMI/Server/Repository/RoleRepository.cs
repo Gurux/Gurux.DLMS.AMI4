@@ -37,12 +37,10 @@ using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
-using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
-    /// <inheritdoc cref="IRoleRepository"/>
+    /// <inheritdoc />
     public class RoleRepository : IRoleRepository
     {
         private readonly IGXHost _host;
@@ -89,6 +87,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             bool isAdmin = user.IsInRole(GXRoles.Admin);
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXRole>(w => w.Removed == null);
+            arg.Columns.Add<GXScope>();
+            arg.Joins.AddLeftJoin<GXRole, GXScope>(j => j.Id, j => j.RoleId);
             arg.OrderBy.Add<GXRole>(o => o.Name);
             if (!isAdmin)
             {
@@ -99,7 +99,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             if (request != null)
             {
-                arg.Where.FilterBy(request.Filter);                
+                arg.Where.FilterBy(request.Filter);
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))
             {
@@ -126,6 +126,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             GXRole[] roles = (await _host.Connection.SelectAsync<GXRole>(arg)).ToArray();
+            //Get role notifications.
+
             if (response != null)
             {
                 response.Roles = roles;
@@ -148,6 +150,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 isAdmin = user.IsInRole(GXRoles.Admin);
             }
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXRole>(w => w.Id == id && w.Removed == null);
+            arg.Columns.Add<GXScope>();
+            arg.Joins.AddLeftJoin<GXRole, GXScope>(j => j.Id, j => j.RoleId);
+            arg.OrderBy.Add<GXRole>(o => o.Name);
             arg.Distinct = true;
             GXRole role = await _host.Connection.SingleOrDefaultAsync<GXRole>(arg);
             if (role == null)
@@ -157,9 +162,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
             return role;
         }
 
+        private async Task<List<GXScope>> GetScopesByRoleIdAsync(ClaimsPrincipal user, string roleId)
+        {
+            GXSelectArgs arg = GXSelectArgs.SelectAll<GXScope>(w => w.RoleId == roleId);
+            arg.Distinct = true;
+            return await _host.Connection.SelectAsync<GXScope>(arg);
+        }
+
         /// <inheritdoc />
-        public async Task<string[]> UpdateAsync(
-            ClaimsPrincipal user, 
+        public async Task<string[]> AddAsync(
+            ClaimsPrincipal user,
             IEnumerable<GXRole> roles)
         {
             DateTime now = DateTime.Now;
@@ -171,9 +183,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
+                //Get role ID.
+                var arg = GXSelectArgs.SelectAll<GXRole>(w => w.Name.Equals(role.Name));
+                GXRole? tmp = await _host.Connection.SingleOrDefaultAsync<GXRole>(arg);
+                if (tmp?.Id != null)
+                {
+                    role.Id = tmp.Id;
+                }
                 if (string.IsNullOrEmpty(role.Id))
                 {
                     GXInsertArgs args = GXInsertArgs.Insert(role);
+                    args.Exclude<GXRole>(e => e.Scopes);
                     _host.Connection.Insert(args);
                     list.Add(role.Id);
                 }
@@ -186,7 +206,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         throw new ArgumentException(Properties.Resources.ContentEdited);
                     }
                     //If content of the role has changed.
-                    if (old.Default != role.Default)
+                    if (old.Default != role.Default && role.Default != null)
                     {
                         role.ConcurrencyStamp = Guid.NewGuid().ToString();
                         GXUpdateArgs args = GXUpdateArgs.Update(role, u => new { u.Default, u.ConcurrencyStamp });
@@ -194,6 +214,36 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         updates.Add(role);
                     }
                 }
+                {
+                    List<GXScope> scopes = await GetScopesByRoleIdAsync(user, role.Id);
+                    var comparer1 = new UniqueComparer<GXScope, Guid>();
+                    List<GXScope> addedScopes;
+                    if (role.Scopes == null)
+                    {
+                        addedScopes = new List<GXScope>();
+                    }
+                    else
+                    {
+                        addedScopes = role.Scopes.Where(w => !scopes.Exists(q => q.Name == w.Name)).ToList();
+                    }
+                    List<GXScope> removedScopes;
+                    if (role.Scopes == null)
+                    {
+                        removedScopes = new List<GXScope>();
+                    }
+                    else
+                    {
+                        removedScopes = scopes.Where(w => !role.Scopes.Exists(q => q.Name == w.Name)).ToList();
+                    }
+                    if (addedScopes.Any())
+                    {
+                        AddScopeToRole(role.Id, addedScopes);
+                    }
+                    if (removedScopes.Any())
+                    {
+                        RemoveScope(removedScopes);
+                    }
+                }                
             }
             if (updates.Any())
             {
@@ -202,5 +252,31 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             return list.ToArray();
         }
+
+        /// <summary>
+        /// Add scope to role.
+        /// </summary>
+        /// <param name="roleId">Role ID.</param>
+        /// <param name="scopes">Added scopes.</param>
+        private void AddScopeToRole(string roleId, IEnumerable<GXScope> scopes)
+        {
+            foreach (GXScope it in scopes)
+            {
+                it.RoleId = roleId;
+            }
+            _host.Connection.Insert(GXInsertArgs.InsertRange(scopes));
+        }
+
+        /// <summary>
+        /// Remove scope.
+        /// </summary>
+        /// <param name="scopes">Removed scopes.</param>
+        private void RemoveScope(IEnumerable<GXScope> scopes)
+        {
+            foreach (GXScope it in scopes)
+            {
+                _host.Connection.Delete(GXDeleteArgs.DeleteById<GXScope>(it));
+            }
+        }       
     }
 }

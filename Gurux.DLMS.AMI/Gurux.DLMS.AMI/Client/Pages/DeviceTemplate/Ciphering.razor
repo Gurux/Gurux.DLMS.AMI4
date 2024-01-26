@@ -76,7 +76,7 @@
 }
 @code {
 
-    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s, bool renderOnSuccess = true)
     {
         ClientSystemTitle = GXDLMSTranslator.HexToBytes(s?.ClientSystemTitle);
         DeviceSystemTitle = GXDLMSTranslator.HexToBytes(s?.DeviceSystemTitle);
@@ -88,7 +88,7 @@
         }
     }
 
-    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
         if (s.Security != (byte)Enums.Security.None)
         {
@@ -127,7 +127,7 @@
         }
     }
 
-    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
         s.ClientSystemTitle = GXDLMSTranslator.ToHex(_clientSystemTitle?.GetByteArray(), false);
         s.DeviceSystemTitle = GXDLMSTranslator.ToHex(_deviceSystemTitle?.GetByteArray(), false);
@@ -169,7 +169,7 @@
     {
         if (Active?.Settings != null)
         {
-            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
             if (s == null)
             {
                 return false;
@@ -193,7 +193,7 @@
         Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
         if (Active?.Settings != null)
         {
-            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(Active.Settings);
+            var s = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
             if (s != null)
             {
                 //Get default value when new device is create from device template.
@@ -203,7 +203,7 @@
         List<Gurux.DLMS.AMI.Shared.DTOs.Manufacturer.GXDeviceSettings> settings = new();
         settings.Add(new AMI.Shared.DTOs.Manufacturer.GXDeviceSettings()
             {
-                Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings()
+                Settings = JsonSerializer.Serialize(new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings()
                 {
                     Security = (byte)current
                 })
@@ -216,7 +216,7 @@
         Gurux.DLMS.Enums.Security current = Gurux.DLMS.Enums.Security.None;
         if (!string.IsNullOrEmpty(value?.Settings))
         {
-            current = (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings>(value.Settings).Security;
+            current = (Gurux.DLMS.Enums.Security)JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(value.Settings).Security;
         }
         return current;
     }
@@ -252,7 +252,7 @@
 
     protected override void OnInitialized()
     {
-        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {
             Update(s, false);
         }

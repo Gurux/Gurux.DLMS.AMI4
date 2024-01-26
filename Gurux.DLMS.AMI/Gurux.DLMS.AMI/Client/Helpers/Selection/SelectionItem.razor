@@ -1,7 +1,12 @@
 ﻿@using Gurux.DLMS.AMI.Shared.DTOs
 @typeparam TItem
-<li class="draggable" draggable="true" title="@Name" @ondragstart="@(() => HandleDragStart(Target))">
-    <p class="description">@Description</p>
+<li class="draggable" draggable="true" @ondragstart="@(() => HandleDragStart(Target))">
+    <p class="description">
+        @if (DataContent != null && Target != null)
+        {
+            @(DataContent(Target))
+        }
+    </p>
 </li>
 
 @code {
@@ -12,28 +17,12 @@
     SelectionList<TItem>? List { get; set; }
 
     [Parameter]
+    public RenderFragment<TItem>? DataContent { get; set; }
+
+    [Parameter]
     public TItem? Target { get; set; }
 
-    public string? Name
-    {
-        get
-        {
-            if (List == null || Target == null)
-            {
-                return null;
-            }
-            return List?.GetName(Target);
-        }
-    }
-    public string? Description
-    {
-        get
-        {
-            return List?.GetDescription(Target);
-        }
-    }
-
-    private void HandleDragStart(TItem target)
+    private void HandleDragStart(TItem? target)
     {
         if (Container != null && List != null)
         {

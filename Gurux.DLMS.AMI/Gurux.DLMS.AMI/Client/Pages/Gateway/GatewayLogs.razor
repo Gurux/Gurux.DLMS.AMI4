@@ -16,69 +16,72 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 <PageTitle>@Properties.Resources.GatewayLogs</PageTitle>
 
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLogManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
-            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLogManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+                <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
 
-<GXTable @ref="table"
-         Context="error"
-         ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
-         ShowRemoved="false"
-         Filter="@Filter"
-         OnSearch="@Updated">
-    <FilterContent>
-        <th>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by user name..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Gateway.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <input class="form-control" type="text" placeholder="Filter by message..."
-                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
-            <div>
-                <input class="form-control" type="text" placeholder="Filter by level..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
-            </div>
-        </th>
-        <th>
-            <input class="form-control" placeholder="Filter by close time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-    </FilterContent>
-    <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
-        </AuthorizeView>
-    </MenuContent>
-    <HeaderContent>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <th>@Properties.Resources.Gateway</th>
+    <GXTable @ref="table"
+             Context="error"
+             ItemsProvider="@GetItems"
+             SelectionMode="SelectionMode.Multiple"
+             ShowRemoved="false"
+             Filter="@Filter"
+             ShowAllUsers="@Header"
+             CanEdit="@CanEdit"
+             Columns="@Columns"
+             OnSearch="@Updated">
+        <FilterContent>
+            <th>
+                <input class="form-control" placeholder="Filter by creation time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by user name..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Gateway.Name = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <input class="form-control" type="text" placeholder="Filter by message..."
+                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+            </th>
+            <th>
+                <div>
+                    <input class="form-control" type="text" placeholder="Filter by level..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
+                </div>
+            </th>
+            <th>
+                <input class="form-control" placeholder="Filter by close time..."
+                       type="datetime-local"
+                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+            </th>
+        </FilterContent>
+        <MenuContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+                <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+            </AuthorizeView>
+        </MenuContent>
+        <HeaderContent>
+            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+            <th>@Properties.Resources.Gateway</th>
         <Th Id="Message">@Properties.Resources.Message</Th>
-        <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("GatewayLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@error.Gateway?.Name</td>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("GatewayLog/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@error.Gateway?.Name</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -148,6 +151,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -199,13 +220,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -245,20 +266,20 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXGatewayLog>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
-        {          
+        {
             ListGatewayLogs req = new ListGatewayLogs()
                 {
                     Index = request.StartIndex,
@@ -273,6 +294,11 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListGatewayLogsResponse>("api/GatewayLog/List", req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                //Mark gateway logs as seen.
+                await Notifier.Mark(Http, TargetType.GatewayLog, ret.Logs.Max(s => s.CreationTime));
+            }
             return new ItemsProviderResult<GXGatewayLog>(ret.Logs, ret.Count);
         }
         catch (TaskCanceledException)
@@ -282,11 +308,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -311,7 +337,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -334,7 +360,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -360,7 +386,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -374,7 +400,7 @@
     /// </summary>
     public void OnClear()
     {
-        Notifier?.ClearStatus();
+        Notifier.ClearStatus();
         ClearConfirmation?.Show();
     }
 
@@ -396,7 +422,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 }

@@ -3,13 +3,15 @@
 
 @using Gurux.DLMS.AMI.Client.Pages.User
 @using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Schedule
 @using Gurux.DLMS.AMI.Shared.Rest;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs;
+    using Gurux.DLMS.AMI.Shared.DTOs.Schedule
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager)]
 @inject NavigationManager NavigationManager

@@ -1,5 +1,6 @@
 ﻿@page "/Devices"
 
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
@@ -23,48 +24,54 @@
 {
     <PageTitle>@Properties.Resources.DevicesTitle</PageTitle>
 }
-
-<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
-            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
-        </ChildContent>
-    </MenuControl>
-</AuthorizeView>
+@if (Header)
+{
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+                <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
+}
 
 <GXTable @ref="table"
          Context="device"
          ItemsProvider="@GetItems"
          SelectionMode="SelectionMode.Multiple"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <Fh Id="Name">
             <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                    type="text"
-            @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="Template.Type">
             <input class="form-control" placeholder="@Properties.Resources.Type"
                    type="text"
-            @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
-        </th>
-        <th>
+                   @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="Detected" Visibility="Visibility.Small">
             <input class="form-control" placeholder="Filter by detection time..."
                    type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.Detected = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
+                   @onchange="@((ChangeEventArgs __e) => filter.Detected = StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
             <input class="form-control" placeholder="Filter by creation time..."
                    type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
+                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+        <Fh Id="Updated" Visibility="Visibility.Large">
             <input class="form-control" placeholder="Filter by updated time..."
                    type="datetime-local"
-            @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
     </FilterContent>
     <MenuContent>
         <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
@@ -74,38 +81,54 @@
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
-        <Th Id="Name">@Properties.Resources.Name</Th>
-        <Th Id="Template.Type">@Properties.Resources.Type</Th>
-        <Th Id="Detected" SortMode="SortMode.Descending">@Properties.Resources.Detected</Th>
-        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Updated">@Properties.Resources.Updated</Th>
-        <Th Id="LastRead">@Properties.Resources.LastRead</Th>
-        <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
+        <Th Id="Name">
+            @Properties.Resources.Name
+        </Th>
+        <Th Id="Template.Type">
+            @Properties.Resources.Type
+        </Th>
+        <Th Id="Detected" Visibility="Visibility.Small" SortMode="SortMode.Descending">
+            @Properties.Resources.Detected
+        </Th>
+        <Th Id="CreationTime" Visibility="Visibility.Medium"
+            SortMode="SortMode.Descending">
+            @Properties.Resources.CreationTime
+        </Th>
+        <Th Id="Updated" Visibility="Visibility.Large">
+            @Properties.Resources.Updated
+        </Th>
+        <Th Id="LastRead" Visibility="Visibility.ExtraLarge">
+            @Properties.Resources.LastRead
+        </Th>
+        <Th Id="LastWrite" Visibility="Visibility.ExtraLarge">
+            @Properties.Resources.LastWrite
+        </Th>
     </HeaderContent>
     <ItemContent>
-        <Td Link=@("Objects/" + device.Id)>@device.Name</Td>
-        <td>@device.Template?.Name</td>
-        <td>@device.Detected</td>
-        <td>@device.CreationTime</td>
-        <td>@device.Updated</td>
-        <td>@device.LastRead</td>
-        <td>@device.LastWrite</td>
-    </ItemContent>
-</GXTable>
-<br />
-<Confirm @ref="ClearConfirmation"
-         ConfirmationChanged="OnClearConfirmation"
-         OkTitle="@Properties.Resources.Clear"
-         ConfirmationMessage="">
-</Confirm>
-<Confirm @ref="RemoveConfirmation"
-         ConfirmationChanged="OnDeleteConfirmation"
-         OkTitle="@Properties.Resources.Remove"
-         ConfirmationMessage=""
-         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-</Confirm>
+        <Td Id="Name" Link=@("Objects/" + device.Id)>@device.Name</Td>
+            <Td Id="Template.Type">@device.Template?.Name</Td>
+            <Td Id="Detected" Visibility="Visibility.Small">@device.Detected</Td>
+            <Td Id="CreationTime" Visibility="Visibility.Medium">@device.CreationTime</Td>
+            <Td Id="Updated" Visibility="Visibility.Large">@device.Updated</Td>
+            <Td Id="LastWrite" Visibility="Visibility.ExtraLarge">@device.LastRead</Td>
+            <Td Visibility="Visibility.ExtraLarge">@device.LastWrite</Td>
+        </ItemContent>
+    </GXTable>
+    <br />
+    <Confirm @ref="ClearConfirmation"
+             ConfirmationChanged="OnClearConfirmation"
+             OkTitle="@Properties.Resources.Clear"
+             ConfirmationMessage="">
+    </Confirm>
+    <Confirm @ref="RemoveConfirmation"
+             ConfirmationChanged="OnDeleteConfirmation"
+             OkTitle="@Properties.Resources.Remove"
+             ConfirmationMessage=""
+             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+    </Confirm>
 
-@code {
+    @code {
+
     /// <summary>
     /// Selected device ID.
     /// </summary>
@@ -152,10 +175,34 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
     public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// List of available devices.
+    /// </summary>
+    [Parameter]
+    public IEnumerable<GXDevice>? AvailableDevice { get; set; }
 
     //Verify that history is clear.
     protected ConfirmBase? ClearConfirmation;
@@ -235,9 +282,11 @@
                     StateHasChanged();
                 }
             });
-
-            Notifier.Clear();
-            Notifier.UpdateButtons();
+            if (Header)
+            {
+                Notifier.Clear();
+                Notifier.UpdateButtons();
+            }
             if (table != null && Id != null)
             {
                 //Get last selected item.
@@ -275,8 +324,12 @@
                     Filter = filter,
                     OrderBy = request.OrderBy,
                     Descending = request.Descending,
-                    AllUsers = request.ShowAllUserData
+                    AllUsers = request.ShowAllUserData,
                 };
+            if (AvailableDevice != null && AvailableDevice.Any())
+            {
+                req.Included = AvailableDevice.Select(s => s.Id).ToArray();
+            }
             if (Count != 0)
             {
                 req.Count = Count;

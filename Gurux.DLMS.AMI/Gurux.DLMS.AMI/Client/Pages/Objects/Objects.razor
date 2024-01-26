@@ -6,7 +6,6 @@
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -58,21 +57,25 @@ else
              ItemsProvider="@GetItems"
              SelectionMode="SelectionMode.Multiple"
              Filter="@Filter"
+             ShowAllUsers="@Header"
+             ShowRemoved="@Header"
+             Columns="@Columns"
+             CanEdit="@CanEdit"
              OnSearch="@Updated">
         <FilterContent>
             <th>
                 <input class="form-control" placeholder="@Properties.Resources.FilterByName"
                        type="search"
-                @oninput="@SearchByName" />
+                       @oninput="@SearchByName" />
             </th>
             <th>
                 <input class="form-control" placeholder="@Properties.Resources.FilterByLogicalName"
-                @oninput="@SearchByLogicalName" />
+                       @oninput="@SearchByLogicalName" />
             </th>
             <th>
                 <DropdownSearch Context="item"
                                 Immediate="true"
-                @bind-Value="filterByObjectType"
+                                @bind-Value="filterByObjectType"
                                 OnSelected="@((Enums.ObjectType e) => SearchByObjectType(e))"
                                 ItemsProvider="@GetObjectTypes">
                     <ItemContent>
@@ -88,17 +91,17 @@ else
         </MenuContent>
         <HeaderContent>
             <Th Id="Template.Name">@Properties.Resources.Name</Th>
-            <Th Id="Template.LogicalName">@Properties.Resources.LogicalName</Th>
-            <Th Id="Template.ObjectType">@Properties.Resources.ObjectType</Th>
-            <Th Id="LastError">@Properties.Resources.LastError</Th>
-            <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
-            <Th Id="LastRead">@Properties.Resources.LastRead</Th>
-            <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
-            <Th Id="CreationTime">@Properties.Resources.CreationTime</Th>
-        </HeaderContent>
-        <ItemContent>
-            <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
-            <td>@item.Template?.LogicalName</td>
+                <Th Id="Template.LogicalName">@Properties.Resources.LogicalName</Th>
+                <Th Id="Template.ObjectType">@Properties.Resources.ObjectType</Th>
+                <Th Id="LastError">@Properties.Resources.LastError</Th>
+                <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
+                <Th Id="LastRead">@Properties.Resources.LastRead</Th>
+                <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
+                <Th Id="CreationTime">@Properties.Resources.CreationTime</Th>
+            </HeaderContent>
+            <ItemContent>
+                <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
+                <td>@item.Template?.LogicalName</td>
             <td>@GetObjectType(item.Template?.ObjectType)</td>
             <td>@item.LastError</td>
             <td>@item.LastErrorMessage</td>
@@ -114,6 +117,22 @@ else
 }
 
 @code {
+
+    /// <summary>
+    /// Shown object types.
+    /// </summary>
+    /// <remarks>
+    /// All object types are shown if object types are not set.
+    /// </remarks>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? ObjectTypes { get; set; }
+
+    /// <summary>
+    /// Ignored object types.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
+
     [CascadingParameter]
     private DeviceTab? Parent { get; set; }
 
@@ -203,6 +222,24 @@ else
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.
@@ -367,9 +404,12 @@ else
                    }
                }
            });
-            Notifier.Clear();
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnReadSelected });
-            Notifier.UpdateButtons();
+            if (Header)
+            {
+                Notifier.Clear();
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnReadSelected });
+                Notifier.UpdateButtons();
+            }
         }
         catch (AccessTokenNotAvailableException exception)
         {
@@ -408,7 +448,7 @@ else
     /// </summary>
     private Task SearchByObjectType(Enums.ObjectType item)
     {
-       return Updated();
+        return Updated();
     }
 
     private ValueTask<ItemsProviderResult<Enums.ObjectType>> GetObjectTypes(GXItemsProviderRequest request)
@@ -451,6 +491,10 @@ else
                     filter.Template.Name = null;
                 }
                 filter.Template.ObjectType = (int)filterByObjectType;
+                if (filter.Template.ObjectType == 0)
+                {
+                    filter.Template.ObjectType = null;
+                }
                 if (!string.IsNullOrEmpty(filterByLogicalName))
                 {
                     filter.Template.LogicalName = filterByLogicalName;
@@ -477,8 +521,16 @@ else
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData,
                     //Attributes are also read.
-                    Select = TargetType.AttributeTemplate
+                    Select = new string[] { "AttributeTemplate" }
                 };
+            if (ObjectTypes != null && ObjectTypes.Any())
+            {
+                req.ObjectTypes = ObjectTypes?.Cast<int>().ToArray();
+            }
+            if (IgnoredObjectTypes != null && IgnoredObjectTypes.Any())
+            {
+                req.IgnoredObjectTypes = IgnoredObjectTypes?.Cast<int>().ToArray();
+            }
             var ret = await Http.PostAsJson<ListObjectsResponse>("api/Object/List", req, request.CancellationToken);
             //Update device for late binding.
             if (ret != null)

@@ -1046,6 +1046,48 @@ namespace Gurux.DLMS.AMI.Server.Models
     }
 
     /// <summary>
+    /// Subtotal value policies.
+    /// </summary>
+    public static class GXSubtotalValuePolicies
+    {
+        /// <summary>
+        /// User can view the subtotal value.
+        /// </summary>
+        public const string View = "SubtotalValue.view";
+        /// <summary>
+        /// User can add new subtotal value.
+        /// </summary>
+        public const string Add = "SubtotalValue.add";
+        /// <summary>
+        /// User can clear subtotal values.
+        /// </summary>
+        public const string Clear = "SubtotalValue.clear";
+    }
+
+    /// <summary>
+    /// Subtotal log policies.
+    /// </summary>
+    public static class GXSubtotalLogPolicies
+    {
+        /// <summary>
+        /// User can view the subtotal log.
+        /// </summary>
+        public const string View = "subtotal-log.view";
+        /// <summary>
+        /// User can add new subtotal log.
+        /// </summary>
+        public const string Add = "subtotal-log.add";
+        /// <summary>
+        /// User can clear subtotal log.
+        /// </summary>
+        public const string Clear = "subtotal-log.clear";
+        /// <summary>
+        /// User can close subtotal log.
+        /// </summary>
+        public const string Close = "subtotal-log.close";
+    }
+
+    /// <summary>
     /// Role policies.
     /// </summary>
     public static class GXRolePolicies
@@ -1270,5 +1312,59 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// User can close gateway log.
         /// </summary>
         public const string Close = "gateway-log.close";
+    }
+
+    /// <summary>
+    /// Subtotal policies.
+    /// </summary>
+    public static class GXSubtotalPolicies
+    {
+        /// <summary>
+        /// User can view the subtotal(s).
+        /// </summary>
+        public const string View = "subtotal.view";
+        /// <summary>
+        /// User can add new subtotal(s).
+        /// </summary>
+        public const string Add = "subtotal.add";
+        /// <summary>
+        /// User can edit subtotal(s).
+        /// </summary>
+        public const string Edit = "subtotal.edit";
+        /// <summary>
+        /// User can delete subtotal(s).
+        /// </summary>
+        public const string Delete = "subtotal.delete";
+        /// <summary>
+        /// User can calculate subtotal(s).
+        /// </summary>
+        public const string Calculate = "subtotal.calculate";
+        /// <summary>
+        /// User can clear subtotal(s).
+        /// </summary>
+        public const string Clear = "subtotal.clear";
+    }
+
+    /// <summary>
+    /// Subtotal group policies.
+    /// </summary>
+    public static class GXSubtotalGroupPolicies
+    {
+        /// <summary>
+        /// User can view the subtotal group information.
+        /// </summary>
+        public const string View = "subtotal-group.view";
+        /// <summary>
+        /// User can add a new subtotal group.
+        /// </summary>
+        public const string Add = "subtotal-group.add";
+        /// <summary>
+        /// User can edit subtotal group.
+        /// </summary>
+        public const string Edit = "subtotal-group.edit";
+        /// <summary>
+        /// User can delete subtotal group.
+        /// </summary>
+        public const string Delete = "subtotal-group.delete";
     }
 }

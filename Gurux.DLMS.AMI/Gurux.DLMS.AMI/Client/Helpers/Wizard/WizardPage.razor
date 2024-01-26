@@ -1,0 +1,57 @@
+﻿@namespace Gurux.DLMS.AMI.Components.Wizard
+@using System.Diagnostics
+
+<div style="position: relative; width: 100%; ">
+    @if (Parent?.ActivePage == this)
+    {
+        @ChildContent
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private WizardControl? Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    ///<summary>
+    ///Wizard page name.
+    ///</summary>
+    [Parameter]
+    public string? Name { get; set; }
+
+    ///<summary>
+    ///Wizard page description.
+    ///</summary>
+    [Parameter]
+    public string? Description { get; set; }
+
+    ///<summary>
+    ///Icon class
+    ///</summary>
+    [Parameter]
+    public string? Icon { get; set; }
+
+    ///<summary>
+    ///Icon ligature.
+    ///</summary>
+    [Parameter]
+    public string? IconLigature { get; set; }
+
+    ///<summary>
+    ///Wizard page link.
+    ///</summary>
+    [Parameter]
+    public string? Link { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent), "WizardPage must exist within a WizardControl");
+        }
+        base.OnInitialized();
+        Parent.AddPage(this);
+    }
+}

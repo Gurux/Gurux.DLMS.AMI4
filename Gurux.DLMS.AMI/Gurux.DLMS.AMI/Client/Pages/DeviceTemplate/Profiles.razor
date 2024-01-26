@@ -105,7 +105,7 @@
     ///</summary>
     protected ConfirmBase? RemoveConfirmation;
 
-    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s, bool renderOnSuccess = true)
+    internal void Update(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s, bool renderOnSuccess = true)
     {
         _profiles = s.Profiles;
         //Handle old way.
@@ -246,11 +246,11 @@
         }
     }
 
-    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void Validate(GXValidator sender, Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
     }
 
-    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+    internal void UpdateSettings(Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
     {
         s.Profiles = _profiles;
     }
@@ -272,7 +272,7 @@
 
     protected override void OnInitialized()
     {
-        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings s)
+        if (Parent?.Settings is Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings s)
         {
             Update(s, false);
         }

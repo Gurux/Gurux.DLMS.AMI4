@@ -19,18 +19,22 @@
 <SelectionContainer TItem="GXScriptMethod" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @context.Script?.Name + "." + context.Name + "<br />" +
+            target.Description;
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Script?.Name + "." + context.Name + "<br/>" + 
+            target.Description;
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -49,16 +53,6 @@
     /// Script filter.
     /// </summary>
     private GXScript filter = new GXScript(null);
-
-    string? GetName(GXScriptMethod target)
-    {
-        return target.Description;
-    }
-
-    string? GetDescription(GXScriptMethod target)
-    {
-        return target.Script?.Name + "." + target.Name;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {

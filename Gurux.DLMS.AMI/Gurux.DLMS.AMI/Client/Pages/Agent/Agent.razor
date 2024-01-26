@@ -10,6 +10,8 @@
 @using Gurux.DLMS.AMI.Client.Pages.Agent
 @using System.Text.Json
 @using System.Text.Encodings.Web;
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+    using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 @attribute [Authorize(Roles = "Admin, AgentManager")]
 @inject NavigationManager NavigationManager
@@ -27,8 +29,13 @@
                 <div class="form-group">
                     <label>@Properties.Resources.Name</label>
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
-                    @bind-Value="Active.Name" />
+                               @bind-Value="Active.Name" />
                     <ValidationMessage For="@(() => Active.Name)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
                 </div>
                 <div class="form-group">
                     <label>@Properties.Resources.Version</label>
@@ -65,24 +72,24 @@
             <TabPage Text="Reader" Icon="oi oi-transfer">
                 <div style="position: relative; width: 100%; ">
                     <ReaderOptions Settings="@ReaderSettings"
-                    @ref="_readerOptions"
-                    @bind-SerialPort="@Active.SerialPort"></ReaderOptions>
+                                   @ref="_readerOptions"
+                                   @bind-SerialPort="@Active.SerialPort"></ReaderOptions>
                 </div>
             </TabPage>
             <TabPage Text="Push events" Icon="oi oi-flash">
                 <div style="position: relative; width: 100%; ">
                     <NotifyOptions Settings="@NotifySettings"
                                    Scripts="@scripts"
-                    @ref="_notifyOptions"
-                    @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
+                                   @ref="_notifyOptions"
+                                   @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
                 </div>
             </TabPage>
             <TabPage Text="Auto connect" Icon="oi oi-loop">
                 <div style="position: relative; width: 100%; ">
                     <AutoConnectOptions Settings="@ListenerSettings"
                                         Scripts="@scripts"
-                    @ref="_autoConnectOptions"
-                    @bind-SerialPort="@Active.SerialPort"></AutoConnectOptions>
+                                        @ref="_autoConnectOptions"
+                                        @bind-SerialPort="@Active.SerialPort"></AutoConnectOptions>
                 </div>
             </TabPage>
         </ChildContent>
@@ -97,20 +104,20 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Detected</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="detected" readonly="readonly" class="form-control"
-                        @bind-Value="Active.Detected" />
+                                   @bind-Value="Active.Detected" />
                     </div>
                 }
                 <div class="form-group">
                     <label>@Properties.Resources.CreationTime</label>
                     <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
-                    @bind-Value="Active.CreationTime" />
+                               @bind-Value="Active.CreationTime" />
                 </div>
                 @if (Active.Updated != null)
                 {
                     <div class="form-group">
                         <label>@Properties.Resources.Updated</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                        @bind-Value="Active.Updated" />
+                                   @bind-Value="Active.Updated" />
                     </div>
                 }
                 @if (Active.Removed != null)
@@ -118,7 +125,7 @@
                     <div class="form-group">
                         <label>@Properties.Resources.Remove</label>
                         <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                        @bind-Value="Active.Removed" />
+                                   @bind-Value="Active.Removed" />
                     </div>
                 }
                 @if (action == CrudAction.Delete)

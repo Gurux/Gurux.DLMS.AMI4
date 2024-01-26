@@ -16,7 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject HttpClient Http
 @inject ConfirmBase Confirm
-@inject IGXNotifier Notifier
+@inject IGXNotifier2 Notifier
 @implements IDisposable
 
 @if (Title)
@@ -39,6 +39,9 @@
          SelectionMode="SelectionMode.None"
          ShowRemoved="false"
          Filter="@Filter"
+         ShowAllUsers="@Header"
+         CanEdit="@CanEdit"
+         Columns="@Columns"
          OnSearch="@Updated"
          ShowRemovedMessage="@Properties.Resources.ShowClosedErrors">
     <FilterContent>
@@ -69,13 +72,13 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-        <Th Id="Message">@Properties.Resources.Error</Th>
-        <Th Id="Level">@Properties.Resources.Level</Th>
-        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@("DeviceLog/Edit/" + error.Id)">@error.CreationTime</Td>
-        <td>@error.Message</td>
+            <Th Id="Message">@Properties.Resources.Error</Th>
+            <Th Id="Level">@Properties.Resources.Level</Th>
+            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@("DeviceLog/Edit/" + error.Id)">@error.CreationTime</Td>
+            <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
@@ -149,6 +152,24 @@
     public bool Filter { get; set; } = true;
 
     /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
     /// Is title shown.
     /// </summary>
     [Parameter]
@@ -197,13 +218,13 @@
         {
             if (table != null)
             {
-                Notifier?.ClearStatus();
+                Notifier.ClearStatus();
                 await table.RefreshDataAsync(true);
             }
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -243,18 +264,18 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
     }
 
     private async ValueTask<ItemsProviderResult<GXDeviceError>> GetItems(GXItemsProviderRequest request)
     {
         //Don't clear status or error is lost.
-        Notifier?.ProgressStart();
+        Notifier.ProgressStart();
         try
         {
             if (ShowClosedErrors)
@@ -281,6 +302,11 @@
                 req.Count = Count;
             }
             var ret = await Http.PostAsJson<ListDeviceErrorsResponse>("api/DeviceError/List", req, request.CancellationToken);
+            if (ret.Errors != null)
+            {
+                //Mark device errors as seen.
+                await Notifier.Mark(Http, TargetType.DeviceError, ret.Errors.Max(s => s.CreationTime));
+            }
             return new ItemsProviderResult<GXDeviceError>(ret.Errors, ret.Count);
         }
         catch (TaskCanceledException)
@@ -290,11 +316,11 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
         finally
         {
-            Notifier?.ProgressEnd();
+            Notifier.ProgressEnd();
         }
         return default;
     }
@@ -319,7 +345,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -338,7 +364,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -364,7 +390,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 
@@ -379,7 +405,7 @@
 
     public void OnClear()
     {
-        Notifier?.ClearStatus();
+        Notifier.ClearStatus();
         ClearConfirmation?.Show();
     }
 
@@ -402,7 +428,7 @@
         }
         catch (Exception ex)
         {
-            Notifier?.ProcessError(ex);
+            Notifier.ProcessError(ex);
         }
     }
 }

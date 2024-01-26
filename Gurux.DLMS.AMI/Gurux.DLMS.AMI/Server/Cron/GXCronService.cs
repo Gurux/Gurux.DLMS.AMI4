@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Shared;
-using Gurux.DLMS.AMI.Server.Triggers;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.Rest;

@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -201,8 +202,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     arg.Where.And<GXKeyManagement>(w => !request.Exclude.Contains(w.Id));
                 }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXKeyManagement>(w => request.Included.Contains(w.Id));
+                }
             }
-            if (request != null && (request.Select & TargetType.Device) != 0)
+            if (request?.Select != null && request.Select.Contains("Device"))
             {
                 //Get device basic information.
                 arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(j => j.Device, j => j.Id);
@@ -247,7 +252,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
             }
 
-            if (request != null && (request.Select & TargetType.KeyManagementKey) != 0)
+            if (request?.Select != null && request.Select.Contains("KeyManagementKey"))
             {
                 foreach (GXKeyManagement it in list)
                 {
@@ -263,8 +268,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
             }
-
-            if (request != null && (request.Select & TargetType.Object) != 0)
+            if (request?.Select != null && request.Select.Contains("Object"))
             {
                 foreach (GXKeyManagement it in list)
                 {
@@ -279,7 +283,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             e.Updated,
                             e.Removed
                         });
-                        if (request != null && (request.Select & TargetType.ObjectTemplate) != 0)
+                        if (request?.Select != null && request.Select.Contains("ObjectTemplate"))
                         {
                             arg.Columns.Add<GXObjectTemplate>();
                             arg.Columns.Exclude<GXObjectTemplate>(e => new
@@ -291,7 +295,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
                             arg.Where.And<GXObjectTemplate>(w => w.Removed == null);
                         }
-                        if (request != null && (request.Select & TargetType.Attribute) != 0)
+                        if (request?.Select != null && request.Select.Contains("Attribute"))
                         {
                             arg.Columns.Add<GXAttribute>();
                             arg.Columns.Exclude<GXAttribute>(e => new
@@ -303,7 +307,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             });
                             arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
                             arg.Where.And<GXAttribute>(w => w.Removed == null);
-                            if (request != null && (request.Select & TargetType.AttributeTemplate) != 0)
+                            if (request?.Select != null && request.Select.Contains("AttributeTemplate"))
                             {
                                 arg.Columns.Add<GXAttributeTemplate>();
                                 arg.Columns.Exclude<GXAttributeTemplate>(e => new

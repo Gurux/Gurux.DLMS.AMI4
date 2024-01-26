@@ -45,14 +45,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
     [ApiController]
     public class AgentLogController : ControllerBase
     {
-        private readonly IAgentLogRepository _agentErrorRepository;
+        private readonly IAgentLogRepository _agentLogRepository;
 
         /// <summary>
         /// Constructor.
         /// </summary>
         public AgentLogController(IAgentLogRepository agentErrorRepository)
         {
-            _agentErrorRepository = agentErrorRepository;
+            _agentLogRepository = agentErrorRepository;
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             return new GetAgentLogResponse()
             {
-                Item = await _agentErrorRepository.ReadAsync(User, id)
+                Item = await _agentLogRepository.ReadAsync(User, id)
             };
         }
 
@@ -77,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXAgentLogPolicies.Add)]
         public async Task<ActionResult<AddAgentLogResponse>> Post(AddAgentLog request)
         {
-            await _agentErrorRepository.AddAsync(User, request.Logs);
+            await _agentLogRepository.AddAsync(User, request.Logs);
             AddAgentLogResponse response = new AddAgentLogResponse();
             return response;
         }
@@ -92,7 +92,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             CancellationToken cancellationToken)
         {
             ListAgentLogsResponse response = new ListAgentLogsResponse();
-            await _agentErrorRepository.ListAsync(User, request, response, cancellationToken);
+            await _agentLogRepository.ListAsync(User, request, response, cancellationToken);
             return response;
         }
 
@@ -103,7 +103,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXAgentLogPolicies.Clear)]
         public async Task<ActionResult<ClearAgentLogsResponse>> Post(ClearAgentLogs request)
         {
-            await _agentErrorRepository.ClearAsync(User, request.Agents);
+            await _agentLogRepository.ClearAsync(User, request.Agents);
             return new ClearAgentLogsResponse();
         }
 
@@ -116,7 +116,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXAgentLogPolicies.Close)]
         public async Task<ActionResult<CloseAgentLogResponse>> Post(CloseAgentLog request)
         {
-            await _agentErrorRepository.CloseAsync(User, request.Logs);
+            await _agentLogRepository.CloseAsync(User, request.Logs);
             return new CloseAgentLogResponse();
         }
     }

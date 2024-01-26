@@ -32,5 +32,6 @@
         public static string Performance = "Performance";
         public static string Manufacturers = "Manufacturers";
         public static string KeyManagement = "KeyManagement";
+        public static string Subtotals = "Subtotals";
     }
 }

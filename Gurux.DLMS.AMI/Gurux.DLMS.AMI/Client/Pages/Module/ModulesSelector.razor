@@ -1,4 +1,5 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+﻿@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -17,18 +18,25 @@
 <SelectionContainer TItem="GXModule" @ref="@_selectionContainer">
     <SelectionList Title="Selected" @ref="_selected"
                    ShowAllUsers="false"
-                   ItemsProvider="@GetSelectedItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @if (context != null)
+            {
+                <LinkButton OnClick="@Show"
+                            Target="@context"
+                            Text="@context.Id" />
+            }
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchSelectedByName" />
         </FilterContent>
     </SelectionList>
     <SelectionList Title="Available" @ref="_available"
-                   ItemsProvider="@GetItems"
-                   GetName="@GetName"
-                   GetDescription="@GetDescription">
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Id
+        </DataContent>
         <FilterContent>
             <Search Placeholder="@Properties.Resources.FilterByName"
                     OnClickAsync="@SearchByName" />
@@ -42,6 +50,52 @@
     [CascadingParameter]
     private ModuleGroupTab? Parent { get; set; }
 
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
+    internal GXModule? Active { get; set; }
+
+
+    private void Show(GXModule item)
+    {
+        try
+        {
+            Active = item;
+            ScheduleParent?.Update();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide module settings dialog.
+    /// </summary>
+    private void OnCancel()
+    {
+        Active = null;
+        StateHasChanged();
+    }
+
+    public void Update()
+    {
+        Active = null;
+        StateHasChanged();
+        if (_selected != null)
+        {
+            //_selected.Update();
+            //     await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            //_available.Update();
+            //   await _available.RefreshDataAsync();
+        }
+    }
+
+
     SelectionList<GXModule>? _selected;
     SelectionList<GXModule>? _available;
     SelectionContainer<GXModule>? _selectionContainer;
@@ -49,16 +103,6 @@
     /// Module filter.
     /// </summary>
     private GXModule filter = new GXModule("");
-
-    string? GetName(GXModule target)
-    {
-        return target.Id;
-    }
-
-    string? GetDescription(GXModule target)
-    {
-        return target.Id;
-    }
 
     protected async Task SearchSelectedByName(string? name)
     {
@@ -203,17 +247,34 @@
         return default;
     }
 
+    private List<GXModule> GetModules()
+    {
+        if (Parent?.Active?.Modules != null)
+        {
+            return Parent.Active.Modules;
+        }
+        //Get only scheduled modules.
+        filter.Type = ModuleType.Schedule;
+        return ScheduleParent.Active.Modules;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         //Wait until table is loaded. Don't remove this or selector is null.
         await Task.Delay(1);
         try
         {
+            //Show only the scheduled modules for schedule selector.
+            if (ScheduleParent != null)
+            {
+                filter.Type = ModuleType.Schedule;
+            }
+            List<GXModule> modules = GetModules();
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (_selected != null && Parent?.Active?.Modules != null)
+            if (_selected != null && modules != null)
             {
-                _selected.Items = Parent.Active.Modules;
+                _selected.Items = modules;
             }
             else
             {

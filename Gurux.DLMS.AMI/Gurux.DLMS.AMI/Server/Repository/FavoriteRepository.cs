@@ -42,6 +42,18 @@ using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Client.Helpers;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -90,10 +102,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXUser>(w => w.Id == userId);
             if (request != null && request.Filter != null)
             {
-                if (request.Filter.Removed == null)
-                {
-                    request.Filter.Removed = false;
-                }
                 arg.Where.FilterBy(request.Filter);
             }
             if (request != null && request.Count != 0)
@@ -180,6 +188,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         it.Type = "Configuration";
                         it.Name = tmp[1];
                     }
+                    else
+                    if (string.Compare(tmp[0], "Logs", true) == 0)
+                    {
+                        it.Type = "Log";
+                        it.Name = tmp[1];
+                    }
                 }
                 else if (tmp.Length == 4)
                 {
@@ -233,8 +247,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     action = tmp[1];
                     id = tmp[2];
                 }
-                TargetType target = TargetType.None;
-                if (id != null && Enum.TryParse(it.Type, true, out target))
+                string? target = null;
+                if (it.Name != null && ClientHelpers.GetNotifications(true).Contains(it.Name.ToLower()))
+                {
+                    target = it.Name;
+                }
+                if (id != null && target != null)
                 {
                     Guid? Id = null;
                     if (target != TargetType.User &&
@@ -361,6 +379,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             break;
                         case TargetType.GatewayGroup:
                             args = GXSelectArgs.Select<GXGatewayGroup>(s => s.Name, w => w.Id == Id);
+                            break;
+                        case TargetType.Performance:
+                            args = GXSelectArgs.Select<GXPerformance>(s => new { s.Start, s.Target }, w => w.Id == Id);
                             break;
                     }
                 }

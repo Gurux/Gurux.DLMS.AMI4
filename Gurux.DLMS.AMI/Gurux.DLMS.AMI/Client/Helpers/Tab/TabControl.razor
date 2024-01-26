@@ -3,39 +3,40 @@
 @inject NavigationManager NavigationManager
 
 <CascadingValue Value="this">
-    <div style="width:100%">
-        @foreach (var row in GetButtonRows())
+    <ul class="nav nav-tabs"
+        role="tablist"
+        style="width:100%">
+        @foreach (var it in Pages)
         {
-            <div class="btn-group" role="group" style="width:100%">
-                @foreach (TabPage tabPage in row)
-                {
-                    <button type="button"
-                            class="btn @GetButtonClass(tabPage)"
-                    @onclick=@( () => ActivatePage(tabPage) )>
-                        @if (TabTextTemplate != null)
+            <li class="nav-item" role="presentation">
+                <button class="@GetActiveClass(it)"
+                        @onclick="@( () => ActivatePage(it))">
+                    @if (TabTextTemplate != null)
+                    {
+                        @TabTextTemplate(it)
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(@it.IconLigature) &&
+                        !string.IsNullOrEmpty(@it.Icon))
                         {
-                            @TabTextTemplate(tabPage)
+                            <span class=@it.Icon aria-hidden="true">
+                                @it.IconLigature
+                            </span>
                         }
                         else
                         {
-                            if (!string.IsNullOrEmpty(@tabPage.IconLigature) && !string.IsNullOrEmpty(@tabPage.Icon))
+                            @if (!string.IsNullOrEmpty(@it.Icon))
                             {
-                                <span class=@tabPage.Icon aria-hidden="true">@tabPage.IconLigature</span>
+                                <span class=@it.Icon aria-hidden="true"></span>
                             }
-                            else
-                            {
-                                @if (!string.IsNullOrEmpty(@tabPage.Icon))
-                                {
-                                    <span class=@tabPage.Icon aria-hidden="true"></span>
-                                }
-                            }
-                            @tabPage.Text
                         }
-                    </button>
-                }
-            </div>
+                        @it.Text
+                    }
+                </button>
+            </li>
         }
-    </div>
+    </ul>
     @ChildContent
 </CascadingValue>
 
@@ -58,30 +59,11 @@
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    [Parameter] public SelectionChangedEventHandler? SelectionChanged { get; set; }
+    [Parameter] 
+    public SelectionChangedEventHandler? SelectionChanged { get; set; }
 
     [Parameter]
     public RenderFragment<TabPage>? TabTextTemplate { get; set; }
-
-    /// <summary>
-    /// Split buttons for multipe rows.
-    /// </summary>
-    private List<List<TabPage>> GetButtonRows()
-    {
-        List<List<TabPage>> result = new List<List<TabPage>>();
-        List<TabPage> list = new List<TabPage>();
-        result.Add(list);
-        foreach (var it in Pages)
-        {
-            list.Add(it);
-            if (list.Count == 6)
-            {
-                list = new List<TabPage>();
-                result.Add(list);
-            }
-        }
-        return result;
-    }
 
     public TabPage? ActivePage { get; set; }
     List<TabPage> Pages = new List<TabPage>();
@@ -108,10 +90,11 @@
         StateHasChanged();
     }
 
-    string GetButtonClass(TabPage page)
+    string GetActiveClass(TabPage page)
     {
-        return page == ActivePage ? "btn-primary" : "btn-secondary";
+        return page == ActivePage ? "nav-link active" : "nav-link";
     }
+
     void ActivatePage(TabPage page)
     {
         ActivePage = page;
@@ -129,5 +112,5 @@
             ActivePage = Pages[index];
             SelectionChanged?.Invoke(ActivePage);
         }
-    }
+    }    
 }

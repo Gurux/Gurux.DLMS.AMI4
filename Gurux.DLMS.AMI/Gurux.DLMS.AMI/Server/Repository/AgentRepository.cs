@@ -44,8 +44,7 @@ using System.Diagnostics;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
-using Gurux.DLMS.AMI.Client.Pages.Agent;
-using System;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -192,6 +191,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXAgent>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXAgent>(w => request.Included.Contains(w.Id));
                 }
             }
             arg.Distinct = true;
@@ -373,7 +376,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Dictionary<GXAgent, List<string>> updates = new Dictionary<GXAgent, List<string>>();
             foreach (GXAgent agent in agents)
             {
-                if (string.IsNullOrEmpty(agent.Name) && (columns == null || ServerHelpers.Contains(columns, nameof(GXAgent.Name))))
+                if (string.IsNullOrEmpty(agent.Name) &&
+                    (columns == null || ServerHelpers.Contains(columns, nameof(GXAgent.Name))))
                 {
                     throw new ArgumentException(Properties.Resources.InvalidName);
                 }
@@ -579,9 +583,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 case AgentStatus.Connected:
                     log.Message = Properties.Resources.Connected;
+                    log.Type = (int)LogType.Connected;
                     break;
                 case AgentStatus.Offline:
                     log.Message = Properties.Resources.Offline;
+                    log.Type = (int)LogType.Disconnect;
                     break;
                 case AgentStatus.Error:
                     log.Message = Properties.Resources.Error;

@@ -1,0 +1,132 @@
+﻿@if (Maximum != 0)
+{
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" aria-valuenow="@Current"
+             aria-valuemin="@Minimum" aria-valuemax="@Maximum"
+             style="@(CurrentPercentToString() + CssStyle)">
+            <span class="sr-only">@Description</span>
+        </div>
+    </div>
+}
+
+@code {
+    private string? _description;
+    private int _minimum, _maximum, _current;
+
+    [Parameter]
+    public string? Description
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Minimum value.
+    /// </summary>
+    [Parameter]
+    public int Minimum
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Maximum value.
+    /// </summary>
+    [Parameter]
+    public int Maximum
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Current value.
+    /// </summary>
+    [Parameter]
+    public int Current
+    {
+        get;
+        set;
+    }
+
+    private int CurrentPercent()
+    {
+        return Current == 0 || Maximum == 0 ? 0 :
+        (100 * Current / (Maximum - Minimum));
+    }
+
+    private string CurrentPercentToString()
+    {
+        return string.Format("width:{0}%",
+        CurrentPercent());
+    }
+
+    /// <summary>
+    /// Update the progress bar.
+    /// </summary>
+    public void Reset(int minimum, int maximum)
+    {
+        Current = Minimum = minimum;
+        Maximum = maximum;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Step the progress bar.
+    /// </summary>
+    /// <param name="value">Steps.</param>
+    /// <param name="description">Description.</param>
+    public void Step(int value = 1, string? description = null)
+    {
+        int old = CurrentPercent();
+        Current += value;
+        if (Current > Maximum)
+        {
+            Current = Maximum;
+        }
+        if (description != null)
+        {
+            Description = description;
+        }
+        if (old != CurrentPercent())
+        {
+            //UI is updated only when percent changes.
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// CSS style.
+    /// </summary>
+    [Parameter]
+    public string? CssStyle
+    {
+        get;
+        set;
+    }
+
+    private string GetClass()
+    {
+        return "progress-bar" + Class;
+    }
+
+    /// <summary>
+    /// Class.
+    /// </summary>
+    /// <remarks>
+    /// The contextual classes that can be used with progress bars are:
+    /// <ul>
+    /// <li>progress-bar-success</li>
+    /// <li>progress-bar-info</li>
+    /// <li>progress-bar-warning</li>
+    /// <li>progress-bar-danger</li>
+    /// <li>progress-bar-striped</li>
+    /// </ul>
+    [Parameter]
+    public string? Class
+    {
+        get;
+        set;
+    }
+}

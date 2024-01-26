@@ -34,10 +34,12 @@
 <GXTable @ref="table"
          Context="favorite"
          ItemsProvider="@GetItems"
-         SelectionMode="SelectionMode.Multiple"
+         SelectionMode="SelectionMode.None"
          ShowRemoved="false"
          ShowAllUsers="false"
          Filter="@Filter"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
          OnSearch="@Updated">
     <FilterContent>
         <th>
@@ -58,12 +60,12 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name" SortMode="SortMode.Ascending">@Properties.Resources.Name</Th>
-        <Th Id="Type">@Properties.Resources.Type</Th>
-        <Th Id="Path">@Properties.Resources.Location</Th>
-    </HeaderContent>
-    <ItemContent>
-        <Td Link="@favorite.Path">@GetName(favorite)</Td>
-        <td>@favorite.Type</td>
+            <Th Id="Type">@Properties.Resources.Type</Th>
+            <Th Id="Path">@Properties.Resources.Location</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link="@favorite.Path">@GetName(favorite)</Td>
+            <td>@favorite.Type</td>
         <td>@favorite.Path</td>
     </ItemContent>
 </GXTable>
@@ -89,15 +91,14 @@
         {
             return value.Name;
         }
-        TargetType target;
         string name = "";
         if (string.Compare(value.Type, "logs", true) == 0)
         {
             name = "Logs";
         }
-        else if (Enum.TryParse(value.Type, true, out target))
+        else if (ClientHelpers.GetNotifications(true).Contains(value.Type.ToLower()))
         {
-            switch (target)
+            switch (value.Type)
             {
                 case TargetType.Device:
                     name = Properties.Resources.Devices;
@@ -227,6 +228,10 @@
                     break;
             }
         }
+        else
+        {
+            name = Properties.Resources.Unknown;
+        }
         return name;
     }
 
@@ -268,6 +273,24 @@
     /// </summary>
     [Parameter]
     public bool Filter { get; set; } = false;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
 
     /// <summary>
     /// Is title shown.

@@ -39,7 +39,6 @@ using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
-using Org.BouncyCastle.Asn1.Ocsp;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -87,6 +86,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (request.Exclude != null && request.Exclude.Any())
                 {
                     arg.Where.And<GXSystemLog>(w => !request.Exclude.Contains(w.Id));
+                }
+                if (request?.Included != null && request.Included.Any())
+                {
+                    arg.Where.And<GXSystemLog>(w => request.Included.Contains(w.Id));
                 }
             }
             if (request != null && !string.IsNullOrEmpty(request.OrderBy))

@@ -105,13 +105,17 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             //Only admin can access configurations.
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXConfiguration>();
+            if (request?.Exclude != null && request.Exclude.Any())
+            {
+                arg.Where.And<GXConfiguration>(w => !request.Exclude.Contains(w.Id));
+            }
+            if (request?.Included != null && request.Included.Any())
+            {
+                arg.Where.And<GXConfiguration>(w => request.Included.Contains(w.Id));
+            }
             if (request != null && request.Filter != null)
             {
                 arg.Where.FilterBy(request.Filter);
-                if (request.Exclude != null && request.Exclude.Any())
-                {
-                    arg.Where.And<GXConfiguration>(w => !request.Exclude.Contains(w.Id));
-                }
             }
             arg.Distinct = true;
             if (request != null && request.Count != 0 && response != null)

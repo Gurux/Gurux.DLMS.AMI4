@@ -1,0 +1,214 @@
+﻿@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using System.IO
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Options
+
+
+@inject GXModuleService modules
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<ExtensionView> Logger
+@inject GXModuleService modules
+@if (_extensionUI != null)
+{
+    var onSave = EventCallback.Factory.Create<object>(this, async arg =>
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            if (_settings == null)
+            {
+                _settings = new GXScheduleModule()
+                            {
+                                ModuleId = Module.Id,
+                                ScheduleId = Schedule.Id,
+                            };
+            }
+            _settings.Settings = JsonSerializer.Serialize(arg);
+            //Save module settings.
+            UpdateModuleSettings req = new UpdateModuleSettings()
+                        {
+                            Item = _settings
+                        };
+            var ret = await Http.PostAsJson<UpdateModuleSettingsResponse>("api/Schedule/UpdateModuleSettings", req);
+            if (ret?.Item != null)
+            {
+
+                _settings.ConcurrencyStamp = ret.Item.ConcurrencyStamp;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    });
+    RenderFragment renderFragment = (builder) =>
+    {
+        builder.OpenComponent(0, _extensionUI);
+        if (_canSave)
+        {
+            builder.AddAttribute(2, "SettingsChanged", onSave);
+        }
+        builder.AddComponentReferenceCapture(0, inst => { _extension = inst; });
+        builder.CloseComponent();
+    };
+    <div>
+        <EditForm Model="@this">
+            @renderFragment
+        </EditForm>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Target module.
+    /// </summary>
+    [Parameter]
+    public GXModule? Module { get; set; }
+
+    /// <summary>
+    /// Target schedule.
+    /// </summary>
+    [Parameter]
+    public GXSchedule? Schedule { get; set; }
+
+    private GXScheduleModule? _settings = null;
+
+    /// <summary>
+    /// Ask schedule module to save settings.
+    /// </summary>
+    /// <returns></returns>
+    public async Task SaveAsync()
+    {
+        if (_extension is IAmiUIExtension ui)
+        {
+            await ui.SaveAsync();
+        }
+    }
+
+    private Type? _extensionUI;
+    private object? _extension = null;
+    bool _canSave;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Module == null)
+            {
+                NavigationManager.NavigateTo("404");
+            }
+            foreach (var asm in modules.Assemblies)
+            {
+                foreach (var type in asm.GetExportedTypes())
+                {
+                    if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                    {
+                        continue;
+                    }
+                    if (type.GetInterfaces().Contains(typeof(IAmiModule)))
+                    {
+                        IAmiModule? tmp = (IAmiModule?)asm.CreateInstance(type.FullName);
+                        if (string.Compare(Module.Id, tmp?.Id, true) == 0)
+                        {
+                            _extensionUI = tmp.Extension;
+                            break;
+                        }
+                    }
+                }
+                if (_extensionUI != null)
+                {
+                    break;
+                }
+            }
+            if (_extensionUI == null)
+            {
+                //Find from development extensions.
+                foreach (var type in modules.Types)
+                {
+                    if (type.IsAbstract || !type.IsClass || type.FullName == null)
+                    {
+                        continue;
+                    }
+                    if (type.GetInterfaces().Contains(typeof(IAmiModule)))
+                    {
+                        IAmiModule? tmp = (IAmiModule?)Activator.CreateInstance(type);
+                        if (tmp != null &&
+                            string.Compare(Module?.Id, tmp.Id, true) == 0)
+                        {
+                            _extensionUI = tmp.Extension;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (_extensionUI != null)
+            {
+                //Check san module save user settings.
+                foreach (var it in _extensionUI.GetProperties())
+                {
+                    if (it.Name == "SettingsChanged")
+                    {
+                        _canSave = true;
+                        break;
+                    }
+                }
+                if (_canSave && Schedule != null &&
+                    Schedule.Id != Guid.Empty)
+                {
+                    //Get schedule-depending extension settings.
+                    GetModuleSettings req = new GetModuleSettings()
+                        {
+                            Item = new GXScheduleModule()
+                            {
+                                ScheduleId = Schedule.Id,
+                                ModuleId = Module.Id
+                            }
+                        };
+                    var tmp = await Http.PostAsJson<GetModuleSettingsResponse>("api/Schedule/GetModuleSettings", req);
+                    _settings = tmp?.Item;
+                    if (_extension != null && !string.IsNullOrEmpty(_settings?.Settings))
+                    {
+                        //Update schedule settings for the module.
+                        var settings = _extensionUI.GetProperty("Settings");
+                        if (settings != null)
+                        {
+                            var value = JsonSerializer.Deserialize(_settings.Settings, settings.PropertyType);
+                            settings.SetValue(_extension, value);
+                        }
+                    }
+                }
+                if (_extension is IAmiUIExtension ui)
+                {
+                    await ui.InitializedAsync();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

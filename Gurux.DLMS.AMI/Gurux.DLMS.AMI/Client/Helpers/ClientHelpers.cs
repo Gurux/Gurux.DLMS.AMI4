@@ -36,8 +36,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Components;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.ManufacturerSettings;
@@ -45,11 +43,30 @@ using Gurux.DLMS.Objects;
 using System.Xml.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Components;
+using Gurux.DLMS.AMI.Client.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
-{   
+{
     public static class ClientHelpers
     {
+        /// <summary>
+        /// Add distinct items to the list.
+        /// </summary>
+        /// <param name="self">List where items are added.</param>
+        /// <param name="items">Added items.</param>
+        public static void AddDistinct2(this System.Collections.IList self, System.Collections.IEnumerable items)
+        {
+            foreach (object item in items)
+            {
+                if (!self.Contains(item))
+                {
+                    self.Add(item);
+                }
+            }
+        }
+
         /// <summary>
         /// Get user ID from claims.
         /// </summary>
@@ -225,19 +242,26 @@ namespace Gurux.DLMS.AMI.Client.Helpers
         /// <summary>
         /// Returns collection of notifications that can be ignored.
         /// </summary>
+        /// <param name="lowercase">Are named returned as lowercase.</param>
         /// <returns></returns>
-        public static IEnumerable<TargetType> GetNotifications()
+        public static IEnumerable<string> GetNotifications(bool lowercase)
         {
-            List<TargetType> items = new List<TargetType>();
-            foreach (var it in SortEnumByName<TargetType>())
+            List<string> items = new List<string>();
+            foreach (var it in typeof(TargetType).GetFields())
             {
-                if (it != TargetType.None &&
-                    it != TargetType.Cron &&
-                    it != TargetType.Role)
+                if (it.Name != TargetType.Cron &&
+                    it.Name != TargetType.Role)
                 {
-                    items.Add(it);
+                    if (lowercase)
+                    {
+                        items.Add(it.Name.ToLower());
+                    }
+                    else
+                    {
+                        items.Add(it.Name);
+                    }
                 }
-            }
+            }           
             return items;
         }
 
@@ -290,6 +314,11 @@ namespace Gurux.DLMS.AMI.Client.Helpers
 
         public static string GetParentUrl(string url)
         {
+            int index = url.ToLower().IndexOf("/config/");
+            if (index != -1)
+            {
+                return url.Substring(0, index + 7);
+            }
             return url.Replace("/Edit/", "/").Replace("/Add/", "/").Replace("/Add", "");
         }
 
@@ -579,7 +608,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             target.Type = source.Name;
             target.MediaType = source.MediaType;
             target.MediaSettings = source.MediaSettings;
-            var settings = new Gurux.DLMS.AMI.Shared.DTOs.GXDLMSSettings();
+            var settings = new Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings();
             settings.MaximumBaudRate = source.MaximumBaudRate;
             settings.Authentication = (byte)source.Authentication;
             settings.AuthenticationName = source.AuthenticationName;

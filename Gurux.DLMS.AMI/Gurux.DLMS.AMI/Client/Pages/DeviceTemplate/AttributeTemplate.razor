@@ -1,0 +1,264 @@
+﻿@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.Objects;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Client.Pages.Agent
+@using System.Text.Json
+@using System.Text;
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Index</label>
+                    <InputNumber id="name" disabled="disabled" class="form-control"
+                               @bind-Value="Active.Index" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Name" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.DataType</label>
+                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.DataType" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.UIDataType</label>
+                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.UIDataType" />
+                </div>
+
+                <div class="form-group">
+                    <label>@Properties.Resources.Scaler</label>
+                    <InputNumber id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Scaler" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Unit</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Unit" />
+                </div>
+                <div class="form-group">
+                    <label>Expiration time</label>
+                    <InputNullableDateTimeOffsetTimeSpan id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.ExpirationTime" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    private AttributeTemplates? Parent { get; set; }
+
+    private GXAttributeTemplate? _active;
+
+    private GXAttributeTemplate? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// List of the modified items.
+    /// </summary>
+    private Dictionary<GXAttributeTemplate, GXAttributeTemplate> Modified = new Dictionary<GXAttributeTemplate, GXAttributeTemplate>();
+
+    /// <summary>
+    /// Copy the content of the modified item to the original item.
+    /// </summary>
+    /// <param name="modified">Modified item.</param>
+    /// <param name="save">Is value saved.</param>
+    protected void UpdateInstance(GXAttributeTemplate modified, bool save)
+    {
+        //Find key with modified item.
+        GXAttributeTemplate? key = null;
+        foreach (var it in Modified)
+        {
+            if (it.Value == modified)
+            {
+                key = it.Key;
+                break;
+            }
+        }
+        if (key == null)
+        {
+            throw new Exception("Invalid target.");
+        }
+        if (save)
+        {
+            ClientHelpers.Copy(modified, key);
+        }
+        if (Modified.ContainsKey(key))
+        {
+            Modified.Remove(key);
+        }
+        key.Modified = false;
+    }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get Attribute template data.
+                var tmp = (await Http.GetAsJsonAsync<GetAttributeTemplateResponse>(string.Format("api/AttributeTemplate?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action); if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+            }
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void OnEdit(GXAttributeTemplate template)
+    {
+        GXAttributeTemplate tmp = ClientHelpers.Clone<GXAttributeTemplate>(template);
+        Modified.Add(template, tmp);
+        tmp.Modified = true;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Save Attribute template.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveAgentResponse>("api/AttributeTemplate/Delete", new RemoveAgent() { Ids = new Guid[] { Active.Id } });
+            }
+            else
+            {
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/AttributeTemplate/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/AttributeTemplate/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateAttributeTemplateResponse>(address, new UpdateAttributeTemplate() { AttributeTemplates = new GXAttributeTemplate[] { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

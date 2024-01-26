@@ -274,7 +274,7 @@
                     Descending = request.Descending,
                     AllUsers = true,
                     //Get manufacturer template information.
-                    Select = TargetType.Version
+                    Select = new string[] { "Version" }
                 };
             ListManufacturersResponse ret = await Http.PostAsJson<ListManufacturersResponse>("api/Manufacturer/List", req, request.CancellationToken);
             return new ItemsProviderResult<GXManufacturer>(ret.Manufacturers, ret.Count);

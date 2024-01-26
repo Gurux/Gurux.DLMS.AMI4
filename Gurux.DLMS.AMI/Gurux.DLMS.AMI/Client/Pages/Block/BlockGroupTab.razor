@@ -8,7 +8,8 @@
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
-@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs;
+    using Gurux.DLMS.AMI.Shared.DTOs.Block
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.BlockManager + "," + GXRoles.BlockGroupManager)]
 @inject NavigationManager NavigationManager

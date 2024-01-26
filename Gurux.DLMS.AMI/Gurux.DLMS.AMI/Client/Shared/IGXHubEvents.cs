@@ -31,9 +31,21 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -808,6 +820,70 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="statistics">Deleted performances.</param>
         Task PerformanceDelete(IEnumerable<Guid> performance);
 
+        /// <summary>
+        /// Subtotals are updated or modified.
+        /// </summary>
+        /// <param name="subtotals">Updated subtotals.</param>
+        Task SubtotalUpdate(IEnumerable<GXSubtotal> subtotals);
 
+        /// <summary>
+        /// Subtotal is deleted.
+        /// </summary>
+        /// <param name="subtotals">Deleted subtotal.</param>
+        Task SubtotalDelete(IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// Subtotals are calculated.
+        /// </summary>
+        /// <param name="subtotals">Calculated subtotals.</param>
+        Task SubtotalCalculate(IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// Subtotals are cleared.
+        /// </summary>
+        /// <param name="subtotals">Cleared subtotals.</param>
+        Task SubtotalClear(IEnumerable<GXSubtotal> subtotals);
+
+        /// <summary>
+        /// New subtotal group is added or modified.
+        /// </summary>
+        /// <param name="groups">Updated subtotal groups.</param>
+        Task SubtotalGroupUpdate(IEnumerable<GXSubtotalGroup> groups);
+
+        /// <summary>
+        /// Subtotal group is deleted.
+        /// </summary>
+        /// <param name="groups">Deleted subtotal groups.</param>
+        Task SubtotalGroupDelete(IEnumerable<GXSubtotalGroup> groups);
+
+        /// <summary>
+        /// Subtotals values are updated.
+        /// </summary>
+        /// <param name="values">Updated subtotal values.</param>
+        Task SubtotalValueUpdate(IEnumerable<GXSubtotalValue> values);
+
+        /// <summary>
+        /// Subtotal logs are cleared.
+        /// </summary>
+        /// <param name="subtotals">List of cleared subtotals.</param>
+        Task ClearSubtotalLogs(IEnumerable<GXSubtotal>? subtotals);
+
+        /// <summary>
+        /// New subtotal logs is added.
+        /// </summary>
+        /// <param name="logs">New subtotal logs.</param>
+        Task AddSubtotalLogs(IEnumerable<GXSubtotalLog> logs);
+
+        /// <summary>
+        /// Subtotal log items are closed.
+        /// </summary>
+        /// <param name="subtotals">Closed log items.</param>
+        Task CloseSubtotalLogs(IEnumerable<GXSubtotalLog> subtotals);
+
+        /// <summary>
+        /// User stamp is added or updated.
+        /// </summary>
+        /// <param name="stamps">Updated user stamps.</param>
+        Task StampUpdate(IEnumerable<GXUserStamp> stamps);
     }
 }

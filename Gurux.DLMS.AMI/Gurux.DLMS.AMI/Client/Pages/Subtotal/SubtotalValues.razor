@@ -1,0 +1,362 @@
+﻿@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent
+@using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<GXTable @ref="table"
+         Context="value"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.None"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="Subtotal.Name">
+            <input class="form-control" placeholder="Filter by name..."
+                   @onchange="@((ChangeEventArgs __e) => _name = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="Target">
+            <input class="form-control" placeholder="Filter by target..."
+                   @onchange="@((ChangeEventArgs __e) => _target = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="StartTime">
+            <input class="form-control" placeholder="Filter by start time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.StartTime = @StatusTile.ToDateTimeOffset(__e.Value))" />
+        </Fh>
+        <Fh Id="EndTime">
+            <input class="form-control" placeholder="Filter by end time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.EndTime = @StatusTile.ToDateTimeOffset(__e.Value))" />
+        </Fh>
+        <Fh Id="Value">
+            <input class="form-control" placeholder="Filter by value..."
+                   type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.Value = Convert.ToString(__e.Value))" />
+        </Fh>
+    </FilterContent>
+    <MenuContent>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Subtotal.Name">@Properties.Resources.Name</Th>
+            <th>@Properties.Resources.Target</th>
+        <Th Id="StartTime" SortMode="SortMode.Descending">@Properties.Resources.StartTime</Th>
+            <Th Id="EndTime">@Properties.Resources.EndTime</Th>
+            <Th Id="Value">@Properties.Resources.Value</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Id="Subtotal.Name">@value.Subtotal?.Name</Td>
+            <Td Id="Target">@GetTarget(value)</Td>
+            <Td Id="StartTime">@value.StartTime</Td>
+            <Td Id="EndTime">@value.EndTime</Td>
+            <Td Id="Value">@value.Value</Td>
+        </ItemContent>
+    </GXTable>
+    <br />
+
+    @code {
+    [Parameter]
+    public SubtotalTarget Target { get; set; }
+
+    private string? GetTarget(GXSubtotalValue item)
+    {
+        StringBuilder sb = new StringBuilder();
+        switch (Target)
+        {
+            case SubtotalTarget.DeviceGroup:
+                if (item.Subtotal?.DeviceGroups != null)
+                {
+                    foreach (var it in item.Subtotal.DeviceGroups)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+            case SubtotalTarget.Device:
+                if (item.Subtotal?.Devices != null)
+                {
+                    foreach (var it in item.Subtotal.Devices)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+            case SubtotalTarget.Agent:
+                if (item.Subtotal?.Agents != null)
+                {
+                    foreach (var it in item.Subtotal.Agents)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+            case SubtotalTarget.AgentGroup:
+                if (item.Subtotal?.AgentGroups != null)
+                {
+                    foreach (var it in item.Subtotal.AgentGroups)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+            case SubtotalTarget.Gateway:
+                if (item.Subtotal?.Gateways != null)
+                {
+                    foreach (var it in item.Subtotal.Gateways)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+            case SubtotalTarget.GatewayGroup:
+                if (item.Subtotal?.GatewayGroups != null)
+                {
+                    foreach (var it in item.Subtotal.GatewayGroups)
+                    {
+                        sb.Append(it.Name);
+                        sb.Append(", ");
+                    }
+                }
+                break;
+        }
+        if (sb.Length != 0)
+        {
+            sb.Length -= 2;
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Amount of the subtotal value items shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = false;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    private string? _target, _name;
+
+    private GXSubtotalValue filter = new GXSubtotalValue()
+        {
+            Subtotal = new GXSubtotal()
+        };
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    private GXTable<GXSubtotalValue>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    /// <returns></returns>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXSubtotalValue>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            ListSubtotalValues req = new ListSubtotalValues()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    OrderBy = request.OrderBy
+                };
+            switch (Target)
+            {
+                case SubtotalTarget.DeviceGroup:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            DeviceGroups = new List<GXDeviceGroup>(new GXDeviceGroup[]{
+                                new GXDeviceGroup()
+                                {
+                                Name = _target
+                                }
+                                })
+                        };
+                    break;
+                case SubtotalTarget.Device:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            Devices = new List<GXDevice>(new GXDevice[]{
+                                new GXDevice()
+                                {
+                                Name = _target
+                                }
+                                })
+                        };
+                    break;
+                case SubtotalTarget.Agent:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            Agents = new List<GXAgent>(new GXAgent[]{
+                                new GXAgent()
+                                {
+                                    Name = _target
+                                }
+                                })
+                        };
+                    break;
+                case SubtotalTarget.AgentGroup:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            AgentGroups = new List<GXAgentGroup>(new GXAgentGroup[]{
+                                new GXAgentGroup()
+                                {
+                                Name = _target
+                                }
+                                })
+                        };
+                    break;
+                case SubtotalTarget.Gateway:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            Gateways = new List<GXGateway>(new GXGateway[]{
+                                new GXGateway()
+                                {
+                                    Name = _target
+                                }
+                                })
+                        };
+                    break;
+                case SubtotalTarget.GatewayGroup:
+                    filter.Subtotal = new GXSubtotal()
+                        {
+                            Name = _name,
+                            GatewayGroups = new List<GXGatewayGroup>(new GXGatewayGroup[]{
+                                new GXGatewayGroup()
+                                {
+                                Name = _target
+                                }
+                                })
+                        };
+                    break;
+            }
+            var ret = await Http.PostAsJson<ListSubtotalValuesResponse>("api/SubtotalValue/List", req, request.CancellationToken);
+            if (ret.SubtotalValues != null)
+            {
+                return new ItemsProviderResult<GXSubtotalValue>(ret.SubtotalValues, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+
