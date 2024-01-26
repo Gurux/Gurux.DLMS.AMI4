@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
@@ -42,12 +41,34 @@ namespace Gurux.DLMS.AMI.Module
     public interface IAmiModule
     {
         /// <summary>
+        /// Module identifier.
+        /// </summary>
+        /// <remarks>
+        /// Don't localize the Id or settings are not saved correctly.
+        /// </remarks>
+        string Id
+        {
+            get;
+        }
+
+        /// <summary>
         /// Name of the module.
         /// </summary>
         /// <remarks>
-        /// Don't localize the name or settings are not saved correctly.
+        /// Name can be localized.
         /// </remarks>
         string Name
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Protocols that can use this module.
+        /// </summary>
+        /// <remarks>
+        /// If protocol is null it's available for all protocols..
+        /// </remarks>
+        string? Protocols
         {
             get;
         }
@@ -61,6 +82,14 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
+        /// Module help Url.
+        /// </summary>
+        string? Help
+        {
+            get;
+        }
+
+        /// <summary>
         /// Css icon.
         /// </summary>
         string? Icon
@@ -68,6 +97,36 @@ namespace Gurux.DLMS.AMI.Module
             get;
         }
 
+        /// <summary>
+        /// Extension UI.
+        /// </summary>
+        /// <remarks>
+        /// Null, if the extension doesn't have UI.
+        /// </remarks>
+        Type? Extension
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Can the scheduler invoke this module.
+        /// </summary>
+        /// <seealso cref="Execute"/>
+        /// <seealso cref="Schedule"/>
+        bool CanSchedule
+        {
+            get;
+        }
+
+        /// <summary>
+        /// Schedule module UI.
+        /// </summary>
+        /// <seealso cref="CanSchedule"/>
+        /// <seealso cref="Schedule"/>
+        Type? Schedule
+        {
+            get;
+        }
 
         /// <summary>
         /// Configuration UI.
@@ -81,6 +140,12 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
+        /// Configure module middlewares.
+        /// </summary>
+        /// <param name="services">Services.</param>
+        void ConfigureMidlewares(IServiceCollection services);
+
+        /// <summary>
         /// Module is installed.
         /// </summary>
         /// <param name="user">Current user.</param>
@@ -89,13 +154,30 @@ namespace Gurux.DLMS.AMI.Module
         void Install(ClaimsPrincipal user, IServiceProvider services, object module);
 
         /// <summary>
+        /// Module is installed.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="services">Available services.</param>
+        /// <param name="module">Installed module.</param>
+        Task InstallAsync(ClaimsPrincipal user, IServiceProvider services, object module);
+
+        /// <summary>
+        /// Module is updated.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="services">Available services.</param>
+        /// <param name="current">Current module version.</param>
+        /// <param name="updated">Updated module version.</param>
+        void Update(ClaimsPrincipal user, IServiceProvider services, string current, string updated);
+
+        /// <summary>
         /// Module is updated.
         /// </summary>
         /// <param name="user">Current user.</param>
         /// <param name="services">Available services.</param>
         /// <param name="current">Current module.</param>
         /// <param name="updated">Updated module.</param>
-        void Update(ClaimsPrincipal user, IServiceProvider services, object current, object updated);
+        Task UpdateAsync(ClaimsPrincipal user, IServiceProvider services, object current, object updated);
 
         /// <summary>
         /// Module is uninstalled.
@@ -104,6 +186,14 @@ namespace Gurux.DLMS.AMI.Module
         /// <param name="services">Available services.</param>
         /// <param name="module">Installed module.</param>
         void Uninstall(ClaimsPrincipal user, IServiceProvider services, object module);
+
+        /// <summary>
+        /// Module is uninstalled.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="services">Available services.</param>
+        /// <param name="module">Installed module.</param>
+        Task UninstallAsync(ClaimsPrincipal user, IServiceProvider services, object module);
 
         /// <summary>
         /// Framework calls this so module can configure intenal services.
@@ -123,30 +213,62 @@ namespace Gurux.DLMS.AMI.Module
         void ConfigureFrameworkServices(IServiceCollection services);
 
         /// <summary>
-        /// Configure module middlewares.
-        /// </summary>
-        /// <param name="builder">Builder.</param>
-        void ConfigureMidlewares(IApplicationBuilder builder);
-
-        /// <summary>
         /// Module is started.
         /// </summary>
         /// <param name="services">Available services.</param>
         void Start(IServiceProvider services);
 
         /// <summary>
-        /// Execute module operations.
+        /// Module is started.
         /// </summary>
         /// <param name="services">Available services.</param>
+        Task StartAsync(IServiceProvider services);
+
+        /// <summary>
+        /// Execute module operations.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="services">Available services.</param>
+        /// <param name="settings">Schedule settings.</param>
+        /// <param name="instanceSettings">Schedule settings.</param>
         /// <remarks>
         /// This can be used to execute module operations from schedule or workflow.
         /// </remarks>
-        void Execute(IServiceProvider services);
+        /// <seealso cref="CanSchedule"/>
+        /// <seealso cref="Schedule"/>
+        void Execute(
+            ClaimsPrincipal user,
+            IServiceProvider services, 
+            string? settings,
+            string? instanceSettings);
+
+        /// <summary>
+        /// Execute module operations.
+        /// </summary>
+        /// <param name="user">Current user.</param>
+        /// <param name="services">Available services.</param>
+        /// <param name="settings">Module global settings.</param>
+        /// <param name="instanceSettings">Schedule settings.</param>
+        /// <remarks>
+        /// This can be used to execute module operations from schedule or workflow.
+        /// </remarks>
+        /// <seealso cref="CanSchedule"/>
+        Task ExecuteAsync(
+            ClaimsPrincipal user,
+            IServiceProvider services, 
+            string? settings,
+            string? instanceSettings);
 
         /// <summary>
         /// Module is stopped.
         /// </summary>
         /// <param name="services">Available services.</param>
         void Stop(IServiceProvider services);
+
+        /// <summary>
+        /// Module is stopped.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        Task StopAsync(IServiceProvider services);
     }
 }

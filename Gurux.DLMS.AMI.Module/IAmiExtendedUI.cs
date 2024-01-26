@@ -63,6 +63,16 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
+        /// Initialize settings.
+        /// </summary>
+        void Initialize();
+
+        /// <summary>
+        /// Initialize async settings.
+        /// </summary>
+        Task InitializeAsync();
+
+        /// <summary>
         /// Gurux.DLMS.AMI is asked to read the objects.
         /// </summary>
         EventCallback<IEnumerable<AMIReadArgument>> OnRead { get; set; }

@@ -29,32 +29,30 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// IGXModule UI notification interface.
+    /// Gurux DLMS AMI user UI extension.
     /// </summary>
-    public interface IAmiModuleSettings
+    /// <remarks>
+    /// Framework calls this after all settings
+    /// are retreaved from the database.
+    /// UI can be updated after this.
+    /// </remarks>
+    public interface IAmiUIExtension
     {
         /// <summary>
-        /// Initialize settings.
+        /// UI is initialized async.
         /// </summary>
-        void Initialize();
+        Task InitializedAsync();
 
         /// <summary>
-        /// Initialize async settings.
+        /// UI settings are saved to Settings property.
         /// </summary>
-        Task InitializeAsync();
+        /// <remarks>
+        /// Only schedule UI calls this method.
+        /// </remarks>
+        Task SaveAsync();
 
-        /// <summary>
-        /// Save settings.
-        /// </summary>
-        void Save();
-
-        /// <summary>
-        /// Cancel changes.
-        /// </summary>
-        void Cancel();
-    }   
+    }
 }

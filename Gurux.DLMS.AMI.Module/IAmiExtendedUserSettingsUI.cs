@@ -31,30 +31,14 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// IGXModule UI notification interface.
+    /// User settings UI interface.
     /// </summary>
-    public interface IAmiModuleSettings
+    /// <remarks>
+    /// This interface is used to customize user settings.
+    /// </remarks>
+    public interface IAmiExtendedUserSettingsUI : IAmiExtendedSettingsUI
     {
-        /// <summary>
-        /// Initialize settings.
-        /// </summary>
-        void Initialize();
-
-        /// <summary>
-        /// Initialize async settings.
-        /// </summary>
-        Task InitializeAsync();
-
-        /// <summary>
-        /// Save settings.
-        /// </summary>
-        void Save();
-
-        /// <summary>
-        /// Cancel changes.
-        /// </summary>
-        void Cancel();
-    }   
+    }
 }
