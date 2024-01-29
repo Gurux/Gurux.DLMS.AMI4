@@ -586,12 +586,26 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 "System.Linq.Expressions",
                 "System.Collections.Generic",
                 "Gurux.Common",
+                "Gurux.DLMS.Enums",
                 "Gurux.DLMS.AMI.Script",
                 "Gurux.DLMS.AMI.Shared.DIs",
                 "Gurux.DLMS.AMI.Shared.DTOs",
-                "Gurux.DLMS.AMI.Shared.DTOs.Authentication",
                 "Gurux.DLMS.AMI.Shared.DTOs.Enums",
-                "Gurux.DLMS.Enums"
+                "Gurux.DLMS.AMI.Shared.DTOs.Agent",
+                "Gurux.DLMS.AMI.Shared.DTOs.Authentication",
+                "Gurux.DLMS.AMI.Shared.DTOs.Block",
+                "Gurux.DLMS.AMI.Shared.DTOs.ComponentView",
+                "Gurux.DLMS.AMI.Shared.DTOs.Device",
+                "Gurux.DLMS.AMI.Shared.DTOs.Gateway",
+                "Gurux.DLMS.AMI.Shared.DTOs.KeyManagement",
+                "Gurux.DLMS.AMI.Shared.DTOs.Manufacturer",
+                "Gurux.DLMS.AMI.Shared.DTOs.Module",
+                "Gurux.DLMS.AMI.Shared.DTOs.Schedule",
+                "Gurux.DLMS.AMI.Shared.DTOs.Script",
+                "Gurux.DLMS.AMI.Shared.DTOs.Subtotal",
+                "Gurux.DLMS.AMI.Shared.DTOs.Trigger",
+                "Gurux.DLMS.AMI.Shared.DTOs.User",
+                "Gurux.DLMS.AMI.Shared.DTOs.Workflow",
             };
             if (!string.IsNullOrEmpty(additionalNamespaces))
             {

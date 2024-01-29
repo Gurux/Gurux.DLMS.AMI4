@@ -183,6 +183,10 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Gateway script is used to identify the connecting gateway.
         /// </summary>
+        /// <remarks>
+        /// This is obsolete.
+        /// </remarks>
+        [Obsolete("Use Gateway settings instead of.")]
         public Guid? GatewayScriptMethod { get; set; }
 
         /// <summary>

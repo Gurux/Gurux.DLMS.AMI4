@@ -11,8 +11,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Gurux.DLMS.AMI.Shared.DTOs
-@using System.Globalization;
-    using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+@using System.Globalization
 
 @attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.GatewayManager + "," + GXRoles.GatewayGroupManager)]
 @inject NavigationManager NavigationManager
@@ -28,30 +27,24 @@
         <ChildContent>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayManager)>
                 <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-cloud-download">
-                    <div style="position: relative; width: 100%; ">
-                        <Gateway Action="@Action"></Gateway>
-                    </div>
+                    <Gateway Action="@Action"></Gateway>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)>
                 <TabPage Text=@Properties.Resources.GatewayGroups Icon="oi oi-cloud-download">
-                    <div style="position: relative; width: 100%; ">
-                        <GatewayGroupsSelector></GatewayGroupsSelector>
-                    </div>
+                    <GatewayGroupsSelector Action="@Action">
+                    </GatewayGroupsSelector>
                 </TabPage>
             </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager)>
                 <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-cloud-download">
-                    <div style="position: relative; width: 100%; ">
-                        <DeviceGroupsSelector></DeviceGroupsSelector>
-                    </div>
+                    <DeviceGroupsSelector>
+                    </DeviceGroupsSelector>
                 </TabPage>
-            </AuthorizeView>          
+            </AuthorizeView>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
                 <TabPage Text=@Properties.Resources.Devices Icon="oi oi-cloud-download">
-                    <div style="position: relative; width: 100%; ">
-                        <DevicesSelector></DevicesSelector>
-                    </div>
+                    <DevicesSelector></DevicesSelector>
                 </TabPage>
             </AuthorizeView>
         </ChildContent>

@@ -212,6 +212,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         }
 
         /// <summary>
+        /// Gateway settings.
+        /// </summary>
+        [DefaultValue(null)]
+        public string? GatewaySettings
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// When agent is detected last time.
         /// </summary>
         [Description("When agent is detected last time.")]
