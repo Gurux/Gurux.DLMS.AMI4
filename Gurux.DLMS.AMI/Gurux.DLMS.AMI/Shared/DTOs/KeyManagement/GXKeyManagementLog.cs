@@ -90,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(null)]
         [Index(false)]
         [IsRequired]
+        [Filter(FilterType.Exact)]
         public GXKeyManagement? KeyManagement
         {
             get;

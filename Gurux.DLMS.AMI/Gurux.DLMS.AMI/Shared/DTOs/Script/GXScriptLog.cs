@@ -90,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DefaultValue(null)]
         [Index(false)]
         [IsRequired]
+        [Filter(FilterType.Exact)]
         public GXScript? Script
         {
             get;

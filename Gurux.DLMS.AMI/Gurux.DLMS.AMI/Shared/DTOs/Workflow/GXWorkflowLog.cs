@@ -94,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DefaultValue(null)]
         [Index(false)]
         [IsRequired]
+        [Filter(FilterType.Exact)]
         public GXWorkflow? Workflow
         {
             get;

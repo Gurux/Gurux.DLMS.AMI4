@@ -87,6 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
+        [Filter(FilterType.Exact)]
         public GXSubtotal? Subtotal
         {
             get;

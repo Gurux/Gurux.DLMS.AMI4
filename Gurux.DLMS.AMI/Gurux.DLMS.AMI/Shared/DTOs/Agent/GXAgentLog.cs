@@ -94,6 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
+        [Filter(FilterType.Exact)]
         public GXAgent? Agent
         {
             get;

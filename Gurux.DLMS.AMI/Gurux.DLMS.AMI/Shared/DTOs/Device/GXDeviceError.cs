@@ -92,6 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
         public GXDevice? Device
         {
             get;

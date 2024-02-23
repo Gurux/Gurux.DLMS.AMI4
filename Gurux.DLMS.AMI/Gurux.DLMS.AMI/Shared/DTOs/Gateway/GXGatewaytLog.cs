@@ -93,6 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
+        [Filter(FilterType.Exact)]
         public GXGateway? Gateway
         {
             get;
