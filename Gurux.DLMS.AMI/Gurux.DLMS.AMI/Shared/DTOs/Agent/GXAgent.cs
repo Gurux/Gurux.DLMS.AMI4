@@ -100,6 +100,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         }
 
         /// <summary>
+        /// Agent type.
+        /// </summary>
+        [Description("Agent type.")]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(0)]
+        [IsRequired]
+        public byte? Type
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Is agent active.
         /// </summary>
         [DefaultValue(true)]

@@ -70,12 +70,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// attribute value.
+        /// Attribute value.
         /// </summary>
         [DataMember]
-        [Description("Object value.")]
+        [Description("Attribute value.")]
         [Filter(FilterType.Contains)]
         public string? Value
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Block index.
+        /// </summary>
+        /// <remarks>
+        /// Block index is used if reply data is send in blocks 
+        /// and not all at the time.
+        /// This can be used when a larget amount of 
+        /// data is read and if it can't fit to the memory at once.
+        /// </remarks>
+        [DataMember]
+        [Description("Block index.")]
+        [Filter(FilterType.Contains)]
+        public UInt32? BlockIndex
         {
             get;
             set;
