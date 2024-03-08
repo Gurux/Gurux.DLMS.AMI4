@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Gurux.DLMS" Version="9.0.2402.2201" />
+    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2403.801" />
     <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2403.801" />
     <PackageReference Include="Gurux.DLMS.AMI.Script" Version="4.0.2403.601" />
     <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2403.601" />
@@ -40,10 +41,6 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\scripts\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\Gurux.DLMS.AMI.Components\Gurux.DLMS.AMI.Components.csproj" />
   </ItemGroup>
 
   <ItemGroup>
