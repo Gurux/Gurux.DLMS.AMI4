@@ -1,6 +1,39 @@
-﻿@page "/DeviceTemplates"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/DeviceTemplates"
 @page "/DeviceTemplates/{Action}/{Id:guid?}"
 
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
@@ -73,12 +106,12 @@
                    type="text"
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
-        <th>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
-        <th>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="DeviceTemplates-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>        <th>
             <input class="form-control" placeholder="Filter by updated time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
@@ -95,15 +128,15 @@
         <th>@Properties.Resources.Model</th>
         <th>@Properties.Resources.Version</th>
         <Th Id="Name">@Properties.Resources.Name</Th>
-            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <Th Id="Updated">@Properties.Resources.Updated</Th>
-        </HeaderContent>
-        <ItemContent>
-            <td>@template.Manufacturer?.Name</td>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@template.Manufacturer?.Name</td>
         <td>@template.Manufacturer?.Models?.FirstOrDefault()?.Name</td>
         <td>@GetVersionName(template)</td>
         <Td Link="@("DeviceTemplate/Edit/" + template.Id)">@template.Name</Td>
-            <td>@template.CreationTime</td>
+        <td>@template.CreationTime</td>
         <td>@template.Updated</td>
     </ItemContent>
 </GXTable>

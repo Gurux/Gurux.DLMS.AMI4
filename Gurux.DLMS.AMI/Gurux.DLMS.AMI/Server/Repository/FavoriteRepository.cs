@@ -243,7 +243,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 else if (tmp.Length > 2)
                 {
-                    it.Type = tmp[0];
+                    it.Name = it.Type = tmp[0];
                     action = tmp[1];
                     id = tmp[2];
                 }

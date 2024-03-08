@@ -1,0 +1,207 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
+
+@if (Action != CrudAction.None)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle="@OkBtnTitle"
+            OnOk="Save">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <ObjectTemplateSelector Immediate="true"
+                                                @bind-Value="Template"
+                                                DeviceTemplate="DeviceTemplate">
+                        </ObjectTemplateSelector>
+                        <ValidationMessage For="@(() => Template)" />
+
+                    </div>
+                </div>
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>@Properties.Resources.AttributeIndex</label>
+                        <GXInputNumber id="attributeId"
+                                       Min="0"
+                                       Max="30"
+                                       class="form-control"
+                                       @bind-Value="Active.Value.AttributeIndex" />
+                        <ValidationMessage For="@(() => Active.Value.AttributeIndex)" />
+                    </div>
+                </div>
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>@Properties.Resources.DataIndex</label>
+                        <GXInputNumber id="dataIndex"
+                                       Min="0"
+                                       Max="30"
+                                       class="form-control"
+                                       @bind-Value="Active.Value.DataIndex" />
+                        <ValidationMessage For="@(() => Active.Value.DataIndex)" />
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+
+@code {
+    private string OkBtnTitle
+    {
+        get
+        {
+            if (Action == CrudAction.Delete)
+            {
+                return @Properties.Resources.Delete;
+            }
+            return @Properties.Resources.Save;
+        }
+    }
+    [Parameter]
+    public CrudAction Action { get; set; }
+
+    /// <summary>
+    /// Target template.
+    /// </summary>
+    [Parameter]
+    public GXObjectTemplate? Template { get; set; }
+
+    /// <summary>
+    /// Target device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? DeviceTemplate { get; set; }
+
+    /// <summary>
+    /// Target.
+    /// </summary>
+    [Parameter]
+    public KeyValuePair<GXDLMSObject, GXDLMSCaptureObject> Active { get; set; }
+
+    [Parameter]
+    public Action<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>>? OnSave { get; set; }
+
+    [Parameter]
+    public Action? OnCancel { get; set; }
+
+    [Parameter]
+    public Action<Exception>? OnError { get; set; }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Template.ObjectType.GetValueOrDefault() == 0)
+        {
+            sender.AddError(() => Template, "Invalid target.");
+        }
+        if (Active.Value.AttributeIndex == 0)
+        {
+            sender.AddError(() => Active.Value.AttributeIndex, "Invalid attribute index.");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Active.Key != null)
+        {
+            Template = new GXObjectTemplate()
+                {
+                    ObjectType = (int)Active.Key.ObjectType,
+                    LogicalName = Active.Key.LogicalName
+                };
+        }
+    }
+
+    /// <summary>
+    /// Save capture objects.
+    ///</summary>
+    public void Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+
+            if (Template?.ObjectType.GetValueOrDefault() == 0)
+            {
+                throw new Exception("Invalid object.");
+            }
+            KeyValuePair<GXDLMSObject, GXDLMSCaptureObject> target;
+            if (Action != CrudAction.Delete)
+            {
+                var o = GXDLMSClient.CreateObject((ObjectType)Template.ObjectType.Value);
+                target = new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, Active.Value);
+                target.Key.LogicalName = Template.LogicalName;
+            }
+            else
+            {
+                target = Active;
+            }
+            OnSave?.Invoke(target);
+            Action = CrudAction.None;
+        }
+        catch (Exception ex)
+        {
+            OnError?.Invoke(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide capture objects dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        OnCancel?.Invoke();
+        Action = CrudAction.None;
+    }
+}
+

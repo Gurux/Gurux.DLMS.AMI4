@@ -1,0 +1,66 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@inherits BaseSearch<Enums.ObjectType>
+
+<CascadingValue Value="this">
+    <BaseSearch Id="@Id"
+                Value="@Value"
+                ValueChanged="@ValueChanged"
+                Values="@Values"
+                Immediate="true"
+                Filter="@OnFilter"
+                OnSelected="@OnSelected">
+    </BaseSearch>
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    protected override void OnInitialized()
+    {
+        //Add None as the first value.
+        var values = Enum.GetValues<Enums.ObjectType>().OrderBy(o => o.ToString()).ToList();
+        values.Remove(Enums.ObjectType.None);
+        values.Insert(0, Enums.ObjectType.None);
+        Values = values;
+        base.OnInitialized();
+    }
+
+    private IEnumerable<Enums.ObjectType> OnFilter(
+        IEnumerable<Enums.ObjectType> values,
+        string filter)
+    {
+        return values.Where(w => w.ToString().ToLower().Contains(filter));
+    }
+}

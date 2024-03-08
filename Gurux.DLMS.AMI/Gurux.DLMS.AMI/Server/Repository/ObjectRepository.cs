@@ -466,6 +466,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     obj.Attributes.Add(new GXAttribute(it)
                     {
                         Id = it.Id,
+                        Value = it.DefaultValue,
                     });
                 }
             }
@@ -561,19 +562,24 @@ namespace Gurux.DLMS.AMI.Server.Repository
             args.Joins.AddInnerJoin<GXObjectTemplate, GXAttributeTemplate>(o => o.Id, a => a.ObjectTemplate);
             args.Where.And<GXAttributeTemplate>(q => q.Removed == null);
             GXObjectTemplate template = await host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(args);
-            if (template == null)
+            if (template.Attributes == null)
             {
                 throw new ArgumentException(Properties.Resources.UnknownTarget);
             }
             GXObject obj = new GXObject(template);
+            if (obj.Attributes == null)
+            {
+                throw new ArgumentException(Properties.Resources.UnknownTarget);
+            }
             obj.CreationTime = DateTime.Now;
             obj.Device = device;
             foreach (var it in template.Attributes)
             {
                 obj.Attributes.Add(new GXAttribute(it)
                 {
-                    Object = obj
-                }); ;
+                    Object = obj,
+                    Value = it.DefaultValue
+                });
             }
             GXInsertArgs arg = GXInsertArgs.Insert(obj);
             arg.Exclude<GXObject>(e => e.Attributes);

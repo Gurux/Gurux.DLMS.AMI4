@@ -1,4 +1,36 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -27,41 +59,39 @@
 
 @if (Active != null)
 {
+    @if (isLoading)
+    {
+        <p>Loading @fileName...</p>
+    }
+    else if (IsAdding)
+    {
+        <!--FileSelector is disabled until user has selected device template.-->
+        <FileSelector Value="@_value"
+                      Style="width:100%"
+                      MaxFileSize="10000000"
+                      OnLoaded="@UpdateDeviceTemplates"
+                      Filter=".gxc" />
+    }
+
     <EditForm Model="@Active">
         <DataAnnotationsValidator />
         <GXValidator @ref="_validator" OnValidate="OnValidate" />
         <ValidationSummary />
         <table>
-            <tr>
-                <th>
-                    @if (isLoading)
-                    {
-                        <p>Loading @fileName...</p>
-                    }
-                    else
-                    {
-                        @if (IsAdding)
-                        {
-                            <!--FileSelector is disabled until user has selected device template.-->
-                            <FileSelector Value="@_value"
-                                          Style="width:100%"
-                                          MaxFileSize="10000000"
-                                          OnLoaded="@UpdateDeviceTemplates"
-                                          Filter=".gxc" />
-                        }
-                        @if (IsAdding && templates != null && templates.Any())
-                        {
-                        <th>Type:</th>
+            @if (IsAdding && templates != null && templates.Any())
+            {
+                <tr>
+                    <th>Type:</th>
+                    <th>
                         <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device template type">
-                                @foreach (var it in templates)
-                                {
+                            @foreach (var it in templates)
+                            {
                                 <option value="@it.Type">@it.Type</option>
-                                }
+                            }
                         </InputSelect>
-                        }
-                    }
-                </th>
-            </tr>
+                    </th>
+                </tr>
+            }
             <tr>
                 <th>
                     Name:
@@ -368,11 +398,11 @@
     {
         try
         {
+            Notifier.ClearStatus();
+            Notifier.Clear();
             if (Active == null && Id != null)
             {
                 Notifier.ProgressStart();
-                Notifier.ClearStatus();
-                Notifier.Clear();
                 try
                 {
                     //Get device template data.

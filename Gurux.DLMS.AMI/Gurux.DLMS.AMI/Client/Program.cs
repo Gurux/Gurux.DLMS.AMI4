@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using System.Net;
 using System.Reflection;
 
 AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
@@ -45,7 +46,7 @@ AppDomain.CurrentDomain.TypeResolve += CurrentDomain_TypeResolve;
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
-
+builder.Services.AddScoped<IGXCookieStorage, GXCookieStorage>();
 builder.Services.AddHttpClient("Gurux.DLMS.AMI.ServerAPI", client => client.BaseAddress = new Uri(builder.HostEnvironment.BaseAddress))
     .AddHttpMessageHandler<BaseAddressAuthorizationMessageHandler>();
 

@@ -1215,4 +1215,16 @@
   <data name="Fill" xml:space="preserve">
     <value>Täytä tyhjä arvo nolla-arvolla</value>
   </data>
+  <data name="Push" xml:space="preserve">
+    <value>Lähettää</value>
+  </data>
+  <data name="AttributeIndex" xml:space="preserve">
+    <value>Attribute indeksi</value>
+  </data>
+  <data name="DataIndex" xml:space="preserve">
+    <value>Data indeksi</value>
+  </data>
+  <data name="TraceLevel" xml:space="preserve">
+    <value>Jäljitystaso</value>
+  </data>
 </root>

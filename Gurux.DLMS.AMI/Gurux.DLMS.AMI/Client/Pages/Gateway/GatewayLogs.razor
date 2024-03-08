@@ -1,5 +1,38 @@
-﻿@page "/GatewayLogs"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/GatewayLogs"
 
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -11,6 +44,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = "Admin, GatewayLogManager")]
 @inject NavigationManager NavigationManager
@@ -21,67 +55,68 @@
 
 <PageTitle>@Properties.Resources.GatewayLogs</PageTitle>
 
-    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLogManager)>
-        <MenuControl RightCorner="true">
-            <ChildContent>
-                <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
-                <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-            </ChildContent>
-        </MenuControl>
-    </AuthorizeView>
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.GatewayLogManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
 
-    <GXTable @ref="table"
-             Context="error"
-             ItemsProvider="@GetItems"
-             SelectionMode="SelectionMode.Multiple"
-             ShowRemoved="false"
-             Filter="@Filter"
-             ShowAllUsers="@Header"
-             CanEdit="@CanEdit"
-             Columns="@Columns"
-             OnSearch="@Updated">
-        <FilterContent>
-            <th>
-                <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" type="text" placeholder="Filter by user name..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Gateway.Name = Convert.ToString(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" type="text" placeholder="Filter by message..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-            </th>
-            <th>
-                <div>
-                    <input class="form-control" type="text" placeholder="Filter by level..."
-                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
-                </div>
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by close time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-        </FilterContent>
-        <MenuContent>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
-                <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
-                <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
-            </AuthorizeView>
-        </MenuContent>
-        <HeaderContent>
-            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <th>@Properties.Resources.Gateway</th>
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         CanEdit="@CanEdit"
+         Columns="@Columns"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="GatewayLogs-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by user name..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Gateway.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by message..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <TraceLevelSearch Id="GatewayLogs-TraceLevel"
+                              @bind-Value="@TraceLevel"
+                              OnSelected="@Updated">
+            </TraceLevelSearch>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <th>@Properties.Resources.Gateway</th>
         <Th Id="Message">@Properties.Resources.Message</Th>
-            <Th Id="Level">@Properties.Resources.Level</Th>
-            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-        </HeaderContent>
-        <ItemContent>
-            <Td Link="@("GatewayLog/Edit/" + error.Id)">@error.CreationTime</Td>
-            <td>@error.Gateway?.Name</td>
+        <Th Id="Level">@Properties.Resources.Level</Th>
+        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("GatewayLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@error.Gateway?.Name</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -207,6 +242,15 @@
     }
 
     /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
     /// Table reference.
     /// </summary>
     protected GXTable<GXGatewayLog>? table;
@@ -289,6 +333,14 @@
                     Descending = request.Descending,
                     AllUsers = request.ShowAllUserData
                 };
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
+            }
             if (Count != 0)
             {
                 req.Count = Count;

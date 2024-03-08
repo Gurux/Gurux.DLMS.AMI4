@@ -1,0 +1,146 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@if (Action != CrudAction.None)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle="@OkBtnTitle"
+            OnOk="Save">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <label>@Properties.Resources.StartTime</label>
+                        <GXInputDateTime id="start"
+                                         class="form-control"
+                                         @bind-Value="@StartTime" />
+                        <ValidationMessage For="@(() => StartTime)" />
+                    </div>
+                    <label>@Properties.Resources.EndTime</label>
+                    <GXInputDateTime id="start"
+                                     class="form-control"
+                                     @bind-Value="@EndTime" />
+                    <ValidationMessage For="@(() => EndTime)" />
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+
+@code {
+    private string OkBtnTitle
+    {
+        get
+        {
+            if (Action == CrudAction.Delete)
+            {
+                return @Properties.Resources.Delete;
+            }
+            return @Properties.Resources.Save;
+        }
+    }
+    [Parameter]
+    public CrudAction Action { get; set; }
+
+    /// <summary>
+    /// Start time.
+    /// </summary>
+    [Parameter]
+    public GXDateTime? StartTime { get; set; }
+
+    /// <summary>
+    /// End time.
+    /// </summary>
+    [Parameter]
+    public GXDateTime? EndTime { get; set; }
+
+    [Parameter]
+    public Action<KeyValuePair<GXDateTime?, GXDateTime?>>? OnSave { get; set; }
+
+    [Parameter]
+    public Action? OnCancel { get; set; }
+
+    [Parameter]
+    public Action<Exception>? OnError { get; set; }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {        
+    }
+
+    /// <summary>
+    /// Save capture objects.
+    ///</summary>
+    public void Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            OnSave?.Invoke(new KeyValuePair<GXDateTime?, GXDateTime?>(StartTime, EndTime));
+            Action = CrudAction.None;
+        }
+        catch (Exception ex)
+        {
+            OnError?.Invoke(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide capture objects dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        OnCancel?.Invoke();
+        Action = CrudAction.None;
+    }
+}
+

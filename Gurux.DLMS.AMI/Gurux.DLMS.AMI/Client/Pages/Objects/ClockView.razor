@@ -1,0 +1,78 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.DTOs
+@if (Target?.Attributes != null && Target.Template != null && Target.Attributes.Any())
+{
+    <CascadingValue Value="this">
+        <!--Attribute #1 and description are not shown for the object template.-->
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="0" Name="@Properties.Resources.Description" Value="@Target.Template.Name"></AttributeTile>
+            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Value="@Target.Template.LogicalName"></AttributeTile>
+        }
+        <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="3" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="6" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="9" Attributes="@Target.Attributes"></AttributeTile>
+        @ChildContent
+    </CascadingValue>
+}
+
+@code {
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (Parent == null)
+        {
+            throw new ArgumentNullException(nameof(Parent),
+                "View must exist within a Object view");
+        }
+        base.OnInitialized();
+    }
+}

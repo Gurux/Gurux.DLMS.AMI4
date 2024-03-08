@@ -544,7 +544,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc />
         public async Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data)
         {
-            GXSelectArgs args = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name }, where => where.Id == agentId && where.Removed == null);
+            GXSelectArgs args = GXSelectArgs.Select<GXAgent>(s => new { s.Id, s.Name, s.TraceLevel }, where => where.Id == agentId && where.Removed == null);
             GXAgent agent = await _host.Connection.SingleOrDefaultAsync<GXAgent>(args);
             if (agent == null)
             {
@@ -576,43 +576,46 @@ namespace Gurux.DLMS.AMI.Server.Repository
             {
                 await _eventsNotifier.AgentStatusChange(await GetUsersAsync(User, agent.Id), new GXAgent[] { tmp });
             }
-            //Update agent state for the agent log.
-            GXAgentLog? log = new GXAgentLog(TraceLevel.Info);
-            log.Agent = agent;
-            switch (status)
+            if (agent.TraceLevel > TraceLevel.Warning)
             {
-                case AgentStatus.Connected:
-                    log.Message = Properties.Resources.Connected;
-                    log.Type = (int)LogType.Connected;
-                    break;
-                case AgentStatus.Offline:
-                    log.Message = Properties.Resources.Offline;
-                    log.Type = (int)LogType.Disconnect;
-                    break;
-                case AgentStatus.Error:
-                    log.Message = Properties.Resources.Error;
-                    break;
-                case AgentStatus.Downloading:
-                    log.Message = Properties.Resources.Downloading;
-                    break;
-                case AgentStatus.Updating:
-                    log.Message = Properties.Resources.Updating;
-                    break;
-                case AgentStatus.Restarting:
-                    log.Message = Properties.Resources.Restarting;
-                    break;
-                case AgentStatus.SerialPortChange:
-                    log.Message = "Serial ports changed.";
-                    break;
-                default:
-                    log = null;
-                    break;
-            }
-            if (log != null)
-            {
-                //Add agent log. Idle status is not logged.
-                IAgentLogRepository repository = _serviceProvider.GetRequiredService<IAgentLogRepository>();
-                await repository.AddAsync(User, new GXAgentLog[] { log });
+                //Update agent state for the agent log.
+                GXAgentLog? log = new GXAgentLog(TraceLevel.Info);
+                log.Agent = agent;
+                switch (status)
+                {
+                    case AgentStatus.Connected:
+                        log.Message = Properties.Resources.Connected;
+                        log.Type = (int)LogType.Connected;
+                        break;
+                    case AgentStatus.Offline:
+                        log.Message = Properties.Resources.Offline;
+                        log.Type = (int)LogType.Disconnect;
+                        break;
+                    case AgentStatus.Error:
+                        log.Message = Properties.Resources.Error;
+                        break;
+                    case AgentStatus.Downloading:
+                        log.Message = Properties.Resources.Downloading;
+                        break;
+                    case AgentStatus.Updating:
+                        log.Message = Properties.Resources.Updating;
+                        break;
+                    case AgentStatus.Restarting:
+                        log.Message = Properties.Resources.Restarting;
+                        break;
+                    case AgentStatus.SerialPortChange:
+                        log.Message = "Serial ports changed.";
+                        break;
+                    default:
+                        log = null;
+                        break;
+                }
+                if (log != null)
+                {
+                    //Add agent log. Idle status is not logged.
+                    IAgentLogRepository repository = _serviceProvider.GetRequiredService<IAgentLogRepository>();
+                    await repository.AddAsync(User, new GXAgentLog[] { log });
+                }
             }
             if (status == AgentStatus.Connected || status == AgentStatus.Offline)
             {

@@ -1,4 +1,36 @@
-﻿@page "/attributetile"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/attributetile"
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
@@ -8,7 +40,7 @@
 
 <CascadingValue Value="this">
     <div style="width:100%">
-        @if (!string.IsNullOrEmpty(Text))
+        @if (!string.IsNullOrEmpty(Value))
         {
             <div class="form-group">
                 @if (@Index == 0)
@@ -17,7 +49,11 @@
                 }
                 else
                 {
-                    <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    <!--Check box is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    }
                     <label>@Index @Name</label>
                 }
                 &emsp;
@@ -32,7 +68,9 @@
                 }
                 @if (Values != null && Values.Any())
                 {
-                    <select class="form-select" @bind="InternalText" disabled="@IsDisabled()">
+                    <select class="form-select"
+                            @bind="InternalText"
+                            disabled="@IsDisabled()">
                         @foreach (string it in Values)
                         {
                             <option value="@it">@it</option>
@@ -41,7 +79,9 @@
                 }
                 else
                 {
-                    <input type="text" class="form-control" disabled="@IsDisabled()" @bind="InternalText" />
+                    <input type="text" class="form-control"
+                           disabled="@IsDisabled()"
+                           @bind="InternalText" />
                 }
             </div>
         }
@@ -50,7 +90,11 @@
             @if (@Attribute.Template.DataType == (int)Gurux.DLMS.Enums.DataType.Boolean)
             {
                 <div class="form-group">
-                    <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    <!--Check box is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    }
                     <Switch Text="@(Attribute.Template.Index + " " + Attribute.Template.Name)"
                             Value="@IsChecked()" Disabled="@IsDisabled()">
                         @if (Attribute != null && Attribute.Modified)
@@ -61,14 +105,49 @@
                     </Switch>
                 </div>
             }
+            else if (Attribute.Template.UIDataType == (int)Gurux.DLMS.Enums.DataType.DateTime)
+            {
+                <div class="form-group">
+                    <!--Check box is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                    }
+                    <label>@GetName()</label>
+                    @if (Attribute != null && Attribute.Modified)
+                    {
+                        <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" blue-color />
+                    }
+                    &emsp;
+                    <!--History is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    }
+                    <input type="datetime-local"
+                           class="form-control"
+                           disabled="@IsDisabled()"
+                           value="@GetAttributeValue(@Attribute)"
+                           @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))" />
+                </div>
+            }
             else @if (@Attribute.Template.ListItems != null && @Attribute.Template.ListItems.Any())
             {
                 <div class="form-group">
-                    <Tooltip Title="@LastRead">
+                    <!--Last read is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <Tooltip Title="@LastRead">
+                            <label>@GetName()</label>
+                            &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                        </Tooltip>
+                    }
+                    else
+                    {
                         <label>@GetName()</label>
-                        &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
-                    </Tooltip>
-                    <select class="form-select" value="@GetAttributeValue(@Attribute)"
+                    }
+                    <select class="form-select"
+                            value="@GetAttributeValue(@Attribute)"
                             @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
                         @foreach (var li in Attribute.Template.ListItems)
@@ -91,8 +170,19 @@
             else @if (Values != null && Values.Any())
             {
                 <div class="form-group">
-                    <Tooltip Title="@LastRead"><label>@GetName()</label></Tooltip>
-                    &emsp;<a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                    <!--Last read is not shown for the attribute template.-->
+                    @if (!IsTemplate)
+                    {
+                        <Tooltip Title="@LastRead">
+                            <label>@GetName()</label>
+                        </Tooltip>
+                    }
+                    else
+                    {
+                        <label>@GetName()</label>
+                    }
+                    &emsp;
+                    <a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
                     <select class="form-select" value="@GetAttributeValue(@Attribute)"
                             @onchange="@((ChangeEventArgs __e) => UpdateValue(@Attribute, __e.Value))"
                             disabled="@IsDisabled()">
@@ -118,7 +208,11 @@
                 <div class="form-group">
                     <div style="display: inline;">
                         <Tooltip Title="@LastRead">
-                            <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                            <!--Check box is not shown for the attribute template.-->
+                            @if (!IsTemplate)
+                            {
+                                <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+                            }
                             <label>@GetName()</label>
                             &emsp;
                             @if (Attribute?.Template?.Unit is string unit)
@@ -130,7 +224,11 @@
                                 <span class="oi oi-warning" style="color: cornflowerblue;" aria-hidden="true" />
                             }
                             &emsp;
-                            <a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                            <!--History is not shown for the attribute template.-->
+                            @if (!IsTemplate)
+                            {
+                                <a href="@GetPath()" class="oi oi-folder" style="color: cornflowerblue;" />
+                            }
                         </Tooltip>
                     </div>
                     @if (!HideValue)
@@ -149,6 +247,17 @@
 
     [CascadingParameter]
     private ObjectView? Parent { get; set; }
+
+    /// </summary>
+    /// Is attribute tile used for the template.
+    /// <summary>
+    bool IsTemplate
+    {
+        get
+        {
+            return Parent?.Template != null;
+        }
+    }
 
     private string GetPath()
     {
@@ -209,7 +318,11 @@
     protected override void OnInitialized()
     {
         if (Parent == null)
-            throw new ArgumentNullException(nameof(Parent), "Attribute item must exist within a object view.");
+        {
+            throw new ArgumentNullException(
+                nameof(Parent),
+            "Attribute item must exist within a object view.");
+        }
 
         //Select attribute if it's not static or it's not read.
         if (Attribute != null && (Attribute.Template != null &&
@@ -226,40 +339,67 @@
     /// </summary>
     /// <param name="attribute">Attribute.</param>
     /// <returns>Value of the attribute.</returns>
-    private string? GetAttributeValue(GXAttribute attribute)
+    private string? GetAttributeValue(GXAttribute? attribute)
     {
+        string? value;
         try
         {
             if (GetValue != null)
             {
-                string? value = GetValue.Invoke();
+                value = GetValue.Invoke();
                 if (attribute.Template?.Scaler is double d1)
                 {
                     value = (Convert.ToDouble(attribute.Value) * d1).ToString("0.######");
                 }
                 return value;
             }
+            value = attribute.Value;
             if (attribute.Template != null)
             {
+                if (IsTemplate)
+                {
+                    value = attribute.Template.DefaultValue;
+                }
                 DataType dt = (DataType)attribute.Template.UIDataType;
                 if (dt == DataType.DateTime)
                 {
-                    return new GXDateTime(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        return "";
+                    }
+                    if (DateTime.TryParse(value, out DateTime d))
+                    {
+                        //Date-time picker.
+                        return d.ToString("yyyy-MM-ddTHH:mm:ss");
+                    }
+                    return new GXDateTime(value, CultureInfo.InvariantCulture).ToFormatString();
                 }
                 if (dt == DataType.Date)
                 {
-                    return new GXDate(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        return "";
+                    }
+                    return new GXDate(value, CultureInfo.InvariantCulture).ToFormatString();
                 }
                 if (dt == DataType.Time)
                 {
-                    return new GXTime(attribute.Value, CultureInfo.InvariantCulture).ToFormatString();
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        return "";
+                    }
+                    return new GXTime(value, CultureInfo.InvariantCulture).ToFormatString();
                 }
                 if (attribute.Template?.Scaler is double d2)
                 {
-                    return (Convert.ToDouble(attribute.Value) * d2).ToString("0.######");
+                    if (string.IsNullOrEmpty(value))
+                    {
+                        return "";
+                    }
+                    return (Convert.ToDouble(value) * d2).ToString("0.######");
                 }
             }
-            return attribute.Value;
+            return value;
         }
         catch (Exception ex)
         {
@@ -272,15 +412,15 @@
     /// </summary>
     /// <param name="attribute">Attribute.</param>
     /// <param name="value">The new value of the attribute.</param>
-    private void UpdateValue(GXAttribute attribute, object? value)
+    private void UpdateValue(GXAttribute? attribute, object? value)
     {
+        if (attribute == null)
+        {
+            return;
+        }
         try
         {
-            if (Index != 0)
-            {
-
-            }
-            else
+            if (Index == 0 || IsTemplate)
             {
                 string? tmp;
                 if (value is bool b)
@@ -293,18 +433,31 @@
                 }
                 if (attribute.Template != null)
                 {
-                    DataType dt = (DataType)attribute.Template.UIDataType;
-                    if (dt == DataType.DateTime)
+                    DataType dt = (DataType)attribute.Template.DataType;
+                    DataType uiDt = (DataType)attribute.Template.UIDataType;
+                    if (uiDt == DataType.DateTime)
                     {
-                        tmp = new GXDateTime(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                        if (DateTimeOffset.TryParse(tmp, CultureInfo.CurrentCulture, out DateTimeOffset d))
+                        {
+                            //Date time is in local format.
+                            tmp = new GXDateTime(d).ToFormatString(CultureInfo.InvariantCulture);
+                        }
+                        else
+                        {
+                            tmp = new GXDateTime(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                        }
                     }
-                    else if (dt == DataType.Date)
+                    else if (uiDt == DataType.Date)
                     {
                         tmp = new GXDate(tmp).ToFormatString(CultureInfo.InvariantCulture);
                     }
-                    else if (dt == DataType.Time)
+                    else if (uiDt == DataType.Time)
                     {
                         tmp = new GXTime(tmp).ToFormatString(CultureInfo.InvariantCulture);
+                    }
+                    else if (dt == DataType.Enum)
+                    {
+                        tmp = byte.Parse(tmp).ToString();
                     }
                     else
                     {
@@ -313,14 +466,21 @@
                             tmp = (Convert.ToDouble(tmp) / s).ToString();
                         }
                         //Check that value type is correct.
-                        dt = (DataType)attribute.Template.DataType;
-                        if (dt != DataType.None)
+                        uiDt = (DataType)attribute.Template.DataType;
+                        if (uiDt != DataType.None)
                         {
-                            tmp = Convert.ToString(Convert.ChangeType(tmp, GXDLMSConverter.GetDataType(dt)));
+                            tmp = Convert.ToString(Convert.ChangeType(tmp, GXDLMSConverter.GetDataType(uiDt)));
                         }
                     }
                 }
-                attribute.Value = tmp;
+                if (IsTemplate && attribute.Template != null)
+                {
+                    attribute.Template.DefaultValue = tmp;
+                }
+                else
+                {
+                    attribute.Value = tmp;
+                }
             }
             attribute.Modified = true;
             Updated.InvokeAsync(value);
@@ -336,7 +496,7 @@
     /// <summary>
     /// Is component disabled.
     /// </summary>
-    /// <returns>Trie, if component is disabled.</returns>
+    /// <returns>True, if component is disabled.</returns>
     bool IsDisabled()
     {
         return Attribute == null ||
@@ -394,8 +554,13 @@
     [Parameter]
     public Func<string?>? GetValue { get; set; }
 
-    public static GXAttribute GetAttribute(List<GXAttribute> attributes, int index)
+    public static GXAttribute GetAttribute(
+        List<GXAttribute>? attributes, int index)
     {
+        if (attributes == null)
+        {
+            throw new ArgumentNullException(nameof(attributes));
+        }
         foreach (var it in attributes)
         {
             if (it.Template != null && it.Template.Index == index)
@@ -417,28 +582,45 @@
     /// Attribute name.
     /// </summary>
     [Parameter]
-    public string Name { get; set; } = "";
+    public string? Name { get; set; }
 
     /// <summary>
-    /// Attribute text.
+    /// Attribute value.
     /// </summary>
     [Parameter]
-    public string Text { get; set; } = "";
+    public string? Value { get; set; }
 
-    private string InternalText
+    /// <summary>
+    /// Notified when the attribute value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    private string? InternalText
     {
         get
         {
-            return Text;
+            return Value;
         }
         set
         {
-            Text = value;
-            if (Attribute != null)
+            if (Value != value)
             {
-                Attribute.Modified = true;
+                Value = value;
+                if (ValueChanged.HasDelegate)
+                {
+                    ValueChanged.InvokeAsync(value);
+                }
+                if (Attribute != null)
+                {
+                    Attribute.Modified = true;
+                }
+                Updated.InvokeAsync(value);
             }
-            Updated.InvokeAsync(value);
         }
     }
 
@@ -447,6 +629,12 @@
     /// </summary>
     [Parameter]
     public int Index { get; set; }
+
+    /// <summary>
+    /// One based data index is used with structures.
+    /// </summary>
+    [Parameter]
+    public int DataIndex { get; set; }
 
     [Parameter]
     public EventCallback<object?> Updated { get; set; }

@@ -1,0 +1,211 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject HttpClient Http
+<DropdownSearch Context="item"
+                Immediate="@Immediate"
+                @bind-Value="Value"
+                OnSelected="@((GXObjectTemplate e) => SelectionChanged(e))"
+                ItemsProvider="@GetItems">
+    <ItemContent>
+        @(item?.LogicalName + " " + @item?.Name)
+    </ItemContent>
+</DropdownSearch>
+
+@code {
+
+    /// <summary>
+    /// Can user select empty target.
+    /// </summary>
+    [Parameter]
+    public bool AllowEmpty
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// If immediate filtering is used, the query is executed when the user presses any key.
+    /// </summary>
+    [Parameter]
+    public bool Immediate { get; set; }
+
+    /// <summary>
+    /// Selected object template.
+    /// </summary>
+    [Parameter]
+    public GXObjectTemplate? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXObjectTemplate?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Selected device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? DeviceTemplate
+    {
+        get;
+        set;
+    }
+
+    private void SelectionChanged(GXObjectTemplate? value)
+    {
+        ValueChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Possible static values.
+    /// </summary>
+    /// <remarks>
+    /// If values are added they are not asked from the Gurux.DLMS.AMI.
+    /// </remarks>
+    [Parameter]
+    public IEnumerable<GXObjectTemplate>? Values
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXObjectTemplate?>> GetItems(GXItemsProviderRequest request)
+    {
+        if (Values != null && Values.Any())
+        {
+            IEnumerable<GXObjectTemplate> values;
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                values = Values.Where(w => string.Compare(w.Name, request.Filter, true) == 0);
+            }
+            else
+            {
+                values = Values;
+            }
+            return new ItemsProviderResult<GXObjectTemplate?>(values, values.Count());
+        }
+        GXObjectTemplate? filter = null;
+        //Search object templates by logical name
+        filter = new GXObjectTemplate()
+            {
+                Name = request.Filter
+            };
+        //Filter object templates using device id.
+        if (DeviceTemplate != null)
+        {
+            filter.DeviceTemplate = new GXDeviceTemplate()
+                {
+                    Id = DeviceTemplate.Id
+                };
+        }
+        List<GXObjectTemplate> list = new();
+        if (AllowEmpty && string.IsNullOrEmpty(request.Filter))
+        {
+            //Add empty object template.
+            list.Add(new GXObjectTemplate() { Name = Properties.Resources.Nothing });
+        }
+        ListObjectTemplates req;
+        ListObjectTemplatesResponse ret;
+        //Get selected item using object type and logical name.
+        if (Value != null)
+        {
+            req = new ListObjectTemplates()
+                {
+                    Index = (UInt64)request.StartIndex,
+                    Count = (UInt64)request.Count,
+                    Filter = new GXObjectTemplate()
+                    {
+                        ObjectType = Value.ObjectType,
+                        LogicalName = Value.LogicalName,
+                        DeviceTemplate = filter.DeviceTemplate
+                    }
+                };
+            ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
+            if (ret.ObjectTemplates != null &&
+            ret.ObjectTemplates.Any())
+            {
+                Value.Id = ret.ObjectTemplates.First().Id;
+                list.Add(ret.ObjectTemplates.First());
+            }
+        }
+
+        req = new ListObjectTemplates()
+            {
+                Index = (UInt64)request.StartIndex,
+                Count = (UInt64)request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+                Exclude = Value == null ? null : new Guid[] { Value.Id }
+            };
+        ret = await Http.PostAsJson<ListObjectTemplatesResponse>("api/ObjectTemplate/List", req, request.CancellationToken);
+        if (ret.ObjectTemplates != null)
+        {
+            list.AddRange(ret.ObjectTemplates);
+        }
+        if (Value != null && Value.Id != Guid.Empty)
+        {
+            foreach (var it in list)
+            {
+                if (it.Id == Value.Id)
+                {
+                    Value = it;
+                    StateHasChanged();
+                    break;
+                }
+            }
+        }
+        else
+        {
+            Value = list[0];
+        }
+        return new ItemsProviderResult<GXObjectTemplate?>(list, ret.Count);
+    }
+}

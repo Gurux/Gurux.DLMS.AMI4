@@ -1,15 +1,51 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs;
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.DIs;
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Globalization
 @using Gurux.DLMS.Enums
 @using Gurux.DLMS.Objects;
 
 @inject IGXNotifier Notifier
-@if (Target != null)
+@if (Target?.Template != null)
 {
     <CascadingValue Value="this">
-        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template.Name"></AttributeTile>
-        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template.LogicalName"></AttributeTile>
+        <!--Attribute #1 and description is not shown for the object template.-->
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="0" Name="@Properties.Resources.Description" Value="@Target.Template.Name"></AttributeTile>
+            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Value="@Target.Template.LogicalName"></AttributeTile>
+        }
         <AttributeTile Index="2" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="3" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
@@ -18,7 +54,7 @@
 }
 
 @code {
-    private GXDLMSRegister _register = new();
+    private GXDLMSDisconnectControl _dc = new();
 
     [CascadingParameter]
     private ObjectView? Parent { get; set; }
@@ -53,13 +89,12 @@
     {
         get
         {
-            ObjectView.UpdateValue(Target, _register, 3);
-            return _register.Scaler.ToString();
+            return _dc.ControlState.ToString();
         }
         set
         {
-            _register.Scaler = double.Parse(value);
-            ObjectView.UpdateValue(Target, _register, 3);
+            _dc.ControlState = Enum.Parse<Gurux.DLMS.Objects.Enums.ControlState>(value);
+            Parent?.SetValue(Target, _dc, 3);
         }
     }
 
@@ -71,13 +106,12 @@
     {
         get
         {
-            ObjectView.UpdateValue(Target, _register, 4);
-            return _register.Unit.ToString();
+            return _dc.ControlMode.ToString();
         }
         set
         {
-            _register.Unit = Enum.Parse<Enums.Unit>(value);
-            ObjectView.UpdateValue(Target, _register, 4);
+            _dc.ControlMode = Enum.Parse<Gurux.DLMS.Objects.Enums.ControlMode>(value);
+            Parent?.SetValue(Target, _dc, 4);
         }
     }
 
@@ -92,14 +126,20 @@
             }
             _states = Enum.GetNames(typeof(Gurux.DLMS.Objects.Enums.ControlState));
             _modes = Enum.GetNames(typeof(Gurux.DLMS.Objects.Enums.ControlMode));
-            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Disconnect,
-                "oi fullscreen-enter",
-                Disconnect,
-                !Parent.CanInvokeAction(1)));
-            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reconnect,
-                "oi fullscreen-exit",
-                Reconnect,
-                !Parent.CanInvokeAction(2)));
+            Parent?.GetValue(Target, _dc, 3);
+            Parent?.GetValue(Target, _dc, 3);
+
+            if (Parent.Template == null)
+            {
+                Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Disconnect,
+                    "oi fullscreen-enter",
+                    Disconnect,
+                    !Parent.CanInvokeAction(1)));
+                Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reconnect,
+                    "oi fullscreen-exit",
+                    Reconnect,
+                    !Parent.CanInvokeAction(2)));
+            }
         }
         catch (Exception ex)
         {

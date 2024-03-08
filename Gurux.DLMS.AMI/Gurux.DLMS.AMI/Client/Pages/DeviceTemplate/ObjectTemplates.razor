@@ -1,4 +1,36 @@
-﻿@page "/ObjectTemplate/{Action}"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/ObjectTemplate/{Action}"
 @page "/ObjectTemplate/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Device;
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -40,7 +72,6 @@ else
             </MenuControl>
         </AuthorizeView>
     }
-
     <GXTable @ref="table"
              Context="template"
              ItemsProvider="@GetItems"
@@ -53,9 +84,10 @@ else
              OnSearch="@Updated">
         <FilterContent>
             <Fh Id="ObjectType">
-                <input class="form-control" placeholder="@Properties.Resources.FilterByObjectType"
-                       type="search"
-                       @oninput="@SearchByObjectType" />
+                <ObjectTypeSearch OnSelected="@Updated"
+                                  Id="ObjectTemplates-ObjectType"
+                                  @bind-Value="@filterByObjectType">
+                </ObjectTypeSearch>
             </Fh>
             <Fh Id="Name">
                 <input class="form-control" placeholder="@Properties.Resources.FilterByName"
@@ -73,19 +105,19 @@ else
         </MenuContent>
         <HeaderContent>
             <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
-                <Th Id="Name">@Properties.Resources.Name</Th>
-                <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
-                <Th Id="AccessRights">Access rights</Th>
-                <Th Id="ExpirationTime">Expiration times</Th>
-            </HeaderContent>
-            <ItemContent>
-                <Td Id="ObjectType">@GetObjectType(template.ObjectType)</Td>
-                <Td Id="Name" Link=@("ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
-                <Td Id="LogicalName">@template.LogicalName</Td>
-                <Td Id="AccessRights">@GetAccessRights(template)</Td>
-                <Td Id="ExpirationTime">@GetExpirationTimes(template)</Td>
-            </ItemContent>
-        </GXTable>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+            <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
+            <Th Id="AccessRights">Access rights</Th>
+            <Th Id="ExpirationTime">Expiration times</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Id="ObjectType">@GetObjectType(template.ObjectType)</Td>
+            <Td Id="Name" Link=@("ObjectTemplate/Edit/" + template.Id)>@template.Name</Td>
+            <Td Id="LogicalName">@template.LogicalName</Td>
+            <Td Id="AccessRights">@GetAccessRights(template)</Td>
+            <Td Id="ExpirationTime">@GetExpirationTimes(template)</Td>
+        </ItemContent>
+    </GXTable>
     <Confirm @ref="RemoveConfirmation"
              ConfirmationChanged="OnDeleteConfirmation"
              OkTitle="@Properties.Resources.Remove"
@@ -160,6 +192,12 @@ else
     public bool Header { get; set; } = true;
 
     /// <summary>
+    /// Is top menu shown.
+    /// </summary>
+    [Parameter]
+    public bool TopMenu { get; set; } = true;
+
+    /// <summary>
     /// Is edit allowed.
     /// </summary>
     [Parameter]
@@ -185,7 +223,7 @@ else
     /// <summary>
     /// Filter using object type.
     /// </summary>
-    private string? filterByObjectType;
+    private Enums.ObjectType filterByObjectType;
     /// <summary>
     /// Filter using object name.
     /// </summary>
@@ -379,7 +417,7 @@ else
                     }
                 }
             });
-            if (Header)
+            if (TopMenu)
             {
                 Notifier.Clear();
                 Notifier.UpdateButtons();
@@ -402,15 +440,6 @@ else
         {
             Notifier?.ProgressEnd();
         }
-    }
-
-    /// <summary>
-    /// Search by object type.
-    /// </summary>
-    private async Task SearchByObjectType(ChangeEventArgs args)
-    {
-        filterByObjectType = Convert.ToString(args.Value);
-        await Updated();
     }
 
     /// <summary>
@@ -447,9 +476,11 @@ else
                 objects.AddRange(AvailableObjectTemplates);
                 count = AvailableObjectTemplates.Count();
             }
-            if (!string.IsNullOrEmpty(filterByObjectType))
+            if (filterByObjectType != Enums.ObjectType.None)
             {
-                objects.RemoveAll(q => q.ObjectType != null && ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(filterByObjectType.ToUpper()) == false);
+                objects.RemoveAll(q => q.ObjectType != null &&
+                    ((Enums.ObjectType)q.ObjectType).ToString().ToUpper().Contains(
+                        filterByObjectType.ToString().ToUpper()) == false);
             }
             if (!string.IsNullOrEmpty(filterByName))
             {

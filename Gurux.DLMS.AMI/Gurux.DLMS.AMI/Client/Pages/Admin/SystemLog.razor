@@ -1,5 +1,38 @@
-﻿@page "/systemlog"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/systemlog"
 
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.Enums
 @using Microsoft.AspNetCore.Authorization
@@ -10,6 +43,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = "Admin, SystemLogManager")]
 @inject NavigationManager NavigationManager
@@ -20,50 +54,52 @@
 
 <PageTitle>@Properties.Resources.SystemLogs</PageTitle>
 
-    <MenuControl RightCorner="true">
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
-        </ChildContent>
-    </MenuControl>
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+    </ChildContent>
+</MenuControl>
 
-    <GXTable @ref="table"
-             Context="error"
-             ItemsProvider="@GetItems"
-             Filter="@Filter"
-             OnSearch="@Updated"
-             Columns="@Columns"
-             ShowAllUsers="false"
-             ShowRemoved="false">
-        <FilterContent>
-            <th>
-                <input class="form-control" placeholder="Filter by creation time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-            <th>
-                <input class="form-control" type="text" placeholder="Filter by error..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
-            </th>
-            <th>
-                <div>
-                    <input class="form-control" type="text" placeholder="Filter by level..."
-                           @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
-                </div>
-            </th>
-            <th>
-                <input class="form-control" placeholder="Filter by close time..."
-                       type="datetime-local"
-                       @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
-            </th>
-        </FilterContent>
-        <HeaderContent>
-            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <Th Id="Message">@Properties.Resources.Error</Th>
-            <Th Id="Level">@Properties.Resources.Level</Th>
-            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-        </HeaderContent>
-        <ItemContent>
-            <td>@error.CreationTime</td>
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         Filter="@Filter"
+         OnSearch="@Updated"
+         Columns="@Columns"
+         ShowAllUsers="false"
+         ShowRemoved="false">
+    <FilterContent>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector
+                                Id="SystemLog-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <Fh Id="Message" Visibility="Visibility.Medium">
+            <input class="form-control" type="text" placeholder="Filter by error..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="TraceLevel" Visibility="Visibility.Medium">
+            <TraceLevelSearch Id="SystemLog-TraceLevel"
+                              @bind-Value="@TraceLevel"
+                              OnSelected="@Updated">
+            </TraceLevelSearch>
+        </Fh>
+        <Fh Id="Closed" Visibility="Visibility.Medium">
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+    </FilterContent>
+    <HeaderContent>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Message">@Properties.Resources.Error</Th>
+        <Th Id="Level">@Properties.Resources.Level</Th>
+        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@error.CreationTime</td>
         <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
@@ -144,6 +180,15 @@
     public bool Title { get; set; } = true;
 
     private GXTable<GXSystemLog>? table;
+
+    /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// System error filter.
@@ -244,6 +289,15 @@
             {
                 //Show active errors.
                 filter.Closed = null;
+            }
+
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
             }
             ListSystemLogs req = new ListSystemLogs()
                 {

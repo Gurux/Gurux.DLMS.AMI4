@@ -561,8 +561,8 @@
   <data name="ScriptRemoved" xml:space="preserve">
     <value>Komentosarja poistettu.</value>
   </data>
-  <data name="ScheduleInstalled" xml:space="preserve">
-    <value>Aikataulu asennettu.</value>
+  <data name="ScheduleCreated" xml:space="preserve">
+    <value>Aikataulu luotu.</value>
   </data>
   <data name="ScheduleRemoved" xml:space="preserve">
     <value>Aikataulu poistettu.</value>

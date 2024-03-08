@@ -1,4 +1,37 @@
-﻿@page "/config/Subtotal/Logs"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/config/Subtotal/Logs"
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -10,6 +43,7 @@
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Client.Helpers
 @using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
 
 @attribute [Authorize(Roles = "Admin, SubtotalLogManager")]
 @inject NavigationManager NavigationManager
@@ -41,11 +75,13 @@
          Columns="@Columns"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
-        </th>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector
+                                Id="SubtotalLogs-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
         <th>
             <input class="form-control" type="text" placeholder="Filter by subtotal..."
                    @onchange="@((ChangeEventArgs __e) => filter.Subtotal.Name = Convert.ToString(__e.Value))" />
@@ -55,10 +91,10 @@
                    @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
         </th>
         <th>
-            <div>
-                <input class="form-control" type="text" placeholder="Filter by level..."
-                       @onchange="@((ChangeEventArgs __e) => filter.Level = @ClientHelpers.LevelToInt(__e.Value))" />
-            </div>
+            <TraceLevelSearch Id="SubtotalLogs-TraceLevel"
+                              @bind-Value="@TraceLevel"
+                              OnSelected="@Updated">
+            </TraceLevelSearch>
         </th>
         <th>
             <input class="form-control" placeholder="Filter by close time..."
@@ -72,15 +108,15 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <Th Id="Name">@Properties.Resources.Name</Th>
-            <Th Id="Message">@Properties.Resources.Error</Th>
-            <Th Id="Level">@Properties.Resources.Level</Th>
-            <Th Id="Closed">@Properties.Resources.CloseTime</Th>
-        </HeaderContent>
-        <ItemContent>
-            <Td Link="@("config/Subtotal/Log/Edit/" + error.Id)">@error.CreationTime</Td>
-            <td>@(error.Subtotal != null ? error.Subtotal.Name : "")</td>
-            <td>@error.Message</td>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="Message">@Properties.Resources.Error</Th>
+        <Th Id="Level">@Properties.Resources.Level</Th>
+        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("config/Subtotal/Log/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@(error.Subtotal != null ? error.Subtotal.Name : "")</td>
+        <td>@error.Message</td>
         <td>@ClientHelpers.LevelToString(error.Level)</td>
         <td>@error.Closed</td>
     </ItemContent>
@@ -208,6 +244,15 @@
     protected GXTable<GXSubtotalLog>? table;
 
     /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
     /// Closed errors are shown.
     /// </summary>
     public bool ShowClosedErrors { get; set; }
@@ -296,6 +341,15 @@
             if (filter.Message == string.Empty)
             {
                 filter.Message = null;
+            }
+
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
             }
             ListSubtotalLogs req = new ListSubtotalLogs()
                 {

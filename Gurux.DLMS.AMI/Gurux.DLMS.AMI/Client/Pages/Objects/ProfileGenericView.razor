@@ -1,4 +1,36 @@
-﻿@using Gurux.DLMS.AMI.Shared.DIs
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs
 @using System.Globalization
 @using Gurux.DLMS.AMI.Shared.Enums
@@ -6,41 +38,50 @@
 @using Gurux.DLMS.Enums
 @using Gurux.DLMS.Objects
 @using System.Text.Json
+@using Gurux.DLMS.AMI.Components.Table
 
 @inject HttpClient Http
 @inject IGXNotifier Notifier
 
 @if (Target != null)
 {
-    <MenuControl>
-        <ChildContent>
-            <MenuItem Text="@Properties.Resources.Reset" Icon="oi oi-magnifying-glass" OnClick="@(async () => Reset())" />
-        </ChildContent>
-    </MenuControl>
-
     <CascadingValue Value="this">
-        <AttributeTile Index="0" Name="@Properties.Resources.Description" Text="@Target.Template?.Name"></AttributeTile>
-        <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Target.Template?.LogicalName"></AttributeTile>
+        <!--Attribute #1 and description is not shown for the object template.-->
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="0" Name="@Properties.Resources.Description" Value="@Target.Template?.Name"></AttributeTile>
+            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Value="@Target.Template?.LogicalName"></AttributeTile>
+        }
+        else
+        {
+            <!--Show capture columns for the template profile generic.-->
+            <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <ObjectList Target="@Target"
+                        Index="3"
+                        CaptureObjects="@captureObjects"></ObjectList>
+        }
         <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="6" Attributes="@Target.Attributes" GetValue="@GetShortObject"></AttributeTile>
         <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
         <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
         <hr />
-        <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
-        <AttributeTile Index="2" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
-        <GXTable @ref="table"
-             Context="row"
-             ItemsProvider="@GetItems"
-             SelectionMode="SelectionMode.None"
-             ShowRemoved="false"
-             Filter="false">
-            <FilterContent>
-            </FilterContent>
-            <MenuContent>
-            </MenuContent>
-            <HeaderContent>
-                @foreach (var it in captureObjectNames)
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <AttributeTile Index="2" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <GXTable @ref="table"
+                     Context="row"
+                     ItemsProvider="@GetItems"
+                     SelectionMode="SelectionMode.None"
+                     ShowRemoved="false"
+                     Filter="false">
+                <FilterContent>
+                </FilterContent>
+                <MenuContent>
+                </MenuContent>
+                <HeaderContent>
+                    @foreach (var it in captureObjectNames)
                 {
                     <th Id="it.Key">@it.Key <br> @it.Value</th>
                 }
@@ -52,10 +93,16 @@
                 }
             </ItemContent>
         </GXTable>
+        }
     </CascadingValue>
 }
 
 @code {
+    /// <summary>
+    /// Target device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? DeviceTemplate { get; set; }
 
     [CascadingParameter]
     private ObjectView? Parent { get; set; }
@@ -63,15 +110,13 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
-    private int TotalCount { get; set; }
-
     /// <summary>
     /// Target COSEM object.
     ///</summary>
     [Parameter]
     public GXObject? Target { get; set; }
 
-    GXDLMSSettings? _templateSettings = null;
+    private GXDLMSSettings? _templateSettings = null;
     private GXValue filter = new GXValue();
     private GXObject[]? deviceObjects = null;
     private List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>> captureObjects = new();
@@ -165,7 +210,6 @@
                     }
                 }
             }
-            TotalCount = ret.Count;
             return new ItemsProviderResult<object[]>(rows, ret.Count);
         }
         catch (TaskCanceledException)
@@ -200,7 +244,9 @@
         Parent?.OnAction(2, (sbyte)0);
     }
 
-    //Add action buttons.
+    /// <summary>
+    /// Add action buttons.
+    /// </summary>
     protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
         try
@@ -210,9 +256,8 @@
                 throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
             }
             //Get capture objects.
-            if (Parent.Parent?.Device != null)
+            if (Parent.Parent?.Device is GXDevice dev)
             {
-                GXDevice dev = Parent.Parent.Device;
                 if (dev.Objects == null)
                 {
                     deviceObjects = null;
@@ -225,16 +270,23 @@
                 {
                     _templateSettings = JsonSerializer.Deserialize<GXDLMSSettings>(dev.Template.Settings);
                 }
+                DeviceTemplate = dev.Template;
             }
-            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
-            "oi oi-minus",
-            Reset,
-            !Parent.CanInvokeAction(1)));
-            Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Capture,
-            "oi oi-plus",
-            Capture,
-            !Parent.CanInvokeAction(1)));
-
+            if (Parent.Template == null)
+            {
+                Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Reset,
+                "oi oi-minus",
+                Reset,
+                !Parent.CanInvokeAction(1)));
+                Parent.MenuItems.Add(MenuItem.Create(@Properties.Resources.Capture,
+                "oi oi-plus",
+                Capture,
+                !Parent.CanInvokeAction(1)));
+            }
+            else
+            {
+                DeviceTemplate = Parent.Template.DeviceTemplate;
+            }
             if (Target?.Attributes != null)
             {
                 //Search buffer attribute.
@@ -251,20 +303,34 @@
                 {
                     if (it.Template != null && it.Template.Index == 3)
                     {
-                        if (string.IsNullOrEmpty(it.Value))
+                        string? str;
+                        if (Parent.Template == null)
+                        {
+                            str = it.Value;
+                        }
+                        else
+                        {
+                            str = it.Template.DefaultValue;
+                        }
+                        if (string.IsNullOrEmpty(str))
                         {
                             //Read capture objects.
-                            var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
-                            it.Value = ret?.Value;
+                            //If capture objects are not yet read.
+                            if (it.CreationTime != DateTime.MinValue)
+                            {
+                                var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
+                                it.Value = ret?.Value;
+                            }
                         }
-                        if (!string.IsNullOrEmpty(it.Value))
+                        if (!string.IsNullOrEmpty(str))
                         {
-                            GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(it.Value);
+                            GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(str);
                             foreach (GXStructure it2 in tmp)
                             {
                                 GXDLMSObject? o = null;
                                 ObjectType ot = (ObjectType)Convert.ToInt32(it2[0]);
-                                string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
+                                string ln = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
+                                str = ln;
                                 KeyValuePair<string, string> kp = new KeyValuePair<string, string>("", "");
                                 int aIndex = Convert.ToInt32(it2[2]);
                                 int dIndex = Convert.ToInt32(it2[3]);
@@ -302,6 +368,7 @@
                                 {
                                     //If object is not in the association view.
                                     o = GXDLMSClient.CreateObject(ot);
+                                    o.LogicalName = ln;
                                     GXDLMSConverter c = new GXDLMSConverter();
                                     kp = new KeyValuePair<string, string>(str, c.GetDescription(str, ot)[0]);
                                 }

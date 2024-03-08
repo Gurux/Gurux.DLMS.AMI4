@@ -1,4 +1,37 @@
-﻿@using Gurux.DLMS.AMI.Client.Pages.Device;
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Client.Pages.Device;
+@using Gurux.DLMS.AMI.Client.Pages.Objects
 @using Gurux.DLMS.AMI.Module
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -37,155 +70,173 @@
                     <InputText id="name" disabled="@IsDeleting" class="form-control"
                                @bind-Value="Active.Name" />
                 </div>
-                <table class="table table-striped" width="100%">
-                    <thead>
-                        <tr>
-                            <th>Index</th>
-                            <th>@Properties.Resources.Name</th>
-                            <th>@Properties.Resources.DataType</th>
-                            <th>@Properties.Resources.UIDataType</th>
-                            <th>@Properties.Resources.Scaler</th>
-                            <th>@Properties.Resources.Unit</th>
-                            <th>Access rights</th>
-                            <th>Expiration time</th>
-                            <th width="1%"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var it in GetAttributes())
-                        {
-                            @if (it.Modified)
-                            {
-                                <tr>
-                                    <td>@it.Index</td>
-                                    <td>@it.Name</td>
-                                    <td>
-                                        <select class="form-select" @bind="@it.DataType">
-                                            @foreach (var type in GetDataTypes())
-                                            {
-                                                <option value="@Convert.ToInt32(type)">@type</option>
-                                            }
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <select class="form-select" @bind="@it.UIDataType">
-                                            @foreach (var type in GetDataTypes())
-                                            {
-                                                <option value="@Convert.ToInt32(type)">@type</option>
-                                            }
-                                        </select>
-                                    </td>
-                                    <td>
-                                        @if (IsNumber(it.DataType))
+                <TabControl>
+                    <ChildContent>
+                        <TabPage Icon=""
+                                 Text="Default values">
+                            <!--Object view is used to shown default template value.-->
+                            <ObjectView Template="@_active"
+                                        Action="Edit"></ObjectView>
+                        </TabPage>
+                        <TabPage Icon=""
+                                 Text=@Properties.Resources.Generic>
+                            <table class="table table-striped" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Index</th>
+                                        <th>@Properties.Resources.Name</th>
+                                        <th>@Properties.Resources.DataType</th>
+                                        <th>@Properties.Resources.UIDataType</th>
+                                        <th>@Properties.Resources.Scaler</th>
+                                        <th>@Properties.Resources.Unit</th>
+                                        <th>Access rights</th>
+                                        <th>Expiration time</th>
+                                        <th width="1%"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var it in GetAttributes())
+                                    {
+                                        @if (it.Modified)
                                         {
-                                            <InputNumber step="0.0001"
-                                                         class="form-control"
-                                                         id="scaler"
-                                                         @bind-Value="@it.Scaler" />
+                                            <tr>
+                                                <td>@it.Index</td>
+                                                <td>@it.Name</td>
+                                                <td>
+                                                    <select class="form-select" @bind="@it.DataType">
+                                                        @foreach (var type in GetDataTypes())
+                                                        {
+                                                            <option value="@Convert.ToInt32(type)">@type</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select class="form-select" @bind="@it.UIDataType">
+                                                        @foreach (var type in GetDataTypes())
+                                                        {
+                                                            <option value="@Convert.ToInt32(type)">@type</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    @if (IsNumber(it.DataType))
+                                                    {
+                                                        <InputNumber step="0.0001"
+                                                                     class="form-control"
+                                                                     id="scaler"
+                                                                     @bind-Value="@it.Scaler" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <!--Scaler is shown only for number data types.-->
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
+                                                </td>
+                                                <td>@GetAccessRights(it)</td>
+                                                <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
+                                                <td>
+                                                    <button type="button" class="btn btn-primary"
+                                                            @onclick="() => UpdateInstance(it, true)">
+                                                        @Properties.Resources.Update
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
+                                                        @Properties.Resources.Cancel
+                                                    </button>
+                                                </td>
+                                            </tr>
                                         }
                                         else
                                         {
-                                            <!--Scaler is shown only for number data types.-->
+                                            <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
+                                                <td>@it.Index</td>
+                                                <td><LinkButton Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
+                                                <td>@GetDataType(it.DataType)</td>
+                                                <td>@GetDataType(it.UIDataType)</td>
+                                                <td>@it.Scaler</td>
+                                                <td>@it.Unit</td>
+                                                <td>@GetAccessRights(it)</td>
+                                                <td>@GetExpirationTime(it)</td>
+                                                @if (_activeAttribute == it)
+                                                {
+                                                    <td>
+                                                        <ContextMenuController>
+                                                            <ChildContent>
+                                                                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="() => OnEdit(it)"></ContextMenuItem>
+                                                            </ChildContent>
+                                                        </ContextMenuController>
+                                                    </td>
+                                                }
+                                                else
+                                                {
+                                                    <td>&nbsp;&nbsp;&nbsp;</td>
+                                                }
+                                            </tr>
                                         }
-                                    </td>
-                                    <td>
-                                        <InputText class="form-control" id="unit" @bind-Value="@it.Unit" />
-                                    </td>
-                                    <td>@GetAccessRights(it)</td>
-                                    <td><InputNullableDateTimeOffsetTimeSpan @bind-Value="it.ExpirationTime"></InputNullableDateTimeOffsetTimeSpan></td>
-                                    <td>
-                                        <button type="button" class="btn btn-primary"
-                                                @onclick="() => UpdateInstance(it, true)">
-                                            @Properties.Resources.Update
-                                        </button>
-                                        <button type="button" class="btn btn-secondary" @onclick="() => UpdateInstance(it, false)">
-                                            @Properties.Resources.Cancel
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                            else
+                                    }
+                                </tbody>
+                            </table>
+
+                            <table class="table table-striped" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>Index</th>
+                                        <th>@Properties.Resources.Name</th>
+                                        <th>Access rights</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var it in GetActions())
+                                    {
+                                        <tr>
+                                            <td>@it.Index</td>
+                                            <td>@it.Description</td>
+                                            <td>@it.AccessLevel</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+
+                            @if (Active.Updated != null)
                             {
-                                <tr class=@(GetSelectedClass(it)) @onclick="@(()=>RowSelected(it))">
-                                    <td>@it.Index</td>
-                                    <td><LinkButton Target="@it" OnClick="@OnEdit" Text="@it.Name" /></td>
-                                    <td>@GetDataType(it.DataType)</td>
-                                    <td>@GetDataType(it.UIDataType)</td>
-                                    <td>@it.Scaler</td>
-                                    <td>@it.Unit</td>
-                                    <td>@GetAccessRights(it)</td>
-                                    <td>@GetExpirationTime(it)</td>
-                                    @if (_activeAttribute == it)
-                                    {
-                                        <td>
-                                            <ContextMenuController>
-                                                <ChildContent>
-                                                    <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="() => OnEdit(it)"></ContextMenuItem>
-                                                </ChildContent>
-                                            </ContextMenuController>
-                                        </td>
-                                    }
-                                    else
-                                    {
-                                        <td>&nbsp;&nbsp;&nbsp;</td>
-                                    }
-                                </tr>
+                                <div class="form-group">
+                                    <label>@Properties.Resources.Updated</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                                               @bind-Value="Active.Updated" />
+                                </div>
                             }
-                        }
-                    </tbody>
-                </table>
-
-                <table class="table table-striped" width="100%">
-                    <thead>
-                        <tr>
-                            <th>Index</th>
-                            <th>@Properties.Resources.Name</th>
-                            <th>Access rights</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var it in GetActions())
-                        {
-                            <tr>
-                                <td>@it.Index</td>
-                                <td>@it.Description</td>
-                                <td>@it.AccessLevel</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-
-                @if (Active.Updated != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Updated</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
-                                   @bind-Value="Active.Updated" />
-                    </div>
-                }
-                @if (Active.Removed != null)
-                {
-                    <div class="form-group">
-                        <label>@Properties.Resources.Remove</label>
-                        <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
-                                   @bind-Value="Active.Removed" />
-                    </div>
-                }
+                            @if (Active.Removed != null)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.Remove</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="remove" class="form-control"
+                                               @bind-Value="Active.Removed" />
+                                </div>
+                            }
+                        </TabPage>
+                    </ChildContent>
+                </TabControl>
             </div>
         </div>
     </EditForm>
 }
 @code {
+
     [CascadingParameter]
     private ObjectTemplates? Parent { get; set; }
 
-    private GXObjectTemplate? _active;
+    private GXObjectTemplate _active
+    {
+        get;
+        set;
+    } = new GXObjectTemplate();
 
     private GXObjectTemplate? Active
     {
         get
         {
-            if (_active != null)
+            if (_active.ObjectType != 0)
             {
                 return _active;
             }
@@ -426,24 +477,33 @@
             Notifier.ProgressStart();
             Notifier.ClearStatus();
             Notifier.Clear();
-            if (Active == null && Id != null)
+            if (Active?.ObjectType.GetValueOrDefault(0) == 0 && Id != null)
             {
                 //Get object template data.
                 var tmp = (await Http.GetAsJsonAsync<GetObjectTemplateResponse>(string.Format("api/ObjectTemplate?id={0}", Id)));
                 if (tmp?.Item != null)
                 {
                     _active = tmp.Item;
+                    //Update UI for the default values.
+                    StateHasChanged();
                 }
                 else
                 {
                     NavigationManager.NavigateTo("404");
                 }
             }
+            else
+            {
+                //Wait until object view is loaded.
+                // Don't remove this or table is null and last settings are not available.
+                await Task.Delay(1);
+            }
             if (Active == null)
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);
             }
-            action = ClientHelpers.GetAction(Action); if (action == CrudAction.Delete)
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
             {
                 Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
             }

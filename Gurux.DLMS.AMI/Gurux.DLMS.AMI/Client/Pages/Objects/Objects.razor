@@ -1,4 +1,36 @@
-﻿@page "/objects"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/objects"
 @page "/objects/{Id:guid?}"
 @page "/Object/{Action}"
 @page "/Object/{Action}/{Id:guid?}"
@@ -73,15 +105,10 @@ else
                        @oninput="@SearchByLogicalName" />
             </th>
             <th>
-                <DropdownSearch Context="item"
-                                Immediate="true"
-                                @bind-Value="filterByObjectType"
-                                OnSelected="@((Enums.ObjectType e) => SearchByObjectType(e))"
-                                ItemsProvider="@GetObjectTypes">
-                    <ItemContent>
-                        @item
-                    </ItemContent>
-                </DropdownSearch>
+                <ObjectTypeSearch OnSelected="Updated"
+                                  Id="Objects-ObjectType"
+                                  @bind-Value="@filterByObjectType">
+                </ObjectTypeSearch>
             </th>
         </FilterContent>
         <MenuContent>
@@ -91,17 +118,17 @@ else
         </MenuContent>
         <HeaderContent>
             <Th Id="Template.Name">@Properties.Resources.Name</Th>
-                <Th Id="Template.LogicalName">@Properties.Resources.LogicalName</Th>
-                <Th Id="Template.ObjectType">@Properties.Resources.ObjectType</Th>
-                <Th Id="LastError">@Properties.Resources.LastError</Th>
-                <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
-                <Th Id="LastRead">@Properties.Resources.LastRead</Th>
-                <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
-                <Th Id="CreationTime">@Properties.Resources.CreationTime</Th>
-            </HeaderContent>
-            <ItemContent>
-                <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
-                <td>@item.Template?.LogicalName</td>
+            <Th Id="Template.LogicalName">@Properties.Resources.LogicalName</Th>
+            <Th Id="Template.ObjectType">@Properties.Resources.ObjectType</Th>
+            <Th Id="LastError">@Properties.Resources.LastError</Th>
+            <Th Id="LastErrorMessage">@Properties.Resources.Error</Th>
+            <Th Id="LastRead">@Properties.Resources.LastRead</Th>
+            <Th Id="LastWrite">@Properties.Resources.LastWrite</Th>
+            <Th Id="CreationTime">@Properties.Resources.CreationTime</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Link=@("/Object/Edit/" + item.Id)>@item.Template?.Name</Td>
+            <td>@item.Template?.LogicalName</td>
             <td>@GetObjectType(item.Template?.ObjectType)</td>
             <td>@item.LastError</td>
             <td>@item.LastErrorMessage</td>
@@ -449,21 +476,6 @@ else
     private Task SearchByObjectType(Enums.ObjectType item)
     {
         return Updated();
-    }
-
-    private ValueTask<ItemsProviderResult<Enums.ObjectType>> GetObjectTypes(GXItemsProviderRequest request)
-    {
-        string? filter = request.Filter?.ToLower();
-        List<Enums.ObjectType> list = new List<Enums.ObjectType>();
-        foreach (Enums.ObjectType it in Enum.GetValues(typeof(Enums.ObjectType)))
-        {
-            if (string.IsNullOrEmpty(filter) ||
-            it.ToString().ToLower().Contains(filter))
-            {
-                list.Add((Enums.ObjectType)it);
-            }
-        }
-        return new(new ItemsProviderResult<Enums.ObjectType>(list, list.Count));
     }
 
     private async ValueTask<ItemsProviderResult<GXObject>> GetItems(GXItemsProviderRequest request)

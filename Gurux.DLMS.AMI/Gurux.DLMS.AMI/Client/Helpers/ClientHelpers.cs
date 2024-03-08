@@ -46,6 +46,8 @@ using Gurux.DLMS.AMI.Components;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Client.Pages.Objects;
+using Gurux.DLMS.Enums;
 
 namespace Gurux.DLMS.AMI.Client.Helpers
 {
@@ -196,7 +198,11 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             return "red-dot";
         }
 
-        //Convert trace level from string to int.
+        /// <summary>
+        /// Convert trace level from string to int.
+        /// </summary>
+        /// <param name="value">Trace level as a string.</param>
+        /// <returns>The integer value of the trace level.</returns>
         public static int? LevelToInt(object? value)
         {
             if (value is null)
@@ -261,7 +267,7 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                         items.Add(it.Name);
                     }
                 }
-            }           
+            }
             return items;
         }
 
@@ -452,12 +458,12 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                             a.AccessLevel = (int)value.GetAccess3(pos);
                         }
                         a.DataType = (int)((IGXDLMSBase)value).GetDataType(pos);
-                        a.UIDataType = (int)((GXDLMSObject)value).GetUIDataType(pos);
+                        a.UIDataType = (int)value.GetUIDataType(pos);
                         if (value.GetStatic(pos))
                         {
                             a.ExpirationTime = DateTime.MaxValue;
                         }
-                        if (value is GXDLMSProfileGeneric)
+                        if (value is GXDLMSProfileGeneric pg)
                         {
                             //Capture objects.
                             if (pos == 3 ||
@@ -471,6 +477,19 @@ namespace Gurux.DLMS.AMI.Client.Helpers
                                 pos == 8)
                             {
                                 a.ExpirationTime = DateTime.MaxValue;
+                                ValueEventArgs e = new ValueEventArgs(value, pos, 0, null);
+                                object val = ((IGXDLMSBase)value).GetValue(null, e);
+                                string? str;
+                                if (val is byte[] barray)
+                                {
+                                    GXDLMSTranslator t2 = new() { Hex = false };
+                                    t2.DataToXml(barray, out str);
+                                }
+                                else
+                                {
+                                    str = val.ToString();
+                                }
+                                a.DefaultValue = str;
                             }
                         }
                         if (value is GXDLMSAssociationLogicalName)

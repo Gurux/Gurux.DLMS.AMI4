@@ -1,0 +1,288 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Components.Table
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@inject IGXNotifier Notifier
+
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAddCaptureObject" />
+    </ChildContent>
+</MenuControl>
+<GXTable @ref="templateTable"
+         Context="it"
+         ItemsProvider="@GetCaptureObjects"
+         SelectionMode="SelectionMode.Single"
+         ShowRemoved="false"
+         ShowAllData="true"
+         Total="false"
+         Filter="false">
+    <FilterContent>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Edit"
+                         Icon="oi oi-pencil"
+                         OnClick="@OnEdit">
+        </ContextMenuItem>
+        <ContextMenuItem Text="@Properties.Resources.Remove"
+                         Icon="oi oi-trash"
+                         OnClick="@OnRemove">
+        </ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
+        <Th Id="Description">@Properties.Resources.Description</Th>
+        <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
+        <Th Id="AttributeIndex">Attribute index</Th>
+        <Th Id="DataIndex">Data index</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Id="LogicalName">
+            <LinkButton Target="@it"
+                        OnClick="@Edit"
+                        Text="@it.Key.LogicalName" />
+        </Td>
+        <Td Id="Description">@it.Key.Description</Td>
+        <Td Id="ObjectType">@it.Key.ObjectType</Td>
+        <Td Id="AttributeIndex">@it.Value.AttributeIndex</Td>
+        <Td Id="DataIndex">@it.Value.DataIndex</Td>
+    </ItemContent>
+</GXTable>
+@if (_action != CrudAction.None)
+{
+    <!--Show capture object dialog.-->
+    <ObjectEditor Action="_action"
+                  Active="_active"
+                  DeviceTemplate="DeviceTemplate"
+                  OnSave="OnSave"
+                  OnCancel="OnCancel">
+    </ObjectEditor>
+}
+
+@code {
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+    /// <summary>
+    /// Target attribute index.
+    ///</summary>
+    [Parameter]
+    public int Index { get; set; }
+
+    private CrudAction _action;
+    private KeyValuePair<GXDLMSObject, GXDLMSCaptureObject> _active;
+
+    [Parameter]
+    public List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>> CaptureObjects
+    {
+        get;
+        set;
+    } = new List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>>();
+
+    /// <summary>
+    /// Target device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? DeviceTemplate { get; set; }
+
+
+    /// <summary>
+    /// Template table reference.
+    /// </summary>
+    protected GXTable<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>>? templateTable;
+
+    private ValueTask<ItemsProviderResult<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>>>
+    GetCaptureObjects(GXItemsProviderRequest request)
+    {
+        return new(new ItemsProviderResult<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>>(CaptureObjects, CaptureObjects.Count));
+    }
+
+    /// <summary>
+    /// Hide capture objects dialog.
+    /// </summary>
+    public void OnCancel()
+    {
+        _action = CrudAction.None;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Add new capture object.
+    /// </summary>
+    public void OnAddCaptureObject()
+    {
+        try
+        {
+            _action = CrudAction.Create;
+            _active = new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(new GXDLMSObject(), new GXDLMSCaptureObject());
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit capture object.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            int[]? rows = templateTable?.GetSelectedRows();
+            if (rows == null || !rows.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Edit(CaptureObjects[rows[0]]);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove capture object.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            _action = CrudAction.Delete;
+            var rows = templateTable?.GetSelectedRows();
+            if (rows == null || !rows.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            _active = CaptureObjects[rows[0]];
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private void Edit(KeyValuePair<GXDLMSObject, GXDLMSCaptureObject> item)
+    {
+        try
+        {
+            _action = CrudAction.Update;
+            _active = item;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save capture objects.
+    ///</summary>
+    public void OnSave(KeyValuePair<GXDLMSObject, GXDLMSCaptureObject> target)
+    {
+        try
+        {
+            if (Index == 0)
+            {
+                throw new Exception("Invalid index");
+            }
+            if (_action == CrudAction.Create)
+            {
+                CaptureObjects.Add(target);
+                _active = default;
+            }
+            else if (_action == CrudAction.Delete)
+            {
+                CaptureObjects.Remove(target);
+                _active = default;
+            }
+            else if (_action == CrudAction.Update)
+            {
+                int index = CaptureObjects.IndexOf(_active);
+                CaptureObjects.Remove(_active);
+                CaptureObjects.Insert(index, target);
+                _active = default;
+            }
+            else
+            {
+                throw new Exception("Invalid action.");
+            }
+            //Save capture objects.
+            foreach (var it in Target.Attributes)
+            {
+                if (it.Template.Index == Index)
+                {
+                    GXArray arr = new GXArray();
+                    foreach (var co in CaptureObjects)
+                    {
+                        GXStructure s = new GXStructure();
+                        arr.Add(s);
+                        //Add object type.
+                        s.Add((UInt16)co.Key.ObjectType);
+                        //Add LN.
+                        s.Add(GXDLMSConverter.LogicalNameToBytes(co.Key.LogicalName));
+                        //Add attribute index.
+                        s.Add((sbyte)co.Value.AttributeIndex);
+                        //Add data index.
+                        s.Add((UInt16)co.Value.DataIndex);
+                    }
+                    if (it.Id == Guid.Empty)
+                    {
+                        it.Template.DefaultValue = GXDLMSTranslator.ValueToXml(arr);
+                    }
+                    else
+                    {
+                        it.Value = GXDLMSTranslator.ValueToXml(arr);
+                    }
+                    break;
+                }
+            }
+            _action = CrudAction.None;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

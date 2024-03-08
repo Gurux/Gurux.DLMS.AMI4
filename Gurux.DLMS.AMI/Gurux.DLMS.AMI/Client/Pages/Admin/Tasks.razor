@@ -1,4 +1,36 @@
-﻿@page "/tasks"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/tasks"
 @using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Authentication
@@ -42,66 +74,68 @@
          Filter="@Filter"
          OnSearch="@Updated">
     <FilterContent>
-        <th>
+        <Fh Id="Target">
             <!--Target-->
-        </th>
-        <Fh>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = @StatusTile.ToDateTime(__e.Value))" />
         </Fh>
-        <Fh Visibility="Visibility.ExtraSmall">
-            <!--Task type-->
+        <Fh Id="CreationTime">
+            <GXDateTimeSelector
+                                Id="Tasks-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
         </Fh>
-        <Fh Visibility="Visibility.Small">
+        <Fh Id="TaskType" Visibility="Visibility.Small">
+            <!--Task type-->            
+        </Fh>
+        <Fh Id="Start" Visibility="Visibility.Small">
             <input class="form-control" placeholder="Filter by start time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Start = @StatusTile.ToDateTime(__e.Value))" />
         </Fh>
-        <Fh Visibility="Visibility.Medium">
+        <Fh Id="Ready" Visibility="Visibility.Medium">
             <input class="form-control" placeholder="Filter by end time..."
                    type="datetime-local"
                    @onchange="@((ChangeEventArgs __e) => filter.Ready = @StatusTile.ToDateTime(__e.Value))" />
         </Fh>
-        <Fh Visibility="Visibility.Large">
+        <Fh Id="Result" Visibility="Visibility.Large">
             <!--Result.-->
         </Fh>
     </FilterContent>
     <HeaderContent>
         <Th Id="Target">@Properties.Resources.Target</Th>
-            <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <Th Id="TaskType" Visibility="Visibility.ExtraSmall">@Properties.Resources.TaskType</Th>
-            <Th Id="Start" Visibility="Visibility.Small">@Properties.Resources.StartTime</Th>
-            <Th Id="Ready" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</Th>
-            <Th Id="Result" Visibility="Visibility.Large">@Properties.Resources.Result</Th>
-        </HeaderContent>
-        <ItemContent>
-            <Td>@task.Target</Td>
-            <Td>@task.CreationTime</Td>
-            <Td Visibility="Visibility.ExtraSmall">@TaskTypeToString(task.TaskType)</Td>
-            <Td Visibility="Visibility.Small">@task.Start</Td>
-            <Td Visibility="Visibility.Medium">@task.Ready</Td>
-            <Td Visibility="Visibility.Large">@task.Result</Td>
-        </ItemContent>
-    </GXTable>
-    <br />
-    <Confirm @ref="RemoveConfirmation"
-             ConfirmationChanged="OnDeleteConfirmation"
-             AllowDelete="false"
-             OkTitle="@Properties.Resources.Remove"
-             ConfirmationMessage=""
-             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-    </Confirm>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="TaskType" Visibility="Visibility.Small">@Properties.Resources.TaskType</Th>
+        <Th Id="Start" Visibility="Visibility.Small">@Properties.Resources.StartTime</Th>
+        <Th Id="Ready" Visibility="Visibility.Medium">@Properties.Resources.CompletedTime</Th>
+        <Th Id="Result" Visibility="Visibility.Large">@Properties.Resources.Result</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Id="Target">@task.Target</Td>
+        <Td Id="CreationTime">@task.CreationTime</Td>
+        <Td Id="TaskType" Visibility="Visibility.Small">@TaskTypeToString(task.TaskType)</Td>
+        <Td Id="Start" Visibility="Visibility.Small">@task.Start</Td>
+        <Td Id="Ready" Visibility="Visibility.Medium">@task.Ready</Td>
+        <Td Id="Result"  Visibility="Visibility.Large">@task.Result</Td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 
-    <Confirm @ref="ClearConfirmation"
-             ConfirmationChanged="OnClearConfirmation"
-             ConfirmationTitle=@Properties.Resources.ConfirmDataClear
-             AllowDelete="false"
-             OkTitle="@Properties.Resources.Clear"
-             ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
-    </Confirm>
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearTasks">
+</Confirm>
 
-    @code {
+@code {
     /// <summary>
     /// Action.
     /// </summary>

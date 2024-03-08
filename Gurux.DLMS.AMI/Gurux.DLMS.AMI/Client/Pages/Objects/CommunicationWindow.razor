@@ -1,0 +1,301 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.Common
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Components.Table
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization
+
+@inject IGXNotifier Notifier
+
+<label>Communication window</label>
+<MenuControl RightCorner="true">
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAddCaptureObject" />
+    </ChildContent>
+</MenuControl>
+<GXTable @ref="templateTable"
+         Context="it"
+         ItemsProvider="@GetCaptureObjects"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllData="true"
+         Total="false"
+         Filter="false">
+    <FilterContent>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Edit"
+                         Icon="oi oi-pencil"
+                         OnClick="@OnEdit">
+        </ContextMenuItem>
+        <ContextMenuItem Text="@Properties.Resources.Remove"
+                         Icon="oi oi-trash"
+                         OnClick="@OnRemove">
+        </ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="StartTime">@Properties.Resources.StartTime</Th>
+        <Th Id="EndTime">@Properties.Resources.EndTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Id="StartTime">
+            <LinkButton Target="@it"
+                        OnClick="@Edit"
+                        Text="@it.Key?.ToFormatString()" />
+        </Td>
+        <Td Id="EndTime">@it.Value?.ToFormatString()</Td>
+    </ItemContent>
+</GXTable>
+@if (_action != CrudAction.None)
+{
+    <!--Show communication window dialog.-->
+    <CommunicationWindowDialog Action="_action"
+                               StartTime="@_active.Key"
+                               EndTime="@_active.Value"
+                               OnSave="OnSave"
+                               OnCancel="OnCancel">
+    </CommunicationWindowDialog>
+}
+<hr />
+@code {
+    /// <summary>
+    /// Target attribute index.
+    ///</summary>
+    [Parameter]
+    public int Index { get; set; }
+
+    /// <summary>
+    /// Template table reference.
+    /// </summary>
+    protected GXTable<KeyValuePair<GXDateTime?, GXDateTime?>>? templateTable;
+
+    private CrudAction _action;
+    private KeyValuePair<GXDateTime?, GXDateTime?> _active;
+
+    /// <summary>
+    /// Target attributes.
+    /// </summary>
+    [Parameter]
+    public List<GXAttribute>? Attributes { get; set; }
+
+    public List<KeyValuePair<GXDateTime?, GXDateTime?>> Values
+    {
+        get;
+        set;
+    } = new List<KeyValuePair<GXDateTime?, GXDateTime?>>();
+
+    private ValueTask<ItemsProviderResult<KeyValuePair<GXDateTime?, GXDateTime?>>> GetCaptureObjects(GXItemsProviderRequest request)
+    {
+        return new(new ItemsProviderResult<KeyValuePair<GXDateTime?, GXDateTime?>>(Values, Values.Count));
+    }
+
+    /// <summary>
+    /// Hide communication window dialog.
+    /// </summary>
+    public void OnCancel()
+    {
+        _action = CrudAction.None;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Add new communication window.
+    /// </summary>
+    public void OnAddCaptureObject()
+    {
+        try
+        {
+            _action = CrudAction.Create;
+            _active = new KeyValuePair<GXDateTime?, GXDateTime?>(new GXDateTime(@"*/*/* *:00:00", CultureInfo.InvariantCulture), new GXDateTime(@"*/*/* *:00:00", CultureInfo.InvariantCulture));
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit capture object.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            int[]? rows = templateTable?.GetSelectedRows();
+            if (rows == null || !rows.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Edit(Values[rows[0]]);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove capture object.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            _action = CrudAction.Delete;
+            var rows = templateTable?.GetSelectedRows();
+            if (rows == null || !rows.Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            _active = Values[rows[0]];
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private void Edit(KeyValuePair<GXDateTime?, GXDateTime?> item)
+    {
+        try
+        {
+            _action = CrudAction.Update;
+            _active = item;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save capture objects.
+    ///</summary>
+    public void OnSave(KeyValuePair<GXDateTime?, GXDateTime?> target)
+    {
+        try
+        {
+            if (_action == CrudAction.Create)
+            {
+                Values.Add(target);
+                _active = default;
+            }
+            else if (_action == CrudAction.Delete)
+            {
+                Values.Remove(target);
+                _active = default;
+            }
+            else if (_action == CrudAction.Update)
+            {
+                int index = Values.IndexOf(_active);
+                Values.Remove(_active);
+                Values.Insert(index, target);
+                _active = default;
+            }
+            else
+            {
+                throw new Exception("Invalid action.");
+            }
+            var attribute = Attributes?.Where(w => w.Template.Index == Index).SingleOrDefault();
+            if (attribute != null)
+            {
+                GXArray arr = new GXArray();
+                foreach (var it in Values)
+                {
+                    GXStructure s = new GXStructure();
+                    var start = GXDLMSTranslator.HexToBytes(it.Key.ToHex(false, true));
+                    var end = GXDLMSTranslator.HexToBytes(it.Value.ToHex(false, true));
+                    s.Add(start);
+                    s.Add(end);
+                    arr.Add(s);
+                }
+                if (attribute.Id == Guid.Empty)
+                {
+                    attribute.Template.DefaultValue = GXDLMSTranslator.ValueToXml(arr);
+                }
+                else
+                {
+                    attribute.Value = GXDLMSTranslator.ValueToXml(arr);
+                }
+                attribute.Modified = true;
+            }
+            _action = CrudAction.None;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Index == 0)
+            {
+                throw new Exception("Invalid index.");
+            }
+            var attribute = Attributes?.Where(w => w.Template.Index == Index).SingleOrDefault();
+            string str;
+            if (attribute.Id == Guid.Empty)
+            {
+                str = attribute?.Template.DefaultValue;
+            }
+            else
+            {
+                str = attribute?.Value;
+            }
+            if (!string.IsNullOrEmpty(str))
+            {
+                GXArray arr = (GXArray)GXDLMSTranslator.XmlToValue(str);
+                foreach (GXStructure it in arr)
+                {
+                    GXDateTime start = (GXDateTime)GXDLMSClient.ChangeType((byte[])it[0], Enums.DataType.DateTime);
+                    GXDateTime end = (GXDateTime)GXDLMSClient.ChangeType((byte[])it[1], Enums.DataType.DateTime);
+                    Values.Add(new KeyValuePair<GXDateTime?, GXDateTime?>(start, end));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

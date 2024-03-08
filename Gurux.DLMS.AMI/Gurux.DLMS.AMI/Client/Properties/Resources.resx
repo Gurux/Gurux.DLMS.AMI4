@@ -1215,4 +1215,22 @@
   <data name="Fill" xml:space="preserve">
     <value>Fill empty value with zero value</value>
   </data>
+  <data name="Push" xml:space="preserve">
+    <value>Push</value>
+  </data>
+  <data name="AttributeIndex" xml:space="preserve">
+    <value>Attribute index</value>
+  </data>
+  <data name="DataIndex" xml:space="preserve">
+    <value>Data index</value>
+  </data>
+  <data name="FilterByCreationTime" xml:space="preserve">
+    <value>Filter by creation time...</value>
+  </data>
+  <data name="TraceLevel" xml:space="preserve">
+    <value>Trace level</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
 </root>

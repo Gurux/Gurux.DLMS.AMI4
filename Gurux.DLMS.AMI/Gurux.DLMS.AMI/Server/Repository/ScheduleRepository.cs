@@ -906,7 +906,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     CreationTime = DateTime.Now,
                     Schedule = it,
                     Message = it.CreationTime == now ?
-                Properties.Resources.ScheduleInstalled :
+                Properties.Resources.ScheduleCreated :
                 Properties.Resources.ScheduleUpdated
                 });
             }

@@ -214,6 +214,9 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             string userId = ServerHelpers.GetUserId(User);
             GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, id);
+            //Device ID and name are added.
+            arg.Columns.Add<GXDeviceTemplate>(c => new {c.Id, c.Name });
+            arg.Columns.Exclude<GXDeviceTemplate>(e => e.Objects);
             arg.Distinct = true;
             GXObjectTemplate obj = await _host.Connection.SingleOrDefaultAsync<GXObjectTemplate>(arg);
             if (obj == null)
@@ -222,8 +225,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             //Get attribute templates .
             arg = GXSelectArgs.SelectAll<GXAttributeTemplate>(w => w.ObjectTemplate == obj && w.Removed == null);
+            arg.Columns.Add<GXAttributeListItem>();
+            arg.Joins.AddLeftJoin<GXAttributeTemplate, GXAttributeListItem>(x => x.Id, y => y.Template);
             arg.Columns.Exclude<GXAttributeTemplate>(e => e.ObjectTemplate);
-            obj.Attributes = await _host.Connection.SelectAsync<GXAttributeTemplate>(arg);
+            arg.Columns.Exclude<GXAttributeListItem>(e => e.Template); obj.Attributes = await _host.Connection.SelectAsync<GXAttributeTemplate>(arg);
             return obj;
         }
 
@@ -254,6 +259,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         {
                             await _host.Connection.UpdateAsync(GXUpdateArgs.Update(att, u => new
                             {
+                                u.DefaultValue,
                                 u.DataType,
                                 u.UIDataType,
                                 u.Scaler,

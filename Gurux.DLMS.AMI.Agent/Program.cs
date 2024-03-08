@@ -188,8 +188,8 @@ namespace Gurux.DLMS.AMI.Agent
                             alc = new AssemblyLoadContext("Agent.Worker", true);
                         }
                         //Start the new app and exit.
-                        string path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                        if (!string.IsNullOrEmpty(options.Version))
+                        string? path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                        if (path != null && !string.IsNullOrEmpty(options.Version))
                         {
                             path = Path.Combine(path, "bin" + options.Version);
                             if (!Directory.Exists(path))

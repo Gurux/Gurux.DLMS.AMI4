@@ -561,8 +561,8 @@
   <data name="ScriptRemoved" xml:space="preserve">
     <value>Script removed.</value>
   </data>
-  <data name="ScheduleInstalled" xml:space="preserve">
-    <value>Schedule installed.</value>
+  <data name="ScheduleCreated" xml:space="preserve">
+    <value>Schedule created.</value>
   </data>
   <data name="ScheduleRemoved" xml:space="preserve">
     <value>Schedule removed.</value>

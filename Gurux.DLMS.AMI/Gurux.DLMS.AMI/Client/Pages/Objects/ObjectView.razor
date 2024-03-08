@@ -1,10 +1,41 @@
-﻿@using Gurux.DLMS.AMI.Client.Pages.Admin
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Client.Pages.Admin
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Client.Pages.Objects.Charge
 @using Gurux.DLMS.AMI.Module.Enums;
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
-
 @using Gurux.DLMS.Objects;
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -22,12 +53,16 @@
 @implements IDisposable
 @inject ILogger<ObjectView> logger
 
-@if (_extendedlUIType != ExtendedlUIType.Replace && Active?.Template != null)
+@if (_extendedlUIType != ExtendedlUIType.Replace &&
+Active?.Template?.ObjectType != null)
 {
     <EditForm Model="@Active">
         <CascadingValue Value="this">
             <h3>@Active.Template.Name @Convert.ToString((Gurux.DLMS.Enums.ObjectType)Active.Template.ObjectType) Object</h3>
-            <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+            @if (Template == null)
+            {
+                <input type="checkbox" checked="@IsSelected()" @onchange="@((ChangeEventArgs __e) => ToggleRow(Convert.ToBoolean(__e.Value)))" />
+            }
             <DataAnnotationsValidator />
             <ValidationSummary />
             <div class="row">
@@ -52,8 +87,14 @@
                         case ObjectType.Charge:
                             <ChargeView Target="Active"></ChargeView>
                             break;
+                        case ObjectType.Clock:
+                            <ClockView Target="Active"></ClockView>
+                            break;
+                        case ObjectType.PushSetup:
+                            <PushSetupView Target="Active"></PushSetupView>
+                            break;
                         default:
-                            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Text="@Active.Template.LogicalName"></AttributeTile>
+                            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Value="@Active.Template.LogicalName"></AttributeTile>
                             @if (Active.Attributes != null)
                             {
                                 @foreach (var it in Active.Attributes.OrderBy(o => o.Template.Index))
@@ -69,13 +110,13 @@
                     </MenuControl>
                     @if (Active.LastError != null)
                     {
-                        <AttributeTile Index="0" Name="@Properties.Resources.LastError" Text="@(Convert.ToString(Active.LastError) + " " + Active.LastErrorMessage)"></AttributeTile>
+                        <AttributeTile Index="0" Name="@Properties.Resources.LastError" Value="@(Convert.ToString(Active.LastError) + " " + Active.LastErrorMessage)"></AttributeTile>
                     }
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Text="@Convert.ToString(Active.LastRead)"></AttributeTile>
-                    <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Text="@Convert.ToString(Active.LastWrite)"></AttributeTile>
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastRead" Value="@Convert.ToString(Active.LastRead)"></AttributeTile>
+                    <AttributeTile Index="0" Name="@Properties.Resources.LastWrite" Value="@Convert.ToString(Active.LastWrite)"></AttributeTile>
                     @if (Active.LastAction != null)
                     {
-                        <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Text="@Convert.ToString(Active.LastAction)"></AttributeTile>
+                        <AttributeTile Index="0" Name="@Properties.Resources.LastAction" Value="@Convert.ToString(Active.LastAction)"></AttributeTile>
                     }
                     @if (Active.CreationTime != null)
                     {
@@ -166,6 +207,36 @@
     {
         StateHasChanged();
     }
+
+    GXObjectTemplate? _template;
+    /// <summary>
+    /// Target object template.
+    /// </summary>
+    [Parameter]
+    public GXObjectTemplate? Template
+    {
+        get
+        {
+            return _template;
+        }
+        set
+        {
+            _template = value;
+            _active = new GXObject(null);
+            _active.Template = value;
+            if (value?.Attributes != null)
+            {
+                _active.Attributes = new List<GXAttribute>();
+                foreach (var it in value.Attributes)
+                {
+                    GXAttribute a = new GXAttribute();
+                    a.Template = it;
+                    _active.Attributes.Add(a);
+                }
+            }
+        }
+    }
+
     /// <summary>
     /// Active item.
     /// </summary>
@@ -194,35 +265,80 @@
 
     public List<MenuItem> MenuItems = new List<MenuItem>();
 
-    public static void SetValue(GXObject Target, GXDLMSObject target, int index)
+    public void SetValue(
+        GXObject? Target,
+        GXDLMSObject target,
+        int index)
     {
+        string? str;
         GXAttribute att = AttributeTile.GetAttribute(Target.Attributes, index);
         ValueEventArgs e = new ValueEventArgs(target, index, 0, null);
-        object value = (target as IGXDLMSBase).GetValue(null, e);
+        object value = ((IGXDLMSBase)target).GetValue(null, e);
         DataType dt = target.GetDataType(index);
         if (e.ByteArray && (value is byte[] barray))
         {
-            string xml;
             GXDLMSTranslator t = new() { Hex = false };
-            t.DataToXml(barray, out xml);
-            att.Value = xml;
+            t.DataToXml(barray, out str);
         }
         else
         {
-            att.Value = GXDLMSTranslator.ValueToXml(target.GetValues()[index - 1]);
+            str = GXDLMSTranslator.ValueToXml(target.GetValues()[index - 1]);
+        }
+        if (Template == null)
+        {
+            att.Value = str;
+        }
+        else
+        {
+            att.Template.DefaultValue = str;
         }
     }
 
-    public static void UpdateValue(GXObject Target, GXDLMSObject target, int index)
+    public void GetValue(
+        GXObject Target,
+        GXDLMSObject target, int index)
     {
-        string? str = AttributeTile.GetAttribute(Target.Attributes, index).Value;
+        string? str;
+        if (Template == null)
+        {
+            str = AttributeTile.GetAttribute(Target.Attributes, index).Value;
+        }
+        else
+        {
+            //Update attribute tempate value.
+            var template = AttributeTile.GetAttribute(Target.Attributes, index).Template;
+            if (template == null)
+            {
+                throw new ArgumentNullException("Invalid template.");
+            }
+            str = template.DefaultValue;
+        }
+        //Update attribute value.
         if (!string.IsNullOrEmpty(str))
         {
-            ValueEventArgs e = new ValueEventArgs(target, index, 0, null)
+            DataType dt = ((IGXDLMSBase)target).GetDataType(index);
+            ValueEventArgs e = new ValueEventArgs(target, index, 0, null);
+            if (dt == DataType.Array || dt == DataType.Structure)
+            {
+                e.Value = GXDLMSTranslator.XmlToValue(str);
+            }
+            else if (dt == DataType.Enum)
+            {
+                e.Value = new GXEnum(byte.Parse(str));
+            }
+            else
+            {
+                e.Value = GXDLMSConverter.ChangeFromDLMSType(str, dt, false);
+            }
+            if (e.Value is byte[] b)
+            {
+                if (dt != DataType.None)
                 {
-                    Value = GXDLMSTranslator.XmlToValue(str)
-                };
-            (target as IGXDLMSBase).SetValue(null, e);
+                    GXByteBuffer bb = new GXByteBuffer(b);
+                    e.Value = GXDLMSClient.ChangeType(bb.SubArray(1, bb.Size - 1), dt);
+                }
+            }
+            ((IGXDLMSBase)target).SetValue(null, e);
         }
     }
 
@@ -276,180 +392,183 @@
     {
         try
         {
-            Notifier.ProgressStart();
-            Notifier.ClearStatus();
-            Notifier.Clear();
-            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.ValueUpdate), (attributes) =>
-           {
-               //Update attribute value and last read time if it has been changed.
-               if (Active?.Attributes != null)
+            if (Template == null)
+            {
+                Notifier.ProgressStart();
+                Notifier.ClearStatus();
+                Notifier.Clear();
+                Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.ValueUpdate), (attributes) =>
                {
-                   foreach (var it in attributes)
+                   //Update attribute value and last read time if it has been changed.
+                   if (Active?.Attributes != null)
                    {
-                       if (it.Object != null && it.Object.Id == Active.Id)
+                       foreach (var it in attributes)
                        {
-                           foreach (var attribute in Active.Attributes)
+                           if (it.Object != null && it.Object.Id == Active.Id)
                            {
-                               if (it.Id == attribute.Id)
+                               foreach (var attribute in Active.Attributes)
                                {
-                                   attribute.Read = it.Read;
-                                   attribute.Value = it.Value;
-                                   attribute.Modified = false;
+                                   if (it.Id == attribute.Id)
+                                   {
+                                       attribute.Read = it.Read;
+                                       attribute.Value = it.Value;
+                                       attribute.Modified = false;
+                                       StateHasChanged();
+                                       break;
+                                   }
+                               }
+                               break;
+                           }
+                       }
+                   }
+               });
+                Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
+                {
+                    if (Active != null)
+                    {
+                        foreach (var it in objects)
+                        {
+                            if (it.Id == Active.Id)
+                            {
+                                if (it.LastRead != null)
+                                {
+                                    Active.LastRead = it.LastRead;
+                                }
+                                if (it.LastWrite != null)
+                                {
+                                    Active.LastWrite = it.LastWrite;
+                                }
+                                if (it.LastAction != null)
+                                {
+                                    Active.LastAction = it.LastAction;
+                                }
+                                if (it.LastError != null)
+                                {
+                                    Active.LastError = it.LastError;
+                                }
+                                if (it.LastErrorMessage != null)
+                                {
+                                    Active.LastErrorMessage = it.LastErrorMessage;
+                                }
+                                StateHasChanged();
+                                break;
+                            }
+                        }
+                    }
+                });
+                Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), (attributes) =>
+                {
+                    //Update attribute value and last read time if it has been changed.
+                    if (Active != null)
+                    {
+                        foreach (var it in attributes)
+                        {
+                            if (Active.Attributes != null && it.Object != null && it.Object.Id == Active.Id)
+                            {
+                                foreach (var attribute in Active.Attributes)
+                                {
+                                    if (it.Id == attribute.Id)
+                                    {
+                                        attribute.Read = it.Read;
+                                        if (!string.IsNullOrEmpty(it.Value))
+                                        {
+                                            attribute.Value = it.Value;
+                                            attribute.Modified = false;
+                                        }
+                                        StateHasChanged();
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                });
+                Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
+               {
+                   //Notify user when read starts.
+                   if (Active != null)
+                   {
+                       foreach (var it in tasks)
+                       {
+                           if (it.Object != null && it.Object.Id == Active.Id)
+                           {
+                               //Show progress when the first task is added.
+                               if (!PerformedTask.Any())
+                               {
+                                   Notifier.ShowInformation("Task on progress...", true);
+                                   Notifier.ProgressStart();
                                    StateHasChanged();
-                                   break;
+                               }
+                               PerformedTask.Add(it.Id);
+                           }
+                           else if (it.Attribute != null && Active.Attributes.Select(s => s.Id).Contains(it.Attribute.Id))
+                           {
+                               //Show progress when the first task is added.
+                               if (!PerformedTask.Any())
+                               {
+                                   Notifier.ShowInformation("Task on progress...", true);
+                                   Notifier.ProgressStart();
+                                   StateHasChanged();
+                               }
+                               PerformedTask.Add(it.Id);
+                           }
+                       }
+                   }
+               });
+                Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
+               {
+                   //Notify user when read ends.
+                   if (Active != null)
+                   {
+                       foreach (var it in tasks)
+                       {
+                           if (it.Ready != null && PerformedTask.Contains(it.Id))
+                           {
+                               PerformedTask.Remove(it.Id);
+                               //Hide progress when the lask task is removed.
+                               if (!PerformedTask.Any())
+                               {
+                                   Notifier.ClearStatus();
+                                   Notifier.ProgressEnd();
+                                   StateHasChanged();
                                }
                            }
-                           break;
                        }
                    }
-               }
-           });
-            Notifier.On<IEnumerable<GXObject>>(this, nameof(IGXHubEvents.ObjectUpdate), (objects) =>
-            {
-                if (Active != null)
-                {
-                    foreach (var it in objects)
-                    {
-                        if (it.Id == Active.Id)
-                        {
-                            if (it.LastRead != null)
-                            {
-                                Active.LastRead = it.LastRead;
-                            }
-                            if (it.LastWrite != null)
-                            {
-                                Active.LastWrite = it.LastWrite;
-                            }
-                            if (it.LastAction != null)
-                            {
-                                Active.LastAction = it.LastAction;
-                            }
-                            if (it.LastError != null)
-                            {
-                                Active.LastError = it.LastError;
-                            }
-                            if (it.LastErrorMessage != null)
-                            {
-                                Active.LastErrorMessage = it.LastErrorMessage;
-                            }
-                            StateHasChanged();
-                            break;
-                        }
-                    }
-                }
-            });
-            Notifier.On<IEnumerable<GXAttribute>>(this, nameof(IGXHubEvents.AttributeUpdate), (attributes) =>
-            {
-                //Update attribute value and last read time if it has been changed.
-                if (Active != null)
-                {
-                    foreach (var it in attributes)
-                    {
-                        if (Active.Attributes != null && it.Object != null && it.Object.Id == Active.Id)
-                        {
-                            foreach (var attribute in Active.Attributes)
-                            {
-                                if (it.Id == attribute.Id)
-                                {
-                                    attribute.Read = it.Read;
-                                    if (!string.IsNullOrEmpty(it.Value))
-                                    {
-                                        attribute.Value = it.Value;
-                                        attribute.Modified = false;
-                                    }
-                                    StateHasChanged();
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskAdd), (tasks) =>
-           {
-               //Notify user when read starts.
-               if (Active != null)
-               {
-                   foreach (var it in tasks)
-                   {
-                       if (it.Object != null && it.Object.Id == Active.Id)
-                       {
-                           //Show progress when the first task is added.
-                           if (!PerformedTask.Any())
-                           {
-                               Notifier.ShowInformation("Task on progress...", true);
-                               Notifier.ProgressStart();
-                               StateHasChanged();
-                           }
-                           PerformedTask.Add(it.Id);
-                       }
-                       else if (it.Attribute != null && Active.Attributes.Select(s => s.Id).Contains(it.Attribute.Id))
-                       {
-                           //Show progress when the first task is added.
-                           if (!PerformedTask.Any())
-                           {
-                               Notifier.ShowInformation("Task on progress...", true);
-                               Notifier.ProgressStart();
-                               StateHasChanged();
-                           }
-                           PerformedTask.Add(it.Id);
-                       }
-                   }
-               }
-           });
-            Notifier.On<IEnumerable<GXTask>>(this, nameof(IGXHubEvents.TaskUpdate), (tasks) =>
-           {
-               //Notify user when read ends.
-               if (Active != null)
-               {
-                   foreach (var it in tasks)
-                   {
-                       if (it.Ready != null && PerformedTask.Contains(it.Id))
-                       {
-                           PerformedTask.Remove(it.Id);
-                           //Hide progress when the lask task is removed.
-                           if (!PerformedTask.Any())
-                           {
-                               Notifier.ClearStatus();
-                               Notifier.ProgressEnd();
-                               StateHasChanged();
-                           }
-                       }
-                   }
-               }
-           });
+               });
 
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnRead });
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Write, Icon = "oi oi-account-login", OnClick = OnWrite });
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
-            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
-            Notifier.UpdateButtons();
-            if (Active == null && Id != null)
-            {
-                //Get object data.
-                var tmp = (await Http.GetAsJsonAsync<GetObjectResponse>(string.Format("api/Object?id={0}", Id)));
-                if (tmp?.Item != null)
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnRead });
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Write, Icon = "oi oi-account-login", OnClick = OnWrite });
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Save, Icon = "oi oi-pencil", OnClick = OnSave });
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Cancel, Icon = "oi oi-action-undo", OnClick = OnCancel });
+                Notifier.UpdateButtons();
+                if (Active == null && Id != null)
                 {
-                    _active = tmp.Item;
-                    //Update device for late binding.
-                    _active.Device = Device;
-                    StateHasChanged();
+                    //Get object data.
+                    var tmp = (await Http.GetAsJsonAsync<GetObjectResponse>(string.Format("api/Object?id={0}", Id)));
+                    if (tmp?.Item != null)
+                    {
+                        _active = tmp.Item;
+                        //Update device for late binding.
+                        _active.Device = Device;
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("404");
+                    }
                 }
-                else
+                if (Active == null)
                 {
-                    NavigationManager.NavigateTo("404");
+                    throw new ArgumentException(Properties.Resources.InvalidTarget);
                 }
-            }
-            if (Active == null)
-            {
-                throw new ArgumentException(Properties.Resources.InvalidTarget);
-            }
-            _extendedUIs = AmiExtendedUIHelper.GetExtendedObjectUIs(Active, false,
-                out _extendedlUIType);
-            if (Active.Parameters != null)
-            {
-                Parameters.AddRange(Active.Parameters);
+                _extendedUIs = AmiExtendedUIHelper.GetExtendedObjectUIs(Active, false,
+                    out _extendedlUIType);
+                if (Active.Parameters != null)
+                {
+                    Parameters.AddRange(Active.Parameters);
+                }
             }
         }
         catch (AccessTokenNotAvailableException exception)

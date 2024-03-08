@@ -1,5 +1,38 @@
-﻿@page "/users"
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/users"
 
+@using Gurux.DLMS.AMI.Components.Enums
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Microsoft.AspNetCore.Authorization
@@ -63,11 +96,13 @@
             <input class="form-control" type="text" placeholder="Filter by role..."
                    @onchange="@((ChangeEventArgs __e) => @UpdateRoles(Convert.ToString(__e.Value)))" />
         </th>
-        <th>
-            <input class="form-control" placeholder="Filter by creation time..."
-                   type="datetime-local"
-                   @onchange="@((ChangeEventArgs __e) => filter.CreationTime = StatusTile.ToDateTime(__e.Value))" />
-        </th>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector
+                                Id="Users-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
         <th>
             <input class="form-control" placeholder="Filter by Updated..."
                    type="datetime-local"
@@ -95,20 +130,20 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="GivenName">@Properties.Resources.GivenName</Th>
-            <Th Id="Surname">@Properties.Resources.Surname</Th>
-            <Th Id="Email">@Properties.Resources.Email</Th>
-            <Th Id="EmailConfirmed">@Properties.Resources.EmailConfirmed</Th>
-            <th>@Properties.Resources.Roles</th>
+        <Th Id="Surname">@Properties.Resources.Surname</Th>
+        <Th Id="Email">@Properties.Resources.Email</Th>
+        <Th Id="EmailConfirmed">@Properties.Resources.EmailConfirmed</Th>
+        <th>@Properties.Resources.Roles</th>
         <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
-            <Th Id="Updated">@Properties.Resources.Updated</Th>
-            <Th Id="LastLogin">@Properties.Resources.LastLogin</Th>
-            <Th Id="AccessFailed">@Properties.Resources.AccessFailed</Th>
-        </HeaderContent>
-        <ItemContent>
-            <td>@user.GivenName</td>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+        <Th Id="LastLogin">@Properties.Resources.LastLogin</Th>
+        <Th Id="AccessFailed">@Properties.Resources.AccessFailed</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@user.GivenName</td>
         <td>@user.Surname</td>
         <Td Link="@("User/Edit/" + user.Id)">@user.Email</Td>
-            <td>@user.EmailConfirmed</td>
+        <td>@user.EmailConfirmed</td>
         <td>@RolesToString(user.Roles)</td>
         <td>@user.CreationTime</td>
         <td>@user.Updated</td>

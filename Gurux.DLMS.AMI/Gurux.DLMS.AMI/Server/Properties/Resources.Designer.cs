@@ -1078,11 +1078,11 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Schedule installed..
+        ///   Looks up a localized string similar to Schedule created..
         /// </summary>
-        internal static string ScheduleInstalled {
+        internal static string ScheduleCreated {
             get {
-                return ResourceManager.GetString("ScheduleInstalled", resourceCulture);
+                return ResourceManager.GetString("ScheduleCreated", resourceCulture);
             }
         }
         

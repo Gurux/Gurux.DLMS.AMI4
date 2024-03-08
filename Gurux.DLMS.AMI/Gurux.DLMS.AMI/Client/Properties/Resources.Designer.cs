@@ -349,6 +349,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Attribute index.
+        /// </summary>
+        internal static string AttributeIndex {
+            get {
+                return ResourceManager.GetString("AttributeIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Attributes.
         /// </summary>
         internal static string Attributes {
@@ -736,6 +745,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Data index.
+        /// </summary>
+        internal static string DataIndex {
+            get {
+                return ResourceManager.GetString("DataIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Data type.
         /// </summary>
         internal static string DataType {
@@ -786,6 +804,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string DefaultRole {
             get {
                 return ResourceManager.GetString("DefaultRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Delete.
+        /// </summary>
+        internal static string Delete {
+            get {
+                return ResourceManager.GetString("Delete", resourceCulture);
             }
         }
         
@@ -1110,6 +1137,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string FilterByAttributeIndex {
             get {
                 return ResourceManager.GetString("FilterByAttributeIndex", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Filter by creation time....
+        /// </summary>
+        internal static string FilterByCreationTime {
+            get {
+                return ResourceManager.GetString("FilterByCreationTime", resourceCulture);
             }
         }
         
@@ -2239,6 +2275,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Push.
+        /// </summary>
+        internal static string Push {
+            get {
+                return ResourceManager.GetString("Push", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Read.
         /// </summary>
         internal static string Read {
@@ -3018,6 +3063,15 @@ namespace Gurux.DLMS.AMI.Client.Properties {
         internal static string Total {
             get {
                 return ResourceManager.GetString("Total", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trace level.
+        /// </summary>
+        internal static string TraceLevel {
+            get {
+                return ResourceManager.GetString("TraceLevel", resourceCulture);
             }
         }
         
