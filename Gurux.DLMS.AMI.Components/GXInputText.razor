@@ -1,0 +1,151 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using System.Diagnostics.CodeAnalysis
+@using System.Globalization
+@using Microsoft.Extensions.Logging
+
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<GXInputText> Logger
+<CascadingValue Value="this">
+    <input id="@Id"
+           type="string"
+           value="@Value"
+           placeholder="@Placeholder"
+           class="@CssClass"
+           attributes="@AdditionalAttributes"
+           onchange="@((ChangeEventArgs e) => UpdateString(e.Value))" />
+</CascadingValue>
+
+@code
+{
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Is string value required.
+    /// </summary>
+    [Parameter]
+    public bool Required
+    {
+        get;
+        set;
+    }
+
+    private string? IsRequired()
+    {
+        return Required ? " required" : null;
+    }
+
+    /// <summary>
+    /// Value.
+    /// </summary>
+    [Parameter]
+    public string? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Placeholder text.
+    /// </summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private void UpdateString(object? value)
+    {
+        string? tmp = Convert.ToString(value);
+        bool change = Value != tmp;
+        Value = tmp;
+        if (change)
+        {
+            ValueChanged.InvokeAsync(Value);
+        }
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                Value = await cookieStorage.GetValueAsync(Id);
+                if (!string.IsNullOrEmpty(Value))
+                {
+                    await ValueChanged.InvokeAsync(Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+}

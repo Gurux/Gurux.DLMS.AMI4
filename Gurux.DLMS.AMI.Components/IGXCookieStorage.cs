@@ -1,4 +1,4 @@
-<!--
+﻿//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,30 +29,33 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
 
-@using System.Diagnostics.CodeAnalysis
-@using System.Globalization;
-
-@inherits InputBase<TimeSpan>
-
-<input type="time" class="@CssClass"
-       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
-@code {
-   
-    protected override bool TryParseValueFromString(string? value,
-        [MaybeNullWhen(false)] out TimeSpan result,
-        [NotNullWhen(false)] out string validationErrorMessage)
+namespace Gurux.DLMS.AMI.Components
+{
+    /// <summary>
+    /// Cookie storage is used to save user cookies.
+    /// </summary>
+    public interface IGXCookieStorage
     {
-        validationErrorMessage = "";
-        if (value != null)
-        {
-            result = TimeSpan.Parse(value);
-        }
-        else
-        {
-            result = TimeSpan.Zero;
-        }
-        return true;
+        /// <summary>
+        /// Set cookie value.
+        /// </summary>
+        /// <param name="key">Key.</param>
+        /// <param name="value">Value</param>
+        /// <param name="days">Expiration days.</param>
+        Task SetValueAsync(
+            string key,
+            string? value,
+            int days = 30);
+
+        /// <summary>
+        /// Get cookie value.
+        /// </summary>
+        /// <param name="key">Key</param>
+        /// <param name="def">Default value.</param>
+        /// <returns>Cookie value.</returns>
+        Task<string?> GetValueAsync(
+            string key,
+            string? def = null);
     }
 }

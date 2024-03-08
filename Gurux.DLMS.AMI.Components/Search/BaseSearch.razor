@@ -1,0 +1,225 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.Extensions.Logging
+
+@typeparam TItem
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<BaseSearch<TItem>> Logger
+
+<CascadingValue Value="this">
+    <DropdownSearch @bind-Value="Value"
+                    Immediate="@Immediate"
+                    CssClass="@CssClass"
+                    Disabled="@Disabled"
+                    Context="item"
+                    ItemsProvider="@GeTItems"
+                    OnSelected="@((TItem e) => SelectionChanged(e))">
+        <ItemContent>
+            @item
+        </ItemContent>
+    </DropdownSearch>
+</CascadingValue>
+@code {
+    /// <summary>
+    /// This delegate is used to filter values.
+    /// </summary>
+    public delegate IEnumerable<TItem> GXItemsFilterDelegate<TItem>(IEnumerable<TItem> items, string filter);
+
+    /// <summary>
+    /// Search ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public TItem? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> OnSelected { get; set; }
+
+    /// <summary>
+    /// If immediate filtering is used, the query is executed when the user presses any key.
+    /// </summary>
+    [Parameter]
+    public bool Immediate { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Is the drop down control disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+
+    [Parameter]
+    public GXItemsProviderDelegate<TItem>? ItemsProvider { get; set; }
+
+    private void SelectionChanged(TItem? value)
+    {
+        Value = value;
+        ValueChanged.InvokeAsync(value);
+        if (OnSelected.HasDelegate)
+        {
+            OnSelected.InvokeAsync(value);
+        }
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                cookieStorage.SetValueAsync(Id, Convert.ToString(value));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Get the default value from the cookies
+            // if it's not set.
+            if (Values != null && !string.IsNullOrEmpty(Id))
+            {
+                string? value = await cookieStorage.GetValueAsync(Id);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    IEnumerable<TItem> list;
+                    if (Filter == null)
+                    {
+                        list = Values;
+                    }
+                    else
+                    {
+                        list = Filter(Values, value);
+                    }
+                    foreach (var it in list)
+                    {
+                        if (it != null &&
+                            it.ToString() == value)
+                        {
+                            if (Value?.GetHashCode() != it.GetHashCode())
+                            {
+                                Value = it;
+                                if (ValueChanged.HasDelegate)
+                                {
+                                    await ValueChanged.InvokeAsync(it);
+                                }
+                                if (OnSelected.HasDelegate)
+                                {
+                                    await OnSelected.InvokeAsync(it);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    [Parameter]
+    public GXItemsFilterDelegate<TItem>? Filter { get; set; }
+
+    private ValueTask<ItemsProviderResult<TItem?>> GeTItems(GXItemsProviderRequest request)
+    {
+        if (Values != null && Values.Any())
+        {
+            IEnumerable<TItem> list;
+            if (string.IsNullOrEmpty(request.Filter))
+            {
+                list = Values;
+            }
+            else
+            {
+                if (Filter == null)
+                {
+                    throw new Exception("Filter is not set.");
+                }
+                list = Filter(Values, request.Filter);
+            }
+            int total = list.Count();
+            return new(new ItemsProviderResult<TItem?>(list, total));
+        }
+        return ItemsProvider(request);
+    }
+
+    /// <summary>
+    /// Possible static values.
+    /// </summary>
+    /// <remarks>
+    /// If values are added they are not asked from the Gurux.DLMS.AMI.
+    /// </remarks>
+    [Parameter]
+    public IEnumerable<TItem>? Values
+    {
+        get;
+        set;
+    }
+}

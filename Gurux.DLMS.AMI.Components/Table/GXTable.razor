@@ -1,4 +1,36 @@
-﻿@using Gurux.DLMS.AMI.Components.ContextMenu
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Components.ContextMenu
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using System.Reflection;
 
@@ -304,6 +336,33 @@
     /// Selected items.
     /// </summary>
     private SortedList<object, TItem> _selectedItems = new SortedList<object, TItem>();
+
+    /// <summary>
+    /// Selected rows.
+    /// </summary>
+    public int[] GetSelectedRows()
+    {
+        List<int> rows = new List<int>();
+        int row = 0;
+        var list = GetItems().ToList();
+        foreach (var it in _selectedItems.Values)
+        {
+            int index = list.IndexOf(it);
+            if (index != -1)
+            {
+                rows.Add(index);
+            }
+        }
+        if (Active != null)
+        {
+            int index = list.IndexOf(Active);
+            if (index != -1 && !rows.Contains(index))
+            {
+                rows.Add(index);
+            }
+        }
+        return rows.ToArray();
+    }
 
     /// <summary>
     /// Selected items.
