@@ -112,7 +112,10 @@
         Value = tmp;
         if (change)
         {
-            ValueChanged.InvokeAsync(Value);
+            if (ValueChanged.HasDelegate)
+            {
+                ValueChanged.InvokeAsync(Value);
+            }
         }
         try
         {
@@ -139,7 +142,10 @@
                 Value = await cookieStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(Value))
                 {
-                    await ValueChanged.InvokeAsync(Value);
+                    if (ValueChanged.HasDelegate)
+                    {
+                        await ValueChanged.InvokeAsync(Value);
+                    }
                 }
             }
         }

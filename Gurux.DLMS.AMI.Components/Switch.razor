@@ -97,7 +97,10 @@
         if (Value != value)
         {
             Value = value;
-            await ValueChanged.InvokeAsync();
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync(value);
+            }
             if (OnChange != null)
             {
                 OnChange(value);

@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using System.Text;
 @using Gurux.DLMS.AMI.Components.Validation;
 
@@ -45,7 +44,7 @@
         </Switch>
     </div>
     <InputText class="form-control"
-    @bind-Value="@HexValue" disabled="@Disabled" />
+               @bind-Value="@HexValue" disabled="@Disabled" />
 </CascadingValue>
 @ChildContent
 @code
@@ -140,7 +139,10 @@
                     _value = ASCIIEncoding.ASCII.GetBytes(value);
                 }
             }
-            ValueChanged.InvokeAsync(Value);
+            if (ValueChanged.HasDelegate)
+            {
+                ValueChanged.InvokeAsync(Value);
+            }
         }
     }
 
@@ -187,7 +189,10 @@
         try
         {
             Hex = value;
-            HexChanged.InvokeAsync(value);
+            if (HexChanged.HasDelegate)
+            {
+                HexChanged.InvokeAsync(value);
+            }
             StateHasChanged();
         }
         catch (Exception ex)

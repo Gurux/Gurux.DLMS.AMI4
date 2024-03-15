@@ -182,7 +182,10 @@
             Value = result;
             if (change)
             {
-                ValueChanged.InvokeAsync(Value);
+                if (ValueChanged.HasDelegate)
+                {
+                    ValueChanged.InvokeAsync(Value);
+                }
             }
         }
         else
@@ -191,7 +194,10 @@
             Value = default;
             if (change)
             {
-                ValueChanged.InvokeAsync(Value);
+                if (ValueChanged.HasDelegate)
+                {
+                    ValueChanged.InvokeAsync(Value);
+                }
             }
         }
         try

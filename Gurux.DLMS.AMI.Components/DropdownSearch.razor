@@ -189,9 +189,15 @@
     private async Task HandleSelect(TItem? item)
     {
         Value = item;
-        await ValueChanged.InvokeAsync(item);
+        if (ValueChanged.HasDelegate)
+        {
+            await ValueChanged.InvokeAsync(item);
+        }
         Show = false;
-        await OnSelected.InvokeAsync(item);
+        if (OnSelected.HasDelegate)
+        {
+            await OnSelected.InvokeAsync(item);
+        }
         StateHasChanged();
     }
 

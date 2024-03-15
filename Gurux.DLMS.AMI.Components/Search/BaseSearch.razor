@@ -114,7 +114,10 @@
     private void SelectionChanged(TItem? value)
     {
         Value = value;
-        ValueChanged.InvokeAsync(value);
+        if (ValueChanged.HasDelegate)
+        {
+            ValueChanged.InvokeAsync(value);
+        }
         if (OnSelected.HasDelegate)
         {
             OnSelected.InvokeAsync(value);
