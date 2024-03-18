@@ -43,7 +43,7 @@
            placeholder="@Placeholder"
            class="@CssClass"
            attributes="@AdditionalAttributes"
-           onchange="@((ChangeEventArgs e) => UpdateString(e.Value))" />
+           onchange="@(async (ChangeEventArgs e) => await UpdateString(e.Value))" />
 </CascadingValue>
 
 @code
@@ -105,7 +105,7 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
-    private void UpdateString(object? value)
+    private async Task UpdateString(object? value)
     {
         string? tmp = Convert.ToString(value);
         bool change = Value != tmp;
@@ -114,19 +114,19 @@
         {
             if (ValueChanged.HasDelegate)
             {
-                ValueChanged.InvokeAsync(Value);
+                await ValueChanged.InvokeAsync(Value);
             }
-        }
-        try
-        {
-            if (!string.IsNullOrEmpty(Id))
+            try
             {
-                cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                if (!string.IsNullOrEmpty(Id))
+                {
+                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex.Message);
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
         }
     }
 

@@ -30,9 +30,76 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
+@using Microsoft.Extensions.Logging
+
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<Switch> Logger
 
 @inherits Microsoft.AspNetCore.Components.Forms.InputText
 <input type="search" value="@CurrentValue"
        class="@CssClass"
        @attributes="AdditionalAttributes"
-       onchange="@((ChangeEventArgs __e) => CurrentValue = Convert.ToString(__e.Value))" />
+       onchange="@(async (ChangeEventArgs e) => await UpdateString(e.Value))" />
+
+@code{
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    private async Task UpdateString(object? value)
+    {
+        string? tmp = Convert.ToString(value);
+        bool change = Value != tmp;
+        Value = tmp;
+        if (change)
+        {
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync(Value);
+            }
+            try
+            {
+                if (!string.IsNullOrEmpty(Id))
+                {
+                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(Id))
+            {
+                string? value = await cookieStorage.GetValueAsync(Id);
+                if (value != Value)
+                {
+                    Value = value;
+                    if (ValueChanged.HasDelegate)
+                    {
+                        await ValueChanged.InvokeAsync(Value);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+}

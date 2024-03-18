@@ -33,11 +33,12 @@
 @using System.Text;
 @using Gurux.DLMS.AMI.Components.Validation;
 
-@namespace Gurux.DLMS.AMI.Components
+@inject IGXCookieStorage cookieStorage
 
 <CascadingValue Value="this">
     <div class="form-inline">
-        <Switch OnChange="OnHexChanged"
+        <Switch Id="@Id"
+                OnChange="OnHexChanged"
                 PreText="@Title"
                 Text="@Properties.Resources.Hex"
                 Disabled="@IsHexDisabled()" Value="@Hex">
@@ -49,6 +50,16 @@
 @ChildContent
 @code
 {
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
