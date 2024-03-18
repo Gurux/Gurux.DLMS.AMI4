@@ -29,7 +29,7 @@
 
   <ItemGroup>
     <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2403.601" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="4.9.2" />
   </ItemGroup>
