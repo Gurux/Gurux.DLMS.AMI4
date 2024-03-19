@@ -38,6 +38,7 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
+    /// This interface is used to manage device templates.
     /// </summary>
     public interface IDeviceTemplateRepository
     {
@@ -78,7 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
             ClaimsPrincipal user,
-            IEnumerable<Guid> templates, 
+            IEnumerable<Guid> templates,
             bool delete);
 
         /// <summary>

@@ -68,5 +68,9 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Agent asks the next task.
         /// </summary>
         Next = 0x40,
+        /// <summary>
+        /// Clone target object.
+        /// </summary>
+        Clone = 0x40,
     }
 }

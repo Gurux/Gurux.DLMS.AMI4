@@ -205,6 +205,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+
+        /// <summary>
+        /// Get all device templates that are used in device groups.
+        /// </summary>
+        public Guid[]? DeviceGroups
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
