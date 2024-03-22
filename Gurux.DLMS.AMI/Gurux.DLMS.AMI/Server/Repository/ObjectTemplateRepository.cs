@@ -145,6 +145,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             string userId = ServerHelpers.GetUserId(User);
             GXSelectArgs arg = GXQuery.GetObjectTemplatesByUser(userId, null);
+            arg.Distinct = true;
             arg.Where.And<GXDeviceTemplate>(q => q.Removed == null);
             if (request != null)
             {

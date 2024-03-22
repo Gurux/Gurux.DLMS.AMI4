@@ -115,7 +115,7 @@
         <Th Id="Status">@Properties.Resources.Status</Th>
     </HeaderContent>
     <ItemContent>
-        <Td Link="@("Gateway/Edit/" + gateway.Id)">@gateway.Name</Td>
+        <Td Link="@("Gateway/Edit/" + gateway.Id)"><span class=@(ClientHelpers.GetActiveDot(gateway.Active))></span>@gateway.Name</Td>
         <td>@gateway.CreationTime</td>
         <td>@gateway.Updated</td>
         <td>@gateway.Detected</td>

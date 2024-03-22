@@ -77,7 +77,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         [Authorize(Policy = GXTaskPolicies.Add)]
         public async Task<ActionResult<AddTaskResponse>> Post(AddTask request)
         {
-            if (request.Tasks == null || request.Tasks.Length == 0)
+            if (request.Tasks == null || !request.Tasks.Any())
             {
                 return BadRequest(Properties.Resources.ArrayIsEmpty);
             }

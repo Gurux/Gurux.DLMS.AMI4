@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @page "/Agent"
 @page "/AgentGroup"
 @page "/AgentLog/{Id:guid?}"
@@ -83,7 +82,7 @@ else
                 @if (context.PadgeCount != 0)
                 {
                     <span class="@context.GetPadgeClass()">
-                        @context.PadgeCount
+                        @context.PadgeCountToString()
                         <span class="visually-hidden">@context.Padge</span>
                     </span>
                 }

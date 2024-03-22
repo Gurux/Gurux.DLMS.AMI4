@@ -65,6 +65,9 @@
 
     @if (Active != null)
     {
+        <div class="form-group">
+            <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+        </div>
         @if (Parent?.Templates != null && Parent.Templates.Any())
         {
             @if (Notifier.Action != CrudAction.Create)

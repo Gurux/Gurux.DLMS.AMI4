@@ -459,7 +459,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXScheduleToDeviceObjectTemplate>(w => w.ScheduleId == id && w.Removed == null);
             schedule.DeviceObjectTemplates = _host.Connection.Select<GXObjectTemplate>(arg);
             //Get device attribute templates with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate }, q => q.Removed == null);
+            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate, s.Index }, q => q.Removed == null);
             arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
             arg.Columns.Exclude<GXObjectTemplate>(s => s.Attributes);
             arg.Distinct = true;
@@ -475,7 +475,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             arg.Where.And<GXScheduleToDeviceGroupObjectTemplate>(w => w.ScheduleId == id && w.Removed == null);
             schedule.DeviceGroupObjectTemplates = _host.Connection.Select<GXObjectTemplate>(arg);
             //Get device group attribute templates with own query. It's faster for some DBs.
-            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate }, q => q.Removed == null);
+            arg = GXSelectArgs.Select<GXAttributeTemplate>(s => new { s.Id, s.Name, s.ObjectTemplate, s.Index }, q => q.Removed == null);
             arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.LogicalName });
             arg.Columns.Exclude<GXObjectTemplate>(s => s.Attributes);
             arg.Distinct = true;
@@ -1227,6 +1227,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         /// <inheritdoc/>
         public async Task RunAsync(ClaimsPrincipal User, Guid id)
         {
+            IGXScheduleService scheduleHandler = _serviceProvider.GetRequiredService<IGXScheduleService>();
             GXSchedule schedule = await ReadAsync(User, id);
             if (schedule == null)
             {
@@ -1234,7 +1235,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             }
             //Schedule creator is the user who runs the schedule.
             schedule.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
-            IGXScheduleService scheduleHandler = _serviceProvider.GetRequiredService<IGXScheduleService>();
             await scheduleHandler.RunAsync(User, schedule);
         }
 

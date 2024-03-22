@@ -377,6 +377,10 @@ namespace Gurux.DLMS.AMI.Client.Helpers
             {
                 ret = CrudAction.Delete;
             }
+            else if (string.Compare(value, "Clone", true) == 0)
+            {
+                ret = CrudAction.Clone;
+            }
             else
             {
                 throw new ArgumentException(Properties.Resources.InvalidTarget);

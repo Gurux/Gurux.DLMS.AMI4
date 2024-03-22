@@ -46,9 +46,13 @@ namespace Gurux.DLMS.AMI.Server.Services
         private readonly List<GXUserTask> _tasks = new List<GXUserTask>();
         private static SemaphoreSlim _signal = new SemaphoreSlim(0);
         private readonly IServiceProvider _serviceProvider;
+        private readonly ISystemLogRepository _systemLogRepository;
 
-        public GXTaskLateBindService(IServiceProvider serviceProvider)
+        public GXTaskLateBindService(
+            ISystemLogRepository systemLogRepository,
+            IServiceProvider serviceProvider)
         {
+            _systemLogRepository = systemLogRepository;
             _serviceProvider = serviceProvider;
             Thread t = new Thread(() => TaskHandler());
             t.Start();
@@ -101,9 +105,16 @@ namespace Gurux.DLMS.AMI.Server.Services
                 {
                     using (IServiceScope scope = _serviceProvider.CreateScope())
                     {
-                        ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                        await repository.AddAsync(task.Value.user,
-                            task.Value.tasks);
+                        try
+                        {
+                            ITaskRepository repository = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
+                            await repository.AddAsync(task.Value.user,
+                                task.Value.tasks);
+                        }
+                        catch (Exception ex)
+                        {
+                            await _systemLogRepository.AddAsync(task.Value.user, ex);
+                        }
                     }
                 }
             }

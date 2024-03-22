@@ -1227,4 +1227,13 @@
   <data name="TraceLevel" xml:space="preserve">
     <value>Jäljitystaso</value>
   </data>
+  <data name="Clone" xml:space="preserve">
+    <value>Klooni</value>
+  </data>
+  <data name="FilterByCreationTime" xml:space="preserve">
+    <value>Suodata luomisajan mukaan...</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Poista</value>
+  </data>
 </root>

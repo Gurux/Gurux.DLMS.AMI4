@@ -157,15 +157,18 @@ else
     {
         try
         {
-            switch (Action)
+            var action = ClientHelpers.GetAction(Action);
+            switch (action)
             {
-                case "Add":
+                case CrudAction.Create:
+                case CrudAction.Clone:
                     Title = Properties.Resources.Add;
+                    Action = "Add";
                     break;
-                case "Edit":
+                case CrudAction.Update:
                     Title = Properties.Resources.Edit;
                     break;
-                case "Remove":
+                case CrudAction.Delete:
                     Title = Properties.Resources.Remove;
                     break;
                 default:
@@ -179,7 +182,7 @@ else
             }
             Notifier.ProgressStart();
             Notifier.ClearStatus();
-            if (string.Compare(Action, "Add", true) != 0)
+            if (action != CrudAction.Create)
             {
                 //Get schedule data.
                 var tmp = (await Http.GetAsJsonAsync<GetScheduleResponse>(string.Format("api/Schedule?id={0}", Id)));
@@ -188,6 +191,11 @@ else
                     Active = tmp.Item;
                     //Convert start time from invariant culture to UI culture.
                     Active.Start = new GXDateTime(Active.Start, CultureInfo.InvariantCulture).ToFormatString();
+                    if (action == CrudAction.Clone)
+                    {
+                        Active.Id = Guid.Empty;
+                        Active.Name += "-" + Properties.Resources.Clone;
+                    }
                     StateHasChanged();
                 }
                 else

@@ -108,6 +108,7 @@
             <ContextMenuItem Text="@Properties.Resources.Run" Icon="oi oi-flash" OnClick="async () => OnRun()"></ContextMenuItem>
             <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
             <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Clone" Icon="oi oi-pencil" OnClick="@OnClone"></ContextMenuItem>
         </AuthorizeView>
     </MenuContent>
     <HeaderContent>
@@ -397,6 +398,30 @@
                 throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
             }
             ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Schedule/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Clone schedule.
+    /// </summary>
+    public void OnClone()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Schedule/Clone/" + table?.Active.Id);
         }
         catch (AccessTokenNotAvailableException exception)
         {

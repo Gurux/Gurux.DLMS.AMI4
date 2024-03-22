@@ -58,7 +58,7 @@
             @if (context.PadgeCount != 0)
             {
                 <span class="@context.GetPadgeClass()">
-                    @context.PadgeCount
+                    @context.PadgeCountToString()
                     <span class="visually-hidden">@context.Padge</span>
                 </span>
             }

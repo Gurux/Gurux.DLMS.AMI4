@@ -80,9 +80,10 @@
          OnSearch="@Updated">
     <FilterContent>
         <Fh Id="Name">
-            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
-                   type="text"
-                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+            <GXInputText Id="Devices-Name"
+                         @bind-Value="@filter.Name"
+                         Placeholder="@Properties.Resources.FilterByName">
+            </GXInputText>
         </Fh>
         <Fh Id="Template.Type">
             <input class="form-control" placeholder="@Properties.Resources.Type"
@@ -95,8 +96,7 @@
                    @onchange="@((ChangeEventArgs __e) => filter.Detected = StatusTile.ToDateTime(__e.Value))" />
         </Fh>
         <Fh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector
-                                Id="Devices-CreationTime"
+            <GXDateTimeSelector Id="Devices-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
@@ -139,7 +139,7 @@
         </Th>
     </HeaderContent>
     <ItemContent>
-        <Td Id="Name" Link=@("Objects/" + device.Id)>@device.Name</Td>
+        <Td Link=@("Objects/" + device.Id)><span class=@(ClientHelpers.GetActiveDot(device.Active))></span>@device.Name</Td>
         <Td Id="Template.Type">@device.Template?.Name</Td>
         <Td Id="Detected" Visibility="Visibility.Small">@device.Detected</Td>
         <Td Id="CreationTime" Visibility="Visibility.Medium">@device.CreationTime</Td>
@@ -319,6 +319,7 @@
             if (Header)
             {
                 Notifier.Clear();
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnReadSelected });
                 Notifier.UpdateButtons();
             }
             if (table != null && Id != null)
@@ -530,6 +531,45 @@
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Read all selected objects.
+    /// </summary>
+    public async void OnReadSelected()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier?.ProgressStart();
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            List<GXTask> tasks = new List<GXTask>();
+            foreach (var it in table.SingleOrDefault())
+            {
+                GXTask task = new GXTask();
+                task.TaskType = TaskType.Read;
+                task.Device = new GXDevice() { Id = it.Id };
+                tasks.Add(task);
+            }
+            AddTask req = new AddTask();
+            req.Tasks = tasks.ToArray();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
         }
     }
 

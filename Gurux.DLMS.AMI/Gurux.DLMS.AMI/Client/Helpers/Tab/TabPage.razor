@@ -87,6 +87,19 @@
     [Parameter]
     public int PadgeCount { get; set; }
 
+    ///<summary>
+    ///The number of padge stamps as a string.
+    ///</summary>
+    public string PadgeCountToString() 
+    {
+        if (PadgeCount > 99)
+        {
+            return "99+";
+        }
+        return PadgeCount.ToString();
+    }
+
+
     /// <summary>
     /// Notified when number of padge stamps is updated.
     /// </summary>

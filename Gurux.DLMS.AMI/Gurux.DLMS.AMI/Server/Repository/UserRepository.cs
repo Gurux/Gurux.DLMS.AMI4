@@ -42,9 +42,7 @@ using Microsoft.AspNetCore.Identity;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Linq.Expressions;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using System.Text.Json;
-using System.Linq;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository

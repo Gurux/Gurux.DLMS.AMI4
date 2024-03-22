@@ -47,6 +47,12 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.Service.Orm;
+using System.Data;
+using Gurux.DLMS.AMI.Client.Pages.Admin;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Gurux.DLMS.AMI.Client.Pages.Module;
 
 namespace Gurux.DLMS.AMI.Scheduler
 {
@@ -141,7 +147,14 @@ namespace Gurux.DLMS.AMI.Scheduler
         /// <inheritdoc />
         public async Task RunAsync(ClaimsPrincipal user, GXSchedule schedule)
         {
-            User = ServerSettings.GetDefaultAdminUser(_host);
+            if (user != null)
+            {
+                User = user;
+            }
+            else
+            {
+                User = ServerSettings.GetDefaultAdminUser(_host);
+            }
             List<GXTask> tasks = new List<GXTask>();
             if (statistic != null && statistic.ScheduleActions)
             {
@@ -169,6 +182,73 @@ namespace Gurux.DLMS.AMI.Scheduler
             }
         }
 
+        private async Task AddDeviceObjects(
+            IDbTransaction transaction,
+            GXUser? creator,
+            GXSchedule schedule,
+            GXDevice dev,
+            GXObjectTemplate ot,
+            List<GXTask> tasks)
+        {
+            //Get object.
+            GXSelectArgs arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
+            arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(s => s.Template, o => o.Id);
+            arg.Joins.AddInnerJoin<GXObject, GXDevice>(j => j.Device, j => j.Id);
+            arg.Where.And<GXObjectTemplate>(q => q.Id == ot.Id);
+            arg.Where.And<GXDevice>(q => q.Id == dev.Id);
+            GXObject obj = (await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg));
+            if (obj == null)
+            {
+                GXSelectArgs args = GXQuery.GetDevicesByUser(creator.Id, false, dev.Id);
+                dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, args));
+                if (dev == null)
+                {
+                    throw new ArgumentException(Gurux.DLMS.AMI.Server.Properties.Resources.UnknownTarget);
+                }
+                obj = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, ot.Id);
+            }
+            //Add device objects to read.
+            GXTask t = new GXTask()
+            {
+                TriggerSchedule = schedule,
+                Object = obj,
+                TargetDevice = dev.Id,
+                TaskType = TaskType.Read,
+            };
+            tasks.Add(t);
+
+        }
+
+        private async Task AddDeviceAttributes(
+           IDbTransaction transaction,
+           GXUser? creator,
+           GXSchedule schedule,
+           GXDevice dev,
+           GXAttributeTemplate at,
+           List<GXTask> tasks)
+        {
+            //Get attribute with device id, object logical name and attribute index.
+            GXAttribute? att2 = await ObjectRepository.GetDeviceAttributeUsingLogicalName(_host,
+                transaction, creator.Id, dev.Id, at.ObjectTemplate.LogicalName, at.Index);
+            if (att2 != null)
+            {
+                at.Id = att2.Id;
+            }
+            else
+            {
+                //If object is not created yet.
+            }
+            //Add attribute to read.
+            GXTask t = new GXTask()
+            {
+                TriggerSchedule = schedule,
+                Attribute = att2,
+                TargetDevice = dev.Id,
+                TaskType = TaskType.Read,
+            };
+            tasks.Add(t);
+        }
+
         private async Task RunSchedule(GXSchedule schedule, List<GXTask> tasks, DateTime now)
         {
             ClaimsPrincipal user = ServerHelpers.CreateClaimsPrincipalFromUser(schedule.Creator);
@@ -181,135 +261,221 @@ namespace Gurux.DLMS.AMI.Scheduler
             schedule.Creator = creator;
             if (schedule.DeviceGroups != null)
             {
-                foreach (GXDeviceGroup dg in schedule.DeviceGroups)
+                bool handled = false;
+                if ((schedule.DeviceGroupObjectTemplates != null && schedule.DeviceGroupObjectTemplates.Any()) ||
+                    (schedule.DeviceGroupAttributeTemplates != null && schedule.DeviceGroupAttributeTemplates.Any()))
                 {
-                    bool handled = false;
-                    if (schedule.Objects != null && schedule.Objects.Any())
+                    handled = true;
+                    using IDbTransaction transaction = _host.Connection.BeginTransaction();
+                    try
                     {
-                        handled = true;
-                        GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
-                        if (g.Devices != null)
+                        foreach (GXDeviceGroup dg in schedule.DeviceGroups)
                         {
-                            foreach (GXDevice dev in g.Devices)
+                            //Get device group devices.
+                            dg.Devices = (await _deviceGroupRepository.ReadAsync(user, dg.Id)).Devices;
+                            if (dg.Devices != null && schedule.DeviceGroupObjectTemplates != null)
                             {
-                                ListObjects req = new ListObjects()
+                                foreach (GXDevice it in dg.Devices)
                                 {
-                                    Filter = new GXObject() { Device = dev },
-                                };
-                                var objects = await _objectRepository.ListAsync(user, req, null, default);
-                                //Device objects are read in one batch.
-                                Guid batch = Guid.NewGuid();
-                                foreach (GXObject o in schedule.Objects)
-                                {
-                                    GXObject? ot = objects.Where(w => w.Template?.LogicalName == o.Template?.LogicalName).SingleOrDefault();
-                                    if (ot != null)
+                                    foreach (GXObjectTemplate ot in schedule.DeviceGroupObjectTemplates)
                                     {
-                                        if (ot.Latebind)
-                                        {
-                                            //If late binding.
-                                            ot.Id = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, dev, ot.Id)).Id;
-                                            ot.Device = dev;
-                                        }
-                                        GXTask t = new GXTask()
-                                        {
-                                            TriggerSchedule = schedule,
-                                            Object = ot,
-                                            TaskType = TaskType.Read,
-                                            Batch = batch,
-                                        };
-                                        tasks.Add(t);
+                                        await AddDeviceObjects(transaction, creator, schedule, it, ot, tasks);
+                                    }
+                                }
+                            }
+                            if (dg.Devices != null && schedule.DeviceGroupAttributeTemplates != null)
+                            {
+                                foreach (GXDevice it in dg.Devices)
+                                {
+                                    foreach (GXAttributeTemplate at in schedule.DeviceGroupAttributeTemplates)
+                                    {
+                                        await AddDeviceAttributes(transaction, creator, schedule, it, at, tasks);
                                     }
                                 }
                             }
                         }
-                        //Reset objects.
-                        schedule.Objects = null;
+                        _host.Connection.CommitTransaction(transaction);
                     }
-                    if (schedule.Attributes != null && schedule.Attributes.Any())
+                    catch (Exception)
                     {
-                        handled = true;
-                        GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
-                        //List of create objects.
-                        if (g.Devices != null)
+                        _host.Connection.RollbackTransaction(transaction);
+                        throw;
+                    }
+                }
+                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any())
+                {
+                    handled = true;
+                }
+                if (!handled)
+                {
+                    foreach (GXDeviceGroup dg in schedule.DeviceGroups)
+                    {
+                        if (schedule.Objects != null && schedule.Objects.Any())
                         {
-                            foreach (GXDevice device in g.Devices)
+                            handled = true;
+                            GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
+                            if (g.Devices != null)
                             {
-                                Dictionary<Guid, GXObject> objects = new Dictionary<Guid, GXObject>();
-                                ListAttributes req = new ListAttributes()
+                                foreach (GXDevice dev in g.Devices)
                                 {
-                                    Filter = new GXAttribute()
+                                    ListObjects req = new ListObjects()
                                     {
-                                        Object = new GXObject() { Device = device },
-                                    }
-                                };
-                                var attributes = await _attributeRepository.ListAsync(user, req, null, default);
-                                //Device attrbutes are read in one batch.
-                                Guid batch = Guid.NewGuid();
-                                foreach (GXAttribute a in schedule.Attributes)
-                                {
-                                    GXAttribute? at = attributes.Where(w => w.Template.Id == a.Template.Id).SingleOrDefault();
-                                    if (at != null)
+                                        Filter = new GXObject() { Device = dev },
+                                    };
+                                    var objects = await _objectRepository.ListAsync(user, req, null, default);
+                                    //Device objects are read in one batch.
+                                    Guid batch = Guid.NewGuid();
+                                    foreach (GXObject o in schedule.Objects)
                                     {
-                                        if (at.CreationTime == DateTime.MinValue)
+                                        GXObject? ot = objects.Where(w => w.Template?.LogicalName == o.Template?.LogicalName).SingleOrDefault();
+                                        if (ot != null)
                                         {
-                                            //If late binding is used and object is not created yet.
-                                            if (objects.TryGetValue(at.Object.Id, out GXObject? obj))
+                                            if (ot.Latebind)
                                             {
-                                                at.Object = obj;
+                                                //If late binding.
+                                                ot.Id = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, dev, ot.Id)).Id;
+                                                ot.Device = dev;
                                             }
-                                            else
+                                            GXTask t = new GXTask()
                                             {
-                                                at.Object = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, device, at.Object.Id));
-                                            }
-                                            objects[at.Object.Template.Id] = at.Object;
-                                            //Find attribute template and update it.
-                                            var tmp = at.Object.Attributes.Where(w => w.Template.Index == a.Template.Index).SingleOrDefault();
-                                            if (tmp != null)
-                                            {
-                                                //Update attribute ID.
-                                                at.Id = tmp.Id;
-                                            }
+                                                TriggerSchedule = schedule,
+                                                Object = ot,
+                                                TaskType = TaskType.Read,
+                                                Batch = batch,
+                                            };
+                                            tasks.Add(t);
                                         }
-                                        GXTask t = new GXTask()
-                                        {
-                                            TriggerSchedule = schedule,
-                                            Attribute = at,
-                                            TaskType = TaskType.Read,
-                                            Batch = batch,
-                                        };
-                                        tasks.Add(t);
                                     }
                                 }
                             }
+                            //Reset objects.
+                            schedule.Objects = null;
                         }
-                        //Reset attributes.
-                        schedule.Attributes = null;
+                        if (schedule.Attributes != null && schedule.Attributes.Any())
+                        {
+                            handled = true;
+                            GXDeviceGroup g = await _deviceGroupRepository.ReadAsync(user, dg.Id);
+                            //List of create objects.
+                            if (g.Devices != null)
+                            {
+                                foreach (GXDevice device in g.Devices)
+                                {
+                                    Dictionary<Guid, GXObject> objects = new Dictionary<Guid, GXObject>();
+                                    ListAttributes req = new ListAttributes()
+                                    {
+                                        Filter = new GXAttribute()
+                                        {
+                                            Object = new GXObject() { Device = device },
+                                        }
+                                    };
+                                    var attributes = await _attributeRepository.ListAsync(user, req, null, default);
+                                    //Device attrbutes are read in one batch.
+                                    Guid batch = Guid.NewGuid();
+                                    foreach (GXAttribute a in schedule.Attributes)
+                                    {
+                                        GXAttribute? at = attributes.Where(w => w.Template.Id == a.Template.Id).SingleOrDefault();
+                                        if (at != null)
+                                        {
+                                            if (at.CreationTime == DateTime.MinValue)
+                                            {
+                                                //If late binding is used and object is not created yet.
+                                                if (objects.TryGetValue(at.Object.Id, out GXObject? obj))
+                                                {
+                                                    at.Object = obj;
+                                                }
+                                                else
+                                                {
+                                                    at.Object = (await ObjectRepository.CreateLateBindObject(_host, null, schedule.Creator.Id, device, at.Object.Id));
+                                                }
+                                                objects[at.Object.Template.Id] = at.Object;
+                                                //Find attribute template and update it.
+                                                var tmp = at.Object.Attributes.Where(w => w.Template.Index == a.Template.Index).SingleOrDefault();
+                                                if (tmp != null)
+                                                {
+                                                    //Update attribute ID.
+                                                    at.Id = tmp.Id;
+                                                }
+                                            }
+                                            GXTask t = new GXTask()
+                                            {
+                                                TriggerSchedule = schedule,
+                                                Attribute = at,
+                                                TaskType = TaskType.Read,
+                                                Batch = batch,
+                                            };
+                                            tasks.Add(t);
+                                        }
+                                    }
+                                }
+                            }
+                            //Reset attributes.
+                            schedule.Attributes = null;
+                        }
+                        if (!handled)
+                        {
+                            GXTask t = new GXTask()
+                            {
+                                TriggerSchedule = schedule,
+                                DeviceGroup = dg,
+                                TaskType = TaskType.Read,
+                            };
+                            tasks.Add(t);
+                        }
                     }
-                    if (!handled)
+                }
+            }
+            if (schedule.Devices != null)
+            {
+                bool handled = false;
+                if ((schedule.DeviceObjectTemplates != null && schedule.DeviceObjectTemplates.Any()) ||
+                    (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any()))
+                {
+                    handled = true;
+                    using IDbTransaction transaction = _host.Connection.BeginTransaction();
+                    try
                     {
+                        foreach (GXDevice it in schedule.Devices)
+                        {
+                            if (schedule.DeviceObjectTemplates != null)
+                            {
+                                foreach (GXObjectTemplate ot in schedule.DeviceObjectTemplates)
+                                {
+                                    await AddDeviceObjects(transaction, creator, schedule, it, ot, tasks);
+                                }
+                            }
+                            if (schedule.DeviceAttributeTemplates != null)
+                            {
+                                foreach (GXAttributeTemplate at in schedule.DeviceAttributeTemplates)
+                                {
+                                    await AddDeviceAttributes(transaction, creator, schedule, it, at, tasks);
+                                }
+                            }
+                        }
+                        _host.Connection.CommitTransaction(transaction);
+                    }
+                    catch (Exception)
+                    {
+                        _host.Connection.RollbackTransaction(transaction);
+                        throw;
+                    }
+                }
+                if (schedule.DeviceAttributeTemplates != null && schedule.DeviceAttributeTemplates.Any())
+                {
+                    handled = true;
+                }
+                if (!handled)
+                {
+                    foreach (GXDevice it in schedule.Devices)
+                    {
+                        //Add device read.
                         GXTask t = new GXTask()
                         {
                             TriggerSchedule = schedule,
-                            DeviceGroup = dg,
+                            Device = it,
                             TaskType = TaskType.Read,
                         };
                         tasks.Add(t);
                     }
-                }
-            }
-
-            if (schedule.Devices != null)
-            {
-                foreach (GXDevice it in schedule.Devices)
-                {
-                    //Add device read.
-                    GXTask t = new GXTask()
-                    {
-                        TriggerSchedule = schedule,
-                        Device = it,
-                        TaskType = TaskType.Read,
-                    };
-                    tasks.Add(t);
                 }
             }
             if (schedule.Objects != null)

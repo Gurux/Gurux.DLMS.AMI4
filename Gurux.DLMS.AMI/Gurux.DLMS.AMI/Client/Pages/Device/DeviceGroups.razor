@@ -78,8 +78,7 @@
                    @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
         </th>
         <Fh Id="CreationTime" Visibility="Visibility.Medium">
-            <GXDateTimeSelector
-                                Id="DeviceGroups-CreationTime"
+            <GXDateTimeSelector Id="DeviceGroups-CreationTime"
                                 @bind-Value="@filter.CreationTime"
                                 Placeholder="@Properties.Resources.FilterByCreationTime">
             </GXDateTimeSelector>
@@ -251,6 +250,7 @@
             if (Header)
             {
                 Notifier.Clear();
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Read, Icon = "oi oi-account-logout", OnClick = OnReadSelected });
                 Notifier.UpdateButtons();
             }
             if (table != null && Id != null)
@@ -416,6 +416,45 @@
         catch (Exception ex)
         {
             Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Read all selected objects.
+    /// </summary>
+    public async void OnReadSelected()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier?.ProgressStart();
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            List<GXTask> tasks = new List<GXTask>();
+            foreach (var it in table.SingleOrDefault())
+            {
+                GXTask task = new GXTask();
+                task.TaskType = TaskType.Read;
+                task.DeviceGroup = new GXDeviceGroup() { Id = it.Id };
+                tasks.Add(task);
+            }
+            AddTask req = new AddTask();
+            req.Tasks = tasks.ToArray();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
         }
     }
 

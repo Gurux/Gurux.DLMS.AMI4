@@ -35,7 +35,6 @@ using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Server.Internal;
 using System.Security.Claims;
@@ -79,7 +78,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
         }
 
         public async Task Invoke(HttpContext context,
-            ISystemLogRepository systemErrorRepository)
+            ISystemLogRepository systemLogRepository)
         {
             try
             {
@@ -184,7 +183,7 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
             catch (Exception ex)
             {
                 await AddUserErrorAsync(context.User, ex);
-                GXSystemLog err = await systemErrorRepository.AddAsync(context.User, ex);
+                GXSystemLog err = await systemLogRepository.AddAsync(context.User, ex);
                 context.Response.ContentType = "application/json";
                 context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                 if (!context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))

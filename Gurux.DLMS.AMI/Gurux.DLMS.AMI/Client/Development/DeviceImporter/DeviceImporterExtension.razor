@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using Gurux.DLMS.AMI.Module;
 @using Gurux.DLMS.AMI.Module.Enums;
 @using Gurux.DLMS.AMI.Shared.DTOs;
@@ -45,7 +44,7 @@
              Description="Importing devices">
 </ProgressBar>
 <fieldset style="width:100%; height:100%"
-          disabled="@(_progressBar != null && _progressBar.Current != 0)">
+          disabled="@_importing">
     <MenuControl RightCorner="true">
         <ChildContent>
             <MenuItem Text="@Properties.Resources.Import" Icon="oi oi-flash" OnClick="@(async () => await Import())" />
@@ -73,11 +72,15 @@
                 </select>
             </div>
             <div class="form-group">
-                <Switch Text="Meter establishes the connection." Value="@AutoConnect"
-                        OnChange="AutoConnectionUpdated" />
+                <Switch id="" Text="Serial number." @bind-Value="@SerialNumber"
+                        OnChange="UpdateHelp" />
             </div>
             <div class="form-group">
-                <Switch Text="Update existing devices." Value="@UpdateExistingDevices" />
+                <Switch Text="Meter establishes the connection." @bind-Value="@AutoConnect"
+                        OnChange="UpdateHelp" />
+            </div>
+            <div class="form-group">
+                <Switch Text="Update existing devices." @bind-Value="@UpdateExistingDevices" />
             </div>
             <div class="form-group">
                 <label>Batch name</label>
@@ -97,6 +100,8 @@
 </fieldset>
 
 @code {
+    private bool _importing;
+
     [Parameter]
     public DeviceImportSettings Settings
     {
@@ -184,11 +189,11 @@
     public ProgressBar? _progressBar;
 
     /// <summary>
-    /// Help is updated when auto connection is changed.
+    /// Update help text.
     /// </summary>
-    private void AutoConnectionUpdated(bool value)
+    private void UpdateHelp(bool value)
     {
-        AutoConnect = value;
+        _dirty = true;
         StateHasChanged();
     }
 
@@ -213,21 +218,25 @@
         get
         {
             string help = "#Import format is" + Environment.NewLine +
-            "#Device Name;";
+            "#Device Name";
             if (!AutoConnect)
             {
-                help += ";IP Address;IP Port;";
+                help += ";IP Address:IP Port";
+            }
+            if (SerialNumber)
+            {
+                help += ";Serial Number";
             }
             //If security is used.
             if (_security != 0)
             {
                 if (_preEstablished)
                 {
-                    help += "Server system title;";
+                    help += ";Server system title";
                 }
                 else
                 {
-                    help += "Client system title;Authentication key;Block Cipher key.";
+                    help += ";Client system title;Authentication key;Block Cipher key";
                 }
             }
             return help;
@@ -241,6 +250,11 @@
     {
         StateHasChanged();
     }
+
+    /// <summary>
+    /// Serial number is added.
+    /// </summary>
+    private bool SerialNumber { get; set; }
 
     /// <summary>
     /// In default devices are appended to the database.
@@ -257,6 +271,7 @@
     /// </summary>
     public async Task Import()
     {
+        _importing = true;
         Notifier.ClearStatus();
         Notifier.ProgressStart();
         //Hide progress bar.
@@ -280,6 +295,28 @@
             List<GXDevice> devices = new List<GXDevice>();
             Gurux.Net.GXNet net = new Net.GXNet();
             _progressBar?.Reset(0, 2 * lines.Length);
+            int expectedColumnCount = 3;
+            if (AutoConnect)
+            {
+                expectedColumnCount -= 2;
+            }
+            if (SerialNumber)
+            {
+                ++expectedColumnCount;
+            }
+            GXDLMSSettings? settings = null;
+            if (SerialNumber || _security != 0)
+            {
+                if (!string.IsNullOrEmpty(_defaultDeviceTemplate.Settings))
+                {
+                    settings = JsonSerializer.Deserialize<GXDLMSSettings>(_defaultDeviceTemplate.Settings);
+                }
+                else
+                {
+                    settings = new GXDLMSSettings();
+                }
+            }
+
             foreach (var it in lines)
             {
                 _progressBar?.Step();
@@ -301,12 +338,9 @@
                             throw new Exception(string.Format("Invalid device import format.{0}", it));
                         }
                     }
-                    else
+                    else if (line.Length != expectedColumnCount)
                     {
-                        if (line.Length != 3)
-                        {
-                            throw new Exception(string.Format("Invalid device import format.{0}", it));
-                        }
+                        throw new Exception(string.Format("Invalid device import format. There should be {0} columns, but {1} exists.\r\n{2}", expectedColumnCount, line.Length, it));
                     }
                     int pos = 1;
                     if (!AutoConnect)
@@ -316,45 +350,75 @@
                         net.Port = int.Parse(line[pos]);
                         ++pos;
                     }
+                    long sn = 0;
+                    if (SerialNumber)
+                    {
+                        sn = long.Parse(line[pos]);
+                        if (sn < 1)
+                        {
+                            throw new Exception("Invalid serial number.");
+                        }
+                    }
                     GXDevice device = new GXDevice()
                         {
                             Template = _defaultDeviceTemplate,
+                            Settings = _defaultDeviceTemplate.Settings,
+                            WaitTime = _defaultDeviceTemplate.WaitTime,
+                            ResendCount = _defaultDeviceTemplate.ResendCount,
                             Name = line[0],
                             MediaType = "Gurux.Net.GXNet",
-                            MediaSettings = net.Settings
+                            MediaSettings = net.Settings,
                         };
-                    GXDLMSSettings? settings = null;
-                    if (_security != 0)
+                    if (settings != null && sn != 0)
                     {
-                        //If security is used.
-                        settings = new GXDLMSSettings();
-                        if (_preEstablished)
+                        //If serial number is used.
+                        if (sn != 0)
                         {
+                            settings.PhysicalAddress = sn;
+                        }
+                        ++pos;
+                    }
+                    if (settings != null)
+                    {
+                        if (_security == 0)
+                        {
+                            settings.DeviceSystemTitle = null;
+                            settings.ClientSystemTitle = null;
+                            settings.AuthenticationKey = null;
+                            settings.BlockCipherKey = null;
+                            settings.DedicatedKey = null;
+                        }
+                        else
+                        {
+                            //If security is used.
+                            if (_preEstablished)
+                            {
+                                if (GXDLMSTranslator.HexToBytes(line[pos]).Length != 8)
+                                {
+                                    throw new ArgumentException(string.Format("Invalid server system title {0}.", line[pos]));
+                                }
+                                settings.DeviceSystemTitle = line[pos];
+                            }
+                            ++pos;
                             if (GXDLMSTranslator.HexToBytes(line[pos]).Length != 8)
                             {
-                                throw new ArgumentException(string.Format("Invalid server system title {0}.", line[pos]));
+                                throw new ArgumentException(string.Format("Invalid client system title {0}.", line[pos]));
                             }
-                            settings.DeviceSystemTitle = line[pos];
+                            settings.ClientSystemTitle = line[pos];
+                            ++pos;
+                            int keySize = _securitySuite == 2 ? 32 : 16;
+                            if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
+                            {
+                                throw new ArgumentException(string.Format("Invalid authentication key {0}.", line[pos]));
+                            }
+                            settings.AuthenticationKey = line[pos];
+                            ++pos;
+                            if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
+                            {
+                                throw new ArgumentException(string.Format("Invalid block cipher key {0}.", line[pos]));
+                            }
+                            settings.BlockCipherKey = line[pos];
                         }
-                        ++pos;
-                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != 8)
-                        {
-                            throw new ArgumentException(string.Format("Invalid client system title {0}.", line[pos]));
-                        }
-                        settings.ClientSystemTitle = line[pos];
-                        ++pos;
-                        int keySize = _securitySuite == 2 ? 32 : 16;
-                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
-                        {
-                            throw new ArgumentException(string.Format("Invalid authentication key {0}.", line[pos]));
-                        }
-                        settings.AuthenticationKey = line[pos];
-                        ++pos;
-                        if (GXDLMSTranslator.HexToBytes(line[pos]).Length != keySize)
-                        {
-                            throw new ArgumentException(string.Format("Invalid block cipher key {0}.", line[pos]));
-                        }
-                        settings.BlockCipherKey = line[pos];
                     }
                     if (settings != null)
                     {
@@ -390,14 +454,11 @@
                         Groups = batch == null ? null : new GXDeviceGroup[] { batch }
                     });
                 index += BatchSize;
-                _progressBar?.Step(BatchSize, string.Format("Importing devices {0}/{1}", index, _progressBar.Maximum));
+                _progressBar?.Step(BatchSize, string.Format("Importing devices {0}/{1}", index, _progressBar.Maximum / 2));
             }
-            //Hide progress bar automatically
-            // only when import succeeded.
+            //Hide progress bar automatically only when import succeeded.
             _progressBar?.Reset(0, 0);
-            Notifier?.ShowInformation(string.Format("{0}Meters imported.", devices.Count));
-            //Enable UI again.
-            //StateHasChanged();
+            Notifier?.ShowInformation(string.Format("{0} Meters imported.", devices.Count));
         }
         catch (Exception ex)
         {
@@ -405,6 +466,8 @@
         }
         finally
         {
+            _importing = false;
+            StateHasChanged();
             Notifier.ProgressEnd();
         }
     }
