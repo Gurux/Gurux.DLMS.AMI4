@@ -774,6 +774,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                         cl.HdlcSettings.WindowSizeRX = templateSettings.WindowSizeRX;
                         cl.HdlcSettings.WindowSizeTX = templateSettings.WindowSizeTX;
                     }
+                    if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber)
+                    {
+                        cl.ServerAddressSize = 4;
+                    }
                     cl.Password = settings.HexPassword;
                     cl.UseUtc2NormalTime = templateSettings.UtcTimeZone;
                     cl.Standard = (Standard)templateSettings.Standard;

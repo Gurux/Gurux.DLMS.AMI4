@@ -1102,14 +1102,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 if (tx)
                 {
-                    Console.WriteLine("TX:\t" + DateTime.Now.ToString("hh:mm:ss") + "\t" + frame);
+                    _logger?.LogInformation("TX:\t" + DateTime.Now.ToString("hh:mm:ss") + "\t" + frame);
                 }
                 else
                 {
-                    Console.WriteLine("RX:\t" + DateTime.Now.ToString("hh:mm:ss") + "\t" + frame);
+                    _logger?.LogInformation("RX:\t" + DateTime.Now.ToString("hh:mm:ss") + "\t" + frame);
                 }
             }
-            _logger?.LogInformation(frame);
             if (_device != null && _deviceTrace > TraceLevel.Info)
             {
                 try
