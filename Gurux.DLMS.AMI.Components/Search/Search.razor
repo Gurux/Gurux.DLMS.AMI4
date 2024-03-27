@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization;
 
@@ -41,7 +40,7 @@
                value="@Value"
                onsearch="@(() => OnSearch())"
                placeholder="@Placeholder"
-               oninput="@((ChangeEventArgs __e) => Value = Convert.ToString(__e.Value))" />
+               oninput="@((ChangeEventArgs e) => UpdateSearch(e.Value))" />
         <span class="input-group-append">
             <button class="btn btn-outline-secondary border-left-0 border" type="button"
                     onclick="@(() => OnSearch())">
@@ -64,6 +63,25 @@
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
     public string? Value { get; set; }
+
+    /// <summary>
+    /// Update search value.
+    /// </summary>
+    /// <param name="value"></param>
+    private void UpdateSearch(object? value)
+    {
+        Value = Convert.ToString(value);
+        if (Immediate)
+        {
+            OnSearch();
+        }
+    }
+
+    /// <summary>
+    /// If immediate filtering is used, the query is executed when the user presses any key.
+    /// </summary>
+    [Parameter]
+    public bool Immediate { get; set; }
 
     /// <summary>
     /// Action that is executed when the user press the search button.

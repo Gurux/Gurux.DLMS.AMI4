@@ -343,7 +343,6 @@
     public int[] GetSelectedRows()
     {
         List<int> rows = new List<int>();
-        int row = 0;
         var list = GetItems().ToList();
         foreach (var it in _selectedItems.Values)
         {
@@ -849,7 +848,7 @@
         {
             foreach (var it in Items)
             {
-                object? value = it.GetType().GetProperty("Id")?.GetValue(it);
+                object? value = it?.GetType().GetProperty("Id")?.GetValue(it);
                 if (value != null)
                 {
                     if (!select && _selectedItems.ContainsKey(value))
