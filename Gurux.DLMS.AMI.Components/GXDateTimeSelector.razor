@@ -66,6 +66,13 @@
     }
 
     /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
+    /// <summary>
     /// Is datetime value required.
     /// </summary>
     [Parameter]
@@ -202,7 +209,7 @@
         }
         try
         {
-            if (!string.IsNullOrEmpty(Id))
+            if (Save && !string.IsNullOrEmpty(Id))
             {
                 cookieStorage.SetValueAsync(Id, ValueToString());
             }
@@ -220,7 +227,7 @@
     {
         try
         {
-            if (!string.IsNullOrEmpty(Id))
+            if (Save && !string.IsNullOrEmpty(Id))
             {
                 string? str = await cookieStorage.GetValueAsync(Id);
                 UpdateDateTime(str);

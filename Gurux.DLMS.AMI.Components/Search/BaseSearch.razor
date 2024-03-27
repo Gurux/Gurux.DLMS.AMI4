@@ -65,6 +65,13 @@
         get;
         set;
     }
+    
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
 
     /// <summary>
     /// Selected item.
@@ -124,7 +131,7 @@
         }
         try
         {
-            if (!string.IsNullOrEmpty(Id))
+            if (Save && !string.IsNullOrEmpty(Id))
             {
                 cookieStorage.SetValueAsync(Id, Convert.ToString(value));
             }
@@ -144,7 +151,7 @@
         {
             //Get the default value from the cookies
             // if it's not set.
-            if (Values != null && !string.IsNullOrEmpty(Id))
+            if (Save && Values != null && !string.IsNullOrEmpty(Id))
             {
                 string? value = await cookieStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(value))

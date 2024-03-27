@@ -52,6 +52,13 @@
         set;
     }
 
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
     private async Task UpdateString(object? value)
     {
         string? tmp = Convert.ToString(value);
@@ -65,7 +72,7 @@
             }
             try
             {
-                if (!string.IsNullOrEmpty(Id))
+                if (Save && !string.IsNullOrEmpty(Id))
                 {
                     await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
@@ -84,7 +91,7 @@
     {
         try
         {
-            if (!string.IsNullOrEmpty(Id))
+            if (Save && !string.IsNullOrEmpty(Id))
             {
                 string? value = await cookieStorage.GetValueAsync(Id);
                 if (value != Value)

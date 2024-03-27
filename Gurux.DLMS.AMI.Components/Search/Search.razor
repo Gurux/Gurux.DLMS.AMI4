@@ -31,7 +31,11 @@
 //---------------------------------------------------------------------------
 -->
 @using System.Diagnostics.CodeAnalysis
-@using System.Globalization;
+@using System.Globalization
+@using Microsoft.Extensions.Logging
+
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<Search> Logger
 
 <div class="row">
     <div class="input-group col-md-4">
@@ -52,6 +56,23 @@
 @code {
     public delegate Task SearchDelegate(string? value);
 
+    /// <summary>
+    /// Search ID is used to save cookie value.
+    /// </summary>
+    /// <seealso cref="Save"/>see
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
 
     [Parameter]
     public string? CssClass { get; set; }
@@ -62,7 +83,20 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
+    /// <summary>
+    /// Search value.
+    /// </summary>
     public string? Value { get; set; }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ValueChanged
+    {
+        get;
+        set;
+    }
 
     /// <summary>
     /// Update search value.
@@ -71,6 +105,10 @@
     private void UpdateSearch(object? value)
     {
         Value = Convert.ToString(value);
+        if (ValueChanged.HasDelegate)
+        {
+            ValueChanged.InvokeAsync(Value);
+        }
         if (Immediate)
         {
             OnSearch();
@@ -104,6 +142,36 @@
         else if (OnClickAsync != null)
         {
             OnClickAsync(Value);
+        }
+        try
+        {
+            if (Save && !string.IsNullOrEmpty(Id))
+            {
+                cookieStorage.SetValueAsync(Id, Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Get the default value from the cookies.
+            if (Save && !string.IsNullOrEmpty(Id))
+            {
+                Value = await cookieStorage.GetValueAsync(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
         }
     }
 }

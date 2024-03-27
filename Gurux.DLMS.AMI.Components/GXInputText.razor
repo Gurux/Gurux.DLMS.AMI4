@@ -59,6 +59,13 @@
     }
 
     /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
+    /// <summary>
     /// Is string value required.
     /// </summary>
     [Parameter]
@@ -118,7 +125,7 @@
             }
             try
             {
-                if (!string.IsNullOrEmpty(Id))
+                if (Save && !string.IsNullOrEmpty(Id))
                 {
                     await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
@@ -137,7 +144,7 @@
     {
         try
         {
-            if (!string.IsNullOrEmpty(Id))
+            if (Save && !string.IsNullOrEmpty(Id))
             {
                 Value = await cookieStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(Value))

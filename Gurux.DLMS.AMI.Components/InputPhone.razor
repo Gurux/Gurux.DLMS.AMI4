@@ -30,9 +30,74 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
+@using Microsoft.Extensions.Logging
+
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<InputPhone> Logger
 
 @inherits Microsoft.AspNetCore.Components.Forms.InputText
 <input type="tel" value="@CurrentValue"
        class="@CssClass"
        @attributes="AdditionalAttributes"
-       onchange="@((ChangeEventArgs e) => CurrentValue = Convert.ToString(e.Value))" />
+       onchange="@((ChangeEventArgs e) => UpdateValue(e.Value))" />
+
+@code {
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
+    private async Task UpdateValue(object? value)
+    {
+        string? str = Convert.ToString(value);
+        if (Value != str)
+        {
+            Value = str;
+            if (ValueChanged.HasDelegate)
+            {
+                await ValueChanged.InvokeAsync(Value);
+            }
+            try
+            {
+                if (Save && !string.IsNullOrEmpty(Id))
+                {
+                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Save && !string.IsNullOrEmpty(Id))
+            {
+                Value = await cookieStorage.GetValueAsync(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+}

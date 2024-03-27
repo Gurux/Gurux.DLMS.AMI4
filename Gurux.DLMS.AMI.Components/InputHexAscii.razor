@@ -60,6 +60,13 @@
         set;
     }
 
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
