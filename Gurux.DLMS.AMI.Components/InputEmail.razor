@@ -92,7 +92,8 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                Value = await cookieStorage.GetValueAsync(Id);
+                string? value = await cookieStorage.GetValueAsync(Id);
+                await UpdateValue(value);
             }
         }
         catch (Exception ex)

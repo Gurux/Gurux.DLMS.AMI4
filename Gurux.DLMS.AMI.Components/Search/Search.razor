@@ -104,14 +104,18 @@
     /// <param name="value"></param>
     private void UpdateSearch(object? value)
     {
-        Value = Convert.ToString(value);
-        if (ValueChanged.HasDelegate)
+        string? str = Convert.ToString(value);
+        if (Value != str)
         {
-            ValueChanged.InvokeAsync(Value);
-        }
-        if (Immediate)
-        {
-            OnSearch();
+            Value = str;
+            if (ValueChanged.HasDelegate)
+            {
+                ValueChanged.InvokeAsync(Value);
+            }
+            if (Immediate)
+            {
+                OnSearch();
+            }
         }
     }
 
@@ -166,7 +170,8 @@
             //Get the default value from the cookies.
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                Value = await cookieStorage.GetValueAsync(Id);
+                string? value = await cookieStorage.GetValueAsync(Id);
+                UpdateSearch(value);
             }
         }
         catch (Exception ex)
