@@ -22,10 +22,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2403.1801" />
-    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2403.801" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.2" PrivateAssets="all" />
+    <PackageReference Include="Gurux.DLMS.AMI.Components" Version="4.0.2404.401" />
+    <PackageReference Include="Gurux.DLMS.AMI.Module" Version="4.0.2404.401" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.3" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
