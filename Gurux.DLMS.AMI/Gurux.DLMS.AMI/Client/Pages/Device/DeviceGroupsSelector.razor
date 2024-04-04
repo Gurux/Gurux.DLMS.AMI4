@@ -34,7 +34,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.Agent;
 @using Gurux.DLMS.AMI.Client.Pages.Gateway;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
-@using Gurux.DLMS.AMI.Client.Pages.Subtotal
+@using Gurux.DLMS.AMI.Client.Pages.Report
 @using Gurux.DLMS.AMI.Client.Pages.User;
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Microsoft.AspNetCore.Authorization
@@ -114,7 +114,7 @@
     private ScheduleTab? ScheduleParent { get; set; }
 
     [CascadingParameter]
-    private SubtotalTab? SubtotalParent { get; set; }
+    private ReportTab? ReportParent { get; set; }
 
     SelectionList<GXDeviceGroup>? _selected;
     SelectionList<GXDeviceGroup>? _available;
@@ -303,7 +303,7 @@
         {
             return GatewayParent.Active.DeviceGroups;
         }
-        return SubtotalParent?.Active?.DeviceGroups;
+        return ReportParent?.Active?.DeviceGroups;
     }
 
     public Task Update()

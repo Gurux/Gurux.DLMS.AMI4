@@ -199,11 +199,15 @@ namespace Gurux.DLMS.AMI.Scheduler
             GXObject obj = (await _host.Connection.SingleOrDefaultAsync<GXObject>(transaction, arg));
             if (obj == null)
             {
-                GXSelectArgs args = GXQuery.GetDevicesByUser(creator.Id, false, dev.Id);
-                dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, args));
+                arg = GXQuery.GetDevicesByUser(creator.Id, false, dev.Id);
+                arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                arg.Joins.AddInnerJoin<GXDeviceTemplate, GXObjectTemplate>(j => j.Id, j => j.DeviceTemplate);
+                arg.Where.And<GXObjectTemplate>(q => q.Id == ot.Id);
+                dev = (await _host.Connection.SingleOrDefaultAsync<GXDevice>(transaction, arg));
                 if (dev == null)
                 {
-                    throw new ArgumentException(Gurux.DLMS.AMI.Server.Properties.Resources.UnknownTarget);
+                    //If device template is not included for this device.
+                    return;
                 }
                 obj = await ObjectRepository.CreateLateBindObject(_host, transaction, creator.Id, dev, ot.Id);
             }
@@ -253,7 +257,7 @@ namespace Gurux.DLMS.AMI.Scheduler
         {
             ClaimsPrincipal user = ServerHelpers.CreateClaimsPrincipalFromUser(schedule.Creator);
             List<string> users = await _scheduleRepository.GetUsersAsync(user, schedule.Id);
-            await _eventsNotifier.ScheduleStart(users, new[] { schedule });
+            await _eventsNotifier.ScheduleStart(users, [schedule]);
             //Save schedule invoker.
             GXUser? creator = schedule.Creator;
             //Read all data for the schedule.
@@ -548,7 +552,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             {
                 GXSystemLog log = new GXSystemLog(TraceLevel.Verbose);
                 log.Message = Server.Properties.Resources.SchedulerServiceIsWorking;
-                await _systemLogRepository.AddAsync(User, new GXSystemLog[] { log });
+                await _systemLogRepository.AddAsync(User, [log]);
             }
             _logger.LogInformation(Server.Properties.Resources.SchedulerServiceIsWorking);
             try
@@ -562,7 +566,7 @@ namespace Gurux.DLMS.AMI.Scheduler
                         Active = true
                     },
                     //Select user and roles information.
-                    Select = new string[] { "User", "Role" }
+                    Select = ["User", "Role"]
                 };
                 List<GXTask> tasks = new List<GXTask>();
                 GXSchedule[] schedules = await _scheduleRepository.ListAsync(User, req, null, CancellationToken.None);
@@ -632,7 +636,7 @@ namespace Gurux.DLMS.AMI.Scheduler
             {
                 GXSystemLog log = new GXSystemLog(TraceLevel.Verbose);
                 log.Message = Server.Properties.Resources.SchedulerServiceIsStopping;
-                await _systemLogRepository.AddAsync(User, new GXSystemLog[] { log });
+                await _systemLogRepository.AddAsync(User, [log]);
             }
             _logger.LogWarning(Server.Properties.Resources.SchedulerServiceIsStopping);
             _timer?.Change(Timeout.Infinite, 0);

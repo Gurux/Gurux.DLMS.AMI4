@@ -44,6 +44,8 @@ using Gurux.DLMS.AMI.Server.Triggers;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Client.Pages.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Client.Pages.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -247,6 +249,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXTrigger, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXTrigger, List<string>> updates = new Dictionary<GXTrigger, List<string>>();
             foreach (GXTrigger trigger in triggers)
@@ -264,9 +267,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (trigger.Id == Guid.Empty)
                 {
+                    trigger.Creator = creator;
                     trigger.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(trigger);
-                    args.Exclude<GXTrigger>(q => new { q.Updated, q.TriggerGroups });
+                    args.Exclude<GXTrigger>(q => new
+                    {
+                        q.Updated,
+                        q.TriggerGroups
+                    });
                     _host.Connection.Insert(args);
                     list.Add(trigger.Id);
                     if (trigger.TriggerGroups != null && trigger.TriggerGroups.Count != 0)
@@ -285,7 +293,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     trigger.Updated = now;
                     trigger.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(trigger, columns);
-                    args.Exclude<GXTrigger>(q => new { q.CreationTime, q.TriggerGroups });
+                    args.Exclude<GXTrigger>(q => new
+                    {
+                        q.CreationTime,
+                        q.TriggerGroups
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                       trigger.Creator == null ||
+                       string.IsNullOrEmpty(trigger.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXTrigger>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map trigger groups to trigger.
                     List<GXTriggerGroup> triggerGroups;

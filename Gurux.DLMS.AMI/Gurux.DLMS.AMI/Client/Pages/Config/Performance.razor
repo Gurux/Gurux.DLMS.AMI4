@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using Gurux.DLMS.AMI.Script
 @using Gurux.DLMS.AMI.Shared
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -58,15 +57,22 @@
 @if (_settings != null)
 {
     <h2>Client notifications</h2>
-    <input type="search" value="@SearchText"
-           @oninput="@Search" placeholder="Search by type" />
+    <Search Placeholder="@Properties.Resources.FilterByName"
+            Id="Performance.Filter"
+            Immediate="true"
+            @bind-Value="@SearchText"
+            OnClickAsync="@SearchByName" />
+    <hr />
     <EditForm Model="@_settings">
         <table class="table table-striped" width="100%">
             <thead>
                 <tr>
                     <th>
                         <Tooltip Title="@ToolTip">
-                            <input type="checkbox" @onchange="@((ChangeEventArgs __e) => ToggleAll(Convert.ToBoolean(__e.Value)))" />
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox"
+                                       @onchange="@((ChangeEventArgs __e) => ToggleAll(Convert.ToBoolean(__e.Value)))" />
+                            </div>
                         </Tooltip>
                     </th>
                     <th>@Properties.Resources.Name</th>
@@ -132,7 +138,7 @@
         _active = selected;
     }
     private string? _active;
-    private string SearchText = "";
+    private string? SearchText;
     private bool _allSelected = false;
 
     IEnumerable<string> Notifications = ClientHelpers.GetNotifications(false);
@@ -156,9 +162,18 @@
     /// <summary>
     /// Search from notifications.
     /// </summary>
+    private Task SearchByName(object? value)
+    {
+        Search(new ChangeEventArgs() { Value = value });
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Search from notifications.
+    /// </summary>
     private void Search(ChangeEventArgs args)
     {
-        String? value = Convert.ToString(args.Value);
+        string? value = Convert.ToString(args.Value);
         Notifications = ClientHelpers.GetNotifications(false);
         if (!string.IsNullOrEmpty(value))
         {
@@ -166,7 +181,7 @@
             List<string> tmp = new List<string>();
             foreach (var it in Notifications)
             {
-                if (it.Contains(value))
+                if (it.ToLower().Contains(value))
                 {
                     tmp.Add(it);
                 }

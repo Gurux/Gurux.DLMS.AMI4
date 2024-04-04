@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @namespace Gurux.DLMS.AMI.Components.Tab
 @using System.Diagnostics
 
@@ -47,6 +46,12 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Is tab page visible.
+    /// </summary>
+    [Parameter]
+    public bool Visible { get; set; } = true;
 
     ///<summary>
     ///Tab page path.
@@ -90,7 +95,7 @@
     ///<summary>
     ///The number of padge stamps as a string.
     ///</summary>
-    public string PadgeCountToString() 
+    public string PadgeCountToString()
     {
         if (PadgeCount > 99)
         {

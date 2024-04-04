@@ -1,0 +1,172 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/config/reportmanage"
+@page "/config/report"
+@page "/config/reportGroup"
+@page "/config/report/deviceGroup"
+@page "/config/report/device"
+@page "/config/report/agent"
+@page "/config/report/agentGroup"
+@page "/config/report/gateway"
+@page "/config/report/gatewayGroup"
+@page "/config/report/log/{Id:guid?}"
+@page "/config/report/log/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Report
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ReportManager + "," + GXRoles.ReportGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+<!--If user adds a new item or modifies the existing one.-->
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "Report", true) == 0)
+    {
+        <ReportTab Action="@Action" Id="@Id"></ReportTab>
+    }
+    else if (string.Compare(Path, "ReportGroup", true) == 0)
+    {
+        <ReportGroupTab Action="@Action" Id="@Id"></ReportGroupTab>
+    }
+    else if (string.Compare(Path, "Log", true) == 0)
+    {
+        <ReportLog Action="@Action" Id="@Id"></ReportLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true">
+                @if (context.PadgeCount != 0)
+                {
+                    <span class="@context.GetPadgeClass()">
+                        @context.PadgeCountToString()
+                        <span class="visually-hidden">@context.Padge</span>
+                    </span>
+                }
+            </span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportManager)>
+                <TabPage Path="config/report" Text=@Properties.Resources.Reports Icon="oi oi-folder">
+                    <Reports Id="@Id"></Reports>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportGroupManager)>
+                <TabPage Path="config/reportGroup" Text=@Properties.Resources.ReportGroups Icon="oi oi-timer">
+                    <ReportGroups Id="@Id"></ReportGroups>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportLog, GXRoles.ReportLogManager)>
+                <TabPage Path="config/report/log"
+                         Text=@Properties.Resources.ReportLogs
+                         Padge="New report logs"
+                         PadgeCount="@_log.GetCount()"
+                         PadgeType="@_log.GetTraceLevel()"
+                         Icon="oi oi-warning">
+                    <ReportLogs Id="@Id"></ReportLogs>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// Stamp.
+    /// </summary>
+    private GXUserStamp _log = new GXUserStamp();
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _log = Notifier.GetUserStamps(TargetType.ReportLog);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+       {
+           bool updated = false;
+           foreach (var it in stamps)
+           {
+               if (it.TargetType == TargetType.ReportLog)
+               {
+                   updated = true;
+               }
+           }
+           if (updated)
+           {
+               StateHasChanged();
+               StateHasChanged();
+           }
+       });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

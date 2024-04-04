@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -302,8 +304,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXBlockGroup> BlockGroups,
             Expression<Func<GXBlockGroup, object?>>? columns)
         {
-            bool isAdmin = user.IsInRole(GXRoles.Admin);
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXBlockGroup, List<string>> updates = new Dictionary<GXBlockGroup, List<string>>();
             foreach (GXBlockGroup it in BlockGroups)
@@ -324,6 +326,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -343,7 +346,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXBlockGroup>(q => new { q.UserGroups, q.CreationTime, q.Blocks });
+                    args.Exclude<GXBlockGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Blocks
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXBlockGroup>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map user group to Block group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);
@@ -361,7 +377,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     //Map blocks to Block group.
                     //Only adming can add blocks that are visible to all users.
-                    if (it.Blocks != null && (isAdmin || it.Blocks.Any()))
+                    if (it.Blocks != null && (user.IsInRole(GXRoles.Admin) || it.Blocks.Any()))
                     {
                         List<GXBlock> list3 = await GetJoinedBlocks(user, it.Id);
                         List<Guid> groups2 = list3.Select(s => s.Id).ToList();

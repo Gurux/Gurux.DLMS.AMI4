@@ -50,6 +50,7 @@ using Microsoft.CodeAnalysis;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -411,7 +412,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     script.CreationTime = now;
                     script.Creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
                     GXInsertArgs args = GXInsertArgs.Insert(script);
-                    args.Exclude<GXScript>(q => new { q.Updated, q.ScriptGroups, q.Methods, q.Creator });
+                    args.Exclude<GXScript>(q => new
+                    {
+                        q.Updated,
+                        q.ScriptGroups,
+                        q.Methods,
+                        q.Creator
+                    });
                     _host.Connection.Insert(args);
                     list.Add(script.Id);
                     AddScriptToScriptGroups(script.Id, script.ScriptGroups);
@@ -431,7 +438,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     script.Updated = now;
                     script.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(script, columns);
-                    args.Exclude<GXScript>(q => new { q.CreationTime, q.ScriptGroups, q.Methods, q.Creator });
+                    args.Exclude<GXScript>(q => new
+                    {
+                        q.CreationTime,
+                        q.ScriptGroups,
+                        q.Methods,
+                        q.Creator
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        script.Creator == null ||
+                        string.IsNullOrEmpty(script.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXScript>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map script groups to script.
                     List<GXScriptGroup> scriptGroups;
@@ -603,6 +624,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 "Gurux.DLMS.AMI.Shared.DTOs.Schedule",
                 "Gurux.DLMS.AMI.Shared.DTOs.Script",
                 "Gurux.DLMS.AMI.Shared.DTOs.Subtotal",
+                "Gurux.DLMS.AMI.Shared.DTOs.Report",
                 "Gurux.DLMS.AMI.Shared.DTOs.Trigger",
                 "Gurux.DLMS.AMI.Shared.DTOs.User",
                 "Gurux.DLMS.AMI.Shared.DTOs.Workflow",

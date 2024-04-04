@@ -29,11 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Client.Pages.Subtotal;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
@@ -42,7 +39,6 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security.Claims;
 
@@ -70,7 +66,7 @@ namespace Gurux.DLMS.AMI.Server.Services
             _serviceProvider = serviceProvider;
             _logger = logger;
             _host = host;
-            Thread t = new Thread(() => Handler());
+            Thread t = new Thread(() => Counter());
             t.Start();
         }
 
@@ -159,13 +155,13 @@ namespace Gurux.DLMS.AMI.Server.Services
                     var subtotals = await repository.ListAsync(User, req, null, CancellationToken.None);
                     foreach (var subtotal in subtotals)
                     {
-                        if (subtotal.Calculated != null)
+                        if (subtotal.Last != null)
                         {
-                            DateTimeOffset tmp = subtotal.Calculated.Value.AddSeconds(subtotal.Interval);
+                            DateTimeOffset tmp = subtotal.Last.Value.AddSeconds(subtotal.Interval);
                             if (tmp <= now)
                             {
                                 Calculate(User, new Guid[] { subtotal.Id });
-                                tmp = GetNextExecutionTime(subtotal.Calculated.Value, subtotal.Interval, now);
+                                tmp = GetNextExecutionTime(subtotal.Last.Value, subtotal.Interval, now);
                             }
                             if (tmp < next)
                             {
@@ -176,9 +172,9 @@ namespace Gurux.DLMS.AMI.Server.Services
                         else
                         {
                             Calculate(User, new Guid[] { subtotal.Id });
-                            if (subtotal.Calculated != null)
+                            if (subtotal.Last != null)
                             {
-                                DateTimeOffset tmp = subtotal.Calculated.Value.AddSeconds(subtotal.Interval);
+                                DateTimeOffset tmp = subtotal.Last.Value.AddSeconds(subtotal.Interval);
                                 if (tmp < next)
                                 {
                                     next = tmp;
@@ -379,6 +375,35 @@ namespace Gurux.DLMS.AMI.Server.Services
                 default:
                     throw new ArgumentException("Invalid subtotal type.");
             }
+            if (subtotal.Delta && list.Any())
+            {
+                if (list.Count == 1)
+                {
+                    //Previous hour is empty.
+                    list[0].Value = "-" + Convert.ToDouble(list[0].Value);
+                }
+                else
+                {
+                    //Count delta values.
+                    var values2 = list.Zip(list.Skip(1), (current, next) => (Convert.ToDouble(next.Value) - Convert.ToDouble(current.Value)).ToString()).ToArray();
+                    //Update delta values.
+                    int pos = -1;
+                    foreach (var it in list)
+                    {
+                        if (pos != -1)
+                        {
+                            //The first value is skipped.
+                            it.Value = values2[pos];
+                        }
+                        ++pos;
+                    }
+                    if (subtotal.Last != null)
+                    {
+                        //Remove the first item.
+                        list.RemoveAt(0);
+                    }
+                }
+            }
             return await Update(user, subtotalValueRepository,
                 subtotal, list);
         }
@@ -476,9 +501,9 @@ namespace Gurux.DLMS.AMI.Server.Services
                         string ln = it.ObjectTemplate.LogicalName;
                         GXSelectArgs arg = GXSelectArgs.SelectAll<GXValue>();
                         arg.OrderBy.Add<GXValue>(o => o.Read);
-                        if (subtotal.Calculated != null)
+                        if (subtotal.Last != null)
                         {
-                            arg.Where.And<GXValue>(w => w.Read >= subtotal.Calculated);
+                            arg.Where.And<GXValue>(w => w.Read >= subtotal.Last);
                         }
                         arg.Joins.AddInnerJoin<GXValue, GXAttribute>(j => j.Attribute, j => j.Id);
                         arg.Joins.AddInnerJoin<GXAttribute, GXObject>(j => j.Object, j => j.Id);
@@ -537,9 +562,9 @@ namespace Gurux.DLMS.AMI.Server.Services
                         string ln = it.ObjectTemplate.LogicalName;
                         GXSelectArgs arg = GXSelectArgs.SelectAll<GXValue>();
                         arg.OrderBy.Add<GXValue>(o => o.Read);
-                        if (subtotal.Calculated != null)
+                        if (subtotal.Last != null)
                         {
-                            arg.Where.And<GXValue>(w => w.Read >= subtotal.Calculated);
+                            arg.Where.And<GXValue>(w => w.Read >= subtotal.Last);
                         }
                         arg.Joins.AddInnerJoin<GXValue, GXAttribute>(j => j.Attribute, j => j.Id);
                         arg.Joins.AddInnerJoin<GXAttribute, GXObject>(j => j.Object, j => j.Id);
@@ -594,9 +619,9 @@ namespace Gurux.DLMS.AMI.Server.Services
                 {
                     GXSelectArgs arg = GXSelectArgs.SelectAll<GXAgentLog>();
                     arg.OrderBy.Add<GXAgentLog>(o => o.CreationTime);
-                    if (subtotal.Calculated != null)
+                    if (subtotal.Last != null)
                     {
-                        arg.Where.And<GXAgentLog>(w => w.CreationTime >= subtotal.Calculated);
+                        arg.Where.And<GXAgentLog>(w => w.CreationTime >= subtotal.Last);
                     }
                     arg.Joins.AddInnerJoin<GXAgentLog, GXSubtotalAgent>(j => j.Agent, j => j.AgentId);
                     arg.Where.And<GXSubtotalAgent>(w => w.SubtotalId == subtotal.Id);
@@ -651,10 +676,11 @@ namespace Gurux.DLMS.AMI.Server.Services
             }
             return updated;
         }
+
         /// <summary>
         /// Wait for subtotal and count them.
         /// </summary>
-        private async void Handler()
+        private async void Counter()
         {
             while (true)
             {
@@ -685,7 +711,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                             ISubtotalValueRepository subtotalValueRepository = scope.ServiceProvider.GetRequiredService<ISubtotalValueRepository>();
                             ISubtotalRepository subtotalRepository = scope.ServiceProvider.GetRequiredService<ISubtotalRepository>();
                             var it = await subtotalRepository.ReadAsync(s.Value.user, s.Value.subtotal);
-                            if (it != null && it.TraceLevel > TraceLevel.Warning)
+                            if (it.TraceLevel > TraceLevel.Warning)
                             {
                                 GXSubtotalLog log = new GXSubtotalLog(TraceLevel.Info)
                                 {
@@ -695,8 +721,7 @@ namespace Gurux.DLMS.AMI.Server.Services
                                     },
                                     Message = "Subtotal started.",
                                 };
-                                await repository.AddAsync(s.Value.user,
-                                    new GXSubtotalLog[] { log });
+                                await repository.AddAsync(s.Value.user, [log]);
                             }
                             DateTimeOffset? updated = null;
                             updated = await CalculateDevicesAsync(s.Value.user,
@@ -712,21 +737,19 @@ namespace Gurux.DLMS.AMI.Server.Services
                             if (updated != null)
                             {
                                 //Update status and calculated time.
-                                it.Calculated = updated;
+                                it.Last = updated;
                                 it.Status = SubtotalStatus.Idle;
                                 await subtotalRepository.UpdateAsync(s.Value.user,
-                                    new GXSubtotal[] { it },
-                                    c => new { c.Calculated, c.Status });
+                                    [it],
+                                    c => new { c.Last, c.Status });
                             }
                             else
                             {
                                 //Update status.
                                 it.Status = SubtotalStatus.Idle;
-                                await subtotalRepository.UpdateAsync(s.Value.user,
-                                    new GXSubtotal[] { it },
-                                    c => new { c.Status });
+                                await subtotalRepository.UpdateAsync(s.Value.user, [it], c => c.Status);
                             }
-                            if (it != null && it.TraceLevel > TraceLevel.Warning)
+                            if (it.TraceLevel > TraceLevel.Warning)
                             {
                                 GXSubtotalLog log = new GXSubtotalLog(TraceLevel.Info)
                                 {

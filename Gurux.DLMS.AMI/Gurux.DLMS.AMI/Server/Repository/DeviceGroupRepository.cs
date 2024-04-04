@@ -44,6 +44,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -302,6 +305,23 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.OrderBy.Add<GXDeviceGroup>(q => q.CreationTime);
             }
             GXDeviceGroup[] groups = (await _host.Connection.SelectAsync<GXDeviceGroup>(arg)).ToArray();
+            if (request?.Select != null && request.Select.Contains(TargetType.Device))
+            {
+                foreach (var it in groups)
+                {
+                    //Get the devices for the device group.
+                    arg = GXSelectArgs.Select<GXDevice>(s => new { s.Id, s.Name }, w => w.Removed == null);
+                    arg.Joins.AddInnerJoin<GXDevice, GXDeviceGroupDevice>(j => j.Id, j => j.DeviceId);
+                    arg.Joins.AddInnerJoin<GXDeviceGroupDevice, GXDeviceGroup>(j => j.DeviceGroupId, j => j.Id);
+                    arg.Where.And<GXDeviceGroup>(w => w.Removed == null && w.Id == it.Id);
+                    if (request.Select.Contains(TargetType.DeviceTemplate))
+                    {
+                        arg.Columns.Add<GXDeviceTemplate>();
+                        arg.Joins.AddInnerJoin<GXDevice, GXDeviceTemplate>(j => j.Template, j => j.Id);
+                    }
+                    it.Devices = (await _host.Connection.SelectAsync<GXDevice>(arg)).ToList();
+                }
+            }
             if (response != null)
             {
                 response.DeviceGroups = groups;
@@ -381,7 +401,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXDeviceGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string userId = ServerHelpers.GetUserId(user);
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceGroup, List<string>> updates = new Dictionary<GXDeviceGroup, List<string>>();
             var newGroups = deviceGroups.Where(w => w.Id == Guid.Empty).ToList();
@@ -437,6 +457,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     foreach (var it in newGroups)
                     {
+                        it.Creator = creator;
                         it.CreationTime = now;
                     }
                     GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
@@ -472,7 +493,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXDeviceGroup>(q => new { q.UserGroups, q.CreationTime, q.Devices, q.AgentGroups });
+                    args.Exclude<GXDeviceGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Devices,
+                        q.AgentGroups
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                       it.Creator == null ||
+                       string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXDeviceGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to device group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

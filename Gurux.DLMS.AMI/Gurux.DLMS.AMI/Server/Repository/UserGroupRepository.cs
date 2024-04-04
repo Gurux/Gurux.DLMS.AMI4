@@ -45,6 +45,8 @@ using System.Data;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -294,7 +296,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXUserGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string userId = _userManager.GetUserId(user);
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXUserGroup, List<string>> updates = new Dictionary<GXUserGroup, List<string>>();
             var newGroups = userGroups.Where(w => w.Id == Guid.Empty).ToList();
@@ -322,10 +324,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         throw new ArgumentException(Properties.Resources.InvalidName);
                     }
+                    userGroup.Creator = creator;
                     userGroup.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(userGroup);
                     //Users must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXUserGroup>(e => new { e.Users, e.Updated, e.Removed });
+                    args.Exclude<GXUserGroup>(e => new
+                    {
+                        e.Users,
+                        e.Updated,
+                        e.Removed
+                    });
                     _host.Connection.Insert(transaction, args);
                     list.Add(userGroup.Id);
                     if (userGroup.Users != null && userGroup.Users.Any())
@@ -333,10 +341,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         //Add user(s) to user group.
                         AddUsersToGroup(transaction, userGroup.Users.Select(s => s.Id).ToArray(), userGroup.Id);
                     }
-                    else if (userId != null)
+                    else
                     {
                         //Add creator to user group.
-                        AddUsersToGroup(transaction, new string[] { userId }, userGroup.Id);
+                        AddUsersToGroup(transaction, [creator.Id], userGroup.Id);
                     }
                 }
                 foreach (GXUserGroup userGroup in updatedGroups)
@@ -356,7 +364,22 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     userGroup.Updated = now;
                     userGroup.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(userGroup, columns);
-                    args.Exclude<GXUserGroup>(q => new { q.CreationTime, q.Users, q.ScheduleGroups, q.DeviceGroups, q.DeviceTemplateGroups });
+                    args.Exclude<GXUserGroup>(q => new
+                    {
+                        q.CreationTime,
+                        q.Users,
+                        q.ScheduleGroups,
+                        q.DeviceGroups,
+                        q.DeviceTemplateGroups
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        userGroup.Creator == null ||
+                        string.IsNullOrEmpty(userGroup.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXUserGroup>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map users to user group.
                     if (userGroup.Users != null && userGroup.Users.Any())

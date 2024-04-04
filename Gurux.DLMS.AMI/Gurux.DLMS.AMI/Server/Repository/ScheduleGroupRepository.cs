@@ -43,6 +43,7 @@ using System.Data;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -322,8 +323,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXScheduleGroup> scheduleGroups,
             Expression<Func<GXScheduleGroup, object?>>? columns)
         {
-            string userId = ServerHelpers.GetUserId(user);
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXScheduleGroup, List<string>> updates = new Dictionary<GXScheduleGroup, List<string>>();
             List<GXUserGroup>? defaultGroups = null;
@@ -356,14 +357,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
                         //Get default user groups.
-                        if (user != null)
+                        if (defaultGroups == null)
                         {
-                            if (defaultGroups == null)
-                            {
-                                defaultGroups = await _userGroupRepository.GetDefaultUserGroups(user, userId);
-                            }
-                            it.UserGroups = defaultGroups;
+                            defaultGroups = await _userGroupRepository.GetDefaultUserGroups(user, creator.Id);
                         }
+                        it.UserGroups = defaultGroups;
                         if (it.UserGroups == null || !it.UserGroups.Any())
                         {
                             throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
@@ -372,7 +370,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     if (it.Schedules != null)
                     {
                         //Update creator and creation time for all schedules.
-                        var creator = new GXUser() { Id = userId };
                         foreach (var schedule in it.Schedules)
                         {
                             if (schedule.Id == Guid.Empty)
@@ -387,6 +384,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     foreach (var it in newGroups)
                     {
+                        it.Creator = creator;
                         it.CreationTime = now;
                         if (it.Schedules != null)
                         {
@@ -394,7 +392,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             foreach (var schedule in it.Schedules)
                             {
                                 schedule.CreationTime = now;
-                                schedule.Creator = new GXUser() { Id = userId };
+                                schedule.Creator = creator;
                             }
                         }
                     }
@@ -430,7 +428,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXScheduleGroup>(q => new { q.UserGroups, q.CreationTime, q.Schedules });
+                    args.Exclude<GXScheduleGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Schedules
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXScheduleGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(transaction, args);
                     //Map user group to Schedule group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

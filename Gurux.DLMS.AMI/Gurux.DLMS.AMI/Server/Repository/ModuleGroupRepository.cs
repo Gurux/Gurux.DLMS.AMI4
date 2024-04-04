@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -292,6 +294,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXModuleGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXModuleGroup, List<string>> updates = new Dictionary<GXModuleGroup, List<string>>();
             foreach (GXModuleGroup it in ModuleGroups)
@@ -315,6 +318,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -340,7 +344,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXModuleGroup>(q => new { q.Modules, q.UserGroups, q.CreationTime });
+                    args.Exclude<GXModuleGroup>(q => new
+                    {
+                        q.Modules,
+                        q.UserGroups,
+                        q.CreationTime
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        string.IsNullOrEmpty(it.Creator?.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXModuleGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to Module group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

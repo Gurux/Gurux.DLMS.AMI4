@@ -40,6 +40,10 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Client.Pages.Device;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -226,7 +230,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             if (view == null)
             {
                 throw new ArgumentException(Properties.Resources.UnknownTarget);
-            }           
+            }
             return view;
         }
 
@@ -237,6 +241,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXComponentView, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXComponentView, List<string>> updates = new Dictionary<GXComponentView, List<string>>();
             foreach (GXComponentView componentView in componentViews)
@@ -258,8 +263,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (componentView.Id == Guid.Empty)
                 {
                     componentView.CreationTime = now;
+                    componentView.Creator = creator;
                     GXInsertArgs args = GXInsertArgs.Insert(componentView);
-                    args.Exclude<GXComponentView>(q => new { q.CreationTime, q.ComponentViewGroups });
+                    args.Exclude<GXComponentView>(q => new
+                    {
+                        q.Updated,
+                        q.ComponentViewGroups
+                    });
                     _host.Connection.Insert(args);
                     list.Add(componentView.Id);
                     AddComponentViewToComponentViewGroups(componentView.Id, componentView.ComponentViewGroups);
@@ -274,7 +284,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                     List<string> users = await GetUsersAsync(User, componentView.Id);
                     GXUpdateArgs args = GXUpdateArgs.Update(componentView, columns);
-                    args.Exclude<GXComponentView>(q => new { q.CreationTime, q.ComponentViewGroups });
+                    args.Exclude<GXComponentView>(q => new
+                    {
+                        q.CreationTime,
+                        q.ComponentViewGroups
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        componentView.Creator == null ||
+                        string.IsNullOrEmpty(componentView.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXComponentViewGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map component view groups to component view.
                     List<GXComponentViewGroup> componentViewGroups;

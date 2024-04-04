@@ -33,5 +33,6 @@
         public static string Manufacturers = "Manufacturers";
         public static string KeyManagement = "KeyManagement";
         public static string Subtotals = "Subtotals";
+        public static string Reports = "Reports";
     }
 }

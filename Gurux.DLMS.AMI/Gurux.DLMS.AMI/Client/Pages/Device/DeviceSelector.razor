@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using Gurux.DLMS.AMI.Client.Pages.Device
 @using Gurux.DLMS.AMI.Client.Pages.DeviceTemplate
 @using Gurux.DLMS.AMI.Components.Wizard
@@ -89,6 +88,7 @@ else
                     <Devices Columns="@DeviceColumns"
                              AvailableDevice="@Devices"
                              CanEdit="false"
+                             Menu="false"
                              Header="false" />
                 }
                 else
@@ -109,6 +109,7 @@ else
                                          ObjectTypes="@ObjectTypes"
                                          IgnoredObjectTypes="@IgnoredObjectTypes"
                                          CanEdit="false"
+                                         Menu="false"
                                          Header="false" />
                     }
                     else
@@ -131,6 +132,7 @@ else
                                             AvailableAttributeTemplates="@AttributeTemplates"
                                             CanEdit="false"
                                             Filter="false"
+                                            Menu="false"
                                             Header="false" />
                     }
                     else
@@ -160,7 +162,7 @@ else
     /// Ignored object types.
     /// </summary>
     [Parameter]
-    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }    
+    public Gurux.DLMS.Enums.ObjectType[]? IgnoredObjectTypes { get; set; }
 
     /// <summary>
     /// Shown device columns.

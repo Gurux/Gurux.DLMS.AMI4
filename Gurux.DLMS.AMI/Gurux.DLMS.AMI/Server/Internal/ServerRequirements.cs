@@ -111,7 +111,9 @@ namespace Gurux.DLMS.AMI.Server.Internal
             AddSubtotalGroupRequirements(options, issuer);
             AddSubtotalValueRequirements(options, issuer);
             AddSubtotalLogRequirements(options, issuer);
-            //Add roles from the database.
+            AddReportRequirements(options, issuer);
+            AddReportGroupRequirements(options, issuer);
+            AddReportLogRequirements(options, issuer);
         }
 
         /// <summary>
@@ -1531,6 +1533,37 @@ namespace Gurux.DLMS.AMI.Server.Internal
         }
 
         /// <summary>
+        /// Add report log requirements that are used for policy.
+        /// </summary>
+        private static void AddReportLogRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXReportLogPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportLogPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportLogManager } });
+            });
+            options.AddPolicy(GXReportLogPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportLogPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportLogManager } });
+            });
+            options.AddPolicy(GXReportLogPolicies.Clear, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportLogPolicies.Clear, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportLogManager } });
+            });
+            options.AddPolicy(GXReportLogPolicies.Close, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportLogPolicies.Close, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportLogManager } });
+            });
+        }
+
+        /// <summary>
         /// Add object requirements that are used for policy.
         /// </summary>
         private static void AddObjectRequirements(AuthorizationOptions options, string issuer)
@@ -1888,25 +1921,93 @@ namespace Gurux.DLMS.AMI.Server.Internal
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.View, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+                { Roles = [GXRoles.Admin, GXRoles.SubtotalGroupManager] });
             });
             options.AddPolicy(GXSubtotalGroupPolicies.Add, policy =>
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Add, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+                { Roles = [GXRoles.Admin, GXRoles.SubtotalGroupManager] });
             });
             options.AddPolicy(GXSubtotalGroupPolicies.Edit, policy =>
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Edit, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+                { Roles = [GXRoles.Admin, GXRoles.SubtotalGroupManager] });
             });
             options.AddPolicy(GXSubtotalGroupPolicies.Delete, policy =>
             {
                 policy.RequireAuthenticatedUser();
                 policy.Requirements.Add(new ScopeRequirement(GXSubtotalGroupPolicies.Delete, issuer)
-                { Roles = new string[] { GXRoles.Admin, GXRoles.SubtotalGroupManager } });
+                { Roles = [GXRoles.Admin, GXRoles.SubtotalGroupManager] });
+            });
+        }
+
+        /// <summary>
+        /// Add report requirements that are used for policy.
+        /// </summary>
+        private static void AddReportRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXReportPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportPolicies.View, issuer)
+                { Roles = [GXRoles.Admin, GXRoles.ReportManager] });
+            });
+            options.AddPolicy(GXReportPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportPolicies.Add, issuer)
+                { Roles = [GXRoles.Admin, GXRoles.ReportManager] });
+            });
+            options.AddPolicy(GXReportPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportPolicies.Edit, issuer)
+                { Roles = [GXRoles.Admin, GXRoles.ReportManager] });
+            });
+            options.AddPolicy(GXReportPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportPolicies.Delete, issuer)
+                { Roles = [GXRoles.Admin, GXRoles.ReportManager] });
+            });
+            options.AddPolicy(GXReportPolicies.Send, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportPolicies.Send, issuer)
+                { Roles = [GXRoles.Admin, GXRoles.ReportManager] });
+            });
+        }
+
+        /// <summary>
+        /// Add report group requirements that are used for policy.
+        /// </summary>
+        private static void AddReportGroupRequirements(AuthorizationOptions options, string issuer)
+        {
+            options.AddPolicy(GXReportGroupPolicies.View, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportGroupPolicies.View, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportGroupManager } });
+            });
+            options.AddPolicy(GXReportGroupPolicies.Add, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportGroupPolicies.Add, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportGroupManager } });
+            });
+            options.AddPolicy(GXReportGroupPolicies.Edit, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportGroupPolicies.Edit, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportGroupManager } });
+            });
+            options.AddPolicy(GXReportGroupPolicies.Delete, policy =>
+            {
+                policy.RequireAuthenticatedUser();
+                policy.Requirements.Add(new ScopeRequirement(GXReportGroupPolicies.Delete, issuer)
+                { Roles = new string[] { GXRoles.Admin, GXRoles.ReportGroupManager } });
             });
         }
 

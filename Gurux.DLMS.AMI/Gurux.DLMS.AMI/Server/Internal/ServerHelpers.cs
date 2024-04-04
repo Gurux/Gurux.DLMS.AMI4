@@ -46,7 +46,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
@@ -58,6 +58,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Resources;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
@@ -235,7 +236,7 @@ namespace Gurux.DLMS.AMI.Server.Internal
             await host.Connection.InsertAsync(GXInsertArgs.InsertRange(newTriggers));
             newTriggers.AddRange(updatedTriggers);
             return newTriggers;
-        }        
+        }
 
         /// <summary>
         /// Add distinct items to the list.
@@ -1396,6 +1397,60 @@ namespace Gurux.DLMS.AMI.Server.Internal
             }
 
             /// <inheritdoc/>
+            public Task ReportCalculate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+            {
+                return _hostedService.ReportCalculate(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task ReportClear(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+            {
+                return _hostedService.ReportClear(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task ReportDelete(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+            {
+                return _hostedService.ReportDelete(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task ReportGroupDelete(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
+            {
+                return _hostedService.ReportGroupDelete(users, groups);
+            }
+
+            /// <inheritdoc/>
+            public Task ReportGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
+            {
+                return _hostedService.ReportGroupUpdate(users, groups);
+            }
+
+            /// <inheritdoc/>
+            public Task ReportUpdate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+            {
+                return _hostedService.ReportUpdate(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task AddReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports)
+            {
+                return _hostedService.AddReportLogs(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task ClearReportLogs(IReadOnlyList<string> users, IEnumerable<GXReport>? reports)
+            {
+                return _hostedService.ClearReportLogs(users, reports);
+            }
+
+            /// <inheritdoc/>
+            public Task CloseReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports)
+            {
+                return _hostedService.CloseReportLogs(users, reports);
+            }
+
+            /// <inheritdoc/>
             public Task UserStampUpdate(IReadOnlyList<string> users, IEnumerable<GXUserStamp> stamps)
             {
                 return _hostedService.UserStampUpdate(users, stamps);
@@ -1416,6 +1471,10 @@ namespace Gurux.DLMS.AMI.Server.Internal
                 if (lambdaEx.Body is MemberExpression me)
                 {
                     return me.Member.Name == name;
+                }
+                if (lambdaEx.Body is UnaryExpression ue)
+                {
+                    return ((MemberExpression)ue.Operand).Member.Name == name;
                 }
                 if (lambdaEx.Body is NewExpression ne)
                 {

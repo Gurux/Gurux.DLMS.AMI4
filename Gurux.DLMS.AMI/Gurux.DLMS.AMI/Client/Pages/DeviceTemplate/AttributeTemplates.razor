@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @page "/AttributeTemplate/{Action}"
 @page "/AttributeTemplate/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Device;
@@ -87,22 +86,25 @@ else
         <FilterContent>
         </FilterContent>
         <MenuContent>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            @if (Menu)
+            {
+                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            }
         </MenuContent>
         <HeaderContent>
             <Th Id="LogicalName">@Properties.Resources.LogicalName</Th>
-                <Th Id="ObjectName">@Properties.Resources.Name</Th>
-                <Th Id="Index">@Properties.Resources.Index</Th>
-                <Th Id="Name">@Properties.Resources.Name</Th>
-            </HeaderContent>
-            <ItemContent>
-                <Td Id="LogicalName">@template.ObjectTemplate?.LogicalName</Td>
-                <Td Id="ObjectName">@template.ObjectTemplate?.Name</Td>
-                <Td Id="Index">@template.Index</Td>
-                <Td Id="Name">@template.Name</Td>
-            </ItemContent>
-        </GXTable>
+            <Th Id="ObjectName">@Properties.Resources.Name</Th>
+            <Th Id="Index">@Properties.Resources.Index</Th>
+            <Th Id="Name">@Properties.Resources.Name</Th>
+        </HeaderContent>
+        <ItemContent>
+            <Td Id="LogicalName">@template.ObjectTemplate?.LogicalName</Td>
+            <Td Id="ObjectName">@template.ObjectTemplate?.Name</Td>
+            <Td Id="Index">@template.Index</Td>
+            <Td Id="Name">@template.Name</Td>
+        </ItemContent>
+    </GXTable>
     <Confirm @ref="RemoveConfirmation"
              ConfirmationChanged="OnDeleteConfirmation"
              OkTitle="@Properties.Resources.Remove"
@@ -175,6 +177,12 @@ else
     /// </summary>
     [Parameter]
     public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is menu shown.
+    /// </summary>
+    [Parameter]
+    public bool Menu { get; set; } = true;
 
     /// <summary>
     /// Is edit allowed.

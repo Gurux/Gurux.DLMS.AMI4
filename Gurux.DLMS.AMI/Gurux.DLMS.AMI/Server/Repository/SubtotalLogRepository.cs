@@ -140,7 +140,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             list.AddDistinct(await _subtotalRepository.GetUsersAsync(User, subtotals));
             if (admin && (subtotals == null || !subtotals.Any()))
             {
-                //Admin clears all sub total logs.
+                //Admin clears all subtotal logs.
                 _host.Connection.Truncate<GXSubtotalLog>();
                 logs = null;
             }
@@ -256,10 +256,10 @@ namespace Gurux.DLMS.AMI.Server.Repository
         public async Task<GXSubtotalLog> ReadAsync(ClaimsPrincipal User, Guid id)
         {
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXSubtotalLog>(where => where.Id == id);
-            //Get sub total.
+            //Get subtotal.
             arg.Columns.Add<GXSubtotal>();
             arg.Joins.AddInnerJoin<GXSubtotalLog, GXSubtotal>(x => x.Subtotal, y => y.Id);
-            //Errors are ignored from the sub total
+            //Errors are ignored from the subtotal
             //so there is no reference relation that is causing problems with JSON parser.
             arg.Columns.Exclude<GXSubtotal>(e => e.Logs);
             GXSubtotalLog error = (await _host.Connection.SingleOrDefaultAsync<GXSubtotalLog>(arg));

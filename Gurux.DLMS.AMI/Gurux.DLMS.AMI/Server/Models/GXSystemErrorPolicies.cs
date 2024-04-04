@@ -1085,6 +1085,29 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// User can close subtotal log.
         /// </summary>
         public const string Close = "subtotal-log.close";
+    }   
+
+    /// <summary>
+    /// Report log policies.
+    /// </summary>
+    public static class GXReportLogPolicies
+    {
+        /// <summary>
+        /// User can view the report log.
+        /// </summary>
+        public const string View = "report-log.view";
+        /// <summary>
+        /// User can add new report log.
+        /// </summary>
+        public const string Add = "report-log.add";
+        /// <summary>
+        /// User can clear report log.
+        /// </summary>
+        public const string Clear = "report-log.clear";
+        /// <summary>
+        /// User can close report log.
+        /// </summary>
+        public const string Close = "report-log.close";
     }
 
     /// <summary>
@@ -1366,5 +1389,55 @@ namespace Gurux.DLMS.AMI.Server.Models
         /// User can delete subtotal group.
         /// </summary>
         public const string Delete = "subtotal-group.delete";
+    }
+
+    /// <summary>
+    /// Report policies.
+    /// </summary>
+    public static class GXReportPolicies
+    {
+        /// <summary>
+        /// User can view the report(s).
+        /// </summary>
+        public const string View = "report.view";
+        /// <summary>
+        /// User can add new report(s).
+        /// </summary>
+        public const string Add = "report.add";
+        /// <summary>
+        /// User can edit report(s).
+        /// </summary>
+        public const string Edit = "report.edit";
+        /// <summary>
+        /// User can delete report(s).
+        /// </summary>
+        public const string Delete = "report.delete";
+        /// <summary>
+        /// User can send report(s).
+        /// </summary>
+        public const string Send = "report.send";
+    }
+
+    /// <summary>
+    /// Report group policies.
+    /// </summary>
+    public static class GXReportGroupPolicies
+    {
+        /// <summary>
+        /// User can view the report group information.
+        /// </summary>
+        public const string View = "report-group.view";
+        /// <summary>
+        /// User can add a new report group.
+        /// </summary>
+        public const string Add = "report-group.add";
+        /// <summary>
+        /// User can edit report group.
+        /// </summary>
+        public const string Edit = "report-group.edit";
+        /// <summary>
+        /// User can delete report group.
+        /// </summary>
+        public const string Delete = "report-group.delete";
     }
 }

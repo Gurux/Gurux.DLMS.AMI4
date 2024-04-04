@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @inherits ConfirmBase
 @if (ShowConfirmation)
 {
@@ -40,53 +39,68 @@
                 <div class="modal-header">
                     <h5 class="modal-title" id="confirmanceModalLabel">@ConfirmationTitle</h5>
                     <button type="button" class="btn btn-close" data-dismiss="modal" aria-label="Close"
-                        @onclick="() => OnConfirmationChange(false)">
+                            @onclick="() => OnConfirmationChange(false)">
                     </button>
                 </div>
                 <div class="modal-body">
-                    <!--Is target disabled or canceled.-->
-                    @if (AllowDelete)
+                    @if (ChildContent != null)
                     {
-                        <div class="form-check">
-                            <input id="button1" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(false)) checked="@(!DeleteTarget)">
-                            <label class="form-check-label" for="button1">@Properties.Resources.TargetDisableQuestion</label><br>
-                        </div>
-                        <div class="form-check">
-                            <input id="button2" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(true)) checked="@(DeleteTarget)">
-                            <label class="form-check-label" for="button2">@Properties.Resources.TargetDeleteQuestion</label>
-                            @Properties.Resources.ThisActionCannotBeUndone
-                        </div>
-                       
+                        @ChildContent
                     }
-                    @if (!string.IsNullOrEmpty(ConfirmationMessage))
+                    else
                     {
-                        @GetConfirmationMessage()
-                    }
-                    <!--Print removed items.-->
-                    @if (Items != null)
-                    {
-                        <br />
-                        @foreach (string? it in Items)
+                        <!--Is target disabled or canceled.-->
+                        @if (AllowDelete)
                         {
-                            @if (!string.IsNullOrEmpty(it))
+                            <div class="form-check">
+                                <input id="button1" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(false)) checked="@(!DeleteTarget)">
+                                <label class="form-check-label" for="button1">@Properties.Resources.TargetDisableQuestion</label><br>
+                            </div>
+                            <div class="form-check">
+                                <input id="button2" class="form-check-input" type="radio" @onchange=@(()=>OnValueChange(true)) checked="@(DeleteTarget)">
+                                <label class="form-check-label" for="button2">@Properties.Resources.TargetDeleteQuestion</label>
+                                @Properties.Resources.ThisActionCannotBeUndone
+                            </div>
+
+                        }
+                        @if (!string.IsNullOrEmpty(ConfirmationMessage))
+                        {
+                            @GetConfirmationMessage()
+                        }
+                        <!--Print removed items.-->
+                        @if (Items != null)
+                        {
+                            <br />
+                            @foreach (string? it in Items)
                             {
-                                @it
-                                <br />
+                                @if (!string.IsNullOrEmpty(it))
+                                {
+                                    @it
+                                    <br />
+                                }
                             }
                         }
                     }
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                        @onclick="() => OnConfirmationChange(false)">
+                            @onclick="() => OnConfirmationChange(false)">
                         @Properties.Resources.Cancel
                     </button>
                     <button type="button" class="btn btn-danger"
-                        @onclick="() => OnConfirmationChange(true)">
+                            @onclick="() => OnConfirmationChange(true)">
                         @OkTitle
                     </button>
                 </div>
             </div>
         </div>
     </div>
+}
+
+@code {
+    /// <summary>
+    /// Custom child content.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
 }

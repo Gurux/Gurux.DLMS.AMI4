@@ -60,9 +60,7 @@ using static Gurux.DLMS.AMI.Server.Internal.ServerHelpers;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.Text;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
-using System.Collections.Generic;
-using Gurux.DLMS.AMI.Client.Pages.Config;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -72,6 +70,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 
 namespace Gurux.DLMS.AMI.Server
 {
@@ -131,6 +132,7 @@ namespace Gurux.DLMS.AMI.Server
                 AddExternalAuthenticationServicesConfiguration(configurations);
                 AddKeyManagementConfiguration(configurations);
                 AddSubtotalConfiguration(configurations);
+                AddReportConfiguration(configurations);
             }
             finally
             {
@@ -376,7 +378,23 @@ namespace Gurux.DLMS.AMI.Server
                 Icon = "oi oi-calculator",
                 Description = Properties.Resources.SubtotalDescription,
                 Path = "config/Subtotal",
-                Order = 7
+                Order = 8
+            };
+            configurations.Add(conf);
+        }
+
+        /// <summary>
+        /// Add report configuration.
+        /// </summary>
+        internal static void AddReportConfiguration(List<GXConfiguration> configurations)
+        {
+            GXConfiguration conf = new GXConfiguration()
+            {
+                Name = GXConfigurations.Reports,
+                Icon = "oi oi-folder",
+                Description = Properties.Resources.ReportDescription,
+                Path = "config/Report",
+                Order = 9
             };
             configurations.Add(conf);
         }
@@ -677,6 +695,9 @@ namespace Gurux.DLMS.AMI.Server
             services.AddTransient<ISubtotalRepository, SubtotalRepository>();
             services.AddTransient<ISubtotalValueRepository, SubtotalValueRepository>();
             services.AddTransient<ISubtotalLogRepository, SubtotalLogRepository>();
+            services.AddTransient<IReportGroupRepository, ReportGroupRepository>();
+            services.AddTransient<IReportRepository, ReportRepository>();
+            services.AddTransient<IReportLogRepository, ReportLogRepository>();
             services.AddTransient<IUserStampRepository, UserStampRepository>();
         }
 
@@ -983,91 +1004,175 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXSubtotalWorkflowGroup>(false, false);
                         host.Connection.CreateTable<GXSubtotalUser>(false, false);
                         host.Connection.CreateTable<GXSubtotalUserGroup>(false, false);
+                        {
+                            List<GXConfiguration> configurations = new List<GXConfiguration>();
+                            //All values are saved using invariant culture.
+                            CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
+                            try
+                            {
+                                CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+                                AddSubtotalConfiguration(configurations);
+                            }
+                            finally
+                            {
+                                CultureInfo.DefaultThreadCurrentUICulture = culture;
+                            }
+                            host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
+                        }
+                        if (!host.Connection.TableExist<GXScope>())
+                        {
+                            //Name, module type and protocol added to module.
+                            host.Connection.UpdateTable<GXModule>();
+                            //Schedule-specific module settings added.
+                            host.Connection.UpdateTable<GXScheduleModule>();
+                            //Condition and action scripts added to task.
+                            host.Connection.UpdateTable<GXTask>();
 
-                        //Name, module type and protocol added to module.
-                        host.Connection.UpdateTable<GXModule>();
-                        //Schedule-specific module settings added.
-                        host.Connection.UpdateTable<GXScheduleModule>();
-                        //Condition and action scripts added to task.
-                        host.Connection.UpdateTable<GXTask>();
+                            //Module added to role.
+                            host.Connection.UpdateTable<GXRole>();
+                            //Module added to user settings.
+                            host.Connection.UpdateTable<GXUserSetting>();
+                            //Scope added.
+                            host.Connection.CreateTable<GXScope>(false, false);
+                            //Protocol property added.
+                            host.Connection.UpdateTable<GXDeviceTemplate>();
+                            //Schedule to object template added.
+                            host.Connection.CreateTable<GXScheduleToDeviceObjectTemplate>(false, false);
+                            //Schedule to attribute template added.
+                            host.Connection.CreateTable<GXScheduleToDeviceAttributeTemplate>(false, false);
+                            //Schedule to object template added.
+                            host.Connection.CreateTable<GXScheduleToDeviceGroupObjectTemplate>(false, false);
+                            //Schedule to attribute template added.
+                            host.Connection.CreateTable<GXScheduleToDeviceGroupAttributeTemplate>(false, false);
+                            //Parent property added.
+                            host.Connection.UpdateTable<GXBlock>();
+                            host.Connection.CreateTable<GXUserStamp>(false, false);
+                            //Target changed from UInt64 to string.
+                            host.Connection.UpdateTable<GXUserAction>();
+                            //Target changed from UInt64 to string.
+                            host.Connection.UpdateTable<GXPerformance>();
+                            //Description added to agent.
+                            host.Connection.UpdateTable<GXAgent>();
+                            //Description added to gateway.
+                            host.Connection.UpdateTable<GXGateway>();
+                            //Description added to schedule.
+                            host.Connection.UpdateTable<GXSchedule>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXWorkflowLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXUserError>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXSystemLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXScriptLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXScheduleLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXModuleLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXGatewayLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXDeviceError>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXAgentLog>();
+                            //Type added.
+                            host.Connection.UpdateTable<GXKeyManagementLog>();
 
-                        //Module added to role.
-                        host.Connection.UpdateTable<GXRole>();
-                        //Module added to user settings.
-                        host.Connection.UpdateTable<GXUserSetting>();
-                        //Scope added.
-                        host.Connection.CreateTable<GXScope>(false, false);
-                        //Protocol property added.
-                        host.Connection.UpdateTable<GXDeviceTemplate>();
-                        //Schedule to object template added.
-                        host.Connection.CreateTable<GXScheduleToDeviceObjectTemplate>(false, false);
-                        //Schedule to attribute template added.
-                        host.Connection.CreateTable<GXScheduleToDeviceAttributeTemplate>(false, false);
-                        //Schedule to object template added.
-                        host.Connection.CreateTable<GXScheduleToDeviceGroupObjectTemplate>(false, false);
-                        //Schedule to attribute template added.
-                        host.Connection.CreateTable<GXScheduleToDeviceGroupAttributeTemplate>(false, false);
-                        //Parent property added.
-                        host.Connection.UpdateTable<GXBlock>();
-                        host.Connection.CreateTable<GXUserStamp>(false, false);
-                        //Target changed from UInt64 to string.
-                        host.Connection.UpdateTable<GXUserAction>();
-                        //Target changed from UInt64 to string.
-                        host.Connection.UpdateTable<GXPerformance>();
-                        //Description added to agent.
-                        host.Connection.UpdateTable<GXAgent>();
-                        //Description added to gateway.
-                        host.Connection.UpdateTable<GXGateway>();
-                        //Description added to schedule.
-                        host.Connection.UpdateTable<GXSchedule>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXWorkflowLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXUserError>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXSystemLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXScriptLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXScheduleLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXModuleLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXGatewayLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXDeviceError>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXAgentLog>();
-                        //Type added.
-                        host.Connection.UpdateTable<GXKeyManagementLog>();
-
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXKeyManagement>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXWorkflow>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXScript>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXSchedule>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXModule>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXGateway>();
-                        //TraceLevel added.
-                        host.Connection.UpdateTable<GXAgent>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXKeyManagement>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXWorkflow>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXScript>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXSchedule>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXModule>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXGateway>();
+                            //TraceLevel added.
+                            host.Connection.UpdateTable<GXAgent>();
+                        }
+                    }
+                    if (!host.Connection.TableExist<GXReport>())
+                    {
+                        host.Connection.CreateTable<GXReport>(false, false);
+                        host.Connection.CreateTable<GXReportGroup>(false, false);
+                        host.Connection.CreateTable<GXReportGroupReport>(false, false);
+                        host.Connection.CreateTable<GXReportDevice>(false, false);
+                        host.Connection.CreateTable<GXReportDeviceAttributeTemplate>(false, false);
+                        host.Connection.CreateTable<GXReportDeviceGroupAttributeTemplate>(false, false);
+                        host.Connection.CreateTable<GXReportGateway>(false, false);
+                        host.Connection.CreateTable<GXReportGatewayGroup>(false, false);
+                        host.Connection.CreateTable<GXReportAgent>(false, false);
+                        host.Connection.CreateTable<GXReportAgentGroup>(false, false);
+                        host.Connection.CreateTable<GXUserGroupReportGroup>(false, false);
+                        host.Connection.CreateTable<GXReportDeviceGroup>(false, false);
+                        host.Connection.CreateTable<GXReportLog>(false, false);
+                        host.Connection.CreateTable<GXReportSchedule>(false, false);
+                        host.Connection.CreateTable<GXReportScheduleGroup>(false, false);
+                        host.Connection.CreateTable<GXReportScript>(false, false);
+                        host.Connection.CreateTable<GXReportScriptGroup>(false, false);
+                        host.Connection.CreateTable<GXReportWorkflow>(false, false);
+                        host.Connection.CreateTable<GXReportWorkflowGroup>(false, false);
+                        host.Connection.CreateTable<GXReportUser>(false, false);
+                        host.Connection.CreateTable<GXReportUserGroup>(false, false);
+                        host.Connection.CreateTable<GXReportSubtotal>(false, false);
+                        host.Connection.CreateTable<GXReportSubtotalGroup>(false, false);
                         List<GXConfiguration> configurations = new List<GXConfiguration>();
                         //All values are saved using invariant culture.
                         CultureInfo? culture = CultureInfo.DefaultThreadCurrentUICulture;
                         try
                         {
                             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
-                            AddSubtotalConfiguration(configurations);
+                            AddReportConfiguration(configurations);
                         }
                         finally
                         {
                             CultureInfo.DefaultThreadCurrentUICulture = culture;
                         }
                         host.Connection.Insert(GXInsertArgs.InsertRange(configurations));
+                        //Last and Next updated for the subtotal.
+                        host.Connection.UpdateTable<GXSubtotal>();
+                        //Creator property added to Component view.
+                        host.Connection.UpdateTable<GXComponentView>();
+                        //Creator property added to block.
+                        host.Connection.UpdateTable<GXBlock>();
+                        //Creator property added to device group.
+                        host.Connection.UpdateTable<GXDeviceGroup>();
+                        //Creator property added to trigger.
+                        host.Connection.UpdateTable<GXTrigger>();
+                        //Creator property added to subtotal group.
+                        host.Connection.UpdateTable<GXSubtotalGroup>();
+                        //Creator property added to component view group.
+                        host.Connection.UpdateTable<GXComponentViewGroup>();
+                        //Creator property added to workflow group.
+                        host.Connection.UpdateTable<GXWorkflowGroup>();
+                        //Creator property added to agent group.
+                        host.Connection.UpdateTable<GXAgentGroup>();
+                        //Creator property added to block group.
+                        host.Connection.UpdateTable<GXBlockGroup>();
+                        //Creator property added to device template group.
+                        host.Connection.UpdateTable<GXDeviceTemplateGroup>();
+                        //Creator property added to gateway group.
+                        host.Connection.UpdateTable<GXGatewayGroup>();
+                        //Creator property added to key management group.
+                        host.Connection.UpdateTable<GXKeyManagementGroup>();
+                        //Creator property added to management group.
+                        host.Connection.UpdateTable<GXManufacturerGroup>();
+                        //Creator property added to module group.
+                        host.Connection.UpdateTable<GXModuleGroup>();
+                        //Creator property added to report group.
+                        host.Connection.UpdateTable<GXReportGroup>();
+                        //Creator property added to schedule group.
+                        host.Connection.UpdateTable<GXScheduleGroup>();
+                        //Creator property added to script group.
+                        host.Connection.UpdateTable<GXScriptGroup>();
+                        //Creator property added to trigger group.
+                        host.Connection.UpdateTable<GXTriggerGroup>();
+                        //Creator property added to user group.
+                        host.Connection.UpdateTable<GXUserGroup>();
+
                     }
                 }
             }

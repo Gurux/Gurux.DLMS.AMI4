@@ -1182,17 +1182,17 @@
   <data name="Import" xml:space="preserve">
     <value>Import</value>
   </data>
-  <data name="Subtotals" xml:space="preserve">
-    <value>Subtotals</value>
+  <data name="Reports" xml:space="preserve">
+    <value>Reports</value>
   </data>
-  <data name="Subtotal" xml:space="preserve">
-    <value>Subtotal</value>
+  <data name="Report" xml:space="preserve">
+    <value>Report</value>
   </data>
-  <data name="SubtotalGroups" xml:space="preserve">
-    <value>Subtotal groups</value>
+  <data name="ReportGroups" xml:space="preserve">
+    <value>Report groups</value>
   </data>
-  <data name="SubtotalGroup" xml:space="preserve">
-    <value>Subtotal group</value>
+  <data name="ReportGroup" xml:space="preserve">
+    <value>Report group</value>
   </data>
   <data name="Interval" xml:space="preserve">
     <value>Interval</value>
@@ -1209,8 +1209,8 @@
   <data name="Operation" xml:space="preserve">
     <value>Operation</value>
   </data>
-  <data name="SubtotalLogs" xml:space="preserve">
-    <value>Subtotal logs</value>
+  <data name="ReportLogs" xml:space="preserve">
+    <value>Report logs</value>
   </data>
   <data name="Fill" xml:space="preserve">
     <value>Fill empty value with zero value</value>
@@ -1235,5 +1235,41 @@
   </data>
   <data name="Clone" xml:space="preserve">
     <value>Clone</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Subtotal</value>
+  </data>
+  <data name="SubtotalGroups" xml:space="preserve">
+    <value>Subtotal groups</value>
+  </data>
+  <data name="SubtotalLogs" xml:space="preserve">
+    <value>Subtotal logs</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Subtotals</value>
+  </data>
+  <data name="SubtotalGroup" xml:space="preserve">
+    <value>Subtotal group</value>
+  </data>
+  <data name="LastDevelivery" xml:space="preserve">
+    <value>Last develivery</value>
+  </data>
+  <data name="NextDevelivery" xml:space="preserve">
+    <value>Next develivery</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Compression" xml:space="preserve">
+    <value>Compression</value>
+  </data>
+  <data name="Delivery" xml:space="preserve">
+    <value>Delivery</value>
   </data>
 </root>

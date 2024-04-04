@@ -42,10 +42,11 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -879,6 +880,60 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// </summary>
         /// <param name="subtotals">Closed log items.</param>
         Task CloseSubtotalLogs(IEnumerable<GXSubtotalLog> subtotals);
+
+        /// <summary>
+        /// Reports are updated or modified.
+        /// </summary>
+        /// <param name="reports">Updated reports.</param>
+        Task ReportUpdate(IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// Report is deleted.
+        /// </summary>
+        /// <param name="reports">Deleted report.</param>
+        Task ReportDelete(IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// Reports are calculated.
+        /// </summary>
+        /// <param name="reports">Calculated reports.</param>
+        Task ReportCalculate(IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// Reports are cleared.
+        /// </summary>
+        /// <param name="reports">Cleared reports.</param>
+        Task ReportClear(IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// New report group is added or modified.
+        /// </summary>
+        /// <param name="groups">Updated report groups.</param>
+        Task ReportGroupUpdate(IEnumerable<GXReportGroup> groups);
+
+        /// <summary>
+        /// Report group is deleted.
+        /// </summary>
+        /// <param name="groups">Deleted report groups.</param>
+        Task ReportGroupDelete(IEnumerable<GXReportGroup> groups);
+
+        /// <summary>
+        /// Report logs are cleared.
+        /// </summary>
+        /// <param name="reports">List of cleared reports.</param>
+        Task ClearReportLogs(IEnumerable<GXReport>? reports);
+
+        /// <summary>
+        /// New report logs is added.
+        /// </summary>
+        /// <param name="logs">New report logs.</param>
+        Task AddReportLogs(IEnumerable<GXReportLog> logs);
+
+        /// <summary>
+        /// Report log items are closed.
+        /// </summary>
+        /// <param name="reports">Closed log items.</param>
+        Task CloseReportLogs(IEnumerable<GXReportLog> reports);
 
         /// <summary>
         /// User stamp is added or updated.

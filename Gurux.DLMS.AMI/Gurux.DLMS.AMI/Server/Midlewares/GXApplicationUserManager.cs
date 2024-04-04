@@ -35,7 +35,6 @@ using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.Enums;
 using Gurux.DLMS.AMI.Shared.DIs;
@@ -58,6 +57,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Midlewares
 {
@@ -199,67 +200,78 @@ namespace Gurux.DLMS.AMI.Server.Midlewares
                     list.Add(d);
                     sg.Schedules = list;
                     IScheduleGroupRepository scheduleGroupRepository = scope.ServiceProvider.GetRequiredService<IScheduleGroupRepository>();
-                    await scheduleGroupRepository.UpdateAsync(User, new GXScheduleGroup[] { sg }, null);
+                    await scheduleGroupRepository.UpdateAsync(User, [sg], null);
 
                     //Create default device template group and add user group to it.
                     GXDeviceTemplateGroup dtg = new GXDeviceTemplateGroup(groupName) { CreationTime = now, Default = true };
                     dtg.UserGroups.Add(ug);
                     IDeviceTemplateGroupRepository deviceTemplateGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceTemplateGroupRepository>();
-                    await deviceTemplateGroupRepository.UpdateAsync(User, new GXDeviceTemplateGroup[] { dtg }, null);
+                    await deviceTemplateGroupRepository.UpdateAsync(User, [dtg], null);
 
                     //Create default device group and add user group to it.
                     GXDeviceGroup dg = new GXDeviceGroup(groupName) { CreationTime = now, Default = true };
                     dg.UserGroups.Add(ug);
                     IDeviceGroupRepository deviceGroupRepository = scope.ServiceProvider.GetRequiredService<IDeviceGroupRepository>();
-                    await deviceGroupRepository.UpdateAsync(User, new GXDeviceGroup[] { dg }, null);
+                    await deviceGroupRepository.UpdateAsync(User, [dg], null);
 
                     //Create default agent group and add user group to it.
                     GXAgentGroup ag = new GXAgentGroup(groupName) { CreationTime = now, Default = true };
                     ag.UserGroups.Add(ug);
                     IAgentGroupRepository agentGroupRepository = scope.ServiceProvider.GetRequiredService<IAgentGroupRepository>();
-                    await agentGroupRepository.UpdateAsync(User, new GXAgentGroup[] { ag }, null);
+                    _ = await agentGroupRepository.UpdateAsync(User, [ag], null);
 
                     //Create default module group and add user group to it.
                     GXModuleGroup mg = new GXModuleGroup(groupName) { CreationTime = now, Default = true };
                     mg.UserGroups.Add(ug);
                     IModuleGroupRepository moduleGroupRepository = scope.ServiceProvider.GetRequiredService<IModuleGroupRepository>();
-                    await moduleGroupRepository.UpdateAsync(User, new GXModuleGroup[] { mg }, null);
+                    _ = await moduleGroupRepository.UpdateAsync(User, [mg], null);
 
                     //Create default trigger group and add user group to it.
                     GXTriggerGroup tg = new GXTriggerGroup(groupName) { CreationTime = now, Default = true };
                     tg.UserGroups.Add(ug);
                     ITriggerGroupRepository triggerGroupRepository = scope.ServiceProvider.GetRequiredService<ITriggerGroupRepository>();
-                    await triggerGroupRepository.UpdateAsync(User, new GXTriggerGroup[] { tg }, null);
+                    _ = await triggerGroupRepository.UpdateAsync(User, [tg], null);
 
                     //Create default workflow group and add user group to it.
                     GXWorkflowGroup wfg = new GXWorkflowGroup(groupName) { CreationTime = now, Default = true };
                     wfg.UserGroups.Add(ug);
                     IWorkflowGroupRepository workflowGroupRepository = scope.ServiceProvider.GetRequiredService<IWorkflowGroupRepository>();
-                    await workflowGroupRepository.UpdateAsync(User, new GXWorkflowGroup[] { wfg });
+                    _ = await workflowGroupRepository.UpdateAsync(User, [wfg]);
 
                     //Create default block group and add user group to it.
                     GXBlockGroup bg = new GXBlockGroup(groupName) { CreationTime = now, Default = true };
                     bg.UserGroups.Add(ug);
                     IBlockGroupRepository blockGroupRepository = scope.ServiceProvider.GetRequiredService<IBlockGroupRepository>();
-                    await blockGroupRepository.UpdateAsync(User, new GXBlockGroup[] { bg });
+                    _ = await blockGroupRepository.UpdateAsync(User, [bg]);
 
                     //Create default script group and add user group to it.
                     GXScriptGroup sgs = new GXScriptGroup(groupName) { CreationTime = now, Default = true };
                     sgs.UserGroups.Add(ug);
                     IScriptGroupRepository scriptGroupRepository = scope.ServiceProvider.GetRequiredService<IScriptGroupRepository>();
-                    await scriptGroupRepository.UpdateAsync(User, new GXScriptGroup[] { sgs });
+                    _ = await scriptGroupRepository.UpdateAsync(User, [sgs]);
 
                     //Create default gateway group and add user group to it.
-                    GXGatewayGroup gg = new GXGatewayGroup(groupName) { CreationTime = now};
+                    GXGatewayGroup gg = new GXGatewayGroup(groupName) { CreationTime = now };
                     gg.UserGroups.Add(ug);
                     IGatewayGroupRepository gatewayGroupRepository = scope.ServiceProvider.GetRequiredService<IGatewayGroupRepository>();
-                    await gatewayGroupRepository.UpdateAsync(User, new GXGatewayGroup[] { gg }, null);
+                    _ = await gatewayGroupRepository.UpdateAsync(User, [gg], null);
 
                     //Create default key management group and add user group to it.
                     GXKeyManagementGroup kmg = new GXKeyManagementGroup(groupName) { CreationTime = now, Default = true };
                     kmg.UserGroups.Add(ug);
                     IKeyManagementGroupRepository kmGroupRepository = scope.ServiceProvider.GetRequiredService<IKeyManagementGroupRepository>();
-                    await kmGroupRepository.UpdateAsync(User, new GXKeyManagementGroup[] { kmg });
+                    _ = await kmGroupRepository.UpdateAsync(User, [kmg]);
+
+                    //Create default subtotal group and add user group to it.
+                    GXSubtotalGroup stg = new GXSubtotalGroup(groupName) { CreationTime = now, Default = true };
+                    stg.UserGroups.Add(ug);
+                    ISubtotalGroupRepository stGroupRepository = scope.ServiceProvider.GetRequiredService<ISubtotalGroupRepository>();
+                    await stGroupRepository.UpdateAsync(User, [stg]);
+                    //Create default report group and add user group to it.
+                    GXReportGroup rg = new GXReportGroup(groupName) { CreationTime = now, Default = true };
+                    rg.UserGroups.Add(ug);
+                    IReportGroupRepository rGroupRepository = scope.ServiceProvider.GetRequiredService<IReportGroupRepository>();
+                    _ = await rGroupRepository.UpdateAsync(User, new GXReportGroup[] { rg });
                 }
                 //Run cron after the admin is added.
                 if (firstUser)

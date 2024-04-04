@@ -1,0 +1,397 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/reportgroups"
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Report
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ReportGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportGroupManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Icon="oi oi-plus" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+
+<GXTable @ref="table"
+         Context="group"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector
+                                Id="ReportGroups-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <th>
+            <input class="form-control" placeholder="Filter by update time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportGroupManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Updated">@Properties.Resources.Updated</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("config/ReportGroup/Edit/" + group.Id)">@group.Name</Td>
+        <td>@group.CreationTime</td>
+        <td>@group.Updated</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.ReportGroups;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the report groups shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Report group filter.
+    /// </summary>
+    private GXReportGroup filter = new GXReportGroup();
+
+    /// <summary>
+    /// User is verified before report is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXReportGroup>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXReportGroup>>(this, nameof(IGXHubEvents.ReportGroupUpdate), async (groups) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXReportGroup>>(this, nameof(IGXHubEvents.ReportGroupDelete), async (groups) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXReportGroup() { Id = Id.Value };
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXReportGroup>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListReportGroups req = new ListReportGroups()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListReportGroupsResponse>("api/ReportGroup/List", req, request.CancellationToken);
+            if (ret.ReportGroups != null)
+            {
+                return new ItemsProviderResult<GXReportGroup>(ret.ReportGroups, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new report group.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ReportGroup/Add");
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit report group.
+    /// </summary>
+
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ReportGroup/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected report groups.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected report groups.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                RemoveReportGroup req = new RemoveReportGroup()
+                    {
+                        Delete = args.Delete,
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<RemoveReportGroupResponse>("api/ReportGroup/Delete", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

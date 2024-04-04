@@ -1,0 +1,187 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/config/report/{Id:guid?}"
+@page "/config/report/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Client.Pages.Agent
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Gateway
+@using Gurux.DLMS.AMI.Client.Pages.Objects
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Report
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ReportManager + "," + GXRoles.ReportGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <TabControl @ref="_tabControl">
+        <TabTextTemplate>
+            <span class=@context.Icon aria-hidden="true"></span>
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportManager)>
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="oi oi-folder">
+                    <Report Active="@Active" Action="@Action">
+                    </Report>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportGroupManager)>
+                <TabPage Text=@Properties.Resources.ReportGroups Icon="oi oi-folder">
+                    <ReportGroupsSelector>
+                    </ReportGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+            <!--
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent)>
+                <TabPage Text=@Properties.Resources.Agents Icon="oi oi-wifi">
+                    <AgentsSelector Agents="@Active.Agents">
+                    </AgentsSelector>
+                </TabPage>
+                <TabPage Text=@Properties.Resources.AgentGroups Icon="oi oi-wifi">
+                    <AgentGroupsSelector AgentGroups="@Active.AgentGroups">
+                    </AgentGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Gateway)>
+                <TabPage Text=@Properties.Resources.Gateways Icon="oi oi-wifi">
+                    <GatewaysSelector Gateways="@Active.Gateways">
+                    </GatewaysSelector>
+                </TabPage>
+                <TabPage Text=@Properties.Resources.GatewayGroups Icon="oi oi-wifi">
+                    <GatewayGroupsSelector Action="@Action"
+                        GatewayGroups="@Active.GatewayGroups">
+                    </GatewayGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+            -->
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+    private TabControl? _tabControl;
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXReport Active = new GXReport(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Report;
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (string.Compare(Action, "Add", true) != 0)
+            {
+                //Get report data.
+                var tmp = (await Http.GetAsJsonAsync<GetReportResponse>(string.Format("api/Report?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

@@ -43,6 +43,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.Linq;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -304,6 +306,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXManufacturerGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXManufacturerGroup, List<string>> updates = new Dictionary<GXManufacturerGroup, List<string>>();
             foreach (GXManufacturerGroup it in ManufacturerGroups)
@@ -327,6 +330,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -346,7 +350,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXManufacturerGroup>(q => new { q.UserGroups, q.CreationTime, q.Manufacturers });
+                    args.Exclude<GXManufacturerGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Manufacturers
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXManufacturerGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to Manufacturer group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

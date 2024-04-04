@@ -42,6 +42,7 @@ using Gurux.DLMS.AMI.Client.Pages.Admin;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -291,6 +292,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXTriggerGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXTriggerGroup, List<string>> updates = new Dictionary<GXTriggerGroup, List<string>>();
             foreach (GXTriggerGroup it in TriggerGroups)
@@ -302,11 +304,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
                     //Get default user groups.
-                    if (User != null)
-                    {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(User,
-                                                   ServerHelpers.GetUserId(User));
-                    }
+                    it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(User,
+                                               ServerHelpers.GetUserId(User));
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
                         throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
@@ -314,6 +313,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -333,7 +333,18 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXTriggerGroup>(q => new { q.UserGroups, q.CreationTime });
+                    args.Exclude<GXTriggerGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXTriggerGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to Trigger group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

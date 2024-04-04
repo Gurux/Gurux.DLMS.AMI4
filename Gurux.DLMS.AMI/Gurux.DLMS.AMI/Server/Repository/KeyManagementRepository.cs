@@ -46,6 +46,8 @@ using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -207,7 +209,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     arg.Where.And<GXKeyManagement>(w => request.Included.Contains(w.Id));
                 }
             }
-            if (request?.Select != null && request.Select.Contains("Device"))
+            if (request?.Select != null && request.Select.Contains(TargetType.Device))
             {
                 //Get device basic information.
                 arg.Joins.AddLeftJoin<GXKeyManagement, GXDevice>(j => j.Device, j => j.Id);
@@ -268,7 +270,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     }
                 }
             }
-            if (request?.Select != null && request.Select.Contains("Object"))
+            if (request?.Select != null && request.Select.Contains(TargetType.Object))
             {
                 foreach (GXKeyManagement it in list)
                 {
@@ -283,7 +285,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             e.Updated,
                             e.Removed
                         });
-                        if (request?.Select != null && request.Select.Contains("ObjectTemplate"))
+                        if (request?.Select != null && request.Select.Contains(TargetType.ObjectTemplate))
                         {
                             arg.Columns.Add<GXObjectTemplate>();
                             arg.Columns.Exclude<GXObjectTemplate>(e => new
@@ -295,7 +297,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
                             arg.Where.And<GXObjectTemplate>(w => w.Removed == null);
                         }
-                        if (request?.Select != null && request.Select.Contains("Attribute"))
+                        if (request?.Select != null && request.Select.Contains(TargetType.Attribute))
                         {
                             arg.Columns.Add<GXAttribute>();
                             arg.Columns.Exclude<GXAttribute>(e => new
@@ -467,9 +469,16 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     {
                         q.CreationTime,
                         q.KeyManagementGroups,
-                        q.Creator,
                         q.Keys
                     });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        key.Creator == null ||
+                        string.IsNullOrEmpty(key.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXKeyManagement>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map key groups to key.
                     List<GXKeyManagementGroup> groups;

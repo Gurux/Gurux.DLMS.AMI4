@@ -1,0 +1,557 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Report
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ReportManager)]
+@inject NavigationManager NavigationManager
+@inject ILogger<Report> Logger
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@if (Active != null)
+{
+    <EditForm EditContext="@Notifier.EditContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Name</label>
+                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
+                    <label>Report target</label>
+                    <GXInputEnumSelector class="form-select"
+                                         Id="Report.Target"
+                                         UseCookie="@(action ==CrudAction.Create)"
+                                         Values="@_reportTargets"
+                                         @bind-Value="_target"
+                                         OnSelected="@((ReportTarget e) => UpdateTabs())">
+                    </GXInputEnumSelector>
+                </div>
+                <!--
+                <div class="form-group">
+                    <label>Report type</label>
+                    <select class="form-select" @bind="@Active.Type">
+                @foreach (var it in reportTypes)
+                {
+                            <option value="@Convert.ToByte(it)">@it</option>
+                }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Report operation</label>
+                    <select class="form-select" @bind="@Active.Operation">
+                @foreach (var it in reportOperations)
+                {
+                            <option value="@Convert.ToByte(it)">@it</option>
+                }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <InputSwitch Text="@Properties.Resources.Delta" @bind-Value="Active.Delta" />
+                </div>
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Total" @bind-Value="Active.Total" />
+                </div>
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Fill" @bind-Value="Active.Fill" />
+                </div>
+                -->
+                <TabControl @ref="_tabControl" Context="item">
+                    <TabTextTemplate>
+                        <span class=@item.Icon aria-hidden="true"></span>
+                        @item.Text
+                    </TabTextTemplate>
+                    <ChildContent>
+                        <TabPage Text=@Properties.Resources.GeneralInformation>
+                            <div class="form-group">
+                                <label>Report delivery</label>
+                                <GXInputEnumSelector class="form-select"
+                                                     Id="Report.Delivery"
+                                                     UseCookie="@(action ==CrudAction.Create)"
+                                                     Values="@reportDelivery"
+                                                     @bind-Value="Active.Delivery">
+                                </GXInputEnumSelector>
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.Destination</label>
+                                <InputText id="name" disabled="@IsDestinationDeleting" class="form-control"
+                                           @bind-Value="Active.Destination" />
+                            </div>
+                            <div class="form-group">
+                                <label>Range</label>
+                                <GXInputTimeSpan id="Report.Range"
+                                                 disabled="@IsDeleting"
+                                                 UseCookie="@(action ==CrudAction.Create)"
+                                                 @bind-Value="Active.Range"
+                                                 class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label>Count</label>
+                                <GXInputNumber Id="count"
+                                               disabled="@IsDeleting"
+                                               class="form-control"
+                                               UseCookie="@(action ==CrudAction.Create)"
+                                               @bind-Value="Active.Count" />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.Interval</label>
+                                <GXInputTimeSpan Id="Report.Interval"
+                                                 disabled="@IsIntervalDisabled"
+                                                 UseCookie="@(action ==CrudAction.Create)"
+                                                 @bind-Value="Active.Interval"
+                                                 class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.TraceLevel</label>
+                                <GXInputEnumSelector class="form-select"
+                                                     Id="Report.TraceLevel"
+                                                     UseCookie="@(action ==CrudAction.Create)"
+                                                     @bind-Value="Active.TraceLevel">
+                                </GXInputEnumSelector>
+                            </div>
+                            @if (Active.Last != null)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.LastDevelivery</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="calculated" readonly="readonly" class="form-control"
+                                               @bind-Value="Active.Last" />
+                                </div>
+                            }
+                            @if (Active.Next != null)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.NextDevelivery</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="calculated" readonly="readonly" class="form-control"
+                                               @bind-Value="Active.Next" />
+                                </div>
+                            }
+                            @if (Active.CreationTime != DateTime.MinValue)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.CreationTime</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
+                                               @bind-Value="Active.CreationTime" />
+                                </div>
+                            }
+                            @if (Active.Updated != null)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.Updated</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                                               @bind-Value="Active.Updated" />
+                                </div>
+                            }
+                            @if (Active.Removed != null)
+                            {
+                                <div class="form-group">
+                                    <label>@Properties.Resources.Removed</label>
+                                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                                               @bind-Value="Active.Removed" />
+                                </div>
+                            }
+                        </TabPage>
+                        <TabPage Text=@Properties.Resources.Devices Icon="oi oi-timer"
+                                 Visible="@(_target == ReportTarget.Device)">
+                            <DeviceSelector Devices="@Active.Devices"
+                                            ObjectTypes="@ObjectTypes"
+                                            AttributeTemplates="@Active.DeviceAttributeTemplates">
+                            </DeviceSelector>
+                        </TabPage>
+                        <TabPage Text=@Properties.Resources.DeviceGroups Icon="oi oi-timer"
+                                 Visible="@(_target == ReportTarget.DeviceGroup)">
+                            <DeviceGroupSelector DeviceGroups="@Active.DeviceGroups"
+                                                 ObjectTypes="@ObjectTypes"
+                                                 AttributeTemplates="@Active.DeviceGroupAttributeTemplates">
+                            </DeviceGroupSelector>
+                        </TabPage>
+                    </ChildContent>
+                </TabControl>
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    private ReportTab? Parent { get; set; }
+
+    TabControl? _tabControl;
+
+    /// <summary>
+    /// Update tab pages when the report target changes.
+    /// </summary>
+    private void UpdateTabs()
+    {
+        _tabControl?.Update();
+    }
+
+    /// <summary>
+    /// Selected report target.
+    /// </summary>
+    private ReportTarget _target;
+    //Report targets.
+    private readonly List<ReportTarget> _reportTargets = [ReportTarget.Device, ReportTarget.DeviceGroup];
+
+    /// <summary>
+    /// Return shown object types.
+    /// </summary>
+    private Gurux.DLMS.Enums.ObjectType[] ObjectTypes
+    {
+        get
+        {
+            return new Gurux.DLMS.Enums.ObjectType[]
+            {
+            Gurux.DLMS.Enums.ObjectType.Data,
+            Gurux.DLMS.Enums.ObjectType.Register,
+            Gurux.DLMS.Enums.ObjectType.RegisterMonitor,
+            Gurux.DLMS.Enums.ObjectType.RegisterActivation,
+            Gurux.DLMS.Enums.ObjectType.ExtendedRegister,
+            };
+        }
+    }
+
+    /// <summary>
+    /// Selected report.
+    /// </summary>
+    private GXReport? _active;
+
+    [Parameter, EditorRequired]
+    public GXReport? Active
+    {
+        get
+        {
+            return _active;
+        }
+        set
+        {
+            _active = value;
+            if (value != null)
+            {
+                Notifier.EditContext = new EditContext(value);
+                Notifier.EditContext.MarkAsUnmodified();
+            }
+            if (_active?.Devices != null && _active.Devices.Any())
+            {
+                _target = ReportTarget.Device;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.Device);
+            }
+            else if (_active?.DeviceGroups != null && _active.DeviceGroups.Any())
+            {
+                _target = ReportTarget.DeviceGroup;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.DeviceGroup);
+            }
+            else if (_active?.Agents != null && _active.Agents.Any())
+            {
+                _target = ReportTarget.Agent;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.Agent);
+            }
+            else if (_active?.AgentGroups != null && _active.AgentGroups.Any())
+            {
+                _target = ReportTarget.AgentGroup;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.AgentGroup);
+            }
+            else if (_active?.Gateways != null && _active.Gateways.Any())
+            {
+                _target = ReportTarget.Gateway;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.Gateway);
+            }
+            else if (_active?.GatewayGroups != null && _active.GatewayGroups.Any())
+            {
+                _target = ReportTarget.GatewayGroup;
+                _reportTargets.Clear();
+                _reportTargets.Add(ReportTarget.GatewayGroup);
+            }
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    ///Report operations.
+    /// </summary>
+    List<ReportOperation> reportOperations = new List<ReportOperation>();
+
+    /// <summary>
+    ///Report operations.
+    /// </summary>
+    List<ReportDelivery?> reportDelivery = new List<ReportDelivery?>();
+
+    /// <summary>
+    ///Report types.
+    /// </summary>
+    List<ReportType> reportTypes = new List<ReportType>();
+
+
+    /// <summary>
+    /// Interval is disabled if delivery is for caller.
+    /// </summary>
+    public string? IsIntervalDisabled
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete &&
+                Active != null && Active.Delivery != ReportDelivery.Caller)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDestinationDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                if (Active?.Delivery != null &&
+                    Active.Delivery.Value == ReportDelivery.Email)
+                {
+                    return null;
+                }
+            }
+            return "disabled";
+        }
+    }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the report content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null && string.IsNullOrEmpty(Active.Name))
+        {
+            sender.AddError(() => Active.Name, "Invalid name.");
+        }
+        if (Active != null && Active.Interval < 0)
+        {
+            sender.AddError(() => Active.Interval, "Invalid interval.");
+        }
+    }
+
+    private void OnChange(FieldChangedEventArgs args)
+    {
+
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            reportOperations.AddRange(Enum.GetValues<ReportOperation>());
+            reportTypes.AddRange(Enum.GetValues<ReportType>());
+            reportDelivery.AddRange(Enum.GetValues<ReportDelivery>().Cast<ReportDelivery?>());
+            //Only None, caller and email delivery are supported.
+            reportDelivery.Remove(ReportDelivery.Http);
+            reportDelivery.Remove(ReportDelivery.Ftp);
+
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get report data.
+                var tmp = (await Http.GetAsJsonAsync<GetReportResponse>(string.Format("api/Report?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = OnSave });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                    {
+                        Text = Properties.Resources.Save,
+                        Icon = "oi oi-pencil",
+                        Enabled = EnableStyle.Modified,
+                        OnClick = OnSave
+                    });
+            }
+            Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Cancel,
+                    Icon = "oi oi-action-undo",
+                    OnClick = OnCancel
+                });
+            Notifier.UpdateButtons();
+            Notifier.EditContext = new EditContext(Active);
+            Notifier.EditContext.MarkAsUnmodified();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save report.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveReportResponse>("api/Report/Delete", new RemoveReport()
+                    {
+                        Ids = new Guid[] { Active.Id }
+                    });
+            }
+            else
+            {
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/Report/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/Report/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateReportResponse>(address, new UpdateReport() { Reports = new List<GXReport>() { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
+

@@ -1,0 +1,514 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@page "/config/Report/Logs"
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Report
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.SignalR.Client
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, ReportLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.ReportLogs (@Properties.Resources.Total: @Total)</PageTitle>
+}
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ReportLog)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose" />
+            <MenuItem Text="@Properties.Resources.Clear" Icon="oi oi-trash" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector
+                                Id="ReportLogs-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by report..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Report.Name = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by error..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <TraceLevelSearch Id="ReportLogs-TraceLevel"
+                              @bind-Value="@TraceLevel"
+                              OnSelected="@Updated">
+            </TraceLevelSearch>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Show" Icon="oi oi-eye" OnClick="@OnShow"></ContextMenuItem>
+        <ContextMenuItem Text="@Properties.Resources.Close" Icon="oi oi-pencil" OnClick="@OnClose"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Id="CreationTime" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Id="Name">@Properties.Resources.Name</Th>
+        <Th Id="Message">@Properties.Resources.Error</Th>
+        <Th Id="Level">@Properties.Resources.Level</Th>
+        <Th Id="Closed">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("config/Report/Log/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@(error.Report != null ? error.Report.Name : "")</td>
+        <td>@error.Message</td>
+        <td>@ClientHelpers.LevelToString(error.Level)</td>
+        <td>@error.Closed</td>
+    </ItemContent>
+</GXTable>
+
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
+</Confirm>
+
+<Confirm @ref="CloseConfirmation"
+         ConfirmationChanged="OnCloseConfirmation"
+         ConfirmationTitle="Confirm close"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Close"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToCloseSelectedItems">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Selected schedule group ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.ReportLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the report errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Report error filter.
+    /// </summary>
+    private GXReportLog filter = new GXReportLog()
+        {
+            Report = new GXReport()
+        };
+    /// <summary>
+    /// User is verified before report errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+
+    /// <summary>
+    /// User is verified before report errors are closed.
+    /// </summary>
+    protected ConfirmBase? CloseConfirmation;
+
+    /// <summary>
+    /// Reference to the table.
+    /// </summary>
+    protected GXTable<GXReportLog>? table;
+
+    /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXReportLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXReport>?>(this, nameof(IGXHubEvents.ClearReportLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXReportLog>>(this, nameof(IGXHubEvents.AddReportLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXReportLog>>(this, nameof(IGXHubEvents.CloseReportLogs), async (logs) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXReportLog() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXReportLog>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier.ProgressStart();
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+            if (filter.Message == string.Empty)
+            {
+                filter.Message = null;
+            }
+
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
+            }
+            ListReportLogs req = new ListReportLogs()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData
+                };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListReportLogsResponse>("api/ReportLog/List", req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                //Mark report logs as seen.
+                await Notifier.Mark(Http, TargetType.ReportLog, ret.Logs.Max(s => s.CreationTime));
+            }
+            Total = ret.Count;
+            //Get only selected amount of the report logs.
+            if (Total != 0)
+            {
+                ret.Count = Total;
+            }
+            return new ItemsProviderResult<GXReportLog>(ret.Logs, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show report error details.
+    /// </summary>
+    void OnShow()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/ReportLog/Edit/" + table?.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public void OnClose()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            CloseConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Message).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Close the selected logs.
+    /// </summary>
+    public async Task OnCloseConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                CloseReportLog req = new CloseReportLog()
+                    {
+                        Logs = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    };
+                await Http.PostAsJson<CloseReportLogResponse>("api/ReportLog/Close", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the report error list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the report error list.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                await Http.PostAsJson<ClearReportLogsResponse>("api/ReportLog/Clear", new ClearReportLogs());
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+}

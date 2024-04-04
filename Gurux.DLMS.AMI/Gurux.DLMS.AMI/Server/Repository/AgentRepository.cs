@@ -45,6 +45,8 @@ using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Client.Pages.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -413,7 +415,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     agent.CreationTime = now;
                     agent.Creator = creator;
                     GXInsertArgs args = GXInsertArgs.Insert(agent);
-                    args.Exclude<GXAgent>(q => new { q.Updated, q.AgentGroups, q.Removed });
+                    args.Exclude<GXAgent>(q => new
+                    {
+                        q.Updated,
+                        q.AgentGroups,
+                        q.Removed
+                    });
                     _host.Connection.Insert(args);
                     list.Add(agent.Id);
                     AddAgentToAgentGroups(agent.Id, agent.AgentGroups);
@@ -429,7 +436,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     agent.Updated = now;
                     agent.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(agent, columns);
-                    args.Exclude<GXAgent>(q => new { q.CreationTime, q.AgentGroups, q.Versions, q.Creator });
+                    args.Exclude<GXAgent>(q => new
+                    {
+                        q.CreationTime,
+                        q.AgentGroups,
+                        q.Versions,
+                        q.Creator
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                      agent.Creator == null ||
+                      string.IsNullOrEmpty(agent.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXAgent>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map agent groups to agent.
                     if (agent.AgentGroups != null && agent.AgentGroups.Any())

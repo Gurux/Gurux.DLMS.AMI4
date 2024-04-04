@@ -39,8 +39,6 @@ using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
-using static Azure.Core.HttpHeader;
-using Gurux.DLMS.AMI.Client.Pages.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
@@ -238,6 +236,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             GXSubtotalValue[] values = (await _host.Connection.SelectAsync<GXSubtotalValue>(arg)).ToArray();
+            foreach (var it in values)
+            {
+                if (it.Subtotal != null)
+                {
+                    it.Subtotal.Values = null;
+                }
+            }
             if (response != null)
             {
                 response.SubtotalValues = values;

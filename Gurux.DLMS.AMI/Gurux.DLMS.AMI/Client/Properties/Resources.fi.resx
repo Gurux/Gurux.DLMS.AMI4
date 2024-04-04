@@ -1182,16 +1182,16 @@
   <data name="Import" xml:space="preserve">
     <value>Tuonti</value>
   </data>
-  <data name="Subtotals" xml:space="preserve">
+  <data name="Reports" xml:space="preserve">
     <value>Välisummat</value>
   </data>
-  <data name="Subtotal" xml:space="preserve">
+  <data name="Report" xml:space="preserve">
     <value>Välisumma</value>
   </data>
-  <data name="SubtotalGroups" xml:space="preserve">
+  <data name="ReportGroups" xml:space="preserve">
     <value>Välisumma-ryhmät</value>
   </data>
-  <data name="SubtotalGroup" xml:space="preserve">
+  <data name="ReportGroup" xml:space="preserve">
     <value>Välisumma-ryhmä</value>
   </data>
   <data name="Interval" xml:space="preserve">
@@ -1209,7 +1209,7 @@
   <data name="Operation" xml:space="preserve">
     <value>Operaatio</value>
   </data>
-  <data name="SubtotalLogs" xml:space="preserve">
+  <data name="ReportLogs" xml:space="preserve">
     <value>Välisumma Lokit</value>
   </data>
   <data name="Fill" xml:space="preserve">
@@ -1235,5 +1235,41 @@
   </data>
   <data name="Delete" xml:space="preserve">
     <value>Poista</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Välisummat</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Kohde</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Välisumma</value>
+  </data>
+  <data name="SubtotalGroups" xml:space="preserve">
+    <value>Ryhmät yhteensä</value>
+  </data>
+  <data name="SubtotalLogs" xml:space="preserve">
+    <value>Lokit yhteensä</value>
+  </data>
+  <data name="SubtotalGroup" xml:space="preserve">
+    <value>Välisumma-ryhmä</value>
+  </data>
+  <data name="LastDevelivery" xml:space="preserve">
+    <value>Viimeinen toimitus</value>
+  </data>
+  <data name="NextDevelivery" xml:space="preserve">
+    <value>Seuraava toimitus</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Lähetä</value>
+  </data>
+  <data name="Compression" xml:space="preserve">
+    <value>Pakkaus</value>
+  </data>
+  <data name="Delivery" xml:space="preserve">
+    <value>Toimitus</value>
   </data>
 </root>

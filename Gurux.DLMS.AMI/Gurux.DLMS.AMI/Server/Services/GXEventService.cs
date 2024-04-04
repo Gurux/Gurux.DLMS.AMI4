@@ -47,11 +47,12 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Microsoft.AspNetCore.SignalR;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Services
 {
@@ -344,9 +345,27 @@ namespace Gurux.DLMS.AMI.Services
         /// <inheritdoc/>
         public event Action<IEnumerable<GXSubtotalLog>>? OnAddSubtotalLog;
         /// <inheritdoc/>
-        public event Action<IEnumerable<GXSubtotal?>>? OnClearSubtotalLog;
+        public event Action<IEnumerable<GXSubtotal>?>? OnClearSubtotalLog;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXSubtotalLog>>? OnCloseSubtotalLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReport>>? OnReportUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReport>>? OnReportDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReport>>? OnReportCalculate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReport>>? OnReportClear;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReportGroup>>? OnReportGroupUpdate;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReportGroup>>? OnReportGroupDelete;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReportLog>>? OnAddReportLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReport?>>? OnClearReportLog;
+        /// <inheritdoc/>
+        public event Action<IEnumerable<GXReportLog>>? OnCloseReportLog;
         /// <inheritdoc/>
         public event Action<IEnumerable<GXUserStamp>>? OnStampUpdate;
 
@@ -1367,6 +1386,68 @@ namespace Gurux.DLMS.AMI.Services
         {
             OnCloseSubtotalLog?.Invoke(logs);
             await _hubContext.Clients.Users(users).CloseSubtotalLogs(logs);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportCalculate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+        {
+            OnReportCalculate?.Invoke(reports);
+            await _hubContext.Clients.Users(users).ReportCalculate(reports);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportClear(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+        {
+            OnReportClear?.Invoke(reports);
+            await _hubContext.Clients.Users(users).ReportClear(reports);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportDelete(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+        {
+            OnReportDelete?.Invoke(reports);
+            await _hubContext.Clients.Users(users).ReportDelete(reports);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportGroupDelete(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
+        {
+            OnReportGroupDelete?.Invoke(groups);
+            await _hubContext.Clients.Users(users).ReportGroupDelete(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups)
+        {
+            OnReportGroupUpdate?.Invoke(groups);
+            await _hubContext.Clients.Users(users).ReportGroupUpdate(groups);
+        }
+
+        /// <inheritdoc/>
+        public async Task ReportUpdate(IReadOnlyList<string> users, IEnumerable<GXReport> reports)
+        {
+            OnReportUpdate?.Invoke(reports);
+            await _hubContext.Clients.Users(users).ReportUpdate(reports);
+        }
+
+        /// <inheritdoc/>
+        public async Task AddReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> logs)
+        {
+            OnAddReportLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).AddReportLogs(logs);
+        }
+        /// <inheritdoc/>
+        public async Task ClearReportLogs(IReadOnlyList<string> users, IEnumerable<GXReport>? logs)
+        {
+            OnClearReportLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).ClearReportLogs(logs);
+        }
+
+        /// <inheritdoc/>
+        public async Task CloseReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> logs)
+        {
+            OnCloseReportLog?.Invoke(logs);
+            await _hubContext.Clients.Users(users).CloseReportLogs(logs);
         }
 
         /// <inheritdoc/>

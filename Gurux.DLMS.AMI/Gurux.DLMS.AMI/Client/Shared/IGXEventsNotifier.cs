@@ -42,10 +42,11 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Client.Shared
 {
@@ -970,7 +971,7 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="performances">Deleted performances.</param>
         Task PerformanceDelete(IReadOnlyList<string> users, IEnumerable<Guid> performances);
-      
+
         /// <summary>
         /// New subtotal is added or modified.
         /// </summary>
@@ -1046,6 +1047,75 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// <param name="users">Notified users.</param>
         /// <param name="subtotals">Closed errors.</param>
         Task CloseSubtotalLogs(IReadOnlyList<string> users, IEnumerable<GXSubtotalLog> subtotals);
+
+        /// <summary>
+        /// New report is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="keys">Updated reports.</param>
+        /// <remarks>
+        /// Only the Id and the name of the report are sent to keep message short.
+        /// </remarks>
+        Task ReportUpdate(IReadOnlyList<string> users, IEnumerable<GXReport> keys);
+
+        /// <summary>
+        /// Report is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">Deleted reports.</param>
+        /// <remarks>
+        /// Only the Id and the name of the report are sent to keep message short.
+        /// </remarks>
+        Task ReportDelete(IReadOnlyList<string> users, IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// New report group is added or modified.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Updated report groups.</param>
+        Task ReportGroupUpdate(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups);
+
+        /// <summary>
+        /// Report group is deleted.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="groups">Deleted report groups.</param>
+        Task ReportGroupDelete(IReadOnlyList<string> users, IEnumerable<GXReportGroup> groups);
+
+        /// <summary>
+        /// Report value is calculated.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">Calculated report values.</param>
+        Task ReportCalculate(IReadOnlyList<string> users, IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// Report values are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">Cleared report values.</param>
+        Task ReportClear(IReadOnlyList<string> users, IEnumerable<GXReport> reports);
+
+        /// <summary>
+        /// Report logs are cleared.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">List of cleared reports.</param>
+        Task ClearReportLogs(IReadOnlyList<string> users, IEnumerable<GXReport>? reports);
+
+        /// <summary>
+        /// New report log item is added.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">New report errors.</param>
+        Task AddReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports);
+
+        /// <summary>
+        /// Report logs are closed.
+        /// </summary>
+        /// <param name="users">Notified users.</param>
+        /// <param name="reports">Closed errors.</param>
+        Task CloseReportLogs(IReadOnlyList<string> users, IEnumerable<GXReportLog> reports);
 
         /// <summary>
         /// User stamp is updated.

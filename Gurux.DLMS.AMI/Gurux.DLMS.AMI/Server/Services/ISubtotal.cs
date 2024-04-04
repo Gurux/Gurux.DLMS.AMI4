@@ -53,7 +53,7 @@ namespace Gurux.DLMS.AMI.Server.Services
         void Cancel(ClaimsPrincipal user, IEnumerable<Guid>? subtotals);
 
         /// <summary>
-        /// Update subtotals when user has updated sub total time or targets.
+        /// Update subtotals when user has updated subtotal time or targets.
         /// </summary>
         Task UpdateAsync();
     }

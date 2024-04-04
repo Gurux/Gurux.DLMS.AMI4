@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @namespace Gurux.DLMS.AMI.Components.Tab
 
 @inject NavigationManager NavigationManager
@@ -39,7 +38,7 @@
     <ul class="nav nav-tabs"
         role="tablist"
         style="width:100%">
-        @foreach (var it in Pages)
+        @foreach (var it in GetPages())
         {
             <li class="nav-item" role="presentation">
                 <button class="@GetActiveClass(it)"
@@ -92,14 +91,21 @@
     /// <summary>
     /// User has selected a new tab.
     /// </summary>
-    [Parameter] 
+    [Parameter]
     public SelectionChangedEventHandler? SelectionChanged { get; set; }
 
     [Parameter]
     public RenderFragment<TabPage>? TabTextTemplate { get; set; }
 
     public TabPage? ActivePage { get; set; }
-    List<TabPage> Pages = new List<TabPage>();
+
+    IEnumerable<TabPage> GetPages()
+    {
+        return Pages.Where(w => w.Visible == true);
+    }
+
+    private readonly List<TabPage> Pages = new List<TabPage>();
+
     internal void AddPage(TabPage tabPage)
     {
         tabPage.Index = Pages.Count;
@@ -145,5 +151,13 @@
             ActivePage = Pages[index];
             SelectionChanged?.Invoke(ActivePage);
         }
-    }    
+    }
+
+    /// <summary>
+    /// Update tab pages.
+    /// </summary>
+    public void Update()
+    {
+        StateHasChanged();
+    }
 }

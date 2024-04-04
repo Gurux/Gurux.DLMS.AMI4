@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using Gurux.DLMS.AMI.Client.Shared
 @using Gurux.DLMS.AMI.Module;
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -46,7 +45,8 @@
 <div class="btn-group" role="group">
     @foreach (GXMenuItem it in Notifier.Items)
     {
-        <button class="btn button" onclick="@(() => it.OnClick())">
+        <button class="nav-link btn btn-link" onclick="@(() => it.OnClick())"
+                disabled="@IsDisabled(it)">
             @if (it.Icon != null)
             {
                 <div class="@it.Icon"></div>
@@ -61,6 +61,18 @@
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
 
+    private bool IsDisabled(GXMenuItem it)
+    {
+
+        var enabled = (it.Enabled == Components.Enums.EnableStyle.Always) ||
+                     (it.Enabled == Components.Enums.EnableStyle.Modified &&
+                     Notifier.EditContext != null && Notifier.EditContext.IsModified()) ||
+                     (it.Enabled == Components.Enums.EnableStyle.Unmodified &&
+                     Notifier.EditContext != null && !Notifier.EditContext.IsModified());
+
+        Console.WriteLine("Mikko " + enabled);
+        return !enabled;
+    }
     ///
     string? _page;
 
@@ -154,6 +166,10 @@
             Notifier.Items.Clear();
             StateHasChanged();
         }
+        Notifier.OnDirty += (a, b) =>
+                {
+                    StateHasChanged();
+                };
     }
 
     public void Dispose()

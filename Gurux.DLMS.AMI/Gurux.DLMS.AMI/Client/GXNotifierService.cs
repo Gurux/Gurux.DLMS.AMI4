@@ -50,7 +50,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Gurux.DLMS.AMI.Shared;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using static System.Net.WebRequestMethods;
 using System;
 using Gurux.DLMS.AMI.Client.Pages.Config;
@@ -68,6 +68,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Gurux.DLMS.AMI.Client
 {
@@ -230,6 +231,37 @@ namespace Gurux.DLMS.AMI.Client
             OnUpdateButtons?.Invoke();
         }
 
+        EditContext? _editContext;
+
+        /// <inheritdoc />
+        public EditContext? EditContext
+        {
+            get
+            {
+                return _editContext;
+            }
+            set
+            {
+                if (_editContext != null && OnDirty != null)
+                {
+                    _editContext.OnFieldChanged -= (a, b) =>
+                    {
+                    };
+                }
+                _editContext = value;
+                if (_editContext != null && OnDirty != null)
+                {
+                    _editContext.OnFieldChanged += (a, b) =>
+                    {
+                        OnDirty.Invoke(a, b);
+                    };
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public event EventHandler<FieldChangedEventArgs>? OnDirty;
+
         /// <inheritdoc />
         public void RemoveListener(object listener)
         {
@@ -291,7 +323,6 @@ namespace Gurux.DLMS.AMI.Client
                 }
             }
         }
-
 
         /// <summary>
         /// Event handler.
@@ -431,7 +462,18 @@ namespace Gurux.DLMS.AMI.Client
                 {
                     if (it.TargetType == type)
                     {
-                        if (datetime > it.CreationTime)
+                        //If log is clear.
+                        if (datetime == null)
+                        {
+                            it.CreationTime = datetime;
+                            it.Errors = 0;
+                            it.Warnings = 0;
+                            it.Informational = 0;
+                            it.Verboses = 0;
+                            stamp = it;
+                            break;
+                        }
+                        else if (datetime > it.CreationTime)
                         {
                             it.CreationTime = datetime;
                             it.Errors += errors;
@@ -639,12 +681,7 @@ namespace Gurux.DLMS.AMI.Client
                             _toasterService.Add(new GXToast("System log cleared", "System log cleared.", Color.Success, 15));
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearSystemLogs));
-                        await UpdateUserStamp(TargetType.SystemLog,
-                       null,
-                       0,
-                       0,
-                       0,
-                       0);
+                        await UpdateUserStamp(TargetType.SystemLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXSystemLog>>(nameof(IGXHubEvents.AddSystemLogs), async (items) =>
                     {
@@ -682,6 +719,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearDeviceErrors), devices);
+                        await UpdateUserStamp(TargetType.DeviceError, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXDeviceError>>(nameof(IGXHubEvents.AddDeviceErrors), async (errors) =>
                     {
@@ -719,6 +757,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearWorkflowLogs), workflows);
+                        await UpdateUserStamp(TargetType.WorkflowLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXWorkflowLog>>(nameof(IGXHubEvents.AddWorkflowLogs), async (errors) =>
                     {
@@ -757,6 +796,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearGatewayLogs), gateways);
+                        await UpdateUserStamp(TargetType.GatewayLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXGatewayLog>>(nameof(IGXHubEvents.AddGatewayLogs), async (errors) =>
                     {
@@ -797,6 +837,7 @@ namespace Gurux.DLMS.AMI.Client
                                 }
                             }
                             await ChangedAsync(nameof(IGXHubEvents.ClearScriptLogs), scripts);
+                            await UpdateUserStamp(TargetType.ScriptLog, null, 0, 0, 0, 0);
                         });
                     hubConnection.On<IEnumerable<GXScriptLog>>(nameof(IGXHubEvents.AddScriptLogs), async (errors) =>
                     {
@@ -828,6 +869,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearUserErrors), users);
+                        await UpdateUserStamp(TargetType.UserError, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXUserError>>(nameof(IGXHubEvents.AddUserErrors), async (errors) =>
                     {
@@ -859,6 +901,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearModuleLogs), modules);
+                        await UpdateUserStamp(TargetType.ModuleLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXModuleLog>>(nameof(IGXHubEvents.AddModuleLogs), async (logs) =>
                     {
@@ -899,6 +942,7 @@ namespace Gurux.DLMS.AMI.Client
                             }
                         }
                         await ChangedAsync(nameof(IGXHubEvents.ClearAgentLogs), logs);
+                        await UpdateUserStamp(TargetType.AgentLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXAgentLog>>(nameof(IGXHubEvents.AddAgentLogs), async (logs) =>
                     {
@@ -968,20 +1012,21 @@ namespace Gurux.DLMS.AMI.Client
                             items.Where(w => w.Level == (int)TraceLevel.Info).Count(),
                             items.Where(w => w.Level == (int)TraceLevel.Verbose).Count());
                     });
-                    hubConnection.On<IEnumerable<GXSchedule>?>(nameof(IGXHubEvents.ClearScheduleLog), async (schedules) =>
+                    hubConnection.On<IEnumerable<GXSchedule>?>(nameof(IGXHubEvents.ClearScheduleLog), async (logs) =>
                     {
                         if (!IsIgnored(TargetType.ScheduleLog))
                         {
-                            if (schedules == null || !schedules.Any())
+                            if (logs == null || !logs.Any())
                             {
                                 _toasterService.Add(new GXToast("Schedule errors cleared", "All errors cleared.", Color.Info, 15));
                             }
                             else
                             {
-                                _toasterService.Add(new GXToast("Schedule log clear", ToString(schedules), Color.Info, 15));
+                                _toasterService.Add(new GXToast("Schedule log clear", ToString(logs), Color.Info, 15));
                             }
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.ClearScheduleLog), schedules);
+                        await ChangedAsync(nameof(IGXHubEvents.ClearScheduleLog), logs);
+                        await UpdateUserStamp(TargetType.ScheduleLog, null, 0, 0, 0, 0);
                     });
                     hubConnection.On<IEnumerable<GXScheduleLog>>(nameof(IGXHubEvents.CloseScheduleLog), async (items) =>
                     {
@@ -1746,86 +1791,86 @@ namespace Gurux.DLMS.AMI.Client
                         }
                         await ChangedAsync(nameof(IGXHubEvents.PerformanceClear));
                     });
-                    hubConnection.On<IEnumerable<GXSubtotal>>(nameof(IGXHubEvents.SubtotalUpdate), async (items) =>
+                    hubConnection.On<IEnumerable<GXReport>>(nameof(IGXHubEvents.ReportUpdate), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            _toasterService.Add(new GXToast("Subtotal updated", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Report updated", ToString(items), Color.Info, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.SubtotalUpdate), items);
+                        await ChangedAsync(nameof(IGXHubEvents.ReportUpdate), items);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotal>>(nameof(IGXHubEvents.SubtotalDelete), async (items) =>
+                    hubConnection.On<IEnumerable<GXReport>>(nameof(IGXHubEvents.ReportDelete), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            _toasterService.Add(new GXToast("Subtotal deleted", ToString(items), Color.Warning, 15));
+                            _toasterService.Add(new GXToast("Report deleted", ToString(items), Color.Warning, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.SubtotalDelete), items);
+                        await ChangedAsync(nameof(IGXHubEvents.ReportDelete), items);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotal>>(nameof(IGXHubEvents.SubtotalCalculate), async (items) =>
+                    hubConnection.On<IEnumerable<GXReport>>(nameof(IGXHubEvents.ReportCalculate), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            _toasterService.Add(new GXToast("Subtotal calculated", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Report calculated", ToString(items), Color.Info, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.SubtotalCalculate), items);
+                        await ChangedAsync(nameof(IGXHubEvents.ReportCalculate), items);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotalGroup>>(nameof(IGXHubEvents.SubtotalGroupUpdate), async (items) =>
+                    hubConnection.On<IEnumerable<GXReportGroup>>(nameof(IGXHubEvents.ReportGroupUpdate), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            _toasterService.Add(new GXToast("Subtotal group updated", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Report group updated", ToString(items), Color.Info, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.SubtotalGroupUpdate), items);
+                        await ChangedAsync(nameof(IGXHubEvents.ReportGroupUpdate), items);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotalGroup>>(nameof(IGXHubEvents.SubtotalGroupDelete), async (items) =>
+                    hubConnection.On<IEnumerable<GXReportGroup>>(nameof(IGXHubEvents.ReportGroupDelete), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            _toasterService.Add(new GXToast("Subtotal group deleted", ToString(items), Color.Warning, 15));
+                            _toasterService.Add(new GXToast("Report group deleted", ToString(items), Color.Warning, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.SubtotalGroupDelete), items);
+                        await ChangedAsync(nameof(IGXHubEvents.ReportGroupDelete), items);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotal>?>(nameof(IGXHubEvents.ClearSubtotalLogs), async (logs) =>
+                    hubConnection.On<IEnumerable<GXReport>?>(nameof(IGXHubEvents.ClearReportLogs), async (logs) =>
                     {
-                        if (!IsIgnored(TargetType.Subtotal))
+                        if (!IsIgnored(TargetType.Report))
                         {
-                            if (!IsIgnored(TargetType.Subtotal))
+                            if (!IsIgnored(TargetType.Report))
                             {
                                 if (logs == null || !logs.Any())
                                 {
-                                    _toasterService.Add(new GXToast("Subtotal logs cleared", "All logs cleared.", Color.Info, 15));
+                                    _toasterService.Add(new GXToast("Report logs cleared", "All logs cleared.", Color.Info, 15));
                                 }
                                 else
                                 {
-                                    _toasterService.Add(new GXToast("Subtotal log clered", ToString(logs), Color.Info, 15));
+                                    _toasterService.Add(new GXToast("Report log clered", ToString(logs), Color.Info, 15));
                                 }
                             }
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.ClearSubtotalLogs), logs);
-                        await UpdateUserStamp(TargetType.SubtotalLog, null, 0, 0, 0, 0);
+                        await ChangedAsync(nameof(IGXHubEvents.ClearReportLogs), logs);
+                        await UpdateUserStamp(TargetType.ReportLog, null, 0, 0, 0, 0);
                     });
-                    hubConnection.On<IEnumerable<GXSubtotalLog>>(nameof(IGXHubEvents.AddSubtotalLogs), async (logs) =>
+                    hubConnection.On<IEnumerable<GXReportLog>>(nameof(IGXHubEvents.AddReportLogs), async (logs) =>
                     {
-                        if (!IsIgnored(TargetType.SubtotalLog))
+                        if (!IsIgnored(TargetType.ReportLog))
                         {
-                            _toasterService.Add(new GXToast("Subtotal log added", ToString(logs), Color.Warning, 15));
+                            _toasterService.Add(new GXToast("Report log added", ToString(logs), Color.Warning, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.AddSubtotalLogs), logs);
-                        await UpdateUserStamp(TargetType.SubtotalLog,
+                        await ChangedAsync(nameof(IGXHubEvents.AddReportLogs), logs);
+                        await UpdateUserStamp(TargetType.ReportLog,
                             logs.Max(s => s.CreationTime),
                             logs.Where(w => w.Level == (int)TraceLevel.Error).Count(),
                             logs.Where(w => w.Level == (int)TraceLevel.Warning).Count(),
                             logs.Where(w => w.Level == (int)TraceLevel.Info).Count(),
                             logs.Where(w => w.Level == (int)TraceLevel.Verbose).Count());
                     });
-                    hubConnection.On<IEnumerable<GXSubtotalLog>>(nameof(IGXHubEvents.CloseSubtotalLogs), async (items) =>
+                    hubConnection.On<IEnumerable<GXReportLog>>(nameof(IGXHubEvents.CloseReportLogs), async (items) =>
                     {
-                        if (!IsIgnored(TargetType.SubtotalLog))
+                        if (!IsIgnored(TargetType.ReportLog))
                         {
-                            _toasterService.Add(new GXToast("Subtotal log closed", ToString(items), Color.Info, 15));
+                            _toasterService.Add(new GXToast("Report log closed", ToString(items), Color.Info, 15));
                         }
-                        await ChangedAsync(nameof(IGXHubEvents.CloseSubtotalLogs), items);
+                        await ChangedAsync(nameof(IGXHubEvents.CloseReportLogs), items);
                     });
                     hubConnection.On<IEnumerable<GXUserStamp>>(nameof(IGXHubEvents.StampUpdate), async (stamps) =>
                     {

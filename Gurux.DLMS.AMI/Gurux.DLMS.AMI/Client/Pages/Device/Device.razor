@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @using Gurux.DLMS.AMI.Shared.DIs
 
 @using Gurux.Net
@@ -104,7 +103,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.Manufacturer</label>
                                 <InputSelect id="type" class="form-control"
-                                @bind-Value="SelectedManufacturer" disabled="@IsCreate()">
+                                             @bind-Value="SelectedManufacturer" disabled="@IsCreate()">
                                     @foreach (var it in Parent.Manufacturers)
                                     {
                                         <option value="@it.Id">@it.Name</option>
@@ -119,7 +118,7 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.Model</label>
                                     <InputSelect id="type" class="form-control"
-                                    @bind-Value="SelectedModel" disabled="@IsCreate()">
+                                                 @bind-Value="SelectedModel" disabled="@IsCreate()">
                                         @foreach (var it in _manufacturer.Models)
                                         {
                                             <option value="@it.Id">@it.Name</option>
@@ -131,7 +130,7 @@
                                     <div class="form-group row">
                                         <label>@Properties.Resources.Version</label>
                                         <InputSelect id="type" class="form-control"
-                                        @bind-Value="SelectedVersion" disabled="@IsCreate()">
+                                                     @bind-Value="SelectedVersion" disabled="@IsCreate()">
                                             @foreach (var it in _model.Versions)
                                             {
                                                 <option value="@it.Id">
@@ -143,7 +142,7 @@
                                     <div class="form-group row">
                                         <label>@Properties.Resources.Name</label>
                                         <InputText id="name" class="form-control"
-                                        @bind-Value="Active.Name" />
+                                                   @bind-Value="Active.Name" />
                                         <ValidationMessage For="@(() => Active.Name)" />
                                     </div>
                                     @if (ShowLogicalDeviceName)
@@ -151,7 +150,7 @@
                                         <div class="form-group row">
                                             <label>@Properties.Resources.LogicalDeviceName</label>
                                             <InputText id="sn" class="form-control"
-                                            @bind-Value="LogicalDeviceName" />
+                                                       @bind-Value="LogicalDeviceName" />
                                             <ValidationMessage For="@(() => LogicalDeviceName)" />
                                         </div>
                                     }
@@ -160,7 +159,7 @@
                                         <div class="form-group row">
                                             <label>@Properties.Resources.InterfaceType</label>
                                             <InputSelect id="type" class="form-select"
-                                            @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                                         @bind-Value="SelectedSettings" disabled="@IsCreate()">
                                                 @foreach (var it in GetInterfaceTypes())
                                                 {
                                                     <option value="@it.Id">@GetInterfaceType(it)</option>
@@ -176,7 +175,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.Type</label>
                                 <InputSelect id="type" class="form-control"
-                                @bind-Value="SelectedTemplate" disabled="@IsCreate()">
+                                             @bind-Value="SelectedTemplate" disabled="@IsCreate()">
                                     @foreach (var it in GetCustomTemplates())
                                     {
                                         <option value="@it.Name">@it.Name</option>
@@ -188,13 +187,13 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.Manufacturer</label>
                                     <InputText id="manuacturer" class="form-control" readonly="readonly"
-                                    @bind-Value="_templateSettings.Manufacturer" />
+                                               @bind-Value="_templateSettings.Manufacturer" />
                                 </div>
                             }
                             <div class="form-group row">
                                 <label>@Properties.Resources.Name</label>
                                 <InputText id="Name" class="form-control"
-                                @bind-Value="Active.Name" />
+                                           @bind-Value="Active.Name" />
                                 <ValidationMessage For="@(() => Active.Name)" />
                             </div>
                             @if (ShowLogicalDeviceName)
@@ -202,7 +201,7 @@
                                 <div class="form-group row">
                                     <label>@Properties.Resources.LogicalDeviceName</label>
                                     <InputText id="sn" class="form-control"
-                                    @bind-Value="LogicalDeviceName" />
+                                               @bind-Value="LogicalDeviceName" />
                                     <ValidationMessage For="@(() => LogicalDeviceName)" />
                                 </div>
                             }
@@ -222,7 +221,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.Authentication</label>
                             <InputSelect id="type" class="form-select"
-                            @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                         @bind-Value="SelectedSettings" disabled="@IsCreate()">
                                 @foreach (var it in GetAuthenticationLevels())
                                 {
                                     <option value="@it.Id">@GetAuthenticationLevel(it)</option>
@@ -236,12 +235,12 @@
                                     <div class="form-inline">
                                         <label>@Properties.Resources.Password</label>
                                         <InputSwitch OnChange="OnHexChange"
-                                        @bind-Value="_settings.IsHex">
+                                                     @bind-Value="_settings.IsHex">
                                             @Properties.Resources.Hex
                                         </InputSwitch>
                                     </div>
                                     <InputText id="password" class="form-control"
-                                    @bind-Value="Password" disabled="@IsAuthenticated()" />
+                                               @bind-Value="Password" disabled="@IsAuthenticated()" />
                                     <ValidationMessage For="@(() => Password)" />
                                 </div>
                             </fieldset>
@@ -250,7 +249,7 @@
                             <div class="form-group row">
                                 <label>@Properties.Resources.Security</label>
                                 <InputSelect id="type" class="form-select"
-                                @bind-Value="SelectedSettings" disabled="@IsCreate()">
+                                             @bind-Value="SelectedSettings" disabled="@IsCreate()">
                                     @foreach (var it in GetSecurityLevels())
                                     {
                                         <option value="@it.Id">@GetSecurity(it)</option>
@@ -261,28 +260,28 @@
                             {
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_clientSystemTitle"
-                                    @bind-Value="@ClientSystemTitle"
+                                                   @bind-Value="@ClientSystemTitle"
                                                    Title="@Properties.Resources.ClientSystemTitle">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _clientSystemTitle)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_deviceSystemTitle"
-                                    @bind-Value="@DeviceSystemTitle"
+                                                   @bind-Value="@DeviceSystemTitle"
                                                    Title="@Properties.Resources.DeviceSystemTitle">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _deviceSystemTitle)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_blockCipherKey"
-                                    @bind-Value="@BlockCipherKey"
+                                                   @bind-Value="@BlockCipherKey"
                                                    Title="@Properties.Resources.BlockCipherKey">
                                     </InputHexAscii>
                                     <ValidationMessage For="@(() => _blockCipherKey)" />
                                 </div>
                                 <div class="form-group row">
                                     <InputHexAscii @ref="_authenticationKey"
-                                    @bind-Value="@AuthenticationKey"
+                                                   @bind-Value="@AuthenticationKey"
                                                    Title="@Properties.Resources.AuthenticationKey">
                                     </InputHexAscii>
                                 </div>
@@ -293,26 +292,26 @@
                         {
                             <div class="form-group row">
                                 <label>@Properties.Resources.SerialNumber</label>
-                                <InputNumber id="resend" class="form-control"
-                                @bind-Value="_settings.PhysicalAddress" />
+                                <InputNumber id="Device.SerialNumber" class="form-control"
+                                             @bind-Value="_settings.PhysicalAddress" />
                                 <ValidationMessage For="@(() => _settings.PhysicalAddress)" />
                             </div>
                         }
                         <div class="form-group row">
                             <label>@Properties.Resources.WaitTime</label>
-                            <InputIntegerTimeSpan id="resend" class="form-control"
-                            @bind-Value="Active.WaitTime" />
+                            <InputIntegerTimeSpan id="Device.WaitTime" class="form-control"
+                                                  @bind-Value="Active.WaitTime" />
                             <ValidationMessage For="@(() => Active.WaitTime)" />
                         </div>
                         <div class="form-group row">
                             <label>Resend count</label>
-                            <InputNumber id="resend" class="form-control"
-                            @bind-Value="Active.ResendCount" />
+                            <InputNumber id="Device.Resend" class="form-control"
+                                         @bind-Value="Active.ResendCount" />
                             <ValidationMessage For="@(() => Active.ResendCount)" />
                         </div>
                         <div class="form-group row">
                             <InputNullableSwitch Text="@Properties.Resources.Dynamic"
-                            @bind-Value="Active.Dynamic" />
+                                                 @bind-Value="Active.Dynamic" />
                             <br />
                         </div>
                         @if (!Active.Dynamic.GetValueOrDefault(false))
@@ -338,14 +337,17 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.ConnectionUpTime</label>
                             <InputNullableIntegerTimeSpan id="resend" class="form-control"
-                            @bind-Value="Active.ConnectionUpTime" />
+                                                          @bind-Value="Active.ConnectionUpTime" />
                             <ValidationMessage For="@(() => Active.ConnectionUpTime)" />
                         </div>
                         <ParametersView @ref="ParametersView" Parameters="@Parameters" Target="@Active"></ParametersView>
                         <div class="form-group row">
                             <label>@Properties.Resources.TraceLevel</label>
-                            <NullableTraceLevelSelector @bind-Value="Active.TraceLevel">
-                            </NullableTraceLevelSelector>
+                            <GXInputEnumSelector class="form-select"
+                                                 Id="Device.TraceLevel"
+                                                 UseCookie="@(action ==CrudAction.Create)"
+                                                 @bind-Value="Active.TraceLevel">
+                            </GXInputEnumSelector>
                         </div>
                     </div>
                     @if (Active.CreationTime != DateTime.MinValue)
@@ -353,7 +355,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.CreationTime</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                            @bind-Value="Active.CreationTime" />
+                                       @bind-Value="Active.CreationTime" />
                         </div>
                     }
                     @if (Active.Updated != null)
@@ -361,7 +363,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.Updated</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
-                            @bind-Value="Active.Updated" />
+                                       @bind-Value="Active.Updated" />
                         </div>
                     }
                     @if (Active.Removed != null)
@@ -369,7 +371,7 @@
                         <div class="form-group row">
                             <label>@Properties.Resources.Removed</label>
                             <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
-                            @bind-Value="Active.Removed" />
+                                       @bind-Value="Active.Removed" />
                         </div>
                     }
                     @if (action == CrudAction.Delete)

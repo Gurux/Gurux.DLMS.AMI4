@@ -100,8 +100,11 @@ else
             </Fh>
         </FilterContent>
         <MenuContent>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            @if (Menu)
+            {
+                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            }
         </MenuContent>
         <HeaderContent>
             <Th Id="ObjectType">@Properties.Resources.ObjectType</Th>
@@ -190,6 +193,12 @@ else
     /// </summary>
     [Parameter]
     public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is menu shown.
+    /// </summary>
+    [Parameter]
+    public bool Menu { get; set; } = true;
 
     /// <summary>
     /// Is top menu shown.

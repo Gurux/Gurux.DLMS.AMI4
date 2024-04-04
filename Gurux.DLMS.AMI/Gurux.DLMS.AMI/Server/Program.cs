@@ -150,6 +150,8 @@ builder.Services.AddSingleton<IWorkflowHandler, GXWorkflowService>();
 builder.Services.AddSingleton<ITaskLateBindHandler, GXTaskLateBindService>();
 //Add subtotal service
 builder.Services.AddHostedService<ISubtotal, GXSubtotalService>();
+//Add report service
+builder.Services.AddHostedService<IReport, GXReportService>();
 
 builder.Services.AddDefaultIdentity<ApplicationUser>()
     .AddRoles<IdentityRole>()

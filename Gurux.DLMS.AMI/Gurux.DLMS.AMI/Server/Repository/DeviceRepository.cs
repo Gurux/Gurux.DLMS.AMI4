@@ -51,6 +51,9 @@ using Gurux.DLMS.AMI.Client.Pages.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.Gateway;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -297,20 +300,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 it.Tasks = null;
                 it.Traces = null;
                 it.Keys = null;
-                if (request?.Select != null && request.Select.Contains("Object"))
+                if (request?.Select != null && request.Select.Contains(TargetType.Object))
                 {
                     //Get objects.
                     arg = GXSelectArgs.Select<GXObject>(s => new { s.Id, s.Template });
-                    if (request.Select.Contains("ObjectTemplate"))
+                    if (request.Select.Contains(TargetType.ObjectTemplate))
                     {
                         arg.Columns.Add<GXObjectTemplate>(s => new { s.Id, s.Name, s.Attributes });
                         arg.Joins.AddInnerJoin<GXObject, GXObjectTemplate>(j => j.Template, j => j.Id);
                     }
-                    if (request.Select.Contains("Attribute"))
+                    if (request.Select.Contains(TargetType.Attribute))
                     {
                         arg.Columns.Add<GXAttribute>(s => new { s.Id, s.Template });
                         arg.Joins.AddInnerJoin<GXObject, GXAttribute>(j => j.Id, j => j.Object);
-                        if (request.Select.Contains("AttributeTemplate"))
+                        if (request.Select.Contains(TargetType.AttributeTemplate))
                         {
                             arg.Columns.Add<GXAttributeTemplate>(s => new { s.Id, s.Name });
                             arg.Joins.AddInnerJoin<GXAttribute, GXAttributeTemplate>(j => j.Template, j => j.Id);
@@ -322,7 +325,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     it.Objects = null;
                 }
-                if (request?.Select != null && request.Select.Contains("DeviceGroup"))
+                if (request?.Select != null && request.Select.Contains(TargetType.DeviceGroup))
                 {
                     //Get device groups.
                     arg = GXSelectArgs.Select<GXDeviceGroup>(s => new { s.Id, s.Name }, w => w.Removed == null);
@@ -725,7 +728,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             e.Parameters
                         });
                         await _host.Connection.InsertAsync(transaction, args);
-                        foreach(var device in newDevices)
+                        foreach (var device in newDevices)
                         {
                             //Add device parameters.
                             await AddDeviceParameters(transaction, device, device.Parameters, cancellationToken);
@@ -869,8 +872,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         device.Type,
                         q.Parameters,
                         q.Template,
-                        q.Creator
                     });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                       device.Creator == null ||
+                       string.IsNullOrEmpty(device.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXDevice>(q => q.Creator);
+                    }
                     _host.Connection.Update(transaction, args);
                     //Update objects if exists.
                     if (device.Objects != null)

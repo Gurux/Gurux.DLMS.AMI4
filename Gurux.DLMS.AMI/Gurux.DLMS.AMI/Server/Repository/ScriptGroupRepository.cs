@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -296,8 +298,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXScriptGroup> ScriptGroups,
             Expression<Func<GXScriptGroup, object?>>? columns)
         {
-            string userId = ServerHelpers.GetUserId(user);
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXScriptGroup, List<string>> updates = new Dictionary<GXScriptGroup, List<string>>();
             foreach (GXScriptGroup it in ScriptGroups)
@@ -309,11 +311,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 if (it.UserGroups == null || !it.UserGroups.Any())
                 {
                     //Get default user groups.
-                    if (user != null)
-                    {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,
-                                                   ServerHelpers.GetUserId(user));
-                    }
+                    it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user,
+                                               ServerHelpers.GetUserId(user));
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
                         throw new ArgumentException(Properties.Resources.TargetMustBelongToOneGroup);
@@ -324,11 +323,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (GXScript script in it.Scripts)
                     {
                         script.CreationTime = now;
-                        script.Creator = new GXUser() { Id = userId };
+                        script.Creator = creator;
                     }
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -348,7 +348,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it);
-                    args.Exclude<GXScriptGroup>(q => new { q.UserGroups, q.CreationTime, q.Scripts });
+                    args.Exclude<GXScriptGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Scripts
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXScriptGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to Script group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

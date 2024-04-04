@@ -38,7 +38,6 @@ using Gurux.Service.Orm;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Server.Internal;
-using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository

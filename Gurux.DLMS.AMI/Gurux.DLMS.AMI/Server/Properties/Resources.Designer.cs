@@ -988,6 +988,15 @@ namespace Gurux.DLMS.AMI.Server.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Reports can be used to improve the creation of reports from a large amount of data..
+        /// </summary>
+        internal static string ReportDescription {
+            get {
+                return ResourceManager.GetString("ReportDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Require confirmed account.
         /// </summary>
         internal static string RequireConfirmedAccount {

@@ -110,22 +110,24 @@ else
                     <SubtotalValues Target="SubtotalTarget.DeviceGroup" />
                 </TabPage>
             </AuthorizeView>
+            <!--
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
-                <TabPage Path="config/subtotal/agent" Text=@Properties.Resources.Agents>
-                    <SubtotalValues Target="SubtotalTarget.Agent" />
-                </TabPage>
-                <TabPage Path="config/subtotal/agentgroup" Text=@Properties.Resources.AgentGroups>
-                    <SubtotalValues Target="SubtotalTarget.AgentGroup" />
-                </TabPage>
-            </AuthorizeView>
-            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
-                <TabPage Path="config/subtotal/gateway" Text=@Properties.Resources.Gateways>
-                    <SubtotalValues Target="SubtotalTarget.Gateway" />
-                </TabPage>
-                <TabPage Path="config/subtotal/gatewaygroup" Text=@Properties.Resources.GatewayGroups>
-                    <SubtotalValues Target="SubtotalTarget.GatewayGroup" />
-                </TabPage>
-            </AuthorizeView>
+                    <TabPage Path="config/subtotal/agent" Text=@Properties.Resources.Agents>
+                        <SubtotalValues Target="SubtotalTarget.Agent" />
+                    </TabPage>
+                    <TabPage Path="config/subtotal/agentgroup" Text=@Properties.Resources.AgentGroups>
+                        <SubtotalValues Target="SubtotalTarget.AgentGroup" />
+                    </TabPage>
+                </AuthorizeView>
+                <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Subtotal)>
+                    <TabPage Path="config/subtotal/gateway" Text=@Properties.Resources.Gateways>
+                        <SubtotalValues Target="SubtotalTarget.Gateway" />
+                    </TabPage>
+                    <TabPage Path="config/subtotal/gatewaygroup" Text=@Properties.Resources.GatewayGroups>
+                        <SubtotalValues Target="SubtotalTarget.GatewayGroup" />
+                    </TabPage>
+                </AuthorizeView>
+                    -->
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.SubtotalLog, GXRoles.SubtotalLogManager)>
                 <TabPage Path="config/subtotal/log"
                          Text=@Properties.Resources.SubtotalLogs

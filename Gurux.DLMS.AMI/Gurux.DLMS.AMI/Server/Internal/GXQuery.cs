@@ -41,13 +41,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm;
 using System.Security.Claims;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Internal
 {
@@ -1350,7 +1351,6 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Joins.AddInnerJoin<GXAgent, GXAgentLog>(j => j.Id, j => j.Agent);
             return args;
         }
-
         /// <summary>
         /// Get subtotal errors that user can access.
         /// </summary>
@@ -1363,6 +1363,22 @@ namespace Gurux.DLMS.AMI.Server.Internal
             args.Columns.Clear();
             args.Columns.Add<GXSubtotalLog>();
             args.Joins.AddInnerJoin<GXSubtotal, GXSubtotalLog>(j => j.Id, j => j.Subtotal);
+            return args;
+        }
+
+
+        /// <summary>
+        /// Get report errors that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="reportId">Report Id</param>
+        /// <returns>List of reports that user can access.</returns>
+        public static GXSelectArgs GetReportErrorsByUser(string userId, Guid? reportId = null)
+        {
+            GXSelectArgs args = GetReportsByUser(userId);
+            args.Columns.Clear();
+            args.Columns.Add<GXReportLog>();
+            args.Joins.AddInnerJoin<GXReport, GXReportLog>(j => j.Id, j => j.Report);
             return args;
         }
 
@@ -3018,6 +3034,166 @@ namespace Gurux.DLMS.AMI.Server.Internal
             else
             {
                 args.Where.And<GXSubtotal>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get report groups that user can access.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="groupId">Report group id.</param>
+        /// <returns>List of report groups that user can access.</returns>
+        public static GXSelectArgs GetReportGroupsByUser(string userId, Guid? groupId = null)
+        {
+            GXSelectArgs userGroups = GetUserGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXUserGroupReportGroup>(s => s.ReportGroupId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXReportGroup>();
+            args.Joins.AddInnerJoin<GXUserGroupReportGroup, GXReportGroup>(j => j.ReportGroupId, j => j.Id);
+            args.Where.And<GXUserGroupReportGroup>(q => GXSql.Exists<GXUserGroupReportGroup, GXUserGroup>(j => j.UserGroupId, j => j.Id, userGroups));
+            if (groupId != null)
+            {
+                args.Where.And<GXReportGroup>(q => q.Id == groupId);
+            }
+            args.Where.And<GXReportGroup>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the report group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupId">Report group id.</param>
+        /// <returns>List of users who can access the report group.</returns>
+        public static GXSelectArgs GetUsersByReportGroup(string userId, Guid? groupId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupReportGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupReportGroup, GXReportGroup>(a => a.ReportGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupId != null)
+            {
+                args.Where.And<GXReportGroup>(q => q.Removed == null && q.Id == groupId);
+            }
+            else
+            {
+                args.Where.And<GXReportGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the report group.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="groupIds">Report group ids.</param>
+        /// <returns>List of users who can access the report group.</returns>
+        public static GXSelectArgs GetUsersByReportGroups(string userId, IEnumerable<Guid>? groupIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupReportGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupReportGroup, GXReportGroup>(a => a.ReportGroupId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(q => q.Removed == null);
+            if (groupIds != null)
+            {
+                args.Where.And<GXReportGroup>(q => q.Removed == null && groupIds.Contains(q.Id));
+            }
+            else
+            {
+                args.Where.And<GXReportGroup>(q => q.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Get reports that user can access.
+        /// </summary>
+        /// <param name="userId">User Id</param>
+        /// <param name="reportId">Device Id</param>
+        /// <returns>List of reports that user can access.</returns>
+        public static GXSelectArgs GetReportsByUser(string userId, Guid? reportId = null)
+        {
+            GXSelectArgs reportGroups = GetReportGroupsByUser(userId);
+            GXSelectArgs args = GXSelectArgs.Select<GXReportGroupReport>(s => s.ReportId, q => q.Removed == null);
+            args.Distinct = true;
+            args.Columns.Clear();
+            args.Columns.Add<GXReport>();
+            args.Joins.AddInnerJoin<GXReportGroupReport, GXReport>(j => j.ReportId, j => j.Id);
+            args.Where.And<GXReportGroupReport>(q => GXSql.Exists<GXReportGroupReport, GXReportGroup>(j => j.ReportGroupId, j => j.Id, reportGroups));
+            if (reportId != null)
+            {
+                args.Where.And<GXReport>(q => q.Id == reportId);
+            }
+            args.Where.And<GXReport>(q => q.Removed == null);
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the report.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="reportId">Report id.</param>
+        /// <returns>List of users who can access the report group.</returns>
+        public static GXSelectArgs GetUsersByReport(string userId, Guid? reportId)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupReportGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupReportGroup, GXReportGroup>(a => a.ReportGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXReportGroup, GXReportGroupReport>(a => a.Id, b => b.ReportGroupId);
+            args.Joins.AddInnerJoin<GXReportGroupReport, GXReport>(a => a.ReportId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXReportGroup>(where => where.Removed == null);
+            if (reportId != null && reportId != Guid.Empty)
+            {
+                args.Where.And<GXReport>(where => where.Removed == null && where.Id == reportId);
+            }
+            else
+            {
+                args.Where.And<GXReport>(where => where.Removed == null);
+            }
+            return args;
+        }
+
+        /// <summary>
+        /// Returns a collection of users that can access the report.
+        /// </summary>
+        /// <param name="userId">UserId</param>
+        /// <param name="reportIds">Report ids.</param>
+        /// <returns>List of users who can access the report group.</returns>
+        public static GXSelectArgs GetUsersByReports(string userId, IEnumerable<Guid>? reportIds)
+        {
+            GXSelectArgs args = GXSelectArgs.Select<GXUser>(s => s.Id);
+            args.Distinct = true;
+            args.Joins.AddInnerJoin<GXUser, GXUserGroupUser>(a => a.Id, b => b.UserId);
+            args.Joins.AddInnerJoin<GXUserGroupUser, GXUserGroup>(a => a.UserGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXUserGroup, GXUserGroupReportGroup>(a => a.Id, b => b.UserGroupId);
+            args.Joins.AddInnerJoin<GXUserGroupReportGroup, GXReportGroup>(a => a.ReportGroupId, b => b.Id);
+            args.Joins.AddInnerJoin<GXReportGroup, GXReportGroupReport>(a => a.Id, b => b.ReportGroupId);
+            args.Joins.AddInnerJoin<GXReportGroupReport, GXReport>(a => a.ReportId, b => b.Id);
+            args.Where.And<GXUser>(where => where.Removed == null);
+            args.Where.And<GXUserGroup>(where => where.Removed == null);
+            args.Where.And<GXReportGroup>(where => where.Removed == null);
+            if (reportIds != null && reportIds.Any())
+            {
+                args.Where.And<GXReport>(where => where.Removed == null && reportIds.Contains(where.Id));
+            }
+            else
+            {
+                args.Where.And<GXReport>(where => where.Removed == null);
             }
             return args;
         }

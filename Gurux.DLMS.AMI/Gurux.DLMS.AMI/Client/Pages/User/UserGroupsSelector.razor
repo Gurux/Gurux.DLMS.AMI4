@@ -41,7 +41,7 @@
 @using Gurux.DLMS.AMI.Client.Pages.Module;
 @using Gurux.DLMS.AMI.Client.Pages.Schedule;
 @using Gurux.DLMS.AMI.Client.Pages.Script;
-@using Gurux.DLMS.AMI.Client.Pages.Subtotal
+@using Gurux.DLMS.AMI.Client.Pages.Report
 @using Gurux.DLMS.AMI.Client.Pages.Trigger;
 @using Gurux.DLMS.AMI.Client.Pages.Workflow;
 @using Gurux.DLMS.AMI.Shared.DIs
@@ -121,7 +121,7 @@
     private GatewayGroupTab? GatewayGroupParent { get; set; }
 
     [CascadingParameter]
-    private SubtotalGroupTab? SubtotalGroupParent { get; set; }
+    private ReportGroupTab? ReportGroupParent { get; set; }
 
     SelectionList<GXUserGroup>? _selected;
     SelectionList<GXUserGroup>? _available;
@@ -338,10 +338,10 @@
                 _selected.Items = GatewayGroupParent.Active.UserGroups;
                 action = ClientHelpers.GetAction(GatewayGroupParent.Action);
             }
-            else if (SubtotalGroupParent?.Active?.UserGroups != null)
+            else if (ReportGroupParent?.Active?.UserGroups != null)
             {
-                _selected.Items = SubtotalGroupParent.Active.UserGroups;
-                action = ClientHelpers.GetAction(SubtotalGroupParent.Action);
+                _selected.Items = ReportGroupParent.Active.UserGroups;
+                action = ClientHelpers.GetAction(ReportGroupParent.Action);
             }
             else
             {

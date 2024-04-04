@@ -42,6 +42,8 @@ using System.Linq.Expressions;
 using System.Linq;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -311,8 +313,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXKeyManagementGroup> KeyManagementGroups,
             Expression<Func<GXKeyManagementGroup, object?>>? columns)
         {
-            string userId = ServerHelpers.GetUserId(user);
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXKeyManagementGroup, List<string>> updates = new Dictionary<GXKeyManagementGroup, List<string>>();
             foreach (GXKeyManagementGroup it in KeyManagementGroups)
@@ -326,7 +328,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get default user groups.
                     if (user != null)
                     {
-                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user, userId);
+                        it.UserGroups = await _userGroupRepository.GetDefaultUserGroups(user, creator.Id);
                     }
                     if (it.UserGroups == null || !it.UserGroups.Any())
                     {
@@ -339,11 +341,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var key in it.KeyManagements)
                     {
                         key.CreationTime = now;
-                        key.Creator = new GXUser() { Id = userId };
+                        key.Creator = creator;
                     }
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -363,7 +366,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXKeyManagementGroup>(q => new { q.UserGroups, q.CreationTime, q.KeyManagements });
+                    args.Exclude<GXKeyManagementGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.KeyManagements
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXKeyManagementGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to KeyManagement group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

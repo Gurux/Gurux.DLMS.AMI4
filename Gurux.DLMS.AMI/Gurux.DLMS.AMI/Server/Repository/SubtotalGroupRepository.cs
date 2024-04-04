@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.Subtotal;
+using Gurux.DLMS.AMI.Client.Pages.User;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -302,6 +304,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXSubtotalGroup, object?>>? columns)
         {
             bool isAdmin = user.IsInRole(GXRoles.Admin);
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXSubtotalGroup, List<string>> updates = new Dictionary<GXSubtotalGroup, List<string>>();
@@ -323,6 +326,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -342,7 +346,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXSubtotalGroup>(q => new { q.UserGroups, q.CreationTime, q.Subtotals });
+                    args.Exclude<GXSubtotalGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.Subtotals
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXSubtotalGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to Subtotal group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

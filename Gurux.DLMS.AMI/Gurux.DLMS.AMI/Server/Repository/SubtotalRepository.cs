@@ -47,6 +47,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Client.Pages.Report;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -338,6 +340,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.DeviceGroupAttributeTemplates,
                             q.Agents,
                             q.Gateways,
+                            q.Updated
                         });
                         _host.Connection.Insert(args);
                         list.Add(subtotal.Id);
@@ -372,8 +375,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                             q.DeviceAttributeTemplates,
                             q.DeviceGroupAttributeTemplates,
                             q.Agents,
-                            q.Gateways,
+                            q.Gateways
                         });
+                        if (!user.IsInRole(GXRoles.Admin) ||
+                                    subtotal.Creator == null ||
+                                    string.IsNullOrEmpty(subtotal.Creator.Id))
+                        {
+                            //Only admin can update the creator.
+                            args.Exclude<GXSubtotal>(q => q.Creator);
+                        }
                         _host.Connection.Update(args);
                         //Map subtotal groups to subtotal.
                         List<GXSubtotalGroup> subtotalGroups;
@@ -542,7 +552,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <summary>
-        /// Map subtotal to sub total groups.
+        /// Map subtotal to subtotal groups.
         /// </summary>
         /// <param name="transaction">Transaction.</param>
         /// <param name="subtotalId">Subtotal ID.</param>
@@ -907,11 +917,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 //Notify users
                 foreach (var subtotal in list)
                 {
-                    subtotal.Calculated = null;
+                    subtotal.Last = null;
                     subtotal.Status = SubtotalStatus.Clear;
                     await UpdateAsync(user,
                         new GXSubtotal[] { subtotal },
-                        c => new { c.Status, c.Calculated });
+                        c => new { c.Status, c.Last });
                     List<string> users = await GetUsersAsync(user, subtotal.Id);
                     updates[subtotal] = users;
                 }
@@ -927,11 +937,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 using IDbTransaction transaction = _host.Connection.BeginTransaction();
                 foreach (var subtotal in list)
                 {
-                    subtotal.Calculated = null;
+                    subtotal.Last = null;
                     subtotal.Status = SubtotalStatus.Clear;
                     await UpdateAsync(user,
                         new GXSubtotal[] { subtotal },
-                        c => new { c.Status, c.Calculated });
+                        c => new { c.Status, c.Last });
 
                     await _host.Connection.DeleteAsync(transaction,
                         GXDeleteArgs.Delete<GXSubtotalValue>(w =>

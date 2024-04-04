@@ -41,6 +41,8 @@ using Gurux.DLMS.AMI.Client.Shared;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -294,6 +296,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXComponentViewGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXComponentViewGroup, List<string>> updates = new Dictionary<GXComponentViewGroup, List<string>>();
             foreach (GXComponentViewGroup it in ComponentViewGroups)
@@ -316,10 +319,15 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 }
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
-                    args.Exclude<GXComponentViewGroup>(e => new { e.UserGroups });
+                    args.Exclude<GXComponentViewGroup>(e => new
+                    {
+                        e.Updated,
+                        e.UserGroups
+                    });
                     _host.Connection.Insert(args);
                     list.Add(it.Id);
                     AddComponentViewGroupToUserGroups(it.Id, it.UserGroups.Select(s => s.Id).ToArray());
@@ -337,7 +345,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXComponentViewGroup>(q => new { q.UserGroups, q.CreationTime, q.ComponentViews });
+                    args.Exclude<GXComponentViewGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime,
+                        q.ComponentViews
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXComponentViewGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map user group to ComponentView group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @page "/config"
 @page "/config/{Target}"
 @page "/config/{Target}/{Id}"
@@ -80,7 +79,7 @@ else if (string.Compare(Target, "authentications", true) == 0 ||
     <Authentications Action="@GetAction()"
                      Id="@Id"
                      Parent="this"
-    @ref="@_updater"></Authentications>
+                     @ref="@_updater"></Authentications>
 }
 else if (string.Compare(Target, "agent", true) == 0 ||
          string.Compare(Target, "AgentInstallers", true) == 0)
@@ -105,7 +104,7 @@ else if (string.Compare(Target, "Manufacturer", true) == 0)
                         Action="@Action"
                         Id="@GetId()"
                         Parent="this"
-    @ref="@_updater"></ManufacturerManage>
+                        @ref="@_updater"></ManufacturerManage>
 }
 else if (string.Compare(Target, "Cron", true) == 0)
 {
@@ -126,6 +125,11 @@ else if (string.Compare(Target, "Maintenance", true) == 0)
 else
 {
     <h1>@Properties.Resources.SettingsTitle</h1>
+    <Search Placeholder="@Properties.Resources.FilterByName"
+            Id="Configurations.Filter"
+            Immediate="true"
+            @bind-Value="@Filter"
+            OnClickAsync="@(async (e) => await Updated())" />
     <hr />
     <GXTable @ref="table"
              Context="conf"
@@ -134,14 +138,6 @@ else
              ShowAllUsers="false"
              ShowRemoved="false"
              ShowAllData="true">
-        <FilterContent>
-            <th>
-            </th>
-            <th>
-                <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
-                @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
-            </th>
-        </FilterContent>
         <MenuContent>
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin)>
                 <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
@@ -162,6 +158,11 @@ else
     </GXTable>
 }
 @code {
+    /// <summary>
+    /// Cached configurations.
+    /// </summary>
+    List<GXConfiguration> _configurations = new List<GXConfiguration>();
+
     IGXConfigUpdate? _updater;
     GXConfiguration? _active;
     /// <summary>
@@ -177,6 +178,15 @@ else
             }
             return table?.Active;
         }
+    }
+
+    /// <summary>
+    /// Filter.
+    /// </summary>
+    public string? Filter
+    {
+        get;
+        set;
     }
 
     /// <summary>
@@ -262,8 +272,34 @@ else
         }
     }
 
+    private ItemsProviderResult<GXConfiguration> GetFilteredItems(GXItemsProviderRequest request)
+    {
+        var list = new List<GXConfiguration>();
+        int total = _configurations.Count;
+        if (!string.IsNullOrEmpty(Filter))
+        {
+            string filter = Filter.ToLower();
+            foreach (var it in _configurations)
+            {
+                if (it.ToString().ToLower().Contains(filter))
+                {
+                    list.Add(it);
+                }
+            }
+        }
+        else
+        {
+            list.AddRange(_configurations);
+        }
+        return new ItemsProviderResult<GXConfiguration>(list, _configurations.Count);
+    }
+
     private async ValueTask<ItemsProviderResult<GXConfiguration>> GetItems(GXItemsProviderRequest request)
     {
+        if (_configurations.Any())
+        {
+            return GetFilteredItems(request);
+        }
         Notifier?.ProgressStart();
         Notifier?.ClearStatus();
         try
@@ -272,12 +308,15 @@ else
                 {
                     Index = request.StartIndex,
                     Count = request.Count,
-                    Filter = filter,
                     OrderBy = request.OrderBy,
                     Descending = request.Descending
                 };
             var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req, request.CancellationToken);
-            return new ItemsProviderResult<GXConfiguration>(ret.Configurations, ret.Count);
+            if (ret.Configurations != null)
+            {
+                _configurations.AddRange(ret.Configurations);
+                return GetFilteredItems(request);
+            }
         }
         catch (TaskCanceledException)
         {

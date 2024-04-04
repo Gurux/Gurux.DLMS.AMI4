@@ -46,6 +46,7 @@ using System.Data;
 using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -309,7 +310,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
             Expression<Func<GXDeviceTemplateGroup, object?>>? columns)
         {
             DateTime now = DateTime.Now;
-            string userId = ServerHelpers.GetUserId(User);
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXDeviceTemplateGroup, List<string>> updates = new Dictionary<GXDeviceTemplateGroup, List<string>>();
             List<GXUserGroup>? defaultGroups = null;
@@ -347,7 +348,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Get default user groups.
                     if (defaultGroups == null)
                     {
-                        defaultGroups = await _userGroupRepository.GetDefaultUserGroups(User, userId);
+                        defaultGroups = await _userGroupRepository.GetDefaultUserGroups(User, creator.Id);
                     }
                     it.UserGroups = defaultGroups;
                     if (it.UserGroups == null || !it.UserGroups.Any())
@@ -362,6 +363,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     foreach (var it in newGroups)
                     {
+                        it.Creator = creator;
                         it.CreationTime = now;
                     }
                     GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
@@ -397,8 +399,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXDeviceTemplateGroup>(e => e.UserGroups);
-                    args.Exclude<GXDeviceTemplateGroup>(q => new { q.CreationTime, q.UserGroups, q.DeviceTemplates });
+                    args.Exclude<GXDeviceTemplateGroup>(q => new
+                    {
+                        q.CreationTime,
+                        q.UserGroups,
+                        q.DeviceTemplates
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXDeviceTemplateGroup>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
 
                     //Map user group to device template group.

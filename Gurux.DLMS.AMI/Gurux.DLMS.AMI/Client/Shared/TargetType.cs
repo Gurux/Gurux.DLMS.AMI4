@@ -270,6 +270,22 @@ namespace Gurux.DLMS.AMI.Client.Shared
         /// </summary>
         public const string SubtotalValue = "SubtotalValue";
         /// <summary>
+        /// Report group is changed.
+        /// </summary>
+        public const string ReportGroup = "ReportGroup";
+        /// <summary>
+        /// Report is changed.
+        /// </summary>
+        public const string Report = "Report";
+        /// <summary>
+        /// Report log is changed.
+        /// </summary>
+        public const string ReportLog = "ReportLog";
+        /// <summary>
+        /// Report value is changed.
+        /// </summary>
+        public const string ReportValue = "ReportValue";
+        /// <summary>
         /// User stamp is changed.
         /// </summary>
         public const string UserStamp = "UserStamp";

@@ -47,6 +47,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -617,6 +619,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                         q.DeviceGroupAttributeTemplates,
                         q.DeviceGroupObjectTemplates,
                     });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        schedule.Creator == null ||
+                        string.IsNullOrEmpty(schedule.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXSchedule>(q => q.Creator);
+                    }
                     _host.Connection.Update(transaction, args);
                     //Map schedule to schedule groups.
                     {

@@ -338,7 +338,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 arg.Count = (UInt32)request.Count;
             }
             GXDeviceTemplate[] templates = (await _host.Connection.SelectAsync<GXDeviceTemplate>(arg)).ToArray();
-            if (request?.Select != null && request.Select.Contains("Manufacturer"))
+            if (request?.Select != null && request.Select.Contains(TargetType.Manufacturer))
             {
                 await UpdateManufacturers(templates);
             }

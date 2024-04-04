@@ -46,6 +46,8 @@ using System.Data;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -339,7 +341,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     gateway.CreationTime = now;
                     gateway.Creator = creator;
                     GXInsertArgs args = GXInsertArgs.Insert(gateway);
-                    args.Exclude<GXGateway>(q => new { q.Updated, q.GatewayGroups, q.DeviceGroups, q.Devices, q.Removed });
+                    args.Exclude<GXGateway>(q => new
+                    {
+                        q.Updated,
+                        q.GatewayGroups,
+                        q.DeviceGroups,
+                        q.Devices,
+                        q.Removed
+                    });
                     _host.Connection.Insert(args);
                     list.Add(gateway.Id);
                     AddGatewayToGatewayGroups(gateway.Id, gateway.GatewayGroups);
@@ -357,7 +366,21 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     gateway.Updated = now;
                     gateway.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(gateway, columns);
-                    args.Exclude<GXGateway>(q => new { q.CreationTime, q.GatewayGroups, q.DeviceGroups, q.Devices, q.Creator });
+                    args.Exclude<GXGateway>(q => new
+                    {
+                        q.CreationTime,
+                        q.GatewayGroups,
+                        q.DeviceGroups,
+                        q.Devices,
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        gateway.Creator == null ||
+                        string.IsNullOrEmpty(gateway.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXGateway>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map gateway groups to gateway.
                     if (gateway.GatewayGroups != null && gateway.GatewayGroups.Any())

@@ -42,6 +42,8 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.Net.Http.Headers;
 using Gurux.DLMS.AMI.Client.Helpers;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Client.Pages.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -228,7 +230,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     //Select device template ID and name.
                     arg.Columns.Add<GXDeviceTemplate>(s => new { s.Id, s.Name });
                 }
-                if (request?.Select != null && request.Select.Contains("Model"))
+                if (request?.Select != null && request.Select.Contains(TargetType.Model))
                 {
                     //Get models
                     if (!joinAdded)
@@ -329,7 +331,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     uManufacturer.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(uManufacturer);
-                    args.Exclude<GXManufacturer>(q => new { q.ManufacturerGroups, uManufacturer.Models });
+                    args.Exclude<GXManufacturer>(q => new
+                    {
+                        q.ManufacturerGroups,
+                        uManufacturer.Models
+                    });
                     _host.Connection.Insert(args);
                     list.Add(uManufacturer.Id);
                     AddModelsToManufacturer(uManufacturer, uManufacturer.Models);
@@ -348,7 +354,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     uManufacturer.Updated = now;
                     uManufacturer.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(uManufacturer, columns);
-                    args.Exclude<GXManufacturer>(q => new { q.CreationTime, q.ManufacturerGroups, q.Models });
+                    args.Exclude<GXManufacturer>(q => new
+                    {
+                        q.CreationTime,
+                        q.ManufacturerGroups,
+                        q.Models
+                    });
                     _host.Connection.Update(args);
                     //Map manufacturer groups to manufacturer.
                     List<GXManufacturerGroup> manufacturerGroups;

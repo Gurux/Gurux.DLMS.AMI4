@@ -41,6 +41,9 @@ using Gurux.DLMS.AMI.Shared.DIs;
 using System.Linq.Expressions;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.ComponentView;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -123,7 +126,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, 
+        public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<Guid> userGrouprs,
             bool delete)
         {
@@ -287,11 +290,11 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
+            ClaimsPrincipal user,
             IEnumerable<GXWorkflowGroup> WorkflowGroups,
             Expression<Func<GXWorkflowGroup, object?>>? columns)
         {
-            string userId = ServerHelpers.GetUserId(user);
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             DateTime now = DateTime.Now;
             List<Guid> list = new List<Guid>();
             Dictionary<GXWorkflowGroup, List<string>> updates = new Dictionary<GXWorkflowGroup, List<string>>();
@@ -320,12 +323,13 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     foreach (var workflow in it.Workflows)
                     {
                         workflow.CreationTime = now;
-                        workflow.Creator = new GXUser() { Id = userId };
+                        workflow.Creator = creator;
                     }
                 }
 
                 if (it.Id == Guid.Empty)
                 {
+                    it.Creator = creator;
                     it.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(it);
                     //User groups must hanlde separetly because users are identified with name and not Guid.
@@ -345,7 +349,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXWorkflowGroup>(q => new { q.UserGroups, q.CreationTime });
+                    args.Exclude<GXWorkflowGroup>(q => new
+                    {
+                        q.UserGroups,
+                        q.CreationTime
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXWorkflowGroup>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map user group to Workflow group.
                     List<GXUserGroup> list2 = await GetJoinedUserGroups(it.Id);

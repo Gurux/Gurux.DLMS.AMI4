@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @page "/config/subtotal/{Id:guid?}"
 @page "/config/subtotal/{Action}/{Id:guid?}"
 @using Gurux.DLMS.AMI.Client.Pages.Agent
@@ -90,6 +89,7 @@
                     </DeviceGroupSelector>
                 </TabPage>
             </AuthorizeView>
+            <!--
             <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.Agent)>
                 <TabPage Text=@Properties.Resources.Agents Icon="oi oi-wifi">
                     <AgentsSelector Agents="@Active.Agents">
@@ -106,11 +106,12 @@
                     </GatewaysSelector>
                 </TabPage>
                 <TabPage Text=@Properties.Resources.GatewayGroups Icon="oi oi-wifi">
-                    <GatewayGroupsSelector Action="@Action" 
+                    <GatewayGroupsSelector Action="@Action"
                         GatewayGroups="@Active.GatewayGroups">
                     </GatewayGroupsSelector>
                 </TabPage>
             </AuthorizeView>
+            -->
         </ChildContent>
     </TabControl>
 </CascadingValue>

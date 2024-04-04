@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 -->
-
 @page "/subtotals"
 @using Gurux.DLMS.AMI.Shared.DIs
 @using Gurux.DLMS.AMI.Shared.DTOs.Subtotal
@@ -105,28 +104,30 @@
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
-            <Th Id="Calculated">@Properties.Resources.Calculated</Th>
-            <Th Id="Status">@Properties.Resources.Status</Th>
-            <Th Id="Type">@Properties.Resources.Type</Th>
-            <Th Id="Operation">@Properties.Resources.Operation</Th>
-            <Th Id="Interval">@Properties.Resources.Interval</Th>
-            <Th Id="Description">@Properties.Resources.Description</Th>
-        </HeaderContent>
-        <ItemContent>
-            <Td Id="Name" Link="@("config/Subtotal/Edit/" + subtotal.Id)"><span class=@(ClientHelpers.GetActiveDot(subtotal.Active))></span>@subtotal.Name</Td>
-            <Td Id="Calculated">@subtotal.Calculated</Td>
-            <Td Id="Status">@subtotal.Status</Td>
-            <Td Id="Type">@((SubtotalType)subtotal.Type)</Td>
-            <Td Id="Operation">@((SubtotalOperation)subtotal.Operation)</Td>
-            <Td Id="Interval">@(TimeSpan.FromSeconds(subtotal.Interval))</Td>
-            <Td Id="Description">@subtotal.Description</Td>
-        </ItemContent>
-    </GXTable>
-    <br />
-    <Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
-             OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
-             ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
-    </Confirm>
+        <Th Id="Last">@Properties.Resources.LastDevelivery</Th>
+        <Th Id="Next">@Properties.Resources.NextDevelivery</Th>
+        <Th Id="Status">@Properties.Resources.Status</Th>
+        <Th Id="Type">@Properties.Resources.Type</Th>
+        <Th Id="Operation">@Properties.Resources.Operation</Th>
+        <Th Id="Interval">@Properties.Resources.Interval</Th>
+        <Th Id="Description">@Properties.Resources.Description</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Id="Name" Link="@("config/Subtotal/Edit/" + subtotal.Id)"><span class=@(ClientHelpers.GetActiveDot(subtotal.Active))></span>@subtotal.Name</Td>
+        <Td Id="Last">@subtotal.Last</Td>
+        <Td Id="Next">@subtotal.Next</Td>
+        <Td Id="Status">@subtotal.Status</Td>
+        <Td Id="Type">@((SubtotalType)subtotal.Type)</Td>
+        <Td Id="Operation">@((SubtotalOperation)subtotal.Operation)</Td>
+        <Td Id="Interval">@(TimeSpan.FromSeconds(subtotal.Interval))</Td>
+        <Td Id="Description">@subtotal.Description</Td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
 
     @code {
     /// <summary>

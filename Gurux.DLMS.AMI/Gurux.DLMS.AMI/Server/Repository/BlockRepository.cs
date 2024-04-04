@@ -43,6 +43,9 @@ using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.ComponentView;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -99,7 +102,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         }
 
         /// <inheritdoc />
-        public async Task DeleteAsync(ClaimsPrincipal User, 
+        public async Task DeleteAsync(ClaimsPrincipal User,
             IEnumerable<Guid> blocks,
             bool delete)
         {
@@ -301,11 +304,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
         /// <inheritdoc />
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
+            ClaimsPrincipal user,
             IEnumerable<GXBlock> blocks,
             Expression<Func<GXBlock, object?>>? columns)
         {
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(user) };
             List<Guid> list = new();
             Dictionary<GXBlock, List<string>> updates = new();
             foreach (GXBlock block in blocks)
@@ -366,9 +370,14 @@ namespace Gurux.DLMS.AMI.Server.Repository
 
                 if (block.Id == Guid.Empty)
                 {
+                    block.Creator = creator;
                     block.CreationTime = now;
                     GXInsertArgs args = GXInsertArgs.Insert(block);
-                    args.Exclude<GXBlock>(q => new {q.BlockGroups, block.Resources });
+                    args.Exclude<GXBlock>(q => new
+                    {
+                        q.BlockGroups,
+                        block.Resources
+                    });
                     _host.Connection.Insert(args);
                     list.Add(block.Id);
                     AddBlockToBlockGroups(block.Id, block.BlockGroups);
@@ -386,7 +395,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     block.Updated = now;
                     block.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(block, columns);
-                    args.Exclude<GXBlock>(q => new { q.CreationTime, q.BlockGroups, q.Resources });
+                    args.Exclude<GXBlock>(q => new
+                    {
+                        q.CreationTime,
+                        q.BlockGroups,
+                        q.Resources
+                    });
+                    if (!user.IsInRole(GXRoles.Admin) ||
+                        block.Creator == null ||
+                        string.IsNullOrEmpty(block.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXBlock>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map block groups to block.
                     List<GXBlockGroup> blockGroups;
@@ -493,7 +514,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
         {
             if (resources != null)
             {
-                foreach(var it in resources)
+                foreach (var it in resources)
                 {
                     await _host.Connection.DeleteAsync(GXDeleteArgs.DeleteById<GXLocalizedResource>(it.Id));
                 }

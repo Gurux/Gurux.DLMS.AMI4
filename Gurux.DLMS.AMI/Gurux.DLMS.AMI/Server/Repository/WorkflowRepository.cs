@@ -45,6 +45,7 @@ using Gurux.DLMS.AMI.Client.Pages.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -315,7 +316,12 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     workflow.CreationTime = now;
                     workflow.Creator = user;
                     GXInsertArgs args = GXInsertArgs.Insert(workflow);
-                    args.Exclude<GXWorkflow>(q => new { q.Updated, q.WorkflowGroups, q.ScriptMethods });
+                    args.Exclude<GXWorkflow>(q => new
+                    {
+                        q.Updated,
+                        q.WorkflowGroups,
+                        q.ScriptMethods
+                    });
                     _host.Connection.Insert(args);
                     list.Add(workflow.Id);
                     AddWorkflowToWorkflowGroups(workflow.Id, workflow.WorkflowGroups);
@@ -333,7 +339,19 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     workflow.Updated = now;
                     workflow.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(workflow, columns);
-                    args.Exclude<GXWorkflow>(q => new { q.CreationTime, q.WorkflowGroups, q.ScriptMethods, q.Creator });
+                    args.Exclude<GXWorkflow>(q => new
+                    {
+                        q.CreationTime,
+                        q.WorkflowGroups,
+                        q.ScriptMethods,
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        workflow.Creator == null ||
+                        string.IsNullOrEmpty(workflow.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXWorkflow>(q => q.Creator);
+                    }
                     _host.Connection.Update(args);
                     //Map workflow groups to workflow.
                     List<GXWorkflowGroup> workflowGroups;

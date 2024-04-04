@@ -654,6 +654,9 @@
   <data name="Disconnected" xml:space="preserve">
     <value>Disconnected</value>
   </data>
+  <data name="ReportDescription" xml:space="preserve">
+    <value>Reports can be used to improve the creation of reports from a large amount of data.</value>
+  </data>
   <data name="SubtotalDescription" xml:space="preserve">
     <value>Subtotals can be used to improve the creation of reports from a large amount of data.</value>
   </data>

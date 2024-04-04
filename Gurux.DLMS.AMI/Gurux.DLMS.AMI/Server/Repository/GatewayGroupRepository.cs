@@ -42,6 +42,8 @@ using System.Linq.Expressions;
 using System.Data;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Client.Pages.User;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 
 namespace Gurux.DLMS.AMI.Server.Repository
 {
@@ -291,8 +293,8 @@ namespace Gurux.DLMS.AMI.Server.Repository
             IEnumerable<GXGatewayGroup> GatewayGroups,
             Expression<Func<GXGatewayGroup, object?>>? columns)
         {
-            string userId = ServerHelpers.GetUserId(User);
             DateTime now = DateTime.Now;
+            GXUser creator = new GXUser() { Id = ServerHelpers.GetUserId(User) };
             List<Guid> list = new List<Guid>();
             Dictionary<GXGatewayGroup, List<string>> updates = new Dictionary<GXGatewayGroup, List<string>>();
             List<GXUserGroup>? defaultGroups = null;
@@ -340,6 +342,7 @@ namespace Gurux.DLMS.AMI.Server.Repository
                 {
                     foreach (var it in newGroups)
                     {
+                        it.Creator = creator;
                         it.CreationTime = now;
                     }
                     GXInsertArgs args = GXInsertArgs.InsertRange(newGroups);
@@ -374,7 +377,20 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     it.Updated = now;
                     it.ConcurrencyStamp = Guid.NewGuid().ToString();
                     GXUpdateArgs args = GXUpdateArgs.Update(it, columns);
-                    args.Exclude<GXGatewayGroup>(q => new { q.CreationTime, q.UserGroups, q.Gateways});
+                    args.Exclude<GXGatewayGroup>(q => new
+                    {
+                        q.CreationTime,
+                        q.UserGroups,
+                        q.Gateways
+                    });
+                    if (!User.IsInRole(GXRoles.Admin) ||
+                        it.Creator == null ||
+                        string.IsNullOrEmpty(it.Creator.Id))
+                    {
+                        //Only admin can update the creator.
+                        args.Exclude<GXGatewayGroup>(q => q.Creator);
+                    }
+
                     _host.Connection.Update(args);
                     //Map user group to Gateway group.
                     {
@@ -499,6 +515,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
                     w.GatewayGroupId == gatewayGroupId);
             }
             _host.Connection.Delete(transaction, args);
-        }        
+        }
     }
 }

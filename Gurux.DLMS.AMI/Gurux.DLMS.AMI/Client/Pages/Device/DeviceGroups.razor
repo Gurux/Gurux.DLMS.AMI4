@@ -90,10 +90,13 @@
         </th>
     </FilterContent>
     <MenuContent>
-        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager)>
-            <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
-            <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
-        </AuthorizeView>
+        @if (Menu)
+        {
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceGroupManager)>
+                <ContextMenuItem Text="@Properties.Resources.Edit" Icon="oi oi-pencil" OnClick="@OnEdit"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Remove" Icon="oi oi-trash" OnClick="@OnRemove"></ContextMenuItem>
+            </AuthorizeView>
+        }
     </MenuContent>
     <HeaderContent>
         <Th Id="Name">@Properties.Resources.Name</Th>
@@ -164,6 +167,12 @@
     /// </summary>
     [Parameter]
     public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is menu shown.
+    /// </summary>
+    [Parameter]
+    public bool Menu { get; set; } = true;
 
     /// <summary>
     /// Is edit allowed.
