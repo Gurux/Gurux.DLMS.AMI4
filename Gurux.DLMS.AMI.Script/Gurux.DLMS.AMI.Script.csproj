@@ -28,7 +28,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2403.1901" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2404.401" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.3" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="4.9.2" />
