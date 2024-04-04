@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>Objects.</returns>
         Task<GXObject[]> ListAsync(ClaimsPrincipal user,
             ListObjects? request,
-            ListObjectsResponse? response,
-            CancellationToken cancellationToken);
+            ListObjectsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read object information.

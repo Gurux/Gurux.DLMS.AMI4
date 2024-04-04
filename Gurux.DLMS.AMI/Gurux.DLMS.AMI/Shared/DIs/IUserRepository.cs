@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXUser[]> ListAsync(
             ClaimsPrincipal User,
             ListUsers? request,
-            ListUsersResponse? response,
-            CancellationToken cancellationToken);
+            ListUsersResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user.

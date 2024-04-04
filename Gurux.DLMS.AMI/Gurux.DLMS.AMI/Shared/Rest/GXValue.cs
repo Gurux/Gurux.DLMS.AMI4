@@ -83,7 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-       
+
         /// <summary>
         /// Order by name.
         /// </summary>
@@ -126,6 +126,42 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Excluded Ids can be used to filter data.
         /// </remarks>
         public Guid[]? Exclude
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Device Ids for which values are retrieved.
+        /// </summary>
+        public Guid[]? Devices
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Object Ids for which values are retrieved.
+        /// </summary>
+        public Guid[]? Objects
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Attribute Ids for which values are retrieved.
+        /// </summary>
+        public Guid[]? Attributes
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Attribute template Ids for which values are retrieved.
+        /// </summary>
+        public Guid[]? AttributeTemplates
         {
             get;
             set;

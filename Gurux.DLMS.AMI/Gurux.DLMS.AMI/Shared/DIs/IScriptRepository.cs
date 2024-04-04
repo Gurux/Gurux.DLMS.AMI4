@@ -71,8 +71,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXScript[]> ListAsync(
             ClaimsPrincipal User,
             ListScripts? request,
-            ListScriptsResponse? response,
-            CancellationToken cancellationToken);
+            ListScriptsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read script information.

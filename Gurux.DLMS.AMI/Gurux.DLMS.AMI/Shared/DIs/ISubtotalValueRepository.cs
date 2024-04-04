@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSubtotalValue[]> ListAsync(
             ClaimsPrincipal User,
             ListSubtotalValues? request,
-            ListSubtotalValuesResponse? response,
-            CancellationToken cancellationToken);
+            ListSubtotalValuesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read subtotal value information.

@@ -48,7 +48,7 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
 {
     /// <summary>
-    /// Sub total value is used to save sum value 
+    /// subtotal value is used to save sum value 
     /// for given attribute.
     /// </summary>
     /// <remarks>This can be used to store the sum, or avarage value 
@@ -276,7 +276,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// Attribute templates for which the subtotal is calculated for the devices.
         /// </summary>
         /// <remarks>
-        /// Devices uses attribute templates to count sub total.
+        /// Devices uses attribute templates to count subtotal.
         /// </remarks>
         /// <seealso cref="Devices"/>
         /// <seealso cref="DeviceGroupAttributeTemplates"/>
@@ -293,7 +293,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// Attribute templates for which the subtotal is calculated for the device groups.
         /// </summary>
         /// <remarks>
-        /// Device groups uses attribute templates to count sub total.
+        /// Device groups uses attribute templates to count subtotal.
         /// </remarks>
         /// <seealso cref="DeviceAttributeTemplates"/>
         /// <seealso cref="DeviceGroups"/>
@@ -465,10 +465,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// <summary>
         /// When was the subtotal calculated for the last time.
         /// </summary>
-        [Description("When was the subtotal calculated for the last time..")]
+        [Description("When was the subtotal calculated for the last time.")]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
-        public DateTimeOffset? Calculated
+        public DateTimeOffset? Last
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Next subtotal calculation time.
+        /// </summary>
+        /// <remarks>
+        /// The next subtotal calculation time.
+        /// </remarks>
+        /// <seealso cref="Interval"/>
+        [Description("Next subtotal calculation time.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        [DefaultValue(null)]
+        public DateTimeOffset? Next
         {
             get;
             set;
@@ -490,11 +506,24 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// <summary>
         /// Subtotal operation.
         /// </summary>
+        /// <seealso cref="Delta"/>
         [DataMember]
         [DefaultValue(0)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public byte? Operation
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Is operator delta value counted.
+        /// </summary>
+        /// <seealso cref="Operation"/>
+        [DataMember]
+        [DefaultValue(false)]
+        public bool Delta
         {
             get;
             set;
@@ -589,9 +618,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
             if (!string.IsNullOrEmpty(Name))
             {
                 str = Name;
-                if (Calculated != null)
+                if (Last != null)
                 {
-                    str += Environment.NewLine + " Calculated: " + Calculated;
+                    str += Environment.NewLine + " Calculated: " + Last;
+                }
+                if (Next != null)
+                {
+                    str += Environment.NewLine + " Next: " + Next;
                 }
             }
             else

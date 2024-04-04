@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXScheduleLog[]> ListAsync(
             ClaimsPrincipal User,
             ListScheduleLogs? request,
-            ListScheduleLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListScheduleLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read schedule log information.

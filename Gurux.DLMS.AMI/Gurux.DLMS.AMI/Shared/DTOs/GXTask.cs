@@ -160,7 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Target device.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXDevice? Device
@@ -186,7 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Target COSEM Attribute.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXAttribute? Attribute

@@ -36,6 +36,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
@@ -67,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
             Agents = new List<GXAgent>();
             DeviceGroups = new List<GXDeviceGroup>();
         }
+
         /// <summary>
         /// Agent group identifier.
         /// </summary>
@@ -75,6 +77,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// The creator of the agent group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
         {
             get;
             set;

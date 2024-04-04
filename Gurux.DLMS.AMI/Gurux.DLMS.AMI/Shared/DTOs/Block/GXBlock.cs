@@ -80,6 +80,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         }
 
         /// <summary>
+        /// The block creator.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Block Title.
         /// </summary>
         [StringLength(128)]
@@ -120,7 +133,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
             get;
             set;
         }
-
 
         /// <summary>
         /// Script method that this block uses.

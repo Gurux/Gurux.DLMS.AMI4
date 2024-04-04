@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXModuleGroup[]> ListAsync(
             ClaimsPrincipal User,
             ListModuleGroups? request,
-            ListModuleGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListModuleGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read module group information.

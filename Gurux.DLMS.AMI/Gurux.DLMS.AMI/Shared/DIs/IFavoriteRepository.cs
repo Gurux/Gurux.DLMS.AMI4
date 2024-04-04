@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXFavorite[]> ListAsync(
             ClaimsPrincipal user,
             ListFavorites? request,
-            ListFavoritesResponse? response,
-            CancellationToken cancellationToken);
+            ListFavoritesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read Favorite.

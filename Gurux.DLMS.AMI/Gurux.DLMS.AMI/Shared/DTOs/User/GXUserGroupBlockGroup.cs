@@ -31,14 +31,13 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
-using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>
-    /// A data contract class representing User Group to block group binding object.
+    /// A data contract class representing user group to block group binding object.
     /// </summary>
     [DataContract(Name = "GXUserGroupBlockGroup"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(BlockGroupId), Clustered = true)]

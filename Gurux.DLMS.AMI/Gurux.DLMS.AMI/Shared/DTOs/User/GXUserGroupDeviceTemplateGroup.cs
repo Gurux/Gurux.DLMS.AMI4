@@ -32,7 +32,6 @@
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User

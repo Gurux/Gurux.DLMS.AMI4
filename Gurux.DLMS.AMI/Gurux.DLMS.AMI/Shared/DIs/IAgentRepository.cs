@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXAgent[]> ListAsync(
             ClaimsPrincipal User,
             ListAgents? request,
-            ListAgentsResponse? response,
-            CancellationToken cancellationToken);
+            ListAgentsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read agent.

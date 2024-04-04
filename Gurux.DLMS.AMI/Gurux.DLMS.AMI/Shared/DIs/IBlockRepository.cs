@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXBlock[]> ListAsync(
             ClaimsPrincipal user, 
             ListBlocks? request, 
-            ListBlocksResponse? response,
-            CancellationToken cancellationToken);
+            ListBlocksResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read block.

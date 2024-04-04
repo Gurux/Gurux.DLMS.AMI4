@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXDeviceAction[]> ListAsync(
             ClaimsPrincipal user,
             ListDeviceAction? request,
-            ListDeviceActionResponse? response,
-            CancellationToken cancellationToken);
+            ListDeviceActionResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read device activity.

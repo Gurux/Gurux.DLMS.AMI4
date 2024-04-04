@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXScheduleGroup[]> ListAsync(
             ClaimsPrincipal User,
             ListScheduleGroups? request,
-            ListScheduleGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListScheduleGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read schedule group information.

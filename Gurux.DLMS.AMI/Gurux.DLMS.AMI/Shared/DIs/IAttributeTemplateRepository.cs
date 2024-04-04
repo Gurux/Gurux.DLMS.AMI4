@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>Attribute templates.</returns>
         Task<GXAttributeTemplate[]> ListAsync(ClaimsPrincipal user,
             ListAttributeTemplates? request,
-            ListAttributeTemplatesResponse? response,
-            CancellationToken cancellationToken);
+            ListAttributeTemplatesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read attribute template information.

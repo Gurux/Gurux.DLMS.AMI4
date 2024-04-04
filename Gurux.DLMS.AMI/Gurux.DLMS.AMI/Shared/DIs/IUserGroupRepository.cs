@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXUserGroup[]> ListAsync(
             ClaimsPrincipal user, 
             ListUserGroups? request, 
-            ListUserGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListUserGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user group information.

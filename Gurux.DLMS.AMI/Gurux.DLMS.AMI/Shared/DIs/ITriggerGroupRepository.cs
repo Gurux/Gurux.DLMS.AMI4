@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXTriggerGroup[]> ListAsync(
             ClaimsPrincipal User,
             ListTriggerGroups? request,
-            ListTriggerGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListTriggerGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read trigger group information.

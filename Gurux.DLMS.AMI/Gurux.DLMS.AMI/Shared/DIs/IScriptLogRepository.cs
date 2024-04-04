@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXScriptLog[]> ListAsync(
             ClaimsPrincipal user, 
             ListScriptLogs? request, 
-            ListScriptLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListScriptLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read script log information.

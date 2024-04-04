@@ -38,7 +38,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing user group to user binding object.
     /// </summary>
     [DataContract(Name = "GXUserGroupUser"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(UserId), Clustered = true)]

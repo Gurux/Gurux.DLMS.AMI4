@@ -81,6 +81,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         }
 
         /// <summary>
+        /// The creator of the sub total group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Name of the subtotals group.
         /// </summary>
         [DataMember]

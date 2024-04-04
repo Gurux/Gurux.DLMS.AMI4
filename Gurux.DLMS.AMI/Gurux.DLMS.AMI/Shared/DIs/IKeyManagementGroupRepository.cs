@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>User groups.</returns>
         Task<GXKeyManagementGroup[]> ListAsync(ClaimsPrincipal user,
             ListKeyManagementGroups? request,
-            ListKeyManagementGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListKeyManagementGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read key management group information.

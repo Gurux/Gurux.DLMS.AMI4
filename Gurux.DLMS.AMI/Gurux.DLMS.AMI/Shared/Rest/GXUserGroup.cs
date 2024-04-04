@@ -36,7 +36,7 @@ using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
@@ -47,6 +47,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -73,9 +74,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.BlockGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
-            nameof(GXUserGroup.KeyManagementGroups),            
-            nameof(GXUserGroup.ScriptGroups), 
-            nameof(GXUserGroup.SubtotalGroups))]
+            nameof(GXUserGroup.KeyManagementGroups),
+            nameof(GXUserGroup.ScriptGroups),
+            nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ReportGroups))]
         public GXUserGroup? Item
         {
             get;
@@ -125,8 +127,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
-            nameof(GXUserGroup.ScriptGroups), 
-            nameof(GXUserGroup.SubtotalGroups))]
+            nameof(GXUserGroup.ScriptGroups),
+             nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ReportGroups))]
         public GXUserGroup? Filter
         {
             get;
@@ -229,8 +232,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
-            nameof(GXUserGroup.ScriptGroups), 
-            nameof(GXUserGroup.SubtotalGroups))]
+            nameof(GXUserGroup.ScriptGroups),
+            nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ReportGroups))]
         public GXUserGroup[] UserGroups
         {
             get;
@@ -270,9 +274,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
         [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
         [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id), nameof(GXManufacturerGroup.Name))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-        [IncludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
+        [IncludeSwagger(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id))]
+        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
+        [IncludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
         public GXUserGroup[] UserGroups
         {
             get;

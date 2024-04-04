@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXRestStatistic[]> ListAsync(
             ClaimsPrincipal user,
             ListRestStatistics? request,
-            ListRestStatisticsResponse? response,
-            CancellationToken cancellationToken);
+            ListRestStatisticsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new REST statistics.

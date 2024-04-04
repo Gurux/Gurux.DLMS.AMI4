@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXUserStamp[]> ListAsync(
             ClaimsPrincipal user,
             ListUserStamps? request,
-            ListUserStampsResponse? response,
-            CancellationToken cancellationToken);
+            ListUserStampsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete user stamps.

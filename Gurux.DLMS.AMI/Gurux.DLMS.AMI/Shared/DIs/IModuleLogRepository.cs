@@ -47,8 +47,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>List of module log.</returns>
         Task<GXModuleLog[]> ListAsync(ClaimsPrincipal User, 
             ListModuleLogs? request, 
-            ListModuleLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListModuleLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read module log information.

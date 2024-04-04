@@ -41,16 +41,20 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
+    /// <summary>
+    /// User group.
+    /// </summary>
     [DataContract(Name = "GXUserGroup"), Serializable]
     public class GXUserGroup : GXTableBase, IUnique<Guid>
     {
@@ -85,6 +89,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
             ScriptGroups = new List<GXScriptGroup>();
             ManufacturerGroups = new List<GXManufacturerGroup>();
             KeyManagementGroups = new List<GXKeyManagementGroup>();
+            SubtotalGroups = new List<GXSubtotalGroup>();
+            ReportGroups = new List<GXReportGroup>();
         }
 
         /// <summary>
@@ -94,6 +100,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The creator of the user group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
         {
             get;
             set;
@@ -346,11 +365,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         }
 
         /// <summary>
-        /// List of key management groups that this user group can access.
+        /// List of Subtotal groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXSubtotalGroup), typeof(GXUserGroupSubtotalGroup))]
         [DefaultValue(null)]
         public List<GXSubtotalGroup>? SubtotalGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of report groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXReportGroup), typeof(GXUserGroupReportGroup))]
+        [DefaultValue(null)]
+        public List<GXReportGroup>? ReportGroups
         {
             get;
             set;

@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXLanguage[]> ListAsync(
             ClaimsPrincipal User, 
             ListLanguages? request, 
-            ListLanguagesResponse? response,
-            CancellationToken cancellationToken);
+            ListLanguagesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read language.

@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSubtotal[]> ListAsync(
             ClaimsPrincipal user,
             ListSubtotals? request,
-            ListSubtotalsResponse? response,
-            CancellationToken cancellationToken);
+            ListSubtotalsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read subtotal.
@@ -80,18 +80,18 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> subtotals, bool delete);
 
         /// <summary>
-        /// Get all users that can access this sub total.
+        /// Get all users that can access this subtotal.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="subtotalId">Sub total id.</param>
+        /// <param name="subtotalId">subtotal id.</param>
         /// <returns>Users.</returns>
         Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? subtotalId);
 
         /// <summary>
-        /// Get all users that can access sub totals.
+        /// Get all users that can access subtotals.
         /// </summary>
         /// <param name="User">Current user.</param>
-        /// <param name="subtotalIds">Sub total ids.</param>
+        /// <param name="subtotalIds">subtotal ids.</param>
         /// <returns>Users.</returns>
         Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? subtotalIds);
 

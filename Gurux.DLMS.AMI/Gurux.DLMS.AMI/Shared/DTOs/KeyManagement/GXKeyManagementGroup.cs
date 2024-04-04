@@ -30,6 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -73,6 +74,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// The creator of the key management group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
         {
             get;
             set;

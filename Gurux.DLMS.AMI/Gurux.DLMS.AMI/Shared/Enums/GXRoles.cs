@@ -419,6 +419,31 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string SubtotalLogManager = "SubtotalLogManager";
 
+        /// <summary>
+        /// User can access report groups.
+        /// </summary>
+        public const string ReportGroup = "ReportGroup";
+        /// <summary>
+        /// User is report group manager.
+        /// </summary>
+        public const string ReportGroupManager = "ReportGroupManager";
+        /// <summary>
+        /// User can access reports.
+        /// </summary>
+        public const string Report = "Report";
+        /// <summary>
+        /// User is report manager.
+        /// </summary>
+        public const string ReportManager = "ReportManager";
+        /// <summary>
+        /// User can access report log.
+        /// </summary>
+        public const string ReportLog = "ReportLog";
+        /// <summary>
+        /// User is report log manager.
+        /// </summary>
+        public const string ReportLogManager = "ReportLogManager";
+
         public static string ToString(string param1)
         {
             return param1;

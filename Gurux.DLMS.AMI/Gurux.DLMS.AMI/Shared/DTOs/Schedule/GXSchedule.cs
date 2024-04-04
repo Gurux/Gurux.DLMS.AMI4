@@ -390,6 +390,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Schedule start time.
         /// </summary>
+        /// <seealso cref="ExecutionTime"/>
+        /// <seealso cref="Next"/>
         [DataMember]
         [StringLength(36)]
         [Filter(FilterType.Contains)]
@@ -403,10 +405,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <summary>
         /// Last execution time
         /// </summary>
+        /// <seealso cref="Start"/>
+        /// <seealso cref="Next"/>
         [DataMember]
         //Filter uses default value.
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? ExecutionTime
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Next schedule execution time.
+        /// </summary>
+        /// <seealso cref="Start"/>
+        /// <seealso cref="ExecutionTime"/>
+        [Description("Next schedule execution time.")]
+        [Filter(FilterType.GreaterOrEqual)]
+        [DefaultValue(null)]
+        public DateTimeOffset? Next
         {
             get;
             set;

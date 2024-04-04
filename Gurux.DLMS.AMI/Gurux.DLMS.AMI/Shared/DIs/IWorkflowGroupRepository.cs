@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXWorkflowGroup[]> ListAsync(
             ClaimsPrincipal User, 
             ListWorkflowGroups? request, 
-            ListWorkflowGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListWorkflowGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read workflow group information.

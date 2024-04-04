@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXComponentView[]> ListAsync(
             ClaimsPrincipal User, 
             ListComponentViews? request, 
-            ListComponentViewsResponse? response,
-            CancellationToken cancellationToken);
+            ListComponentViewsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read component view.

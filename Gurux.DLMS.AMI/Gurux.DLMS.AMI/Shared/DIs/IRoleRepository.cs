@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXRole[]> ListAsync(
             ClaimsPrincipal user, 
             ListRoles? request, 
-            ListRolesResponse? response,
-            CancellationToken cancellationToken);
+            ListRolesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read role.

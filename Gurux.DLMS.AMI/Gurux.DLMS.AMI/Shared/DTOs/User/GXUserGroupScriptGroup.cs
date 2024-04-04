@@ -32,13 +32,12 @@
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>
-    /// A data contract class representing User Group to script group binding object.
+    /// A data contract class representing user group to script group binding object.
     /// </summary>
     [DataContract(Name = "GXUserGroupScriptGroup"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ScriptGroupId), Clustered = true)]

@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSubtotalGroup[]> ListAsync(
             ClaimsPrincipal user, 
             ListSubtotalGroups? request, 
-            ListSubtotalGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListSubtotalGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read subtotal group information.

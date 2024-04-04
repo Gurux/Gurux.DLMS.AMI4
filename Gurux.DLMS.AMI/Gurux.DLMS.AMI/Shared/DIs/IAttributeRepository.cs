@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>Attributes.</returns>
         Task<GXAttribute[]> ListAsync(ClaimsPrincipal user,
             ListAttributes? request,
-            ListAttributesResponse? response,
-            CancellationToken cancellationToken);
+            ListAttributesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read attribute information.

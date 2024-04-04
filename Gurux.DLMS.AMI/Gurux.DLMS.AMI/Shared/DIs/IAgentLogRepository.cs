@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXAgentLog[]> ListAsync(
             ClaimsPrincipal user, 
             ListAgentLogs? request,
-            ListAgentLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListAgentLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read agent log information.

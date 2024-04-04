@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXGateway[]> ListAsync(
             ClaimsPrincipal User,
             ListGateways? request,
-            ListGatewaysResponse? response,
-            CancellationToken cancellationToken);
+            ListGatewaysResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read gateway.

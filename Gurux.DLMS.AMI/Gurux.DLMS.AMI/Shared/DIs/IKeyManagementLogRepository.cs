@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXKeyManagementLog[]> ListAsync(
             ClaimsPrincipal user, 
             ListKeyManagementLogs? request, 
-            ListKeyManagementLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListKeyManagementLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read key management log information.

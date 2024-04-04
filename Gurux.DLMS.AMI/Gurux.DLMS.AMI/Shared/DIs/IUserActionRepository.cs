@@ -47,8 +47,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>UserActivitys.</returns>
         Task<GXUserAction[]> ListAsync(ClaimsPrincipal user, 
             ListUserAction? request, 
-            ListUserActionResponse? response, 
-            CancellationToken cancellationToken);
+            ListUserActionResponse? response = null, 
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user activity.

@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXUserError[]> ListAsync(
             ClaimsPrincipal user, 
             ListUserErrors? request, 
-            ListUserErrorsResponse? response,
-            CancellationToken cancellationToken);
+            ListUserErrorsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user error information.

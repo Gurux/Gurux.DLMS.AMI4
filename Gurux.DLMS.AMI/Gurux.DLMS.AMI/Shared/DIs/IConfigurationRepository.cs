@@ -55,8 +55,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXConfiguration[]> ListAsync(
             ClaimsPrincipal User,
             ListConfiguration? request,
-            ListConfigurationResponse? response,
-            CancellationToken cancellationToken);
+            ListConfigurationResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read configuration information.

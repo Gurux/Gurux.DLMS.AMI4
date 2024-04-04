@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXBlockGroup[]> ListAsync(
             ClaimsPrincipal user, 
             ListBlockGroups? request, 
-            ListBlockGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListBlockGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read block group information.

@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXDeviceError[]> ListAsync(
             ClaimsPrincipal User, 
             ListDeviceErrors? request, 
-            ListDeviceErrorsResponse? response,
-            CancellationToken cancellationToken);
+            ListDeviceErrorsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read device error information.

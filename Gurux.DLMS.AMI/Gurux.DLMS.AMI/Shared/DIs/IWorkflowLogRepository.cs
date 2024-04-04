@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXWorkflowLog[]> ListAsync(
             ClaimsPrincipal User, 
             ListWorkflowLogs? request, 
-            ListWorkflowLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListWorkflowLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read workflow log information.

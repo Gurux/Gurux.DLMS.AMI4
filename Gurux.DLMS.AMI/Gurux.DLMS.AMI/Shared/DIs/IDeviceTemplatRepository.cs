@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXDeviceTemplate[]> ListAsync(
             ClaimsPrincipal user,
             ListDeviceTemplates? request,
-            ListDeviceTemplatesResponse? response,
-            CancellationToken cancellationToken);
+            ListDeviceTemplatesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read device template information.

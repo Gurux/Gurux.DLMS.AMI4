@@ -37,7 +37,7 @@ using System.Text;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
 {
     /// <summary>
-    /// Sub total attribute value.
+    /// Subtotal attribute value.
     /// </summary>
     [DataContract]
     [IndexCollection(true, nameof(Subtotal), nameof(StartTime), nameof(Target))]

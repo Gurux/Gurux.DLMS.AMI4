@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
@@ -85,6 +86,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
             set;
         }
 
+        /// <summary>
+        /// The device group creator.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]        
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// Is device group active.

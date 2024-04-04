@@ -33,7 +33,6 @@ using Gurux.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
 namespace Gurux.DLMS.AMI.Shared.Rest

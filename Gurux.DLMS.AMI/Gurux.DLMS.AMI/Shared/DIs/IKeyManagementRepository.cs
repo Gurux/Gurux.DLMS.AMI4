@@ -72,8 +72,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXKeyManagement[]> ListAsync(
             ClaimsPrincipal user,
             ListKeyManagements? request,
-            ListKeyManagementsResponse? response,
-            CancellationToken cancellationToken);
+            ListKeyManagementsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read key management.

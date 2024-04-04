@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXValue[]> ListAsync(
             ClaimsPrincipal User,
             ListValues? request,
-            ListValuesResponse? response,
-            CancellationToken cancellationToken);
+            ListValuesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read value information.

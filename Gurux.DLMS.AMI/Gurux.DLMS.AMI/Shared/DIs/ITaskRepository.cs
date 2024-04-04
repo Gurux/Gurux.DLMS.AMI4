@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXTask[]> ListAsync(
             ClaimsPrincipal user,
             ListTasks? request,
-            ListTasksResponse? response,
-            CancellationToken cancellationToken);
+            ListTasksResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read task information.

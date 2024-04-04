@@ -82,6 +82,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         }
 
         /// <summary>
+        /// The creator of the trigger.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Trigger class name.
         /// </summary>
         [StringLength(64)]

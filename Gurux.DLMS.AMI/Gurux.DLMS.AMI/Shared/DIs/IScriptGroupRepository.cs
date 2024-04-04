@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <returns>User groups.</returns>
         Task<GXScriptGroup[]> ListAsync(ClaimsPrincipal user,
             ListScriptGroups? request,
-            ListScriptGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListScriptGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read script group information.

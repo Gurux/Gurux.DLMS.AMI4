@@ -35,6 +35,7 @@ using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
@@ -73,6 +74,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         public Guid Id
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The creator of the management group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
         {
             get;
             set;

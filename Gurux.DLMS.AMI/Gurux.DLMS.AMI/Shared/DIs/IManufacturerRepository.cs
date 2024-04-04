@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXManufacturer[]> ListAsync(
             ClaimsPrincipal User,
             ListManufacturers? request,
-            ListManufacturersResponse? response,
-            CancellationToken cancellationToken);
+            ListManufacturersResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read manufacturer.

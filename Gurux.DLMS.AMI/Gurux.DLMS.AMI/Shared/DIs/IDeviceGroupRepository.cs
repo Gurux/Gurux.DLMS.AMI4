@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXDeviceGroup[]> ListAsync(
             ClaimsPrincipal user, 
             ListDeviceGroups? request, 
-            ListDeviceGroupsResponse? response,
-            CancellationToken cancellationToken);
+            ListDeviceGroupsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read device information.

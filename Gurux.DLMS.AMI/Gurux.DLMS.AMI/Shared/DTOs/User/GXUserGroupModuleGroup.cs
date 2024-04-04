@@ -32,13 +32,12 @@
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>
-    /// A data contract class representing User Group to module binding object.
+    /// A data contract class representing user group to module binding object.
     /// </summary>
     [DataContract(Name = "GXUserGroupModule"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ModuleGroupId), Clustered = true)]

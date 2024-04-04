@@ -30,7 +30,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -120,11 +122,37 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         }
 
         /// <summary>
+        /// List of agents where this script method belongs.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXAgent))]
+        [Filter(FilterType.Contains)]
+        public List<GXAgent> Agents
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of reports where this script method belongs.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXReport))]
+        [Filter(FilterType.Contains)]
+        public List<GXReport> Reports
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         public GXScriptMethod()
         {
             Blocks = new List<GXBlock>();
+            Agents = new List<GXAgent>();
+            Reports = new List<GXReport>();
         }
     }
 }

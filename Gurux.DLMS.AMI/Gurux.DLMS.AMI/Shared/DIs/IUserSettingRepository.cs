@@ -49,8 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXUserSetting[]> ListAsync(
             ClaimsPrincipal User,
             ListUserSettings? request,
-            ListUserSettingsResponse? response,
-            CancellationToken cancellationToken);
+            ListUserSettingsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user settings.
@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="settings">User settings to add.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task UpdateAsync(
-            ClaimsPrincipal User, 
+            ClaimsPrincipal User,
             IEnumerable<GXUserSetting> settings,
             Expression<Func<GXUserSetting, object?>>? columns = null);
 

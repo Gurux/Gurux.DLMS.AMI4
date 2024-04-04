@@ -37,22 +37,22 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
     /// <summary>
-    /// This interface is used to handle sub total logs.
+    /// This interface is used to handle subtotal logs.
     /// </summary>
     public interface ISubtotalLogRepository
     {
         /// <summary>
-        /// List sub total logs.
+        /// List subtotal logs.
         /// </summary>
-        /// <returns>List of sub total logs.</returns>
+        /// <returns>List of subtotal logs.</returns>
         Task<GXSubtotalLog[]> ListAsync(
             ClaimsPrincipal user,
             ListSubtotalLogs? request,
-            ListSubtotalLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListSubtotalLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read sub total log information.
+        /// Read subtotal log information.
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="id">Subtotal log id.</param>
@@ -60,12 +60,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSubtotalLog> ReadAsync(ClaimsPrincipal User, Guid id);
 
         /// <summary>
-        /// Clear sub total logs.
+        /// Clear subtotal logs.
         /// </summary>
         Task ClearAsync(ClaimsPrincipal User, Guid[]? subtotals);
 
         /// <summary>
-        /// Add sub total logs.
+        /// Add subtotal logs.
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="logs">New logs.</param>
@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSubtotalLog> AddAsync(ClaimsPrincipal User, GXSubtotal subtotal, Exception ex);
 
         /// <summary>
-        /// Close sub total log(s).
+        /// Close subtotal log(s).
         /// </summary>
         /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>

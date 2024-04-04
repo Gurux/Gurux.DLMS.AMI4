@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXGatewayLog[]> ListAsync(
             ClaimsPrincipal user, 
             ListGatewayLogs? request,
-            ListGatewayLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListGatewayLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read Gateway log information.

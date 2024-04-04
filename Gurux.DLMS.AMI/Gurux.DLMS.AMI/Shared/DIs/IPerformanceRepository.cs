@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXPerformance[]> ListAsync(
             ClaimsPrincipal user,
             ListPerformances? request,
-            ListPerformancesResponse? response,
-            CancellationToken cancellationToken);
+            ListPerformancesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new performances.

@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXSystemLog[]> ListAsync(
             ClaimsPrincipal User,
             ListSystemLogs? request,
-            ListSystemLogsResponse? response,
-            CancellationToken cancellationToken);
+            ListSystemLogsResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read system log information.

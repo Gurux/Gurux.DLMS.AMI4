@@ -83,6 +83,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         }
 
         /// <summary>
+        /// The creator of the block group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Name of the block group.
         /// </summary>
         [DataMember]

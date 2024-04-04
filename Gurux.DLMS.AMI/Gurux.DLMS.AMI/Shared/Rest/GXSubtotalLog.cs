@@ -38,7 +38,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Get sub total log.
+    /// Get subtotal log.
     /// </summary>
     public class GetSubtotalLogResponse
     {
@@ -56,7 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get list from sub total logs.
+    /// Get list from subtotal logs.
     /// </summary>
     [DataContract]
     public class ListSubtotalLogs
@@ -163,7 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get sub total logs response.
+    /// Get subtotal logs response.
     /// </summary>
     [DataContract]
     public class ListSubtotalLogsResponse
@@ -181,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             set;
         }
         /// <summary>
-        /// Total amount of the sub total logs.
+        /// Total amount of the subtotal logs.
         /// </summary>
         /// <remarks>
         /// With large databases reading the amount of the data can take a very long time.
@@ -195,13 +195,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new sub total log.
+    /// Add new subtotal log.
     /// </summary>
     [DataContract]
     public class AddSubtotalLog
     {
         /// <summary>
-        /// New sub total log.
+        /// New subtotal log.
         /// </summary>
         [DataMember]
         [IncludeSwagger(typeof(GXSubtotal),
@@ -214,7 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Add new sub total log response.
+    /// Add new subtotal log response.
     /// </summary>
     [DataContract]
     public class AddSubtotalLogResponse

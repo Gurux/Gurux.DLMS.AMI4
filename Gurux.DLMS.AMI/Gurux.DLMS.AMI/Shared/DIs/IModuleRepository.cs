@@ -50,8 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         Task<GXModule[]> ListAsync(
             ClaimsPrincipal User, 
             ListModules? request, 
-            ListModulesResponse? response,
-            CancellationToken cancellationToken);
+            ListModulesResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// List modules.

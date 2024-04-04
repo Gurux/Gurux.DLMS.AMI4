@@ -32,13 +32,12 @@
 using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
     /// <summary>
-    /// A data contract class representing User Group to key management group binding object.
+    /// A data contract class representing user group to key management group binding object.
     /// </summary>
     [DataContract(Name = "GXUserGroupKeyManagementGroup"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(KeyManagementGroupId), Clustered = true)]
