@@ -38,7 +38,8 @@
 @inherits InputBase<int>
 
 <input type="time" class="@CssClass" step="@Step"
-       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
+       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" 
+       onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
 @code {
     /// <summary>
     /// Value is get as a milliseconds.

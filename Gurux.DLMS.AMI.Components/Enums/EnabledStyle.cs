@@ -1,4 +1,4 @@
-<!--
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,30 +29,29 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
 
-@using System.Diagnostics.CodeAnalysis
-@using System.Globalization;
-
-@inherits InputBase<TimeSpan>
-
-<input type="time" class="@CssClass"
-       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
-@code {
-   
-    protected override bool TryParseValueFromString(string? value,
-        [MaybeNullWhen(false)] out TimeSpan result,
-        [NotNullWhen(false)] out string validationErrorMessage)
+namespace Gurux.DLMS.AMI.Components.Enums
+{
+    /// <summary>
+    /// When the component is enabled.
+    /// </summary>
+    public enum EnableStyle : byte
     {
-        validationErrorMessage = "";
-        if (value != null)
-        {
-            result = TimeSpan.Parse(value);
-        }
-        else
-        {
-            result = TimeSpan.Zero;
-        }
-        return true;
+        /// <summary>
+        /// Component is never enabled.
+        /// </summary>
+        None,
+        /// <summary>
+        /// Component is always enabled.
+        /// </summary>
+        Always,
+        /// <summary>
+        /// Component is enabled when user has edit the content of the page.
+        /// </summary>
+        Modified,
+        /// <summary>
+        /// Component is enabled when user has not edit the content of the page.
+        /// </summary>
+        Unmodified,
     }
 }

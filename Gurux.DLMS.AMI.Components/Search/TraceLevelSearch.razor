@@ -50,7 +50,10 @@
 
     protected override void OnInitialized()
     {
-        Values = Enum.GetValues<TraceLevel>();
+        if (Values == null || !Values.Any())
+        {
+            Values = Enum.GetValues<TraceLevel>();
+        }
         base.OnInitialized();
     }
 

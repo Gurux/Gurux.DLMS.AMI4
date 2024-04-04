@@ -29,6 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Microsoft.AspNetCore.Components.Forms;
+
 namespace Gurux.DLMS.AMI.Components
 {
     /// <summary>
@@ -184,5 +186,19 @@ namespace Gurux.DLMS.AMI.Components
         /// </summary>
         /// <param name="listener"></param>
         void RemoveListener(object listener);
+
+        /// <summary>
+        /// EditContext is used to show when user edit the page content.
+        /// </summary>
+        EditContext? EditContext
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// The user has modified the page.
+        /// </summary>
+        event EventHandler<FieldChangedEventArgs>? OnDirty;
     }
 }

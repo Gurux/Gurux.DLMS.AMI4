@@ -1,0 +1,197 @@
+<!--
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+-->
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.Extensions.Logging
+@using System.Linq.Expressions
+
+@typeparam TItem
+@inject IGXCookieStorage cookieStorage
+@inject ILogger<Dropdown<TItem>> Logger
+
+@if (Values != null)
+{
+    <select id="@Id"
+            class="form-select"
+            value="@Value"
+            onchange="@((ChangeEventArgs e) => SelectionChanged(e))">
+        @foreach (var it in Values)
+        {
+            <option value="@it">@it</option>
+        }
+    </select>
+}
+
+@code {
+    /// <summary>
+    /// Search ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public TItem? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> OnSelected { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Is the drop down control disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private void SelectionChanged(ChangeEventArgs e)
+    {
+        Value = default;
+        if (Values != null)
+        {
+            foreach (TItem it in Values)
+            {
+                if (it?.ToString() == e.Value?.ToString())
+                {
+                    Value = it;
+                    break;
+                }
+            }
+        }
+        if (ValueChanged.HasDelegate)
+        {
+            ValueChanged.InvokeAsync(Value);
+        }
+        if (OnSelected.HasDelegate)
+        {
+            OnSelected.InvokeAsync(Value);
+        }
+        try
+        {
+            if (Save && !string.IsNullOrEmpty(Id))
+            {
+                cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Get the default value from the cookies
+            // if it's not set.
+            if (Save && Values != null && !string.IsNullOrEmpty(Id))
+            {
+                string? value = await cookieStorage.GetValueAsync(Id);
+                if (!string.IsNullOrEmpty(value))
+                {
+                    foreach (var it in Values)
+                    {
+                        if (it != null &&
+                            it.ToString() == value)
+                        {
+                            if (Value?.GetHashCode() != it.GetHashCode())
+                            {
+                                Value = it;
+                                if (ValueChanged.HasDelegate)
+                                {
+                                    await ValueChanged.InvokeAsync(it);
+                                }
+                                if (OnSelected.HasDelegate)
+                                {
+                                    await OnSelected.InvokeAsync(it);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Possible static values.
+    /// </summary>
+    /// <remarks>
+    /// If values are added they are not asked from the Gurux.DLMS.AMI.
+    /// </remarks>
+    [Parameter]
+    public IEnumerable<TItem>? Values
+    {
+        get;
+        set;
+    }
+}

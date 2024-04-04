@@ -1,3 +1,5 @@
+using Gurux.DLMS.AMI.Components.Enums;
+
 namespace Gurux.DLMS.AMI.Components
 {
     /// <summary>
@@ -18,6 +20,15 @@ namespace Gurux.DLMS.AMI.Components
         /// <summary>
         /// User clients the menu item.
         /// </summary>
-        public Action OnClick;
+        public Action? OnClick;
+
+        /// <summary>
+        /// Is button enabled when user has modifed the content of the page.
+        /// </summary>
+        public EnableStyle? Enabled
+        {
+            get;
+            set;
+        } = EnableStyle.Always;
     }
 }
