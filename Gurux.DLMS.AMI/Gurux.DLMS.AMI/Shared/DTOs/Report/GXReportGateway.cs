@@ -48,7 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         /// The database ID of the report.
         /// </summary>
         [DataMember(Name = "ReportID")]
-        [ForeignKey(typeof(GXReport), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXReport), OnDelete = ForeignKeyDelete.None)]
         [StringLength(36)]
         [IsRequired]
         public Guid ReportId
