@@ -1146,6 +1146,8 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.UpdateTable<GXSubtotalGroup>();
                         //Creator property added to component view group.
                         host.Connection.UpdateTable<GXComponentViewGroup>();
+                        //Creator property added to workflow.
+                        host.Connection.UpdateTable<GXWorkflow>();
                         //Creator property added to workflow group.
                         host.Connection.UpdateTable<GXWorkflowGroup>();
                         //Creator property added to agent group.
@@ -1174,6 +1176,8 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.UpdateTable<GXUserGroup>();
 
                     }
+                    //Creator property added to workflow. This can be removed.
+                    host.Connection.UpdateTable<GXWorkflow>();
                 }
             }
             else
