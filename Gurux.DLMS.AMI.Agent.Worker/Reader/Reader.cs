@@ -170,19 +170,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
 
         internal static async System.Threading.Tasks.Task Read(ILogger? logger, GXDLMSReader reader, GXTask task, GXDLMSObject obj)
         {
-            bool reaNextDay;
+            bool reaNextDay = false;
             AddValue v;
             logger?.LogInformation("Reading: " + obj.ToString());
             object? val;
             DateTime end = DateTime.MaxValue;
             DateTime lastEnd = DateTime.MaxValue;
+            GXObject? tmp = null;
             do
             {
-                reaNextDay = false;
                 if (task.Object != null && obj.ObjectType == ObjectType.ProfileGeneric && task.Index == 2)
                 {
                     //Get profile generic parameters if they are already read.
-                    GXObject? tmp;
                     try
                     {
                         tmp = (await GXAgentWorker.client.GetAsJsonAsync<GetObjectResponse>("api/Object?id=" + task.Object.Id))?.Item;
@@ -213,20 +212,35 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                             {
                                 start = lastEnd;
                             }
-                            else
+                            else if (end != DateTime.MaxValue)
                             {
+                                //Start is not increased for the first read.
+                                //There might be new rows if meter is restarted.
                                 start = start.Value.AddSeconds(period);
                             }
                             //Read profile generic using range.
-                            end = DateTime.Now;
-                            end = end.AddSeconds(-end.Second);
-                            end = end.AddMinutes(-end.Minute);
-                            end = end.AddHours(1);
-                            if (end - start > new TimeSpan(24, 0, 0))
+                            if (reaNextDay && end != DateTime.MaxValue)
                             {
-                                //Max 24 hours is read at once.
-                                end = start.Value.DateTime.AddDays(1);
+                                //Read next day. This hapens if there are caps on the data.
+                                end = end.AddDays(1);
                             }
+                            else
+                            {
+                                if (end - start > new TimeSpan(24, 0, 0))
+                                {
+                                    //Max 24 hours is read at once.
+                                    end = start.Value.DateTime.AddDays(1);
+                                }
+                                else
+                                {
+                                    //Read next hour.
+                                    end = DateTime.Now;
+                                    end = end.AddSeconds(-end.Second);
+                                    end = end.AddMinutes(-end.Minute);
+                                    end = end.AddHours(1);
+                                }
+                            }
+                            reaNextDay = false;
                             if (end < start)
                             {
                                 end = end.AddSeconds(period);
@@ -312,7 +326,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 {
                                     val = reader.ReadRowsByEntry((GXDLMSProfileGeneric)obj, 1, 1);
                                 }
-
                                 //Read the next day.
                                 reaNextDay = true;
                             }
@@ -376,15 +389,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     val = str.Replace("\0", "");
                 }
-                if (obj.ObjectType == ObjectType.ProfileGeneric && task.Index == 2)
+                if (obj.ObjectType == ObjectType.ProfileGeneric && task.Index == 2 && tmp != null)
                 {
                     //Make own value from each row.
                     if (val != null)
                     {
                         GXAttribute attribute = task.Object.Attributes[GetBufferIndex(task.Object)];
                         List<GXValue> list = new List<GXValue>();
-                        int index = GetAttributeIndex(task.Object, task.Index.GetValueOrDefault(0));
-                        DateTime latest = task.Object.Attributes[index].Read.GetValueOrDefault().DateTime;
+                        DateTime latest = GetBufferReadTime(tmp).GetValueOrDefault().DateTime;
                         DateTime first = latest;
                         int period = -1;
                         foreach (GXStructure row in (GXArray)val)
