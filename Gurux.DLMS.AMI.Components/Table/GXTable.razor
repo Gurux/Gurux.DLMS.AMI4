@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,15 +29,20 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using Gurux.DLMS.AMI.Components.ContextMenu
+@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Components.Web.Virtualization
-@using System.Reflection;
+@using System.Reflection
+@using Gurux.DLMS.AMI.Components.Enums
+@using Microsoft.Extensions.Logging
 
 @typeparam TItem
 @implements IGXTable
-
 @inject IGXNotifier Notifier
+@inject IGXLocalStorage LocalStorage
+@inject ILogger<GXTable<TItem>> Logger
+
 <CascadingValue Value="this">
     @if (Filter && FilterContent != null)
     {
@@ -62,7 +67,7 @@
     {
         <MenuControl>
             <ChildContent>
-                <MenuItem Text="@Properties.Resources.Search" Icon="oi oi-magnifying-glass" OnClick="@Search" />
+                <MenuItem Text="@Properties.Resources.Search" Id="Search" OnClick="@Search" />
             </ChildContent>
         </MenuControl>
         <br />
@@ -72,12 +77,20 @@
             @if (Filter && FilterContent != null)
             {
                 <tr>
+                    @if (RearrangeRows)
+                    {
+                        <th width="1%"></th>
+                    }
                     @if (SelectionMode == SelectionMode.Multiple)
                     {
                         <th width="1%"></th>
                     }
                 </tr>
                 <tr>
+                    @if (RearrangeRows)
+                    {
+                        <th width="1%"></th>
+                    }
                     @if (SelectionMode == SelectionMode.Multiple)
                     {
                         <th width="1%"></th>
@@ -88,6 +101,10 @@
             @if (HeaderContent != null)
             {
                 <tr>
+                    @if (RearrangeRows)
+                    {
+                        <th width="1%"></th>
+                    }
                     @if (SelectionMode == SelectionMode.Multiple)
                     {
                         <th width="1%">
@@ -96,7 +113,7 @@
                                    onchange="@((ChangeEventArgs __e) => ToggleAllRow(Convert.ToBoolean(__e.Value)))" />
                         </th>
                     }
-                    @HeaderContent
+                    @HeaderContent(default!)
                     @if (MenuContent != null)
                     {
                         <th width="1%"></th>
@@ -104,12 +121,24 @@
                 </tr>
             }
         </thead>
-        <tbody>
+        <tbody class="dropzone"
+               ondragover="event.preventDefault();">
             @foreach (TItem it in @GetItems())
             {
                 @if (ItemContent != null)
                 {
-                    <tr class=@(GetSelectedClass(it)) onclick="@(()=>SelectRow(it))">
+                    <tr class=@(GetSelectedClass(it)) onclick="@(() => SelectRow(it))"
+                        draggable="@RearrangeRows"
+                        @ondragstart="@(() => HandleDragStart(it))"
+                        @ondrop="@(() => HandleDrop(it))"
+                        @ondragenter="HandleDragEnter"
+                        @ondragleave="HandleDragLeave">
+                        @if (RearrangeRows)
+                        {
+                            <div style="cursor:all-scroll;">
+                                <span class="icon-move" aria-hidden="true"></span>
+                            </div>
+                        }
                         @if (SelectionMode == SelectionMode.Multiple)
                         {
                             <td>
@@ -140,7 +169,7 @@
             }
         </tbody>
     </table>
-    <!--Add pagination.-->
+    @*Add pagination.*@
     @if (Pages.Count > 1 && !ShowAllData)
     {
         <ul class="pagination justify-content-center">
@@ -174,13 +203,13 @@
     {
         <div style="float: right;">
             <label>@Properties.Resources.RowsPerPage</label>
-            <select class="select" value="@PageSize"
-                    onchange="@((ChangeEventArgs e) => SetPageSize(e))">
-                @foreach (var it in RowsPerPage)
-                {
-                    <option value="@it">@it</option>
-                }
-            </select>
+
+            <GXInputDropdown class="form-select"
+                             Id="@GetPageSizeId()"
+                             Items="@RowsPerPage"
+                             @bind-Value="PageSize"
+                             OnSelected="@(async (int e) => await SetPageSize(e))">
+            </GXInputDropdown>
         </div>
     }
     @if (Total)
@@ -200,8 +229,34 @@
 </CascadingValue>
 
 @code {
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    private string? GetPageSizeId()
+    {
+        if (Id != null)
+        {
+            return Id + ":PageSize";
+        }
+        return null;
+    }
+
+
     int[] RowsPerPage = new int[] { 10, 20, 50, 100 };
     public delegate Task SearchDelegate();
+
+    /// <summary>
+    /// The user has checked or unchecked new items.
+    /// </summary>
+    /// <param name="items">List of checked items.</param>
+    public delegate Task CheckedChangedEventHandler(IEnumerable<TItem> items);
 
     /// <summary>
     /// User has modify the sorting.
@@ -211,13 +266,7 @@
     public delegate void SortChangedEventHandler(SortMode sort, string column);
 
     /// <summary>
-    /// User has select the item.
-    /// </summary>
-    /// <param name="item">Selected item.</param>
-    public delegate void SelectionChangedEventHandler(TItem item);
-
-    /// <summary>
-    /// Notify client to ask is checkbox enabled.
+    /// Notification client to ask is checkbox enabled.
     /// </summary>
     /// <param name="item">Item</param>
     /// <param name="disabled">True, if checkbox is disabled.</param>
@@ -225,10 +274,35 @@
     public delegate void CheckboxDisabledEventHandler(TItem item, out bool disabled, out bool check);
 
     /// <summary>
+    /// User has moved the item order.
+    /// </summary>
+    /// <param name="item">Moved item.</param>
+    /// <param name="index">New index.</param>
+    public delegate void ItemMovedEventHandler(TItem item, int index);
+
+    /// <summary>
+    /// User has added a item.
+    /// </summary>
+    /// <param name="item">Added item.</param>
+    public delegate void ItemAddedEventHandler(TItem item);
+
+    /// <summary>
+    /// User has removed the item.
+    /// </summary>
+    /// <param name="item">Removed item.</param>
+    public delegate void ItemRemovedEventHandler(TItem item);
+
+    /// <summary>
     /// Are removed items shown for the admin.
     /// </summary>
     [Parameter]
     public bool ShowRemoved { get; set; } = true;
+
+    /// <summary>
+    /// User can rearrange rows.
+    /// </summary>
+    [Parameter]
+    public bool RearrangeRows { get; set; }
 
     /// <summary>
     /// Data from the all users is shown for the admin.
@@ -280,19 +354,37 @@
     /// User has select the new row.
     /// </summary>
     [Parameter]
-    public SelectionChangedEventHandler? OnRowChanged { get; set; }
+    public EventCallback<TItem> OnRowChanged { get; set; }
 
     /// <summary>
     /// User has select the new cell.
     /// </summary>
     [Parameter]
-    public SelectionChangedEventHandler? OnCellChanged { get; set; }
+    public EventCallback<TItem> OnCellChanged { get; set; }
 
     /// <summary>
-    /// Notify client to ask is checkbox enabled.
+    /// Notification client to ask is checkbox enabled.
     /// </summary>
     [Parameter]
     public CheckboxDisabledEventHandler? OnCheckboxDisabled { get; set; }
+
+    /// <summary>
+    /// Notification client for item location change.
+    /// </summary>
+    [Parameter]
+    public ItemMovedEventHandler? OnItemMoved { get; set; }
+
+    /// <summary>
+    /// Notification client for the new item.
+    /// </summary>
+    [Parameter]
+    public ItemAddedEventHandler? OnItemAdded { get; set; }
+
+    /// <summary>
+    /// Notification client to remove the item.
+    /// </summary>
+    [Parameter]
+    public ItemRemovedEventHandler? OnItemRemoved { get; set; }
 
     /// <summary>
     /// User has modify the sorting.
@@ -301,20 +393,66 @@
     public SearchDelegate? OnSearch { get; set; }
 
     /// <summary>
+    /// User has select a new item(s).
+    /// </summary>
+    [Parameter]
+    public CheckedChangedEventHandler? OnChecked { get; set; }
+
+
+    /// <summary>
     /// Show removed checkbox message.
     /// </summary>
     [Parameter]
     public string ShowRemovedMessage { get; set; } = Properties.Resources.ShowRemoved;
 
     /// <summary>
+    /// Are there any checked items.
+    /// </summary>
+    [Parameter]
+    public bool AnyChecked { get; set; }
+
+    /// <summary>
+    /// Notified when AnyChecked is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<bool> AnyCheckedChanged { get; set; }
+
+
+    /// <summary>
     /// Search.
     /// </summary>
     private void Search()
     {
-        _currentPage = 0;
+        CurrentPage = 0;
         if (OnSearch != null)
         {
             OnSearch();
+        }
+    }
+
+    private TItem? DropItem;
+
+    private void HandleDragStart(TItem item)
+    {
+        DropItem = item;
+    }
+
+    private void HandleDragEnter()
+    {
+    }
+
+    private void HandleDragLeave()
+    {
+    }
+
+    private void HandleDrop(TItem item)
+    {
+        if (DropItem != null && OnItemMoved != null && Items != null)
+        {
+            List<TItem> tmp = new(Items);
+            int pos = tmp.IndexOf(item);
+            OnItemMoved.Invoke(DropItem, pos);
+            DropItem = default;
         }
     }
 
@@ -326,11 +464,11 @@
 
     private List<int> Pages = new List<int>();
 
-    int _currentPage = 0;
     /// <summary>
     /// Focused item.
     /// </summary>
-    public TItem? Active;
+    [Parameter]
+    public TItem? Active { get; set; }
 
     /// <summary>
     /// Selected items.
@@ -394,65 +532,61 @@
     /// Current page.
     /// </summary>
     [Parameter]
-    public int CurrentPage
-    {
-        get
-        {
-            return _currentPage;
-        }
-        set
-        {
-            if (value < 0)
-            {
-                //Select the first page.
-                value = 0;
-            }
-            else if (TotalCount == -1)
-            {
-                //Select the last page.
-                if (value == _currentPage)
-                {
-                    value = 1 + _currentPage;
-                }
-            }
-            else if (_pageSize * value > TotalCount)
-            {
-                //Select the last page.
-                value = TotalCount / _pageSize;
-            }
-            _currentPage = value;
-        }
-    }
-
-    int _pageSize = 10;
+    public int CurrentPage { get; set; }
+    [Parameter]
+    public EventCallback<int> CurrentPageChanged { get; set; }
 
     /// <summary>
     /// Page size.
     /// </summary>
-    public int PageSize
+    [Parameter]
+    public int PageSize { get; set; } = 10;
+
+    [Parameter]
+    public EventCallback<int> PageSizeChanged { get; set; }
+
+    private async Task UpdateCurrentPage(int value)
     {
-        get
+        if (value == CurrentPage)
         {
-            return _pageSize;
+            return;
         }
-        set
+        if (value < 0)
         {
-            if (_pageSize < 10)
+            CurrentPage = 0;
+        }
+        else if (TotalCount == -1)
+        {
+            if (value == CurrentPage)
             {
-                _pageSize = 10;
-            }
-            if (_pageSize != value)
-            {
-                _pageSize = value;
-                Notifier.RowsPerPage = value;
+                CurrentPage = 1 + CurrentPage;
             }
         }
+        else if (PageSize * value > TotalCount)
+        {
+            CurrentPage = TotalCount / PageSize;
+        }
+        else
+        {
+            CurrentPage = value;
+        }
+        await CurrentPageChanged.InvokeAsync(CurrentPage);
     }
 
-    private void SetPageSize(ChangeEventArgs e)
+    protected override async Task OnParametersSetAsync()
     {
-        PageSize = Convert.ToInt32(e.Value);
-        SelectPage(0).Start();
+        if (PageSize <= 0)
+        {
+            PageSize = 10;
+            await PageSizeChanged.InvokeAsync(PageSize);
+        }
+        await UpdateCurrentPage(CurrentPage);
+    }
+
+    private async Task SetPageSize(int value)
+    {
+        PageSize = value;
+        await SelectPage(0);
     }
 
     /// <summary>
@@ -481,7 +615,7 @@
     /// <param name="index">Page index</param>
     private async Task SelectPage(int index)
     {
-        CurrentPage = index;
+        await UpdateCurrentPage(index);
         await RefreshDataAsync(true);
     }
 
@@ -513,9 +647,21 @@
         }
         if (!string.IsNullOrEmpty(OrderBy))
         {
-            if (SortMode == SortMode.Ascending)
+            Type type = typeof(TItem);
+            if (typeof(TItem) == typeof(string))
             {
-                System.Reflection.PropertyInfo? prop = typeof(TItem).GetProperty(OrderBy);
+                if (SortMode == SortMode.Ascending)
+                {
+                    return Items.OrderBy(o => o);
+                }
+                else if (SortMode == SortMode.Descending)
+                {
+                    return Items.OrderByDescending(o => o);
+                }
+            }
+            else if (SortMode == SortMode.Ascending)
+            {
+                System.Reflection.PropertyInfo? prop = type.GetProperty(OrderBy);
                 if (prop != null)
                 {
                     return Items.OrderBy(o => prop.GetValue(o, null));
@@ -523,7 +669,7 @@
             }
             else if (SortMode == SortMode.Descending)
             {
-                System.Reflection.PropertyInfo? prop = typeof(TItem).GetProperty(OrderBy);
+                System.Reflection.PropertyInfo? prop = type.GetProperty(OrderBy);
                 if (prop != null)
                 {
                     return Items.OrderByDescending(o => prop.GetValue(o, null));
@@ -566,7 +712,7 @@
     /// Header content.
     /// </summary>
     [Parameter]
-    public RenderFragment? HeaderContent { get; set; }
+    public RenderFragment<TItem>? HeaderContent { get; set; }
 
     /// <summary>
     /// Gets or sets the item template for the list.
@@ -619,7 +765,7 @@
                             Pages.Add(pos);
                         }
                     }
-                    StateHasChanged();
+                    InvokeAsync(StateHasChanged);
                 }
             }
         }
@@ -704,7 +850,7 @@
             // Only apply result if the task was not canceled.
             if (!cancellationToken.IsCancellationRequested && renderOnSuccess)
             {
-                StateHasChanged();
+                InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)
@@ -730,13 +876,13 @@
 
     /// <inheritdoc/>
 
-    public void NotifyShortChange()
+    public void NotificationShortChange()
     {
         if (SortChanged != null && !string.IsNullOrEmpty(OrderBy))
         {
             SortChanged(SortMode, OrderBy);
         }
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     protected string GetSelectedClass(TItem? active)
@@ -757,7 +903,10 @@
     public void SelectRow(object selected)
     {
         Active = (TItem)selected;
-        OnRowChanged?.Invoke((TItem)selected);
+        if (OnRowChanged.HasDelegate)
+        {
+            OnRowChanged.InvokeAsync((TItem)selected);
+        }
         StateHasChanged();
     }
 
@@ -765,9 +914,15 @@
     public void SelectCell(object selected)
     {
         Active = (TItem)selected;
-        OnRowChanged?.Invoke((TItem)selected);
-        OnCellChanged?.Invoke((TItem)selected);
-        StateHasChanged();
+        if (OnRowChanged.HasDelegate)
+        {
+            OnRowChanged.InvokeAsync((TItem)selected);
+        }
+        if (OnCellChanged.HasDelegate)
+        {
+            OnCellChanged.InvokeAsync((TItem)selected);
+        }
+        InvokeAsync(StateHasChanged);
     }
 
     /// <summary>
@@ -885,6 +1040,9 @@
                     _selectedItems.Add(value, selected);
                 }
             }
+            AnyChecked = _selectedItems.Any();
+            AnyCheckedChanged.InvokeAsync(AnyChecked);
+            OnChecked?.Invoke(_selectedItems.Values);
         }
     }
 
@@ -907,7 +1065,6 @@
     ///</summary>
     protected override async Task OnInitializedAsync()
     {
-        _pageSize = Notifier.RowsPerPage;
         await RefreshDataAsync(false);
     }
 

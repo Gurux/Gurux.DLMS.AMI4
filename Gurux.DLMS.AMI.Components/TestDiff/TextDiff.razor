@@ -1,0 +1,201 @@
+﻿@using System.Text
+@using System.Text.RegularExpressions
+
+<div class="input-container">
+    <div class="input-box">
+        <h4>@OriginalTitle</h4>
+        <textarea @bind="OriginalText" rows="8"></textarea>
+    </div>
+    <div class="input-box">
+        <h4>@ChangedTitle</h4>
+        <textarea @bind="ChangedText" rows="8"></textarea>
+    </div>
+</div>
+@if (OriginalText != ChangedText)
+{
+    <h4>Differences</h4>
+    <div class="diff-container">
+        <div class="diff-box">
+            <h5>@OriginalTitle</h5>
+            @((MarkupString)BuildDiffHtml(OriginalText, ChangedText, "#ffcccc", true))
+        </div>
+        <div class="diff-box">
+            <h5>@ChangedTitle</h5>
+            @((MarkupString)BuildDiffHtml(OriginalText, ChangedText, "#ccffcc", false))
+        </div>
+    </div>
+}
+@code {
+    /// <summary>
+    /// Original text.
+    /// </summary>
+    [Parameter]
+    public string? OriginalText { get; set; }
+    /// <summary>
+    /// Changed text.
+    /// </summary>
+    [Parameter]
+    public string? ChangedText { get; set; }
+
+    /// <summary>
+    /// Original title.
+    /// </summary>
+    [Parameter]
+    public string? OriginalTitle { get; set; } = "Original text";
+
+    /// <summary>
+    /// Original text.
+    /// </summary>
+    [Parameter]
+    public string? ChangedTitle { get; set; } = "Changed text";
+
+    private MarkupString BuildDiffHtml(string left, string right, string color, bool renderLeft)
+    {
+        left ??= string.Empty;
+        right ??= string.Empty;
+
+        var leftWords = ExtractWords(left);
+        var rightWords = ExtractWords(right);
+
+        var (leftDiffFlags, rightDiffFlags) = ComputeDiffFlags(leftWords, rightWords);
+
+        string text = renderLeft ? left : right;
+        var diffFlags = renderLeft ? leftDiffFlags : rightDiffFlags;
+        var sb = new StringBuilder();
+        int wordIndex = 0;
+        foreach (Match m in Regex.Matches(text, @"\S+|\s+"))
+        {
+            var token = m.Value;
+            if (string.IsNullOrEmpty(token))
+            {
+                continue;
+            }
+
+            if (char.IsWhiteSpace(token[0]))
+            {
+                AppendWhitespaceHtml(sb, token);
+            }
+            else
+            {
+                bool different = wordIndex < diffFlags.Length && diffFlags[wordIndex];
+                AppendWordHtml(sb, token, different, color);
+                wordIndex++;
+            }
+        }
+        return new MarkupString(sb.ToString());
+    }
+
+    /// <summary>
+    /// Count LCS and return boolean table from different words.
+    /// </summary>
+    private (bool[] leftDiff, bool[] rightDiff) ComputeDiffFlags(
+        List<string> leftWords,
+        List<string> rightWords)
+    {
+        int n = leftWords.Count;
+        int m = rightWords.Count;
+        var dp = new int[n + 1, m + 1];
+
+        for (int i = 1; i <= n; i++)
+        {
+            for (int j = 1; j <= m; j++)
+            {
+                if (string.Equals(leftWords[i - 1], rightWords[j - 1], StringComparison.Ordinal))
+                {
+                    dp[i, j] = dp[i - 1, j - 1] + 1;
+                }
+                else
+                {
+                    dp[i, j] = Math.Max(dp[i - 1, j], dp[i, j - 1]);
+                }
+            }
+        }
+
+        var leftInLcs = new bool[n];
+        var rightInLcs = new bool[m];
+        int x = n;
+        int y = m;
+        while (x > 0 && y > 0)
+        {
+            if (string.Equals(leftWords[x - 1], rightWords[y - 1], StringComparison.Ordinal)
+                && dp[x, y] == dp[x - 1, y - 1] + 1)
+            {
+                leftInLcs[x - 1] = true;
+                rightInLcs[y - 1] = true;
+                x--;
+                y--;
+            }
+            else if (dp[x - 1, y] >= dp[x, y - 1])
+            {
+                x--;
+            }
+            else
+            {
+                y--;
+            }
+        }
+
+        var leftDiff = new bool[n];
+        var rightDiff = new bool[m];
+
+        for (int i = 0; i < n; i++)
+        {
+            leftDiff[i] = !leftInLcs[i];
+        }
+
+        for (int j = 0; j < m; j++)
+        {
+            rightDiff[j] = !rightInLcs[j];
+        }
+        return (leftDiff, rightDiff);
+    }
+
+    private List<string> ExtractWords(string text)
+    {
+        var list = new List<string>();
+        foreach (Match m in Regex.Matches(text ?? string.Empty, @"\S+"))
+        {
+            list.Add(m.Value);
+        }
+        return list;
+    }
+
+    private void AppendWhitespaceHtml(StringBuilder sb, string whitespace)
+    {
+        foreach (char ch in whitespace)
+        {
+            if (ch == ' ')
+            {
+                sb.Append("&nbsp;");
+            }
+            else if (ch == '\t')
+            {
+                sb.Append("&nbsp;&nbsp;&nbsp;&nbsp;");
+            }
+            else if (ch == '\n')
+            {
+                sb.Append("<br/>");
+            }
+            else if (ch == '\r')
+            {
+            }
+            else
+            {
+                sb.Append(System.Net.WebUtility.HtmlEncode(ch.ToString()));
+            }
+        }
+    }
+
+    private void AppendWordHtml(StringBuilder sb, string word, bool different, string color)
+    {
+        string encoded = System.Net.WebUtility.HtmlEncode(word);
+        if (different)
+        {
+            sb.Append($"<span style=\"background-color:{color};\">{encoded}</span>");
+        }
+        else
+        {
+            sb.Append(encoded);
+        }
+    }
+}

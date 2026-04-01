@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,14 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using Microsoft.Extensions.Logging
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<InputPhone> Logger
 
 @inherits Microsoft.AspNetCore.Components.Forms.InputText
-<input type="tel" value="@CurrentValue"
+<input id="@Id" type="tel" value="@CurrentValue"
        class="@CssClass"
        @attributes="AdditionalAttributes"
        onchange="@((ChangeEventArgs e) => UpdateValue(e.Value))" />
@@ -57,7 +57,7 @@
     /// </summary>
     /// <seealso cref="Id"/>see
     [Parameter]
-    public bool Save { get; set; } = true;
+    public bool Save { get; set; } = false;
 
     private async Task UpdateValue(object? value)
     {
@@ -73,7 +73,7 @@
             {
                 if (Save && !string.IsNullOrEmpty(Id))
                 {
-                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                    await localStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
             }
             catch (Exception ex)
@@ -92,7 +92,7 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                string? value = await cookieStorage.GetValueAsync(Id);
+                string? value = await localStorage.GetValueAsync(Id);
                 await UpdateValue(value);
             }
         }

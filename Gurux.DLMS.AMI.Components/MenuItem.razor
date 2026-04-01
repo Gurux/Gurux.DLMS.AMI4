@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,9 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @code {
+    /// <summary>
+    /// Menu ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
     [CascadingParameter]
     private MenuControl? Parent { get; set; }
 
@@ -39,16 +44,23 @@
     public RenderFragment? ChildContent { get; set; }
 
     [Parameter]
+    public string CssClass { get; set; } = "btn button";
+
+    [Parameter]
     public string? Text { get; set; }
 
+    /// <summary>
+    /// Is menu item read-only.
+    /// </summary>
     [Parameter]
-    public string? Icon { get; set; }
-
-    //Is menu item read-only.
-    public bool ReadOnly { get; set; }
+    public bool ReadOnly
+    {
+        get;
+        set;
+    }
 
     [Parameter]
-    public Action? OnClick { get; set; }
+    public EventCallback OnClick { get; set; }
 
     protected override void OnInitialized()
     {
@@ -58,20 +70,21 @@
         Parent.AddMenuItem(this);
     }
 
-    //Create menu item.
 
-    public static MenuItem Create(string text, string icon, Action action)
-    {
-        return Create(text, icon, action, false);
-    }
-
-    //Create menu item.
-    public static MenuItem Create(string text, string icon, Action action, bool readOnly)
+    /// <summary>
+    /// Create menu item.
+    /// </summary>
+    /// <param name="id">Menu Id</param>
+    /// <param name="text">Menu text.</param>
+    /// <param name="action">Menu action.</param>
+    /// <param name="readOnly">Is menu read-only.</param>
+    /// <returns>New menu item.</returns>
+    public static MenuItem Create(string id, string text, EventCallback action, bool readOnly)
     {
         MenuItem ret = new MenuItem();
         ret.Text = text;
-        ret.Icon = icon;
-        ret.OnClick += action;
+        ret.Id = id;
+        ret.OnClick = action;
         ret.ReadOnly = readOnly;
         return ret;
     }

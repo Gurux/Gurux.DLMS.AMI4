@@ -1,0 +1,335 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using System.Diagnostics.CodeAnalysis
+@using System.Globalization
+@using Microsoft.Extensions.Logging
+
+@typeparam TItem
+
+@inject IGXLocalStorage localStorage
+@inject ILogger<InputMaskedCheckbox<TItem>> Logger
+
+<CascadingValue Value="this">
+    <div class="form-check">
+        <label class="form-check-label">@Text</label>
+        <input id="@Id"
+               type="checkbox"
+               checked="@IsChecked"
+               placeholder="@Placeholder"
+               class="@CssClass"
+               attributes="@AdditionalAttributes"
+               disabled="@IsDisabled()"
+               onchange="@(async (ChangeEventArgs e) => await UpdateString(e.Value))" />
+    </div>
+</CascadingValue>
+
+@code
+{
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Checbox text.
+    /// </summary>
+    [Parameter]
+    public string? Text { get; set; }
+
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = false;
+
+    /// <summary>
+    /// Is string value required.
+    /// </summary>
+    [Parameter]
+    public bool Required
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Is checkbox disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private string? IsRequired()
+    {
+        return Required ? " required" : null;
+    }
+
+    /// <summary>
+    /// Value.
+    /// </summary>
+    [Parameter]
+    public TItem? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Mask.
+    /// </summary>
+    [Parameter]
+    public TItem? Mask
+    {
+        get;
+        set;
+    }
+
+    private bool IsChecked
+    {
+        get
+        {
+            if (Value == null || Mask == null)
+            {
+                return false;
+            }
+            try
+            {
+                UInt64 value, mask;
+                if (Value is byte)
+                {
+                    value = (byte)(object)Value;
+                    mask = (byte)(object)Mask;
+                }
+                else if (Value is UInt16)
+                {
+                    value = (UInt16)(object)Value;
+                    mask = (UInt16)(object)Mask;
+                }
+                else if (Value is UInt32)
+                {
+                    value = (UInt32)(object)Value;
+                    mask = (UInt32)(object)Mask;
+                }
+                else if (Value is UInt64)
+                {
+                    value = (UInt64)(object)Value;
+                    mask = (UInt64)(object)Mask;
+                }
+                else
+                {
+                    throw new Exception("Invalid value.");
+                }
+                return (value & mask) != 0;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+                return false;
+            }
+        }
+        set
+        {
+            try
+            {
+                if (Mask == null)
+                {
+                    throw new Exception("Invalid mask.");
+                }
+                UInt64 value2, mask;
+                value2 = Convert.ToUInt64(Value);
+                mask = Convert.ToUInt64(Mask);
+                if (value)
+                {
+                    value2 = (value2 | mask);
+                }
+                else
+                {
+                    value2 = value2 & ~mask;
+                }
+                //Don't remove cast or it will fail.
+                if (Value is byte)
+                {
+                    Value = (TItem)(object)(byte)value2;
+                }
+                else if (Value is UInt16)
+                {
+                    Value = (TItem)(object)(UInt16)value2;
+                }
+                else if (Value is UInt32)
+                {
+                    Value = (TItem)(object)(UInt32)value2;
+                }
+                else if (Value is UInt64)
+                {
+                    Value = (TItem)(object)(UInt64)value2;
+                }
+                else if (Value is int)
+                {
+                    Value = (TItem)(object)(int)value2;
+                }
+                else
+                {
+                    throw new Exception("Invalid value.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    private string? IsDisabled()
+    {
+        return Disabled ? "disabled" : null;
+    }
+
+    /// <summary>
+    /// Placeholder text.
+    /// </summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private async Task UpdateString(object? value, bool init = false)
+    {
+        bool change = false;
+        if (value is string str &&
+        !string.IsNullOrEmpty(str))
+        {
+            Value = default;
+            TItem? result;
+            if (!BindConverter.TryConvertTo<TItem>(value, CultureInfo.InvariantCulture, out result))
+            {
+                throw new Exception("Invalid date time.");
+            }
+            change = Value?.ToString() != result?.ToString();
+            Value = result;
+            if (change)
+            {
+                if (ValueChanged.HasDelegate)
+                {
+                    await ValueChanged.InvokeAsync(Value);
+                }
+            }
+        }
+        else
+        {
+            change = Value != null;
+            Value = default;
+            if (change)
+            {
+                if (ValueChanged.HasDelegate)
+                {
+                    await ValueChanged.InvokeAsync(Value);
+                }
+            }
+        }
+        try
+        {
+            if (!init && Save && !string.IsNullOrEmpty(Id))
+            {
+                await localStorage.SetValueAsync(Id, ValueToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    private string? ValueToString()
+    {
+        TItem? result;
+        if (!BindConverter.TryConvertTo<TItem>(Value, CultureInfo.InvariantCulture, out result))
+        {
+            throw new Exception("Invalid date time.");
+        }
+        return result?.ToString();
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender && Save && !string.IsNullOrEmpty(Id))
+        {
+            try
+            {
+                TItem? result;
+                string? str = await localStorage.GetValueAsync(Id);
+                if (!string.IsNullOrEmpty(str))
+                {
+                    if (!BindConverter.TryConvertTo<TItem>(str, CultureInfo.InvariantCulture, out result))
+                    {
+                        throw new Exception("Invalid value.");
+                    }
+                    else
+                    {
+                        Value = result;
+                    }
+                    if (ValueChanged.HasDelegate)
+                    {
+                        await ValueChanged.InvokeAsync(Value);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
+        }
+    }
+}

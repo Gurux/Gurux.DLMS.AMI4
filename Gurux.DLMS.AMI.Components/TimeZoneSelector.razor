@@ -1,0 +1,164 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using System
+@using System.Linq
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+
+<DropdownSearch class="form-control"
+                Id="@Id"
+                Immediate="true"
+                LastValue="@LastValue"
+                @bind-Value="@selected"
+                Formatter="@((TimeZoneInfo? s) => s?.DisplayName)"
+                ItemsProvider="@GetItems">
+    <Template>
+        @if (context != null)
+        {
+            @context.DisplayName
+        }
+    </Template>
+</DropdownSearch>
+
+@code {
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Whether to load and store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool LastValue { get; set; } = true;
+
+    /// <summary>
+    /// Selected time zone ID.
+    /// </summary>
+    private TimeZoneInfo? selected
+    {
+        get
+        {
+            return TimeZones.Where(t => t.Id == Value).FirstOrDefault();
+        }
+        set
+        {
+            Value = value?.Id;
+            if (ValueChanged.HasDelegate)
+            {
+                ValueChanged.InvokeAsync(value?.Id);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Selected time zone ID.
+    /// </summary>
+    [Parameter]
+    public string? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Selected time zone ID changed event.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// CSS class
+    /// </summary>
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    /// <summary>
+    /// Placeholder text.
+    /// </summary>
+    [Parameter]
+    public string? Placeholder { get; set; } = "Select time zone";
+
+    /// <summary>
+    /// Is UTC time zone shown first in the list.
+    /// </summary>
+    [Parameter]
+    public bool ShowUtcFirst { get; set; } = true;
+
+    private IEnumerable<TimeZoneInfo> TimeZones { get; set; } = Array.Empty<TimeZoneInfo>();
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<TimeZoneInfo?>> GetItems(GXItemsProviderRequest request)
+    {
+        var list = TimeZones;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            list = list.Where(s => s.DisplayName.Contains(request.Filter, StringComparison.OrdinalIgnoreCase));
+        }
+        return new(new ItemsProviderResult<TimeZoneInfo?>(list, list.Count()));
+    }
+
+    protected override void OnInitialized()
+    {
+        var all = TimeZoneInfo.GetSystemTimeZones().ToList();
+        if (ShowUtcFirst)
+        {
+            var utc = all.FirstOrDefault(t => t.Id == "UTC" || t.StandardName.Contains("UTC", StringComparison.OrdinalIgnoreCase));
+            if (utc != null)
+            {
+                all.Remove(utc);
+                all.Insert(0, utc);
+            }
+        }
+        // Order by DisplayNamen.
+        TimeZones = all
+            .DistinctBy(t => t.Id)
+            .ToList();
+    }
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        Value = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

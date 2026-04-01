@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,18 +29,17 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization
 @using Microsoft.Extensions.Logging
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<Search> Logger
 
 <div class="row">
     <div class="input-group col-md-4">
-        <input class="form-control py-2 border-right-0 border"
-               type="search"
+        <input type="search"
                value="@Value"
                onsearch="@(() => OnSearch())"
                placeholder="@Placeholder"
@@ -48,7 +47,7 @@
         <span class="input-group-append">
             <button class="btn btn-outline-secondary border-left-0 border" type="button"
                     onclick="@(() => OnSearch())">
-                <i class="oi oi-magnifying-glass"></i>
+                <i class="icon-search"></i>
             </button>
         </span>
     </div>
@@ -151,7 +150,7 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                cookieStorage.SetValueAsync(Id, Value);
+                localStorage.SetValueAsync(Id, Value);
             }
         }
         catch (Exception ex)
@@ -170,7 +169,7 @@
             //Get the default value from the cookies.
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                string? value = await cookieStorage.GetValueAsync(Id);
+                string? value = await localStorage.GetValueAsync(Id);
                 UpdateSearch(value);
             }
         }

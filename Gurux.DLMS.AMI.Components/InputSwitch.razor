@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,15 +29,17 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using System.Diagnostics.CodeAnalysis
 @using Microsoft.Extensions.Logging
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<Switch> Logger
 
 @inherits InputBase<bool>
 <CascadingValue Value="this">
-    <label class="form-check-label">@Text</label>
+    <label class="form-check-label">
+        <LocalizedText Value="@Text" />
+    </label>
     @ChildContent
     <div class="form-check form-switch">
         <input id="@Id" type="checkbox" checked="@CurrentValue"
@@ -60,11 +62,17 @@
     }
 
     /// <summary>
+    /// Used resource storage.
+    /// </summary>
+    [CascadingParameter]
+    public IGXResourceStorage? ResourceStorage { get; set; }
+
+    /// <summary>
     /// Whether to store the value in a cookie.
     /// </summary>
     /// <seealso cref="Id"/>see
     [Parameter]
-    public bool Save { get; set; } = true;
+    public bool Save { get; set; } = false;
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -104,7 +112,7 @@
             {
                 if (Save && !string.IsNullOrEmpty(Id))
                 {
-                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                    await localStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
             }
             catch (Exception ex)
@@ -151,7 +159,7 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                string? value = await cookieStorage.GetValueAsync(Id);
+                string? value = await localStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(value))
                 {
                     Value = bool.Parse(value);

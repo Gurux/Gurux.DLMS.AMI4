@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,23 +29,43 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @using Gurux.DLMS.AMI.Components.Enums
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization
 
 @inherits InputBase<int>
+@if (Days == true)
+{
+    <span class="@(CssClass + ";inline-block")" @attributes="AdditionalAttributes">
+        <input type="number" step="1" min="0" max="365"
+               value="@GetDaysAsString()"
+               onchange="@((ChangeEventArgs __e) => SetDaysAsString(__e.Value))" />
+        <input type="time" step="@Step"
+               value="@BindConverter.FormatValue(CurrentValueAsString)"
+               onchange="@((ChangeEventArgs __e) => SetTimeAsString(__e.Value))" />
+    </span>
+}
+else
+{
+    <input type="time" class="@CssClass" step="@Step"
+           @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)"
+           onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
 
-<input type="time" class="@CssClass" step="@Step"
-       @attributes="AdditionalAttributes" value="@BindConverter.FormatValue(CurrentValueAsString)" 
-       onchange="@((ChangeEventArgs __e) => CurrentValueAsString = Convert.ToString(__e.Value))" />
+}
 @code {
     /// <summary>
     /// Value is get as a milliseconds.
     /// </summary>
     [Parameter]
     public TimeSpanUnit TimeSpanUnit { get; set; } = TimeSpanUnit.Second;
+
+    /// <summary>
+    /// Days is added to time span.
+    /// </summary>
+    [Parameter]
+    public bool? Days { get; set; }
+
 
     private int Step
     {
@@ -69,6 +89,7 @@
             return value;
         }
     }
+
 
 
     protected override bool TryParseValueFromString(string? value,
@@ -108,6 +129,97 @@
             return false;
         }
         return true;
+    }
+
+    private void SetDaysAsString(object? value)
+    {
+        if (int.TryParse(Convert.ToString(value), out int tmp))
+        {
+            var days = TimeSpan.FromDays(tmp);
+            TimeSpan ret;
+            switch (TimeSpanUnit)
+            {
+                case TimeSpanUnit.Second:
+                    ret = TimeSpan.FromSeconds(CurrentValue);
+                    ret -= TimeSpan.FromDays((int)ret.TotalDays);
+                    CurrentValue = (int)(days.TotalSeconds + ret.TotalSeconds);
+                    break;
+                case TimeSpanUnit.Minute:
+                    ret = TimeSpan.FromMinutes(CurrentValue);
+                    ret -= TimeSpan.FromDays((int)ret.TotalDays);
+                    CurrentValue = (int)(days.TotalMinutes + ret.TotalMinutes);
+                    break;
+                case TimeSpanUnit.Hour:
+                    ret = TimeSpan.FromHours(CurrentValue);
+                    ret -= TimeSpan.FromDays((int)ret.TotalDays);
+                    CurrentValue = (int)(days.TotalHours + ret.TotalHours);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    private void SetTimeAsString(object? value)
+    {
+        if (TimeSpan.TryParse(Convert.ToString(value), out TimeSpan time))
+        {
+            var days = GetTime(CurrentValue);
+            days = TimeSpan.FromDays((int)days.TotalDays);
+            switch (TimeSpanUnit)
+            {
+                case TimeSpanUnit.Second:
+                    CurrentValue = (int)(days.TotalSeconds + time.TotalSeconds);
+                    break;
+                case TimeSpanUnit.Minute:
+                    CurrentValue = (int)(days.TotalMinutes + time.TotalMinutes);
+                    break;
+                case TimeSpanUnit.Hour:
+                    CurrentValue = (int)(days.TotalHours + time.TotalHours);
+                    break;
+            }
+        }
+    }
+
+    private string? GetDaysAsString()
+    {
+        string? result;
+        switch (TimeSpanUnit)
+        {
+            case TimeSpanUnit.Second:
+                result = TimeSpan.FromSeconds(CurrentValue).Days.ToString();
+                break;
+            case TimeSpanUnit.Minute:
+                result = TimeSpan.FromMinutes(CurrentValue).Days.ToString();
+                break;
+            case TimeSpanUnit.Hour:
+                result = TimeSpan.FromHours(CurrentValue).Days.ToString();
+                break;
+            default:
+                result = null;
+                break;
+        }
+        return result;
+    }
+
+    private TimeSpan GetTime(int value)
+    {
+        TimeSpan result;
+        switch (TimeSpanUnit)
+        {
+            case TimeSpanUnit.Second:
+                result = TimeSpan.FromSeconds(value);
+                break;
+            case TimeSpanUnit.Minute:
+                result = TimeSpan.FromMinutes(value);
+                break;
+            case TimeSpanUnit.Hour:
+                result = TimeSpan.FromHours(value);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+        return result;
     }
 
     protected override string? FormatValueAsString(int value)

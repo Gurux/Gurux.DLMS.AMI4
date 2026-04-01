@@ -1,0 +1,126 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@namespace Gurux.DLMS.AMI.Components.Accordion
+
+@inject NavigationManager NavigationManager
+<CascadingValue Value="this">
+    <div class="accordion" id="@Id">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="@("heading-" + Id)">
+                <button class="@GetButtonClass()" onclick="@(() => Toggle())" aria-expanded="true">
+                    @if (HeaderTemplate != null)
+                    {
+                        @HeaderTemplate
+                    }
+                    else
+                    {
+                        @Header
+                    }
+                </button>
+            </h2>
+            @if (IsExpand)
+            {
+                <div id="@("collapse-" + Id)" class="@GetCollapseClass()">
+                    <div class="accordion-body">
+                        @ChildContent
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+    internal bool IsExpand { get; set; }
+
+    /// <summary>
+    /// Accordion ID.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Is the accordion item collapsed or expanded.
+    /// </summary>
+    [Parameter]
+    public bool Expand { get; set; }
+
+    /// <summary>
+    /// Accordion header template.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? HeaderTemplate { get; set; }
+
+    ///<summary>
+    ///Accordion item header text.
+    ///</summary>
+    [Parameter]
+    public string? Header { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private void Toggle()
+    {
+        IsExpand = !IsExpand;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetButtonClass()
+    {
+        if (IsExpand)
+        {
+            return "accordion-button";
+        }
+        return "accordion-button collapsed";
+    }
+
+    private string GetCollapseClass()
+    {
+        if (IsExpand)
+        {
+            return "accordion-collapse collapse show";
+        }
+        return "accordion-collapse collapse";
+    }
+
+    protected override void OnInitialized()
+    {
+        IsExpand = Expand;
+        base.OnInitialized();
+    }
+}

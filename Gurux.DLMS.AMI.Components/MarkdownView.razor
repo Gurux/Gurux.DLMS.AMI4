@@ -1,0 +1,375 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using System.Text
+@using System.Text.RegularExpressions
+
+@if (!string.IsNullOrEmpty(_html))
+{
+    <div class="@CssClass">@((MarkupString)_html)</div>
+}
+
+@code {
+    private static readonly Regex ReTask = new(@"^\[( |x|X)\]\s+(.*)$", RegexOptions.Compiled);
+    [Parameter] public string? Content { get; set; }
+    [Parameter] public string CssClass { get; set; } = "markdown-body";
+    [Parameter] public bool AllowRawHtml { get; set; } = false;    // turvallinen oletus: ei sallita
+    [Parameter] public bool GenerateHeadingIds { get; set; } = true;
+
+    private string _html = string.Empty;
+
+    private static bool TryParseTask(string text, out bool isChecked, out string body)
+    {
+        var m = ReTask.Match(text);
+        if (m.Success)
+        {
+            isChecked = m.Groups[1].Value.Equals("x", StringComparison.OrdinalIgnoreCase);
+            body = m.Groups[2].Value;
+            return true;
+        }
+        isChecked = false;
+        body = text;
+        return false;
+    }
+
+    private string? _lastContent;
+    private bool _lastAllowRawHtml;
+    private bool _lastGenerateHeadingIds;
+
+
+    protected override void OnParametersSet()
+    {
+        // Laske HTML vain jos parametrit muuttuivat
+        if (!string.Equals(Content, _lastContent, StringComparison.Ordinal) ||
+            _lastAllowRawHtml != AllowRawHtml ||
+            _lastGenerateHeadingIds != GenerateHeadingIds)
+        {
+            _html = MiniMarkdown.ToHtml(Content ?? string.Empty, new MiniMarkdown.Options
+            {
+                AllowRawHtml = AllowRawHtml,
+                GenerateHeadingIds = GenerateHeadingIds
+            });
+
+            // P‰ivit‰ v‰limuistin avaimet
+            _lastContent = Content;
+            _lastAllowRawHtml = AllowRawHtml;
+            _lastGenerateHeadingIds = GenerateHeadingIds;
+        }
+    }
+
+    // Markdown to HTML
+    internal static class MiniMarkdown
+    {
+        public sealed class Options
+        {
+            public bool AllowRawHtml { get; set; }
+            public bool GenerateHeadingIds { get; set; } = true;
+        }
+
+        private static readonly Regex ReHeading = new(@"^(#{1,6})\s+(.*)$", RegexOptions.Compiled);
+        private static readonly Regex ReUl = new(@"^\s*([-+*])\s+(.*)$", RegexOptions.Compiled);
+        private static readonly Regex ReOl = new(@"^\s*(\d+)\.\s+(.*)$", RegexOptions.Compiled);
+        private static readonly Regex ReBlockquote = new(@"^\s*>\s?(.*)$", RegexOptions.Compiled);
+        private static readonly Regex ReHr = new(@"^\s*([-*_])(?:\s*\1){2,}\s*$", RegexOptions.Compiled);
+        private static readonly Regex ReFencedStart = new(@"^\s*```(\w+)?\s*$", RegexOptions.Compiled);
+        private static readonly Regex ReFencedEnd = new(@"^\s*```\s*$", RegexOptions.Compiled);
+
+        private static readonly Regex ReCodeInline = new(@"`([^`]+)`", RegexOptions.Compiled);
+        private static readonly Regex ReBold = new(@"\*\*(.+?)\*\*|__(.+?)__", RegexOptions.Compiled);
+        private static readonly Regex ReItalic = new(@"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)|_(.+?)_", RegexOptions.Compiled);
+        private static readonly Regex ReImage = new(@"!\[([^\]]*)\]\(([^)\s]+)(?:\s+""([^""]+)"")?\)", RegexOptions.Compiled);
+        private static readonly Regex ReLink = new(@"\[([^\]]+)\]\(([^)\s]+)(?:\s+""([^""]+)"")?\)", RegexOptions.Compiled);
+        public static string ToHtml(string md, Options opt)
+        {
+            if (string.IsNullOrEmpty(md)) return string.Empty;
+
+            var sb = new StringBuilder();
+            var lines = md.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+
+            bool inUl = false, inOl = false, inQuote = false;
+            bool inFence = false; string fenceLang = "";
+            var para = new StringBuilder();
+
+            void FlushPara()
+            {
+                if (para.Length > 0)
+                {
+                    sb.Append("<p>").Append(para.ToString()).Append("</p>\n");
+                    para.Clear();
+                }
+            }
+            void CloseLists()
+            {
+                if (inUl) { sb.Append("</ul>\n"); inUl = false; }
+                if (inOl) { sb.Append("</ol>\n"); inOl = false; }
+            }
+            void CloseQuote()
+            {
+                if (inQuote) { sb.Append("</blockquote>\n"); inQuote = false; }
+            }
+
+            foreach (var raw in lines)
+            {
+                var line = raw;
+
+                // Fenced code start ```lang
+                if (!inFence)
+                {
+                    var fs = ReFencedStart.Match(line);
+                    if (fs.Success)
+                    {
+                        FlushPara(); CloseLists(); CloseQuote();
+                        inFence = true;
+                        fenceLang = fs.Groups[1].Value;
+                        sb.Append("<pre><code");
+                        if (!string.IsNullOrWhiteSpace(fenceLang))
+                            sb.Append(" class=\"language-").Append(HtmlEncode(fenceLang)).Append("\"");
+                        sb.Append(">");
+                        continue;
+                    }
+                }
+                else
+                {
+                    if (ReFencedEnd.IsMatch(line))
+                    {
+                        sb.Append("</code></pre>\n");
+                        inFence = false; fenceLang = "";
+                        continue;
+                    }
+                    sb.Append(HtmlEncodePreserveTabs(line)).Append('\n');
+                    continue;
+                }
+
+                // Tyhj‰ rivi -> kappale/listat/blockquote p‰‰tˆkset
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    FlushPara(); CloseLists(); CloseQuote();
+                    continue;
+                }
+
+                // Vaakaviiva
+                if (ReHr.IsMatch(line))
+                {
+                    FlushPara(); CloseLists(); CloseQuote();
+                    sb.Append("<hr />\n");
+                    continue;
+                }
+
+                // Lainaus
+                var bq = ReBlockquote.Match(line);
+                if (bq.Success)
+                {
+                    FlushPara(); CloseLists();
+                    if (!inQuote) { sb.Append("<blockquote>\n"); inQuote = true; }
+                    sb.Append(ProcessInline(bq.Groups[1].Value, opt)).Append("<br />\n");
+                    continue;
+                }
+                else
+                {
+                    CloseQuote();
+                }
+
+                // Otsikot
+                var h = ReHeading.Match(line);
+                if (h.Success)
+                {
+                    FlushPara(); CloseLists();
+                    int level = h.Groups[1].Value.Length;
+                    string text = h.Groups[2].Value.Trim();
+                    string inner = ProcessInline(text, opt);
+                    if (opt.GenerateHeadingIds)
+                    {
+                        var id = Slugify(text);
+                        sb.Append($"<h{level} id=\"{id}\">{inner}</h{level}>\n");
+                    }
+                    else
+                    {
+                        sb.Append($"<h{level}>{inner}</h{level}>\n");
+                    }
+                    continue;
+                }
+
+                // Luettelot (UL) + teht‰v‰listat
+                var ulm = ReUl.Match(line);
+                if (ulm.Success)
+                {
+                    FlushPara();
+
+                    var itemTextRaw = ulm.Groups[2].Value.Trim();
+                    var isTaskItem = TryParseTask(itemTextRaw, out var isChecked, out var itemBody);
+
+                    if (!inUl)
+                    {
+                        CloseLists();
+                        sb.Append(isTaskItem ? "<ul class=\"task-list\">\n" : "<ul>\n");
+                        inUl = true;
+                    }
+
+                    if (isTaskItem)
+                    {
+                        sb.Append("<li class=\"task-list-item\">")
+                          .Append("<input type=\"checkbox\" disabled")
+                          .Append(isChecked ? " checked" : "")
+                          .Append(" /> ")
+                          .Append(ProcessInline(itemBody, opt))
+                          .Append("</li>\n");
+                    }
+                    else
+                    {
+                        sb.Append("<li>")
+                          .Append(ProcessInline(itemTextRaw, opt))
+                          .Append("</li>\n");
+                    }
+                    continue;
+                }
+
+                // Numeroidut luettelot (OL) + teht‰v‰listat
+                var olm = ReOl.Match(line);
+                if (olm.Success)
+                {
+                    FlushPara();
+
+                    var itemTextRaw = olm.Groups[2].Value.Trim();
+                    var isTaskItem = TryParseTask(itemTextRaw, out var isChecked, out var itemBody);
+
+                    if (!inOl)
+                    {
+                        CloseLists();
+                        sb.Append(isTaskItem ? "<ol class=\"task-list\">\n" : "<ol>\n");
+                        inOl = true;
+                    }
+
+                    if (isTaskItem)
+                    {
+                        sb.Append("<li class=\"task-list-item\">")
+                          .Append("<input type=\"checkbox\" disabled")
+                          .Append(isChecked ? " checked" : "")
+                          .Append(" /> ")
+                          .Append(ProcessInline(itemBody, opt))
+                          .Append("</li>\n");
+                    }
+                    else
+                    {
+                        sb.Append("<li>")
+                          .Append(ProcessInline(itemTextRaw, opt))
+                          .Append("</li>\n");
+                    }
+                    continue;
+                }
+
+                // Kappale (yhdistet‰‰n per‰kk‰iset rivit samaan <p>:hen)
+                if (para.Length > 0) para.Append(' ');
+                para.Append(ProcessInline(line.Trim(), opt));
+            }
+
+            // Sulje keskener‰iset blokit
+            if (inFence) sb.Append("</code></pre>\n");
+            FlushPara(); CloseLists(); CloseQuote();
+            return sb.ToString();
+        }
+
+        private static string ProcessBlockLine(string s, Options opt) => ProcessInline(s, opt);
+
+        private static string ProcessInline(string s, Options opt)
+        {
+            // Ensiksi HTML-escape kaikkeen tekstiin
+            string escaped = HtmlEncode(s);
+
+            // Linkit & kuvat
+            escaped = ReImage.Replace(escaped, m =>
+            {
+                var alt = HtmlEncode(m.Groups[1].Value);
+                var url = SafeUrl(m.Groups[2].Value);
+                var title = m.Groups[3].Success ? $" title=\"{HtmlEncode(m.Groups[3].Value)}\"" : "";
+                return $"<img src=\"{url}\" alt=\"{alt}\"{title} />";
+            });
+
+            escaped = ReLink.Replace(escaped, m =>
+            {
+                var text = HtmlEncode(m.Groups[1].Value);
+                var url = SafeUrl(m.Groups[2].Value);
+                var title = m.Groups[3].Success ? $" title=\"{HtmlEncode(m.Groups[3].Value)}\"" : "";
+                return $"<a href=\"{url}\" rel=\"noopener noreferrer\"{title}>{text}</a>";
+            });
+
+            // Inline code (j‰lkik‰teen, jotta merkit eiv‰t hajoa)
+            escaped = ReCodeInline.Replace(escaped, m =>
+            {
+                var code = HtmlEncode(m.Groups[1].Value);
+                return $"<code>{code}</code>";
+            });
+
+            // Lihavointi ja kursiivi
+            escaped = ReBold.Replace(escaped, m => $"<strong>{HtmlEncode(m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)}</strong>");
+            escaped = ReItalic.Replace(escaped, m => $"<em>{HtmlEncode(m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value)}</em>");
+            return escaped;
+        }
+
+        private static string HtmlEncode(string? s)
+        {
+            if (s is null) return "";
+            // Jos raaka HTML sallitaan, ‰l‰ escapettaa *valmiita* tageja ó
+            // mutta t‰m‰ toteutus EI tue raaka-HTML:‰‰ sis‰linjoissa.
+            return s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+        }
+
+        private static string HtmlEncodePreserveTabs(string? s)
+        {
+            // Koodiblokissa s‰ilytet‰‰n sisennys (tab->4 v‰li‰); escapetus silti.
+            var enc = HtmlEncode(s);
+            return enc.Replace("\t", "    ");
+        }
+
+        private static string SafeUrl(string url)
+        {
+            // Salli vain yleiset skeemat
+            var u = url.Trim();
+            var lower = u.ToLowerInvariant();
+            if (lower.StartsWith("http://") || lower.StartsWith("https://") || lower.StartsWith("mailto:"))
+                return HtmlEncode(u);
+            // Block javascript, data, vbscript, etc..
+            return "#";
+        }
+
+        private static string Slugify(string s)
+        {
+            var sb = new StringBuilder();
+            foreach (var ch in s.ToLowerInvariant())
+            {
+                if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+                else if (char.IsWhiteSpace(ch) || ch == '-' || ch == '_') sb.Append('-');
+            }
+            var slug = Regex.Replace(sb.ToString(), "-{2,}", "-").Trim('-');
+            return string.IsNullOrEmpty(slug) ? "section" : slug;
+        }
+    }
+}

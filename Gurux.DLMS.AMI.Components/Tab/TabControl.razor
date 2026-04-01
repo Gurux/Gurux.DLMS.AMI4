@@ -1,0 +1,155 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@namespace Gurux.DLMS.AMI.Components.Tab
+@using System.Diagnostics
+
+@inject NavigationManager NavigationManager
+
+<CascadingValue Value="this">
+    <ul class="nav nav-tabs"
+        role="tablist"
+        style="width:100%">
+        @foreach (var it in GetPages())
+        {
+            <li class="nav-item" role="presentation">
+                <button class="@GetActiveClass(it)"
+                        onclick="@( () => ActivatePage(it))">
+                    @if (TabTextTemplate != null)
+                    {
+                        @TabTextTemplate(it)
+                    }
+                    else
+                    {
+                        @if (!string.IsNullOrEmpty(@it.Icon))
+                        {
+                            <Image Id="@it.Icon"></Image>
+                        }
+                        @it.Text
+                    }
+                </button>
+            </li>
+        }
+    </ul>
+    @ChildContent
+</CascadingValue>
+
+@code {
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    public delegate void SelectionChangedEventHandler(TabPage page);
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public int InitialTab { get; set; } = 0;
+
+    [Parameter]
+    public string? Active { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    [Parameter]
+    public SelectionChangedEventHandler? SelectionChanged { get; set; }
+
+    [Parameter]
+    public RenderFragment<TabPage>? TabTextTemplate { get; set; }
+
+    public TabPage? ActivePage { get; set; }
+
+    IEnumerable<TabPage> GetPages()
+    {
+        return Pages.Where(w => w.Visible == true);
+    }
+
+    private readonly List<TabPage> Pages = new List<TabPage>();
+
+    internal void AddPage(TabPage tabPage)
+    {
+        tabPage.Index = Pages.Count;
+        Pages.Add(tabPage);
+        if (!string.IsNullOrEmpty(tabPage.Path) && tabPage.Path == Active)
+        {
+            ActivePage = tabPage;
+        }
+        else
+        {
+            if (InitialTab == 0 && Pages.Count == 1)
+            {
+                ActivePage = tabPage;
+            }
+            if (InitialTab != 0 && Pages.Count - 1 == InitialTab)
+            {
+                ActivePage = Pages[InitialTab];
+            }
+
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    string GetActiveClass(TabPage page)
+    {
+        return page == ActivePage ? "nav-link active" : "nav-link";
+    }
+
+    void ActivatePage(TabPage page)
+    {
+        ActivePage = page;
+        if (!string.IsNullOrEmpty(page.Path))
+        {
+            NavigationManager.NavigateTo(page.Path);
+        }
+        SelectionChanged?.Invoke(page);
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void ActivatePage(int index)
+    {
+        if (Pages.Count > index)
+        {
+            ActivePage = Pages[index];
+            SelectionChanged?.Invoke(ActivePage);
+        }
+    }
+
+    /// <summary>
+    /// Update tab pages.
+    /// </summary>
+    public void Update()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+}

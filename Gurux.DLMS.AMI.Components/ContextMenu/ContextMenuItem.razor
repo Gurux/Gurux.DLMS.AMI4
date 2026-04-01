@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,15 +29,23 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
-
+*@
 @code {
     [CascadingParameter]
     private ContextMenuController? Parent { get; set; }
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
-   
+
+    /// <summary>
+    /// Context menu item ID.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
     /// <summary>
     /// Context menu item text.
     /// </summary>
@@ -48,26 +56,20 @@
     /// Context menu item Url.
     /// </summary>
     [Parameter]
-    public string Url{ get; set; } = "";
-
-    /// <summary>
-    /// Context menu item icon.
-    /// </summary>
-    [Parameter]
-    public string? Icon { get; set; }
+    public string Url { get; set; } = "";
 
     /// <summary>
     /// Invoked on click event.
     /// </summary>
     [Parameter]
-    public Action? OnClick { get; set; }
+    public EventCallback OnClick { get; set; }
 
     /// <summary>
     /// Invoke the click event.
     /// </summary>
     public void Click()
     {
-        OnClick?.Invoke();
+        OnClick.InvokeAsync();
         Parent?.Hide();
     }
 
@@ -77,7 +79,9 @@
     protected override void OnInitialized()
     {
         if (Parent == null)
+        {
             throw new ArgumentNullException(nameof(Parent), "MenuItem must exist within a ContextMenuController");
+        }
         base.OnInitialized();
         Parent.AddMenuItem(this);
     }

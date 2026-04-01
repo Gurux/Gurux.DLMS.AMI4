@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,10 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @using Gurux.DLMS.AMI.Components.Enums
+@using System.Linq.Expressions
 @inherits ComponentBase
+
+@typeparam TItem
 
 @if (!_hidden)
 {
@@ -69,6 +71,15 @@
     [Parameter]
     public string? Id { get; set; }
 
+    [Parameter]
+    public TItem? Target { get; set; }
+
+    /// <summary>
+    /// Sorted column.
+    /// </summary>
+    [Parameter]
+    public Expression<Func<TItem, object>>? Sort { get; set; }
+
     /// <summary>
     /// CSS style.
     /// </summary>
@@ -83,80 +94,7 @@
 
     private string? GetCssClass()
     {
-        return GetCssClass(Visibility, CssClass);
-    }
-
-    internal static string? GetCssClass(Visibility visibility, string? CssClass)
-    {
-        string? str = null;
-        if (visibility == Visibility.ExtraLargeLarge)
-        {
-            str = "d-none d-xll-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.ExtraLarge)
-        {
-            str = "d-none d-xl-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.Large)
-        {
-            str = "d-none d-lg-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.Medium)
-        {
-            str = "d-none d-md-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.Small)
-        {
-            str = "d-none d-sm-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.ExtraSmall)
-        {
-            str = "d-none d-xs-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.Print)
-        {
-            str = "d-none d-print-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.PrintHide)
-        {
-            str = "d-print-none " + CssClass;
-        }
-        else
-        {
-            str = CssClass;
-        }
-
-        /*
-        if (visibility == Visibility.Large)
-        {
-            str = "d-none d-xl-table-cell  " + CssClass;
-            }
-            else if (visibility == Visibility.Medium)
-        {
-        str = "d-none d-lg-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.Small)
-            {
-            str = "d-none d-md-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.ExtraSmall)
-            {
-            str = "d-none d-sm-table-cell " + CssClass;
-            }
-        else if (visibility == Visibility.Print)
-        {
-        str = "d-none d-print-table-cell " + CssClass;
-        }
-        else if (visibility == Visibility.PrintHide)
-        {
-        str = "d-print-none " + CssClass;
-            }
-            else
-            {
-            str = CssClass;
-            }
-            */
-        return str;
+        return Fh.GetCssClass(Visibility, CssClass);
     }
 
     /// <summary>
@@ -195,11 +133,17 @@
     /// <summary>
     /// Sort table with the column.
     /// </summary>
-    public void SortTable()
+    public virtual void SortTable()
     {
         if (Parent != null)
         {
-            if (Id != Parent.OrderBy)
+            string? OrderBy = null;
+            if (Sort != null)
+            {
+                OrderBy = GetPath(Sort);
+            }
+            if (Id != Parent.OrderBy ||
+                (!string.IsNullOrEmpty(OrderBy) && OrderBy != Parent.OrderBy))
             {
                 Parent.OrderBy = Id;
                 Parent.SortMode = SortMode.Ascending;
@@ -208,8 +152,45 @@
             {
                 Parent.SortMode = (SortMode)(((int)++Parent.SortMode) % 3);
             }
-            Parent.NotifyShortChange();
+            Parent.NotificationShortChange();
         }
+    }
+
+    public static string GetPath(Expression<Func<TItem, object>> expr)
+    {
+        Expression? body = expr.Body;
+        if (body is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+        {
+            body = unary.Operand;
+        }
+
+        var parts = new Stack<string>();
+
+        while (body != null)
+        {
+            switch (body)
+            {
+                case MemberExpression member:
+                    parts.Push(member.Member.Name);
+                    body = member.Expression!;
+                    break;
+
+                case ParameterExpression param:
+                    if (!string.IsNullOrEmpty(param.Name))
+                    {
+                        parts.Push(param.Name);
+                    }
+                    body = null;
+                    break;
+
+                default:
+                    body = null;
+                    break;
+            }
+        }
+        //Remove the first item.
+        parts.Pop();
+        return string.Join(".", parts);
     }
 
     public string GetSortIcon()
@@ -219,9 +200,9 @@
             switch (Parent.SortMode)
             {
                 case SortMode.Ascending:
-                    return "fa oi oi-sort-ascending";
+                    return "icon-sort icon-sort-asc";
                 case SortMode.Descending:
-                    return "fa oi oi-sort-descending";
+                    return "icon-sort icon-sort-desc";
             }
         }
         return "";

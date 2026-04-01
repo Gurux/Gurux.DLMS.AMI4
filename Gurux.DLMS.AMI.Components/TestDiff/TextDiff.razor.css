@@ -1,0 +1,33 @@
+﻿
+.input-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.input-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: monospace;
+}
+
+.diff-container {
+    display: flex;
+    gap: 1rem;
+}
+
+.diff-box {
+    flex: 1;
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    min-height: 6rem;
+    font-family: monospace;
+    background: #ffffff;
+    overflow-x: auto;
+}

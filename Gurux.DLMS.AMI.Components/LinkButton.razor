@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,19 +29,34 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @typeparam TItem
 
 <button class="btn btn-link"
         style="padding: 0; border: none; background: none;"
         onclick="@(() => Click())">
-    @Text
+    @if (string.IsNullOrEmpty(Id))
+    {
+        @Text
+    }
+    else
+    {
+        <LocalizedText Value="@Id" />
+    }
 </button>
 @code
 {
     [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
     public string? Text { get; set; }
+
+    /// <summary>
+    /// Used resource storage.
+    /// </summary>
+    [CascadingParameter]
+    public IGXResourceStorage? ResourceStorage { get; set; }
 
     private void Click()
     {

@@ -30,6 +30,8 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Components.Enums;
+
 namespace Gurux.DLMS.AMI.Components.Table
 {
     /// <summary>
@@ -47,9 +49,9 @@ namespace Gurux.DLMS.AMI.Components.Table
         SortMode SortMode { get; set; }
 
         /// <summary>
-        /// Notify that sort has been updated.
+        /// Notification that sort has been updated.
         /// </summary>
-        void NotifyShortChange();
+        void NotificationShortChange();
 
         /// <summary>
         /// User has selected the row.
@@ -66,7 +68,7 @@ namespace Gurux.DLMS.AMI.Components.Table
         /// <summary>
         /// Is edit allowed.
         /// </summary>
-        bool CanEdit { get;}
+        bool CanEdit { get; }
 
         /// <summary>
         /// Is column hidden.

@@ -1,0 +1,125 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using System.Diagnostics
+@using Gurux.DLMS.AMI.Components.Enums
+
+@ChildContent
+@if (Value != Default)
+{
+    <sup class="@GetBadgeClass()">@ValueToString()</sup>
+}
+@code {
+    /// <summary>
+    /// Child content that the badge is attached to (for example an icon or text).
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    ///
+    /// </summary>
+    [Parameter]
+    public string? Label { get; set; }
+
+    /// <summary>
+    /// When true the badge is rendered as a pill (rounded) badge.
+    /// Default is true.
+    /// </summary>
+    [Parameter]
+    public bool Pill { get; set; } = true;
+
+    /// <summary>
+    /// Badge color. Uses the project's <see cref="Color"/> enum.
+    /// </summary>
+    [Parameter]
+    public Color Color { get; set; }
+
+    /// <summary>
+    /// Badge color. Uses the project's <see cref="Color"/> enum.
+    /// </summary>
+    [Parameter]
+    public TraceLevel TraceLevel { get; set; }
+
+    /// <summary>
+    /// Backwards-compatible default count value. If consumer does not set <see cref="Value"/>,
+    /// the component will initialize <see cref="Value"/> from this value.
+    /// </summary>
+    [Parameter]
+    public int Default { get; set; } = 0;
+
+    /// <summary>
+    /// The numeric value displayed inside the badge.
+    /// </summary>
+    [Parameter]
+    public int Value { get; set; } = 0;
+
+    private string ValueToString()
+    {
+        if (Value > 99)
+        {
+            return "99+";
+        }
+        return Value.ToString();
+    }
+
+    /// <summary>
+    /// Ensure compatibility between <see cref="Default"/> and <see cref="Value"/>.
+    /// If consumer provided no explicit <see cref="Value"/> but <see cref="Default"/> is non-zero,
+    /// initialize <see cref="Value"/> from <see cref="Default"/>.
+    /// </summary>
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        if (Value == 0 && Default != 0)
+        {
+            Value = Default;
+        }
+    }
+
+    /// <summary>
+    /// Compute the CSS class for the badge based on <see cref="Color"/> and <see cref="Pill"/>.
+    /// </summary>
+    /// <returns>A CSS class string to apply to the badge element.</returns>
+    private string GetBadgeClass()
+    {
+        var colour = Enum.GetName(typeof(Color), Color)?.ToLower();
+        var bgClass = Color switch
+        {
+            Color.Light => "bg-light",
+            _ => $"bg-{colour} text-white"
+        };
+        var pillClass = Pill ? "rounded-pill" : string.Empty;
+        // Keep a small left margin to separate from the child content, as original markup used "ms-1".
+        return $"badge {bgClass} {pillClass} ms-1".Trim();
+    }
+}

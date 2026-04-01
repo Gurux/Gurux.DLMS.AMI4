@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,25 +29,32 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Rendering;
 
-namespace Gurux.DLMS.AMI.Components.Table
+namespace Gurux.DLMS.AMI.Components
 {
-    /// <summary>
-    /// Sort mode.
-    /// </summary>
-    public enum SortMode : int
+    public class GXInputFile : InputFile
     {
         /// <summary>
-        /// Sorting is not used.
+        /// Accepted file types.
         /// </summary>
-        None = 0,
-        /// <summary>
-        /// Sort by ascending.
-        /// </summary>
-        Ascending = 1,
-        /// <summary>
-        /// Sort by descending.
-        /// </summary>
-        Descending = 2
-    };
+        [Parameter]
+        public string? Filter { get; set; }
+
+        /// <inheritdoc/>
+        protected override void BuildRenderTree(RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "input");
+            builder.AddMultipleAttributes(1, AdditionalAttributes);
+            builder.AddAttribute(2, "type", "file");
+            if (!string.IsNullOrEmpty(Filter))
+            {
+                builder.AddAttribute(4, "accept", Filter);
+            }
+            builder.AddElementReferenceCapture(3, elementReference => Element = elementReference);
+            builder.CloseElement();
+        }
+    }
 }

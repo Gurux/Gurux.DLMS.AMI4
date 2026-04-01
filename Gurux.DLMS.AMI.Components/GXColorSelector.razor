@@ -1,0 +1,217 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using System.Diagnostics.CodeAnalysis
+@using System.Globalization
+@using Microsoft.Extensions.Logging
+@using System.Net
+
+@typeparam TItem
+
+@inject IGXLocalStorage localStorage
+@inject ILogger<GXColorSelector<TItem>> Logger
+
+<CascadingValue Value="this">
+    <input id="@Id"
+           type="color"
+           value="@Value"
+           placeholder="@Placeholder"
+           class="@CssClass"
+           attributes="@AdditionalAttributes"
+           onreset="@(() => Reset())"
+           onchange="@((ChangeEventArgs e) => UpdateColor(e.Value))"
+           required="@Required"
+           readonly="readonly"
+           aria-required="@Required" />
+</CascadingValue>
+
+@code
+{
+
+    /// <summary>
+    /// ID is used to save cookie value.
+    /// </summary>
+    [Parameter]
+    public string? Id
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Whether to store the value in a cookie.
+    /// </summary>
+    /// <seealso cref="Id"/>see
+    [Parameter]
+    public bool Save { get; set; } = true;
+
+    /// <summary>
+    /// Is color value required.
+    /// </summary>
+    [Parameter]
+    public bool Required
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Constructor.
+    /// </summary>
+    public GXColorSelector()
+    {
+        Type type = Nullable.GetUnderlyingType(typeof(TItem)) ?? typeof(TItem);
+        if (type != typeof(IPAddress) && type != typeof(UInt32) && type != typeof(UInt64) && type != typeof(string))
+        {
+            throw new InvalidOperationException($"Unsupported {GetType()} type param '{type}'.");
+        }
+    }
+
+    /// <summary>
+    /// Color value.
+    /// </summary>
+    [Parameter]
+    public TItem? Value
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Reset value.
+    /// </summary>
+    private void Reset()
+    {
+        UpdateColor(null);
+    }
+
+    /// <summary>
+    /// Notified when the selected value is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    private string? ValueToString()
+    {
+        return Value?.ToString();
+    }
+
+    [Parameter]
+    public string? CssClass
+    {
+        get;
+        set;
+    } = "form-control";
+
+    /// <summary>
+    /// Placeholder text.
+    /// </summary>
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private void UpdateColor(object? value, bool init = false)
+    {
+        bool change = false;
+        if (value is string str &&
+        !string.IsNullOrEmpty(str))
+        {
+            Value = default;
+            TItem? result;
+            if (!BindConverter.TryConvertTo<TItem>(value, CultureInfo.InvariantCulture, out result))
+            {
+                throw new Exception("Invalid color.");
+            }
+            change = Value?.ToString() != result?.ToString();
+            Value = result;
+            if (change)
+            {
+                if (ValueChanged.HasDelegate)
+                {
+                    ValueChanged.InvokeAsync(Value);
+                }
+            }
+        }
+        else
+        {
+            change = Value != null;
+            Value = default;
+            if (change)
+            {
+                if (ValueChanged.HasDelegate)
+                {
+                    ValueChanged.InvokeAsync(Value);
+                }
+            }
+        }
+        try
+        {
+            if (!init && Save && !string.IsNullOrEmpty(Id))
+            {
+                localStorage.SetValueAsync(null, Id, ValueToString());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Update default cookie value.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+            try
+            {
+                if (Save && !string.IsNullOrEmpty(Id))
+                {
+                    string? str = await localStorage.GetValueAsync(Id);
+                    UpdateColor(str, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
+        }
+    }
+}

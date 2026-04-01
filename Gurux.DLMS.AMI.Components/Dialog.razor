@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,12 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
+@using Microsoft.AspNetCore.Components.Web
 
-<div class="modal fade show d-block" id="confirmanceModal" tabindex="-1" role="dialog">
+<div class="modal fade show d-block" id="confirmanceModal" tabindex="-1" role="dialog" @onkeydown="OnKeyDown"
+     @onpointermove="OnPointerMove" @onpointerup="OnPointerUp" style="left:@LeftPx; top:@TopPx;">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" @onpointerdown="OnPointerDown">
                 <h5 class="modal-title" id="confirmanceModalLabel">@Title</h5>
                 <button type="button" class="btn btn-close"
                         data-dismiss="modal" aria-label="Close"
@@ -45,14 +47,14 @@
                 @ChildContent
             </div>
             <div class="modal-footer">
-                @if (OnOk != null)
+                @if (!string.IsNullOrEmpty(OkButtonTitle))
                 {
                     <button type="button" class="btn btn-primary"
                             data-dismiss="modal" onclick="@(() => Ok())">
                         @OkButtonTitle
                     </button>
                 }
-                @if (OnCancel != null)
+                @if (!string.IsNullOrEmpty(CancelButtonTitle))
                 {
                     <button type="button" class="btn btn-secondary"
                             data-dismiss="modal" onclick="@(() => Cancel())">
@@ -73,13 +75,13 @@
     /// User has accept the action.
     /// </summary>
     [Parameter]
-    public Action? OnOk { get; set; }
+    public EventCallback OnOk { get; set; }
 
     /// <summary>
     /// User has Cancel the action.
     /// </summary>
     [Parameter]
-    public Action? OnCancel { get; set; }
+    public EventCallback OnCancel { get; set; }
 
     [Parameter]
     public string? Title { get; set; }
@@ -90,19 +92,67 @@
     [Parameter]
     public string CancelButtonTitle { get; set; } = "Cancel";
 
+    // Dragging state
+    private bool _dragging;
+    private double _startX, _startY;
+    private double _offsetX, _offsetY; // current top-left (px)
+    private string LeftPx => _offsetX.ToString("0") + "px";
+    private string TopPx => _offsetY.ToString("0") + "px";
+
+    // Start position in the middle on first open
+    protected override void OnParametersSet()
+    {
+        if (_offsetX == 0 && _offsetY == 0)
+        {
+            // center-ish default
+            _offsetX = 80;
+            _offsetY = 80;
+        }
+    }
+
+    private void OnPointerDown(PointerEventArgs e)
+    {
+        _dragging = true;
+        _startX = e.ClientX - _offsetX;
+        _startY = e.ClientY - _offsetY;
+    }
+
+    private void OnPointerMove(PointerEventArgs e)
+    {
+        if (!_dragging)
+        {
+            return;
+        }
+        _offsetX = e.ClientX - _startX;
+        _offsetY = e.ClientY - _startY;
+        StateHasChanged();
+    }
+
+    private void OnPointerUp(PointerEventArgs e) => _dragging = false;
+
     /// <summary>
     /// User has accept the action.
     /// </summary>
-    private void Ok()
+    private async Task Ok()
     {
-        OnOk?.Invoke();
+        _dragging = false;
+        await OnOk.InvokeAsync(true);
     }
 
     /// <summary>
     /// User has Cancel the action.
     /// </summary>
-    private void Cancel()
+    private async Task Cancel()
     {
-        OnCancel?.Invoke();
+        _dragging = false;
+        await OnCancel.InvokeAsync(false);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            await Cancel();
+        }
     }
 }

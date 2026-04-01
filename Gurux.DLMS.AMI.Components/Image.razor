@@ -1,0 +1,328 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Microsoft.Extensions.Logging
+@using System.Diagnostics
+@using System.Text.RegularExpressions
+
+@inject IGXLocalStorage localStorage
+@inject ILogger<Image> Logger
+@if (Type == ImageType.IconLigature)
+{
+    @if (GetIconPackType() == IconPackType.Material)
+    {
+        <span class="material-icons"
+              style="@BuildSpanStyle()"
+              title="@Alt"
+              aria-hidden="@(string.IsNullOrEmpty(Alt) ? "true" : "false")">
+            @Value
+        </span>
+    }
+    else
+    {
+        <span class="@Value"
+              style="@BuildSpanStyle()"
+              title="@Alt"
+              aria-hidden="@(string.IsNullOrEmpty(Alt) ? "true" : "false")">
+        </span>
+    }
+}
+else if (Type == ImageType.Svg)
+{
+    @if (!string.IsNullOrWhiteSpace(Value))
+    {
+        <span class="@CssClass" style="@BuildSpanStyle()">
+            @((MarkupString)Value)
+        </span>
+    }
+    else if (ShowPlaceholder)
+    {
+        <span class="text-muted @CssClass" style="@Style">[no svg]</span>
+    }
+}
+else if (Type == ImageType.Raster)
+{
+    @if (!string.IsNullOrWhiteSpace(Value))
+    {
+        <img src="@GetDataUri()"
+             alt="@Alt"
+             class="@CssClass"
+             style="@Style"
+             width="@Width"
+             height="@Height"
+             loading="lazy" />
+    }
+    else if (ShowPlaceholder)
+    {
+        <span class="text-muted @CssClass" style="@Style">[no image]</span>
+    }
+}
+else if (Type == ImageType.Html)
+{
+    @if (string.IsNullOrEmpty(Color))
+    {
+        <span>@((MarkupString)Value)</span>
+    }
+    else
+    {
+        <span style="color:@Color">@((MarkupString)Value)</span>
+    }
+}
+else
+{
+    @if (ShowPlaceholder)
+    {
+        <span class="text-muted @CssClass" style="@Style">[no image]</span>
+    }
+}
+
+@code {
+    private enum IconPackType
+    {
+        /// <summary>
+        /// Icon is from Bootstrap icons.
+        /// </summary>
+        Bootstrap,
+        /// <summary>
+        /// Icon is from FontAwesome icons.
+        /// </summary>
+        FontAwesome,
+        /// <summary>
+        /// Icon is from material icons.
+        /// </summary>
+        Material,
+    }
+
+    /// <summary>
+    /// Image Id.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Image source.
+    /// </summary>
+    /// <remarks>
+    /// Icon Ligature doesn't need this.
+    /// </remarks>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>
+    /// Image alt text.
+    /// </summary>
+    [Parameter]
+    public string? Alt { get; set; }
+
+    [Parameter] public string? CssClass { get; set; }
+
+    [Parameter] public string? Style { get; set; }
+
+    /// <summary>
+    /// Used resource storage.
+    /// </summary>
+    [CascadingParameter]
+    public IGXResourceStorage? ResourceStorage { get; set; }
+
+    /// <summary>
+    /// Image format.
+    /// </summary>
+    [Parameter] public ImageType Kind { get; set; } = ImageType.Auto;
+
+    IconPackType GetIconPackType()
+    {
+        if (Value?.StartsWith("bi-") == true)
+        {
+            return IconPackType.Bootstrap;
+        }
+        if (Value?.StartsWith("fa-solid fa-") == true)
+        {
+            return IconPackType.FontAwesome;
+        }
+        else
+        {
+            return IconPackType.Material;
+        }
+    }
+
+    [Parameter]
+    public string MimeType { get; set; } = "image/png";
+
+    /// <summary>
+    /// Placeholder is shown if the image is missing.
+    /// </summary>
+    [Parameter] public bool ShowPlaceholder { get; set; } = false;
+
+    /// <summary>
+    /// Image type.
+    /// </summary>
+    private ImageType Type => Kind == ImageType.Auto ? DetectKind(Value) : Kind;
+
+    public static bool IsBase64String(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s))
+        {
+            return false;
+        }
+        s = s.Trim();
+        //Image size must be at least 20.
+        if (s.Length % 4 != 0 || s.Length < 20)
+        {
+            return false;
+        }
+        // Vain a-zA-Z0-9+/ ja '='
+        if (!Regex.IsMatch(s, @"^[a-zA-Z0-9\+/]*={0,2}$"))
+        {
+            return false;
+        }
+
+        try
+        {
+            byte[] v = Convert.FromBase64String(s);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///
+    /// </summary>
+    /// <returns></returns>
+    static public ImageType DetectKind(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return ImageType.Raster;
+        }
+        if (value.StartsWith("&#") || value.StartsWith("&amp"))
+        {
+            return ImageType.Html;
+        }
+        if (value.StartsWith("<svg") || value.StartsWith("<?xml"))
+        {
+            return ImageType.Svg;
+        }
+        if (IsBase64String(value))
+        {
+            return ImageType.Raster;
+        }
+        return ImageType.IconLigature;
+    }
+
+    /// <summary>
+    /// Image width.
+    /// </summary>
+    [Parameter]
+    public int? Width { get; set; }
+
+    /// <summary>
+    /// Image height.
+    /// </summary>
+    [Parameter]
+    public int? Height { get; set; }
+
+    [Parameter]
+    public string? Color { get; set; } = "red";
+
+    private static string UnknownImage = "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" xmlns=\"http://www.w3.org/2000/svg\">\r\n  @* Box *@\r\n  <rect x=\"1\" y=\"1\" width=\"14\" height=\"14\" stroke=\"currentColor\" stroke-width=\"1\" fill=\"none\" />\r\n  \r\n  @* Cross *@\r\n  <line x1=\"1\" y1=\"1\" x2=\"15\" y2=\"15\" stroke=\"currentColor\" stroke-width=\"1\" />\r\n  <line x1=\"15\" y1=\"1\" x2=\"1\" y2=\"15\" stroke=\"currentColor\" stroke-width=\"1\" />\r\n</svg>\r\n";
+
+    protected string GetDataUri()
+    {
+        return $"data:{MimeType};base64,{Value}";
+    }
+
+    protected string? BuildSpanStyle()
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(Style))
+            parts.Add(Style.Trim().TrimEnd(';'));
+
+        if (Width.HasValue)
+            parts.Add($"width:{Width.Value}px");
+        if (Height.HasValue)
+            parts.Add($"height:{Height.Value}px");
+
+        var size = Width ?? Height;
+        if (size.HasValue)
+        {
+            parts.Add($"font-size:{size.Value}px");
+            parts.Add("line-height:1");
+            parts.Add("display:inline-flex;align-items:center;justify-content:center");
+        }
+
+        return parts.Count == 0 ? null : string.Join(";", parts) + ";";
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ResourceStorage != null && !string.IsNullOrEmpty(Id))
+        {
+            if (Type != ImageType.Html && Type != ImageType.IconLigature)
+            {
+                Value = await ResourceStorage.GetImageAsync(Id);
+                StateHasChanged();
+            }
+            ResourceStorage.OnImageChanged += async (sender, image) =>
+            {
+                if (image.Id == Id)
+                {
+                    if (string.IsNullOrEmpty(image.Value))
+                    {
+                        image.Value = await ResourceStorage.GetImageAsync(Id);
+                    }
+                    Value = image.Value;
+                    await InvokeAsync(StateHasChanged);
+                }
+            };
+        }
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && ResourceStorage != null && !string.IsNullOrEmpty(Id))
+        {
+            Logger.LogInformation($"Loading image with Id: {Id}");
+            if (Type != ImageType.Html && Type != ImageType.IconLigature)
+            {
+                Value = await ResourceStorage.GetImageAsync(Id);
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+}

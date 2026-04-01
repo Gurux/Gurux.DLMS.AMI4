@@ -1,13 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk.Razor">
+﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Company>Gurux Ltd</Company>
     <Authors>Gurux Ltd</Authors>
-    <Copyright>Copyright (c) 1998-2024 Gurux Ltd. All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 1998-2025 Gurux Ltd. All rights reserved.</Copyright>
     <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
     <Description>Gurux.DLMS.AMI.Components adds UI components for Gurux DLMS AMI v4.</Description>
     <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="8.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.5" />
   </ItemGroup>
 <ItemGroup>
     <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
@@ -50,5 +50,13 @@
     <Generator>ResXFileCodeGenerator</Generator>
     <LastGenOutput>Resources.Designer.cs</LastGenOutput>
   </EmbeddedResource>
+</ItemGroup>
+<ItemGroup>
+  <Folder Include="Accordion\" />
+</ItemGroup>
+<ItemGroup>
+  <Content Update="Table\CellImage.razor">
+    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+  </Content>
 </ItemGroup>
 </Project>

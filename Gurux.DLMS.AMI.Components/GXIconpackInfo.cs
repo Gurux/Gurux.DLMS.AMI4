@@ -1,4 +1,4 @@
-<!--
+﻿//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,38 +29,21 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-@using System.Diagnostics
-@inherits BaseSearch<TraceLevel>
-<CascadingValue Value="this">
-    <BaseSearch Id="@Id"
-                Value="@Value"
-                ValueChanged="@ValueChanged"
-                Values="@Values"
-                Immediate="true"
-                Save="@Save"
-                Filter="@OnFilter"
-                OnSelected="@OnSelected">
-    </BaseSearch>
-</CascadingValue>
 
-@code {
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    protected override void OnInitialized()
+namespace Gurux.DLMS.AMI.Components
+{
+    /// <summary>
+    /// Iconpack info
+    /// </summary>
+    public class GXIconpackInfo
     {
-        if (Values == null || !Values.Any())
-        {
-            Values = Enum.GetValues<TraceLevel>();
-        }
-        base.OnInitialized();
-    }
-
-    private IEnumerable<TraceLevel> OnFilter(
-        IEnumerable<TraceLevel> values,
-        string filter)
-    {
-        return values.Where(w => w.ToString().ToLower().Contains(filter));
+        /// <summary>
+        /// Iconpack url.
+        /// </summary>
+        public string Url { get; set; } = default!;
+        /// <summary>
+        /// Iconpack names..
+        /// </summary>
+        public IEnumerable<string> Names { get; set; } = new List<string>();
     }
 }

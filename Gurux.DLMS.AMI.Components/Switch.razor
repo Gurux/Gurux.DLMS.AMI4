@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,10 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using Microsoft.Extensions.Logging
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<Switch> Logger
 
 <CascadingValue Value="this">
@@ -130,7 +130,7 @@
             {
                 if (Save && !string.IsNullOrEmpty(Id))
                 {
-                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                    await localStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
             }
             catch (Exception ex)
@@ -161,7 +161,7 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                string? value = await cookieStorage.GetValueAsync(Id);
+                string? value = await localStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(value))
                 {
                     Value = bool.Parse(value);

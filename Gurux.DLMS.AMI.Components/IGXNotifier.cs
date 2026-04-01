@@ -30,54 +30,15 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Microsoft.AspNetCore.Components.Forms;
+using Microsoft.AspNetCore.Components.Routing;
 
 namespace Gurux.DLMS.AMI.Components
 {
     /// <summary>
-    /// This interface is used to indicate that browser's current location is changing.
-    /// </summary>
-    public interface IGXLocationChangingContext
-    {
-        /// <summary>
-        /// Gets the target location.
-        /// </summary>
-        string TargetLocation { get; }
-
-        /// <summary>
-        /// Gets the state associated with the target history entry.
-        /// </summary>
-        string? HistoryEntryState { get; }
-
-        /// <summary>
-        /// Gets whether this navigation was intercepted from a link.
-        /// </summary>
-        bool IsNavigationIntercepted { get; }
-
-        /// <summary>
-        /// Gets a <see cref="System.Threading.CancellationToken"/> that can be used to determine if this navigation was canceled
-        /// </summary>
-        CancellationToken CancellationToken { get; }
-
-        /// <summary>
-        /// Prevents this navigation from continuing.
-        /// </summary>
-        void PreventNavigation();
-    }
-
-    /// <summary>
-    /// This interface is used to listen and notify events.
+    /// This interface is used to listen and notification events.
     /// </summary>
     public interface IGXNotifier
-    {
-        /// <summary>
-        /// Amount of the rows in the table.
-        /// </summary>
-        int RowsPerPage
-        {
-            get;
-            set;
-        }
-
+    {     
         /// <summary>
         /// Last Url.
         /// </summary>
@@ -174,7 +135,7 @@ namespace Gurux.DLMS.AMI.Components
         /// <summary>
         /// Page is changing.
         /// </summary>
-        event Action<IGXLocationChangingContext>? OnPageChanging;
+        event Action<LocationChangingContext>? OnPageChanging;
 
         /// <summary>
         /// Page has changed.

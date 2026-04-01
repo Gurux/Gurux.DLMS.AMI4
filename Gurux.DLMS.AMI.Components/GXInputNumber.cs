@@ -61,7 +61,7 @@ namespace Gurux.DLMS.AMI.Components
         /// </summary>
         /// <seealso cref="Id"/>see
         [Parameter]
-        public bool UseCookie { get; set; } = true;
+        public bool LastValue { get; set; } = true;
 
         /// <summary>
         /// Minimum value.
@@ -102,7 +102,7 @@ namespace Gurux.DLMS.AMI.Components
         public int Step { get; set; } = 1;
 
         [Inject]
-        IGXCookieStorage? cookieStorage { get; set; }
+        IGXLocalStorage? localStorage { get; set; }
 
         [Inject]
         ILogger<GXInputNumber<TValue>>? Logger { get; set; }
@@ -171,10 +171,10 @@ namespace Gurux.DLMS.AMI.Components
             }
             try
             {
-                if (UseCookie && !string.IsNullOrEmpty(Id) && cookieStorage != null)
+                if (LastValue && !string.IsNullOrEmpty(Id) && localStorage != null)
                 {
                     TValue? result;
-                    string? value = await cookieStorage.GetValueAsync(Id);
+                    string? value = await localStorage.GetValueAsync(Id);
                     if (!string.IsNullOrEmpty(value))
                     {
                         if (BindConverter.TryConvertTo<TValue>(value, CultureInfo.InvariantCulture, out result))
@@ -232,9 +232,9 @@ namespace Gurux.DLMS.AMI.Components
                 {
                     try
                     {
-                        if (cookieStorage != null && UseCookie && !string.IsNullOrEmpty(Id))
+                        if (localStorage != null && LastValue && !string.IsNullOrEmpty(Id))
                         {
-                            cookieStorage.SetValueAsync(Id, result?.ToString());
+                            localStorage.SetValueAsync(Id, result?.ToString());
                         }
                     }
                     catch (Exception ex)

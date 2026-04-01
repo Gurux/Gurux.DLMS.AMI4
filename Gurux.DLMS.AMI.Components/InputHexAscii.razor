@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,11 +29,11 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using System.Text;
 @using Gurux.DLMS.AMI.Components.Validation;
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 
 <CascadingValue Value="this">
     <div class="form-inline">
@@ -65,7 +65,7 @@
     /// </summary>
     /// <seealso cref="Id"/>see
     [Parameter]
-    public bool Save { get; set; } = true;
+    public bool Save { get; set; } = false;
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
@@ -211,7 +211,7 @@
             {
                 HexChanged.InvokeAsync(value);
             }
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {

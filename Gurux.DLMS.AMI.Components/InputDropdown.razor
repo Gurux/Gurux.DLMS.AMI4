@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using Microsoft.AspNetCore.Components.Web.Virtualization
 @using Microsoft.Extensions.Logging
 @using System.Linq.Expressions
@@ -38,7 +38,7 @@
 
 @inherits Microsoft.AspNetCore.Components.Forms.InputSelect<TItem>
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<Dropdown<TItem>> Logger
 
 @if (Values != null)
@@ -70,7 +70,7 @@
     /// </summary>
     /// <seealso cref="Id"/>see
     [Parameter]
-    public bool Save { get; set; } = true;
+    public bool Save { get; set; } = false;
 
     /// <summary>
     /// Notified when the selected item is changed.
@@ -110,7 +110,7 @@
         {
             if (Save && !string.IsNullOrEmpty(Id))
             {
-                cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                localStorage.SetValueAsync(Id, Convert.ToString(Value));
             }
         }
         catch (Exception ex)
@@ -130,7 +130,7 @@
             // if it's not set.
             if (Save && Values != null && !string.IsNullOrEmpty(Id))
             {
-                string? value = await cookieStorage.GetValueAsync(Id);
+                string? value = await localStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(value))
                 {
                     foreach (var it in Values)

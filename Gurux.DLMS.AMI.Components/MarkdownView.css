@@ -1,0 +1,55 @@
+.markdown-body {
+    box-sizing: border-box;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1rem;
+    line-height: 1.6;
+}
+
+    .markdown-body h1, .markdown-body h2, .markdown-body h3 {
+        margin-top: 1.2em;
+    }
+
+    .markdown-body pre {
+        background: #f6f8fa;
+        padding: .75rem;
+        overflow: auto;
+        border-radius: .5rem;
+    }
+
+    .markdown-body code {
+        background: #f6f8fa;
+        padding: .1rem .3rem;
+        border-radius: .3rem;
+    }
+
+    .markdown-body ul, .markdown-body ol {
+        padding-left: 1.6rem;
+    }
+
+    .markdown-body blockquote {
+        border-left: 4px solid #ddd;
+        padding-left: .8rem;
+        color: #555;
+        margin: .8rem 0;
+    }
+
+    .markdown-body img {
+        max-width: 100%;
+    }
+
+    /* Tehtävälistat */
+    .markdown-body .task-list {
+        list-style: none;
+        padding-left: 1.4rem;
+    }
+
+    .markdown-body .task-list-item {
+        position: relative;
+        margin: .25rem 0;
+    }
+
+        .markdown-body .task-list-item > input[type="checkbox"] {
+            margin-right: .5rem;
+            vertical-align: middle;
+        }

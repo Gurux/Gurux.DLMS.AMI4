@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,16 +29,15 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @using System.Timers
 @using Microsoft.AspNetCore.Components.Web;
-<div tabindex="0" 
-    onclick="@((MouseEventArgs e) => HandleClick(e))"
-    @oncontextmenu="OnContextMenu"
-    @onblur="OnBlur"
-    @onmouseup="HandleMouseUp"
-    @oncontextmenu:preventDefault="true">
+<div tabindex="0"
+     onclick="@((MouseEventArgs e) => HandleClick(e))"
+     @oncontextmenu="OnContextMenu"
+     @onblur="OnBlur"
+     @onmouseup="HandleMouseUp"
+     @oncontextmenu:preventDefault="true">
     <Tooltip Title="More options"><label>&vellip;</label></Tooltip>
 </div>
 
@@ -51,9 +50,9 @@
                 @foreach (ContextMenuItem it in Items)
                 {
                     <li tabindex="@GetTabIndex()" class="contextmenuitem" onclick="@(async () => it.Click())">
-                        @if (string.IsNullOrEmpty(it.Icon) == false)
+                        @if (!string.IsNullOrEmpty(it.Id))
                         {
-                            <div class="@it.Icon" style="padding-right: 5px;"></div>
+                            <Image Id="@it.Id"></Image>
                         }
                         @it.Text
                     </li>
@@ -132,7 +131,7 @@
     internal void Show()
     {
         _show = true;
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     /// <summary>
@@ -143,7 +142,7 @@
         if (_show)
         {
             _show = false;
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
     }
 

@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,8 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
-
+*@
 @using Gurux.DLMS.AMI.Components.Enums
 @inherits ComponentBase
 
@@ -38,9 +37,9 @@
 @if (!_hidden)
 {
     <th id="@Id"
-    style="@CssStyle"
-    class="@GetCssClass()"
-    @attributes="@AdditionalAttributes">
+        style="@CssStyle"
+        class="@GetCssClass()"
+        @attributes="@AdditionalAttributes">
         @ChildContent
     </th>
 }
@@ -91,7 +90,80 @@
 
     private string? GetCssClass()
     {
-        return Th.GetCssClass(Visibility, CssClass);
+        return GetCssClass(Visibility, CssClass);
+    }
+
+    internal static string? GetCssClass(Visibility visibility, string? CssClass)
+    {
+        string? str = null;
+        if (visibility == Visibility.ExtraLargeLarge)
+        {
+            str = "d-none d-xll-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.ExtraLarge)
+        {
+            str = "d-none d-xl-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Large)
+        {
+            str = "d-none d-lg-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Medium)
+        {
+            str = "d-none d-md-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Small)
+        {
+            str = "d-none d-sm-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.ExtraSmall)
+        {
+            str = "d-none d-xs-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.Print)
+        {
+            str = "d-none d-print-table-cell " + CssClass;
+        }
+        else if (visibility == Visibility.PrintHide)
+        {
+            str = "d-print-none " + CssClass;
+        }
+        else
+        {
+            str = CssClass;
+        }
+
+        /*
+        if (visibility == Visibility.Large)
+        {
+            str = "d-none d-xl-table-cell  " + CssClass;
+            }
+        else if (visibility == Visibility.Medium)
+        {
+            str = "d-none d-lg-table-cell " + CssClass;
+            }
+        else if (visibility == Visibility.Small)
+        {
+            str = "d-none d-md-table-cell " + CssClass;
+            }
+        else if (visibility == Visibility.ExtraSmall)
+        {
+            str = "d-none d-sm-table-cell " + CssClass;
+            }
+        else if (visibility == Visibility.Print)
+        {
+            str = "d-none d-print-table-cell " + CssClass;
+            }
+        else if (visibility == Visibility.PrintHide)
+        {
+            str = "d-print-none " + CssClass;
+            }
+        else
+        {
+            str = CssClass;
+            }
+        */
+        return str;
     }
 
     [Parameter(CaptureUnmatchedValues = true)]

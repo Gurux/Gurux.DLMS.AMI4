@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,14 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization
 @using Microsoft.Extensions.Logging
 
 @typeparam TItem
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<GXDateTimeSelector<TItem>> Logger
 
 <CascadingValue Value="this">
@@ -48,7 +48,9 @@
            attributes="@AdditionalAttributes"
            onreset="@(() => Reset())"
            onchange="@((ChangeEventArgs e) => UpdateDateTime(e.Value))"
-           "@IsRequired()" />
+           required="@Required"
+           disabled="@IsDisabled()"
+           aria-required="@Required" />
 </CascadingValue>
 
 @code
@@ -73,6 +75,17 @@
     public bool Save { get; set; } = true;
 
     /// <summary>
+    /// Is date time selector disabled
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    private string? IsDisabled()
+    {
+        return Disabled ? "disabled" : null;
+    }
+
+    /// <summary>
     /// Is datetime value required.
     /// </summary>
     [Parameter]
@@ -93,12 +106,6 @@
             throw new InvalidOperationException($"Unsupported {GetType()} type param '{type}'.");
         }
     }
-
-    private string? IsRequired()
-    {
-        return Required ? " required" : null;
-    }
-
 
     /// <summary>
     /// Datetime value.
@@ -174,18 +181,19 @@
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
 
-    private void UpdateDateTime(object? value)
+    private void UpdateDateTime(object? value, bool init = false)
     {
+        bool change = false;
         if (value is string str &&
         !string.IsNullOrEmpty(str))
         {
             Value = default;
-            TItem result;
+            TItem? result;
             if (!BindConverter.TryConvertTo<TItem>(value, CultureInfo.InvariantCulture, out result))
             {
                 throw new Exception("Invalid date time.");
             }
-            bool change = Value?.GetHashCode() != result?.GetHashCode();
+            change = Value?.ToString() != result?.ToString();
             Value = result;
             if (change)
             {
@@ -197,7 +205,7 @@
         }
         else
         {
-            bool change = Value != null;
+            change = Value != null;
             Value = default;
             if (change)
             {
@@ -209,9 +217,9 @@
         }
         try
         {
-            if (Save && !string.IsNullOrEmpty(Id))
+            if (!Disabled && !init && Save && !string.IsNullOrEmpty(Id))
             {
-                cookieStorage.SetValueAsync(Id, ValueToString());
+                localStorage.SetValueAsync(Id, ValueToString());
             }
         }
         catch (Exception ex)
@@ -223,19 +231,23 @@
     /// <summary>
     /// Update default cookie value.
     /// </summary>
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
         {
-            if (Save && !string.IsNullOrEmpty(Id))
+            try
             {
-                string? str = await cookieStorage.GetValueAsync(Id);
-                UpdateDateTime(str);
+                if (!Disabled && Save && !string.IsNullOrEmpty(Id))
+                {
+                    string? str = await localStorage.GetValueAsync(Id);
+                    UpdateDateTime(str, true);
+                }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex.Message);
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
         }
     }
 }

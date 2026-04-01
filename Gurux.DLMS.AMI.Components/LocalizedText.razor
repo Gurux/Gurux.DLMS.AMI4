@@ -1,0 +1,104 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Microsoft.Extensions.Logging
+
+@inject ILogger<Image> Logger
+@inject IGXLocalStorage localStorage
+<span class="@CssClass">
+    @GetValue()
+    @ChildContent
+</span>
+
+@code {
+    /// <summary>
+    /// Child content that the badge is attached to (for example an icon or text).
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    string? _value;
+    private string? GetValue()
+    {
+        if (_value != null)
+        {
+            return _value;
+        }
+        return Value;
+    }
+
+    /// <summary>
+    /// Used resource storage.
+    /// </summary>
+    [CascadingParameter]
+    public IGXResourceStorage? ResourceStorage { get; set; }
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && ResourceStorage != null && !string.IsNullOrEmpty(Value))
+        {
+            _value = await ResourceStorage.GetLocalizedTextAsync(Value);
+            Logger.LogInformation($"Loading localized text with Id: {Value}: {_value}");
+            StateHasChanged();
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    protected override void OnInitialized()
+    {
+        _value = Value;
+        if (ResourceStorage != null)
+        {
+            ResourceStorage.OnTextChanged += Updated;
+        }
+        base.OnInitializedAsync();
+    }
+
+    /// <summary>
+    /// Update new text when changed.
+    /// </summary>
+    private void Updated(object? sender, GXTextChangedEventArgs arg)
+    {
+        if (_value == arg.PreviousText)
+        {
+            Logger.LogInformation($"Updated localized text with Id: {_value}: {arg.CurrentText}");
+            _value = arg.CurrentText;
+            StateHasChanged();
+        }
+    }
+}

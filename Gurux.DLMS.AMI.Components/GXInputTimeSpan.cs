@@ -59,10 +59,10 @@ namespace Gurux.DLMS.AMI.Components
         /// </summary>
         /// <seealso cref="Id"/>see
         [Parameter]
-        public bool UseCookie { get; set; } = true;
+        public bool LastValue { get; set; } = true;
 
         [Inject]
-        IGXCookieStorage? cookieStorage { get; set; }
+        IGXLocalStorage? localStorage { get; set; }
 
         [Inject]
         ILogger<GXInputNumber<TValue>>? Logger { get; set; }
@@ -97,10 +97,10 @@ namespace Gurux.DLMS.AMI.Components
         {
             try
             {
-                if (UseCookie && !string.IsNullOrEmpty(Id) && cookieStorage != null)
+                if (LastValue && !string.IsNullOrEmpty(Id) && localStorage != null)
                 {
                     TValue? result;
-                    string? value = await cookieStorage.GetValueAsync(Id);
+                    string? value = await localStorage.GetValueAsync(Id);
                     if (!string.IsNullOrEmpty(value))
                     {
                         if (BindConverter.TryConvertTo<TValue>(value, CultureInfo.InvariantCulture, out result))
@@ -156,8 +156,6 @@ namespace Gurux.DLMS.AMI.Components
             }
             builder.AddAttribute(5, "value", BindConverter.FormatValue(CurrentValueAsString));
             builder.AddAttribute(6, "onchange", EventCallback.Factory.CreateBinder<string?>(this, __value => CurrentValueAsString = __value, CurrentValueAsString));
-            // builder.AddAttribute(5, "value", CurrentValueAsString); Mikko
-            // builder.AddAttribute(6, "onchange", EventCallback.Factory.CreateBinder<string?>(this, __value => CurrentValueAsString = __value, CurrentValueAsString));
             builder.AddAttribute(7, "step", Step.ToString());
             builder.SetUpdatesAttributeName("value");
             builder.AddElementReferenceCapture(8, __inputReference => Element = __inputReference);
@@ -253,9 +251,9 @@ namespace Gurux.DLMS.AMI.Components
                 {
                     try
                     {
-                        if (cookieStorage != null && UseCookie && !string.IsNullOrEmpty(Id))
+                        if (localStorage != null && LastValue && !string.IsNullOrEmpty(Id))
                         {
-                            cookieStorage.SetValueAsync(Id, result?.ToString());
+                            localStorage.SetValueAsync(Id, result?.ToString());
                         }
                     }
                     catch (Exception ex)

@@ -1,0 +1,18 @@
+.callout {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    box-shadow: 0px 4px 6px rgba(0,0,0,0.1);
+    border-radius: 5px;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    float: right;
+    cursor: pointer;
+}

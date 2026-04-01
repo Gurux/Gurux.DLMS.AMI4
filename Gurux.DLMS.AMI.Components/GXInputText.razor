@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,16 +29,16 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization
 @using Microsoft.Extensions.Logging
 
-@inject IGXCookieStorage cookieStorage
+@inject IGXLocalStorage localStorage
 @inject ILogger<GXInputText> Logger
 <CascadingValue Value="this">
     <input id="@Id"
-           type="string"
+           type="text"
            value="@Value"
            placeholder="@Placeholder"
            class="@CssClass"
@@ -63,7 +63,7 @@
     /// </summary>
     /// <seealso cref="Id"/>see
     [Parameter]
-    public bool Save { get; set; } = true;
+    public bool Save { get; set; } = false;
 
     /// <summary>
     /// Is string value required.
@@ -101,7 +101,7 @@
     }
 
     [Parameter]
-    public string? CssClass { get; set; }
+    public string? CssClass { get; set; } = "form-control";
 
     /// <summary>
     /// Placeholder text.
@@ -127,7 +127,7 @@
             {
                 if (Save && !string.IsNullOrEmpty(Id))
                 {
-                    await cookieStorage.SetValueAsync(Id, Convert.ToString(Value));
+                    await localStorage.SetValueAsync(Id, Convert.ToString(Value));
                 }
             }
             catch (Exception ex)
@@ -137,16 +137,18 @@
         }
     }
 
+
     /// <summary>
     /// Update default cookie value.
     /// </summary>
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        await base.OnAfterRenderAsync(firstRender);
+        if (firstRender && Save && !string.IsNullOrEmpty(Id))
         {
-            if (Save && !string.IsNullOrEmpty(Id))
+            try
             {
-                Value = await cookieStorage.GetValueAsync(Id);
+                Value = await localStorage.GetValueAsync(Id);
                 if (!string.IsNullOrEmpty(Value))
                 {
                     if (ValueChanged.HasDelegate)
@@ -155,10 +157,10 @@
                     }
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex.Message);
+            catch (Exception ex)
+            {
+                Logger.LogError(ex.Message);
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-<!--
+@*
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,18 +29,22 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
--->
+*@
+@using System.Diagnostics
+@using Microsoft.Extensions.Logging
+@inject ILogger<MenuControl> Logger
 
 <CascadingValue Value="this">
     <div class="btn-group" role="group" style="@GetStyle()">
         @foreach (MenuItem it in Items)
         {
-            <button type="button" class="btn button" disabled="@it.ReadOnly" style="@GetButtonStyle()" onclick=@it.OnClick>
-                @if (it.Icon != null)
+            <button type="button" class="@it.CssClass" disabled="@it.ReadOnly" style="@GetButtonStyle()" onclick=@it.OnClick>
+                @if (!string.IsNullOrEmpty(it.Id))
                 {
-                    <div class="@it.Icon"></div>
+                    <Image Id="@it.Id"></Image>
                 }
-                &nbsp;@it.Text
+                &nbsp;
+                <LocalizedText Value="@it.Id" />
             </button>
         }
     </div>
@@ -113,7 +117,7 @@
     internal void AddMenuItem(MenuItem item)
     {
         Items.Add(item);
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     protected override void OnInitialized()
@@ -121,7 +125,7 @@
         if (MenuItems != null && MenuItems.Count != 0)
         {
             Items.AddRange(MenuItems);
-            StateHasChanged();
+            InvokeAsync(StateHasChanged);
         }
     }
 }
