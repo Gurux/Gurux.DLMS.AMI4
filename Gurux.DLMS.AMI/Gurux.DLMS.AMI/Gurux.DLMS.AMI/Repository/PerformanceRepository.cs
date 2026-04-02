@@ -102,11 +102,6 @@ namespace Gurux.DLMS.AMI.Server.Repository
             ListPerformancesResponse? response,
             CancellationToken cancellationToken)
         {
-            if (User == null ||
-                !User.IsInRole(GXRoles.Admin))
-            {
-                throw new UnauthorizedAccessException();
-            }
             GXSelectArgs arg = GXSelectArgs.SelectAll<GXPerformance>();
             arg.Distinct = true;
             if (request != null)

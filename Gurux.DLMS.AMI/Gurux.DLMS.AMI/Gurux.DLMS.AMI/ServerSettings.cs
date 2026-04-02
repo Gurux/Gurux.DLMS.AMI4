@@ -31,18 +31,15 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Client.Helpers;
-using Gurux.DLMS.AMI.Client.Pages.Content;
 using Gurux.DLMS.AMI.Client.Shared;
 using Gurux.DLMS.AMI.Client.Shared.Enums;
 using Gurux.DLMS.AMI.Components;
 using Gurux.DLMS.AMI.Components.Enums;
 using Gurux.DLMS.AMI.Data;
-using Gurux.DLMS.AMI.Module;
 using Gurux.DLMS.AMI.Server.Internal;
 using Gurux.DLMS.AMI.Server.Repository;
 using Gurux.DLMS.AMI.Server.Services;
 using Gurux.DLMS.AMI.Server.Triggers;
-using Gurux.DLMS.AMI.Services;
 using Gurux.DLMS.AMI.Shared;
 using Gurux.DLMS.AMI.Shared.DIs;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -68,16 +65,15 @@ using Gurux.DLMS.AMI.Shared.DTOs.UrlAlias;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.Rest;
 using Gurux.Service.Orm;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Metadata;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using MySqlConnector;
+using MySql.Data.MySqlClient;
+using MySql.EntityFrameworkCore.Extensions;
 using Oracle.ManagedDataAccess.Client;
 using System.Data;
 using System.Data.Common;
@@ -1568,10 +1564,8 @@ namespace Gurux.DLMS.AMI.Server
                 {
                     connections.Add(new MySqlConnection(settings));
                 }
-                //Add MySQL for EF.
                 builder.Services.AddDbContextPool<ApplicationDbContext>(options =>
-                options.UseMySql(
-                    builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseMySQL(settings));
             }
             else
             {
@@ -1608,6 +1602,9 @@ namespace Gurux.DLMS.AMI.Server
                         host.Connection.CreateTable<GXUrlAlias>(true, false);
                         host.Connection.CreateTable<GXAppearance>(false, false);
                         host.Connection.CreateTable<GXConfiguration>(false, false);
+                        host.Connection.CreateTable<GXLanguage>(true, false);
+                        host.Connection.CreateTable<GXEnumType>(true, false);
+
                         AddDefaultConfigurationSettings(host);
                         UpdateComponentViews(host);
                         host.Connection.CommitTransaction(t);
@@ -2033,5 +2030,5 @@ namespace Gurux.DLMS.AMI.Server
             }
             return JsonSerializer.Deserialize(conf.Settings, type);
         }
-    }   
+    }
 }
