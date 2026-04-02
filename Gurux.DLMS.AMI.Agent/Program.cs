@@ -30,15 +30,16 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using System.Reflection;
-using System.Diagnostics;
-using System.Runtime.Loader;
-using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Agent.Shared;
-using Microsoft.Extensions.DependencyInjection;
+using Gurux.DLMS.AMI.Agent.Worker;
 using Gurux.DLMS.AMI.Shared;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.Loader;
+using System.Text.Json;
 
 namespace Gurux.DLMS.AMI.Agent
 {
@@ -55,6 +56,7 @@ namespace Gurux.DLMS.AMI.Agent
         public static async Task RegisterAgent(
             IServiceCollection services,
             AutoResetEvent newVersion,
+            AutoResetEvent updated,
             IGXAgentWorker worker,
             AgentOptions options)
         {
@@ -74,11 +76,11 @@ namespace Gurux.DLMS.AMI.Agent
             }
             Console.WriteLine("Enter Personal Access Token:");
             options.Token = Console.ReadLine();
-            if (options.Token == null || options.Token.Length != 64)
+            if (options.Token == null || options.Token.Length < 64)
             {
                 throw new ArgumentException("Invalid token.");
             }
-            worker.Init(services, options, newVersion);
+            worker.Init(services, options, newVersion, updated);
             options.Id = await worker.AddAgentAsync(name);
             if (options.Id == Guid.Empty)
             {
@@ -92,6 +94,7 @@ namespace Gurux.DLMS.AMI.Agent
         {
             AssemblyLoadContext alc;
             AutoResetEvent newVersion = new AutoResetEvent(true);
+            AutoResetEvent updated = new AutoResetEvent(false);
             //Show file version info.
             Assembly asm = Assembly.GetExecutingAssembly();
             FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
@@ -108,13 +111,13 @@ namespace Gurux.DLMS.AMI.Agent
 
             try
             {
+                var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
                 using var loggerFactory = LoggerFactory.Create(builder =>
                 {
-                    builder
-                        .AddFilter("Microsoft", LogLevel.Warning)
-                        .AddFilter("System", LogLevel.Warning)
-                        .AddFilter(typeof(Program).FullName, LogLevel.Debug)
-                        .AddConsole();
+                    builder.AddConfiguration(config.GetSection("Logging"))
+                    .AddConsole();
                 });
                 _logger = loggerFactory.CreateLogger<Program>();
 
@@ -137,22 +140,19 @@ namespace Gurux.DLMS.AMI.Agent
                 {
                     alc = new AssemblyLoadContext("tmp");
                     asm = alc.LoadFromAssemblyPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Gurux.DLMS.AMI.Agent.Worker.dll"));
-                    IGXAgentWorker worker = (IGXAgentWorker)asm.CreateInstance(typeof(GXAgentWorker).FullName);
+                    IGXAgentWorker? worker = (IGXAgentWorker?)asm.CreateInstance(typeof(GXAgentWorker).FullName);
                     IServiceCollection services = new ServiceCollection();
                     services.AddLogging(builder =>
                     {
-                        builder
-                            .AddFilter("Microsoft", LogLevel.Warning)
-                            .AddFilter("System", LogLevel.Warning)
-                            .AddFilter(typeof(Program).FullName, LogLevel.Debug)
-                            .AddConsole();
+                        builder.AddConfiguration(config.GetSection("Logging"))
+                        .AddConsole();
                     });
-                    await RegisterAgent(services, newVersion, worker, options);
+                    await RegisterAgent(services, newVersion, updated, worker, options);
                     await worker.StopAsync();
                     worker = null;
                 }
                 options = JsonSerializer.Deserialize<AgentOptions>(File.ReadAllText(settingsFile));
-                if (options == null || options.Token == null || options.Token.Length != 64)
+                if (string.IsNullOrEmpty(options?.Token))
                 {
                     throw new ArgumentException("Invalid token.");
                 }
@@ -172,7 +172,7 @@ namespace Gurux.DLMS.AMI.Agent
                 Task t = Task.Run(() => ClosePoller(cts));
                 alc = new AssemblyLoadContext("Agent.Worker", true);
                 //Current agent version is returned if update fails.
-                string currentVersion = options.Version;
+                string? currentVersion = options.Version;
                 bool update = newVersion.WaitOne(0);
                 do
                 {
@@ -204,13 +204,10 @@ namespace Gurux.DLMS.AMI.Agent
                             IServiceCollection services = new ServiceCollection();
                             services.AddLogging(builder =>
                             {
-                                builder
-                                    .AddFilter("Microsoft", LogLevel.Warning)
-                                    .AddFilter("System", LogLevel.Warning)
-                                    .AddFilter(typeof(Program).FullName, LogLevel.Debug)
-                                    .AddConsole();
+                                builder.AddConfiguration(config.GetSection("Logging"))
+                                                    .AddConsole();
                             });
-                            worker.Init(services, options, newVersion);
+                            worker.Init(services, options, newVersion, updated);
                             await worker.StartAsync();
                             currentVersion = options.Version;
                         }
@@ -241,7 +238,7 @@ namespace Gurux.DLMS.AMI.Agent
                         }
                     }
                     //Wait until application is closed or a new version is released.
-                    int wait = AutoResetEvent.WaitAny(new WaitHandle[] { cts.Token.WaitHandle, newVersion });
+                    int wait = AutoResetEvent.WaitAny([cts.Token.WaitHandle, newVersion, updated]);
                     if (wait == 0)
                     {
                         //App is closed.
@@ -252,17 +249,19 @@ namespace Gurux.DLMS.AMI.Agent
                         //New version is available.
                         update = true;
                     }
+                    else if (wait == 2)
+                    {
+                        //Agent Settings are updated.
+                        File.WriteAllText(settingsFile, JsonSerializer.Serialize(options));
+                        update = false;
+                    }
                 }
                 while (true);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex.Message);
+                _logger?.LogError(ex.Message);
                 return 1;
-            }
-            finally
-            {
-                await Disconnect();
             }
             return 0;
         }
@@ -290,8 +289,9 @@ namespace Gurux.DLMS.AMI.Agent
         {
             if (worker != null)
             {
-                await worker.StopAsync();
+                var tmp = worker;
                 worker = null;
+                await tmp.StopAsync();
             }
         }
 
