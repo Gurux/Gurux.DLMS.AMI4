@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Block cipher key.
         /// </summary>
-        [StringLength(32)]
+        [StringLength(64)]
         [Description("Block cipher key.")]
         public string? BlockCipherKey
         {
@@ -78,7 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Authentication key.
         /// </summary>
-        [StringLength(32)]
+        [StringLength(64)]
         [Description("Authentication key.")]
         public string? AuthenticationKey
         {
@@ -90,9 +90,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Dedicated Key.
         /// </summary>
         [DefaultValue(null)]
-        [StringLength(32)]
+        [StringLength(64)]
         [Description("Dedicatedkey.")]
         public string? DedicatedKey
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Broadcast key.
+        /// </summary>
+        [StringLength(64)]
+        [Description("Broadcast key.")]
+        public string? BroadcastKey
         {
             get;
             set;
@@ -673,6 +684,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
                 PreEstablished == source.PreEstablished &&
                 BlockCipherKey == source.BlockCipherKey &&
                 AuthenticationKey == source.AuthenticationKey &&
+                BroadcastKey == source.BroadcastKey &&
                 InvocationCounter == source.InvocationCounter &&
                 FrameCounter == source.FrameCounter &&
                 Challenge == source.Challenge &&

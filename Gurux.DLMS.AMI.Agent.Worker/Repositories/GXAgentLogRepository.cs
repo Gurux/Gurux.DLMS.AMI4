@@ -31,10 +31,8 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.Rest;
-using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 {
@@ -44,20 +42,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXAgentLogRepository : IAgentLogRepository
     {
         /// <inheritdoc/>
-        public async Task AddAsync(ClaimsPrincipal? User, IEnumerable<GXAgentLog> logs)
+        public async Task AddAsync(string type, IEnumerable<GXAgentLog> logs)
         {
-            AddAgentLog req = new AddAgentLog() { Logs = logs.ToArray() };
+            AddAgentLog req = new AddAgentLog() { Logs = logs.ToArray(), Type = type };
             _ = await GXAgentWorker.client.PostAsJson<AddAgentLogResponse>("/api/AgentLog/Add", req);
         }
 
         /// <inheritdoc/>
-        public Task<GXAgentLog> AddAsync(ClaimsPrincipal? User, GXAgent device, Exception ex)
+        public Task<GXAgentLog> AddAsync(string type, GXAgent device, Exception ex)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public async Task ClearAsync(ClaimsPrincipal User, Guid[] agents)
+        public async Task ClearAsync(Guid[] agents)
         {
             ClearAgentLogs req = new ClearAgentLogs()
             {
@@ -67,7 +65,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs)
+        public async Task CloseAsync(IEnumerable<Guid> logs)
         {
             CloseAgentLog req = new CloseAgentLog() { Logs = logs.ToArray() };
             _ = await GXAgentWorker.client.PostAsJson<AddAgentLogResponse>("/api/AgentLog/Close", req);
@@ -75,7 +73,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 
         /// <inheritdoc/>
         public async Task<GXAgentLog[]> ListAsync(
-            ClaimsPrincipal User,
             ListAgentLogs? request,
             ListAgentLogsResponse? response,
             CancellationToken cancellationToken)
@@ -91,7 +88,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task<GXAgentLog?> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public Task<GXAgentLog?> ReadAsync(Guid id)
         {
             return Helpers.GetAsync<GXAgentLog>(string.Format("/api/AgentLog/?Id={0}", id));
             /*TODO:

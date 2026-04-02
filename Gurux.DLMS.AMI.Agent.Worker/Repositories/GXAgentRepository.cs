@@ -31,12 +31,10 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DIs;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
 using System.Linq.Expressions;
-using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 {
@@ -46,34 +44,33 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXAgentRepository : IAgentRepository
     {
         /// <inheritdoc/>
-        public Task ClearCache(ClaimsPrincipal User, Guid[]? Ids, string[] names)
+        public Task ClearCache(Guid[]? Ids, string[] names)
         {
             //The agent doesn't need this.
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
+        public async Task DeleteAsync(IEnumerable<Guid> devices, bool delete)
         {
             RemoveAgent req = new RemoveAgent() { Ids = devices.ToArray(), Delete = delete };
             _ = await GXAgentWorker.client.PostAsJson<RemoveAgentResponse>("/api/Agent/Delete", req);
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal? user, Guid? deviceId)
+        public Task<List<string>> GetUsersAsync(Guid? deviceId)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? agentIds)
+        public Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
         public async Task<GXAgent[]> ListAsync(
-            ClaimsPrincipal User,
             ListAgents? request,
             ListAgentsResponse? response,
             CancellationToken cancellationToken)
@@ -88,7 +85,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return ret.Agents;
         }
 
-        public Task<GXAgent[]> ListInstallersAsync(ClaimsPrincipal? User,
+        public Task<GXAgent[]> ListInstallersAsync(
                 ListAgentInstallers? request,
                 bool includeRemoved,
                 ListAgentInstallersResponse? response)
@@ -97,32 +94,32 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<GXAgent> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public async Task<GXAgent> ReadAsync(Guid id)
         {
             return await Helpers.GetAsync<GXAgent>(string.Format("/api/Agent/?Id={0}", id));
         }
 
         /// <inheritdoc/>
-        public async Task<Guid[]> UpdateAsync(ClaimsPrincipal? user, IEnumerable<GXAgent> devices)
+        public async Task<Guid[]> UpdateAsync(IEnumerable<GXAgent> devices)
         {
             UpdateAgent req = new UpdateAgent() { Agents = devices.ToArray() };
             return (await GXAgentWorker.client.PostAsJson<UpdateAgentResponse>("/api/Agent/Update", req)).AgentIds;
         }
 
         /// <inheritdoc/>
-        public Task<Guid[]> UpdateAsync(ClaimsPrincipal? User, IEnumerable<GXAgent> agents, Expression<Func<GXAgent, object?>> columns)
+        public Task<Guid[]> UpdateAsync(IEnumerable<GXAgent> agents, Expression<Func<GXAgent, object?>> columns)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data)
+        public Task UpdateStatusAsync(Guid agentId, string connectionInfo, AgentStatus status, string? data)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task UpgradeAsync(ClaimsPrincipal User, IEnumerable<GXAgent> agents)
+        public Task UpgradeAsync(IEnumerable<GXAgent> agents)
         {
             throw new NotImplementedException();
         }

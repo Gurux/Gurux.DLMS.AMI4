@@ -535,7 +535,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     }
                 } while (target.ImageTransferStatus != ImageTransferStatus.ActivationSuccessful &&
                 target.ImageTransferStatus != ImageTransferStatus.ActivationFailed);
-            };
+            }
+            ;
         }
 
         /// <summary>
@@ -833,6 +834,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <returns>Read value.</returns>
         public async Task<object> Read(GXDLMSObject it, int attributeIndex)
         {
+            string type = "Read";
             GXDeviceAction? a = null;
             if (_device != null)
             {
@@ -842,7 +844,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     Id = _device.Id,
                     Name = _device.Name
                 };
-                a.Type = DeviceActionType.Read;
                 string[] names = ((IGXDLMSBase)it).GetNames();
                 if (attributeIndex < names.Length)
                 {
@@ -907,7 +908,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             {
                 if (a != null)
                 {
-                    a.Type = a.Type | DeviceActionType.Error;
+                    type = "Read, Error";
                     a.Reply = ex.Message;
                 }
                 throw;
@@ -919,6 +920,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     //Send device action information if trace level is Info or Verbose.
                     AddDeviceAction log = new AddDeviceAction();
                     log.Actions = new GXDeviceAction[] { a };
+                    log.Type = type;
                     await GXAgentWorker.client.PostAsJson<AddDeviceActionResponse>("/api/DeviceAction/Add", log);
                 }
             }
@@ -1115,11 +1117,18 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 {
                     GXDeviceTrace trace = new GXDeviceTrace();
                     trace.Device = new GXDevice() { Id = _device.Id };
-                    trace.Send = tx;
                     trace.Frame = frame;
                     AddDeviceTrace it = new AddDeviceTrace();
-                    it.Traces = new GXDeviceTrace[] { trace };
-                    _ = await GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/DeviceTrace/Add", it);
+                    it.Traces = [trace];
+                    if (tx)
+                    {
+                        it.Type = "Send";
+                    }
+                    else
+                    {
+                        it.Type = "Receive";
+                    }
+                    await GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/DeviceTrace/Add", it);
                 }
                 catch (Exception ex)
                 {

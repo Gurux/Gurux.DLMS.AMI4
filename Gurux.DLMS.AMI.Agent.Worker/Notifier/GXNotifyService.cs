@@ -76,7 +76,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         }
 
         /// <inheritdoc/>
-        public Task StartAsync(CancellationToken cancellationToken)
+        public async Task StartAsync(CancellationToken cancellationToken)
         {
             if (GXAgentWorker.Options.NotifySettings != null)
             {
@@ -118,7 +118,21 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                     }
                     notify = new GXNet((NetworkType)net.Protocol, net.Port);
                     notify.OnReceived += OnNotifyReceived;
-                    _logger.LogInformation("Listening notifications in port: " + notify.Port);
+                    if (GXAgentWorker.Options.TraceLevel > TraceLevel.Error)
+                    {
+                        _logger.LogInformation("Listening push notifications in port: {0}.", notify.Port);
+                        if (GXAgentWorker.Options.NotifySettings.TraceLevel > TraceLevel.Error)
+                        {
+                            AddAgentLog log = new AddAgentLog();
+                            log.Type = "Push listener";
+                            log.Logs = [new GXAgentLog(TraceLevel.Verbose)
+                        {
+                            Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
+                            Message = string.Format("Listening push notifications in port: {0}.", notify.Port)
+                        } ];
+                            await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
+                        }
+                    }
                     notify.Open();
                 }
             }
@@ -126,7 +140,6 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
             {
                 _logger.LogInformation("Notify service is not used.");
             }
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -288,12 +301,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
                 //Send agent verbose trace.
                 if (settings != null && settings.TraceLevel == TraceLevel.Verbose)
                 {
-                    //Agent trace.
-                    GXAgentLog trace = new GXAgentLog(TraceLevel.Verbose);
-                    trace.Agent = new GXAgent() { Id = GXAgentWorker.Options.Id };
-                    trace.Message = GXCommon.ToHex((byte[])e.Data);
+                    //Agent log from the received data.
+                    GXAgentLog log = new GXAgentLog(TraceLevel.Verbose);
+                    log.Agent = new GXAgent() { Id = GXAgentWorker.Options.Id };
+                    log.Message = GXCommon.ToHex((byte[])e.Data);
                     AddAgentLog it = new AddAgentLog();
-                    it.Logs = new GXAgentLog[] { trace };
+                    it.Type = "Notify data";
+                    it.Logs = [log];
                     GXAgentWorker.client.PostAsJson<AddDeviceTraceResponse>("/api/AgentLog/Add", it).Wait();
                 }
 
@@ -424,15 +438,28 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Notifier
         }
 
         /// <inheritdoc/>
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogWarning("Notify service is stopping.");
+            if (GXAgentWorker.Options.TraceLevel > TraceLevel.Error)
+            {
+                _logger.LogWarning("Notify service is stopping.");
+                if (GXAgentWorker.Options.NotifySettings?.TraceLevel > TraceLevel.Error)
+                {
+                    AddAgentLog log = new AddAgentLog();
+                    log.Type = "Push listener";
+                    log.Logs = [new GXAgentLog(TraceLevel.Verbose)
+                        {
+                            Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
+                            Message = "Stop Listening push notifications."
+                        } ];
+                    await GXAgentWorker.client.PostAsJson("/api/AgentLog/Add", log);
+                }
+            }
             if (notify != null)
             {
                 notify.OnReceived -= OnNotifyReceived;
                 notify.Close();
             }
-            return Task.CompletedTask;
         }
 
         /// <inheritdoc/>

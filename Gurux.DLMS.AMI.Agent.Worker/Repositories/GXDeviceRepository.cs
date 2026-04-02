@@ -47,32 +47,31 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXDeviceRepository : IDeviceRepository
     {
         /// <inheritdoc/>
-        public Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
+        public Task DeleteAsync(IEnumerable<Guid> devices, bool delete)
         {
             RemoveDevice req = new RemoveDevice() { Ids = devices.ToArray(), Delete = delete };
             return GXAgentWorker.client.PostAsJson<RemoveDeviceResponse>("/api/Device/Delete", req);
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal? user, Guid? deviceId)
+        public Task<List<string>> GetUsersAsync(Guid? deviceId)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? deviceIds)
+        public Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceIds)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
         public async Task<GXDevice[]> ListAsync(
-            ClaimsPrincipal User,
-            ListDevices? request, 
+            ListDevices? request,
             ListDevicesResponse? response,
             CancellationToken cancellationToken)
         {
-            ListDevicesResponse? ret = await GXAgentWorker.client.PostAsJson<ListDevicesResponse>("/api/Device/List", 
+            ListDevicesResponse? ret = await GXAgentWorker.client.PostAsJson<ListDevicesResponse>("/api/Device/List",
                 request, cancellationToken);
             if (ret == null)
             {
@@ -87,20 +86,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<GXDevice> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public async Task<GXDevice> ReadAsync(Guid id)
         {
             return await GXAgentWorker.client.GetAsJsonAsync<GXDevice>(string.Format("/api/Device/?Id={0}", id));
         }
 
-        public Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> devices)
+        public Task ResetAsync(IEnumerable<Guid> devices)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal? user, 
-            IEnumerable<GXDevice> devices, 
+
+            IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
             Expression<Func<GXDevice, object?>>? columns = null,
             bool lateBinding = false,
@@ -115,7 +114,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
             return ret.Ids;
         }
 
-        public Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status)
+        public Task UpdateStatusAsync(Guid deviceId, DeviceStatus status)
         {
             throw new NotImplementedException();
         }

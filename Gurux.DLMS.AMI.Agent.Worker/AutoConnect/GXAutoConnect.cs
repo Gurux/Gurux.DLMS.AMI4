@@ -123,6 +123,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 {
                     _logger?.LogInformation(str);
                     AddAgentLog log = new AddAgentLog();
+                    log.Type = TraceLevel.Verbose.ToString();
                     log.Logs = new GXAgentLog[]{new GXAgentLog(TraceLevel.Verbose)
                         {
                             Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
@@ -159,6 +160,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 {
                     _logger?.LogInformation("Meter connected from address: {0}", _info);
                     AddAgentLog log = new AddAgentLog();
+                    log.Type = TraceLevel.Verbose.ToString();
                     log.Logs = new GXAgentLog[]{new GXAgentLog(TraceLevel.Verbose)
                         {
                             Agent = new GXAgent(){Id =GXAgentWorker.Options.Id },
@@ -207,7 +209,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     if (ret?.Devices == null || !ret.Devices.Any())
                     {
                         //If unknown device.
-                        throw new GXAMIUnknownDeviceException(string.Format("Unknown device '{0}'", ldn.Value));
+                        //TODO:  throw new GXAMIUnknownDeviceException(string.Format("Unknown device '{0}'", ldn.Value));
                     }
                     _deviceId = ret.Devices[0].Id;
                 }
@@ -215,7 +217,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                     !settings.PreEstablished && (_deviceId == null || _deviceId == Guid.Empty))
                 {
                     //If unknown device.
-                    throw new GXAMIUnknownDeviceException(Properties.Resources.UnknownDevice);
+                    //TODO: throw new GXAMIUnknownDeviceException(Properties.Resources.UnknownDevice);
                 }
                 DateTime start = DateTime.Now;
                 GXDevice? dev = null;
@@ -242,7 +244,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                         _logger?.LogInformation(Properties.Resources.NoExecutedTasks);
                         if (_deviceId != null && _deviceId != Guid.Empty)
                         {
-                            AddDeviceError error = new AddDeviceError();
+                            AddDeviceError error = new AddDeviceError()
+                            {
+                                Type = TraceLevel.Info.ToString(),
+                            };
                             error.Errors = new GXDeviceError[]{
                 new GXDeviceError(TraceLevel.Info)
                         {
@@ -363,7 +368,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                                     gw.Agent = new GXAgent() { Id = Options.Id };
                                     UpdateGateway tmp2 = new UpdateGateway()
                                     {
-                                        Gateways = new GXGateway[]{gw}
+                                        Gateways = new GXGateway[] { gw }
                                     };
                                     GXAgentWorker.client.PostAsJson("/api/Gateway/Update", tmp2).Wait();
                                 }

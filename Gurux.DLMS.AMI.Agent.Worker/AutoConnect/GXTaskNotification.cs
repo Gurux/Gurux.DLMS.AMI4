@@ -93,6 +93,10 @@ namespace Gurux.DLMS.AMI.Agent.Worker.AutoConnect
                 {
                     value = list[id];
                 }
+                else
+                {
+                    throw new Exception("Unknown ID.");
+                }
             }
             bool ret = false;
             if (value != null)

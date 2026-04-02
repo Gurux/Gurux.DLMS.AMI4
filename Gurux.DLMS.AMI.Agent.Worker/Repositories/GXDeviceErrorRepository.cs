@@ -44,20 +44,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXDeviceErrorRepository : IDeviceErrorRepository
     {
         /// <inheritdoc/>
-        public async Task AddAsync(ClaimsPrincipal? User, IEnumerable<GXDeviceError> errors)
+        public async Task AddAsync(string type, IEnumerable<GXDeviceError> errors)
         {
-            AddDeviceError req = new AddDeviceError() { Errors = errors.ToArray() };
+            AddDeviceError req = new AddDeviceError() { Errors = errors.ToArray(), Type = type };
             _ = await GXAgentWorker.client.PostAsJson<AddDeviceErrorResponse>("/api/DeviceError/Add", req);
         }
 
         /// <inheritdoc/>
-        public Task<GXDeviceError> AddAsync(ClaimsPrincipal? User, GXDevice device, Exception ex)
+        public Task<GXDeviceError> AddAsync(string type, GXDevice device, Exception ex)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public async Task ClearAsync(ClaimsPrincipal? User, IEnumerable<Guid>? devices)
+        public async Task ClearAsync(IEnumerable<Guid>? devices)
         {
             ClearDeviceErrors req = new ClearDeviceErrors()
             {
@@ -67,7 +67,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors)
+        public async Task CloseAsync(IEnumerable<Guid> errors)
         {
             CloseDeviceError req = new CloseDeviceError() { Errors = errors.ToArray() };
             _ = await GXAgentWorker.client.PostAsJson<AddDeviceErrorResponse>("/api/DeviceError/Close", req);
@@ -75,8 +75,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
 
         /// <inheritdoc/>
         public async Task<GXDeviceError[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListDeviceErrors? request, 
+            ListDeviceErrors? request,
             ListDeviceErrorsResponse? response,
             CancellationToken cancellationToken)
         {
@@ -90,7 +89,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<GXDeviceError> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public async Task<GXDeviceError> ReadAsync(Guid id)
         {
             return await Helpers.GetAsync<GXDeviceError>(string.Format("/api/DeviceError/?Id={0}", id));
         }

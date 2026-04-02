@@ -44,39 +44,39 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXValueRepository : IValueRepository
     {
         /// <inheritdoc/>
-        public async Task<Guid[]> AddAsync(ClaimsPrincipal? User, IEnumerable<GXValue> values)
+        public async Task<Guid[]> AddAsync(IEnumerable<GXValue> values)
         {
             AddValue req = new AddValue() { Values = values.ToArray() };
             return (await GXAgentWorker.client.PostAsJson<AddValueResponse>("/api/Value/Add", req)).Ids;
         }
 
         /// <inheritdoc/>
-        public Task ClearAttributeAsync(ClaimsPrincipal User, IEnumerable<GXAttribute> attributes)
+        public Task ClearAttributeAsync(IEnumerable<GXAttribute> attributes)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task ClearDeviceAsync(ClaimsPrincipal User, IEnumerable<GXDevice> objects)
+        public Task ClearDeviceAsync(IEnumerable<GXDevice> objects)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task ClearObjectAsync(ClaimsPrincipal User, IEnumerable<GXObject> objects)
+        public Task ClearObjectAsync(IEnumerable<GXObject> objects)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices)
+        public Task DeleteAsync(IEnumerable<Guid> devices)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
         public async Task<GXValue[]> ListAsync(
-            ClaimsPrincipal User, 
+            
             ListValues? request, 
             ListValuesResponse? response,
             CancellationToken cancellationToken)
@@ -91,7 +91,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<GXValue> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public async Task<GXValue> ReadAsync(Guid id)
         {
             return await Helpers.GetAsync<GXValue>(string.Format("/api/Value/?Id={0}", id));
         }

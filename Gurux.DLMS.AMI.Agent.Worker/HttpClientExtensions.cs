@@ -33,6 +33,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
@@ -50,7 +51,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
             using (HttpResponseMessage response = await httpClient.PostAsync(url, content, cancellationToken))
             {
-                Helpers.ValidateStatusCode(response);
+                await AMI.Shared.Helpers.ValidateStatusCode(response, cancellationToken);
                 return await response.Content.ReadFromJsonAsync<RET>();
             }
         }
@@ -64,16 +65,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             string str = JsonSerializer.Serialize(data, options);
             StringContent content = new StringContent(str);
             content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            using (HttpResponseMessage response = await httpClient.PostAsync(url, content))
-            {
-                Helpers.ValidateStatusCode(response);
-            }
+            using HttpResponseMessage response = await httpClient.PostAsync(url, content);
+            await AMI.Shared.Helpers.ValidateStatusCode(response, default);
         }
 
         public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
         {
             HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);
-            Helpers.ValidateStatusCode(response);
+            await AMI.Shared.Helpers.ValidateStatusCode(response, cancellationToken);
             var ret = await response.Content.ReadFromJsonAsync<RET>();
             if (ret == null)
             {

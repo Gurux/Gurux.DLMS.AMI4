@@ -45,14 +45,14 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
     class GXGatewayLogRepository : IGatewayLogRepository
     {
         /// <inheritdoc/>
-        public async Task AddAsync(ClaimsPrincipal? User, IEnumerable<GXGatewayLog> logs)
+        public async Task AddAsync(string type, IEnumerable<GXGatewayLog> logs)
         {
-            AddGatewayLog req = new AddGatewayLog() { Logs = logs.ToArray() };
+            AddGatewayLog req = new AddGatewayLog() { Logs = logs.ToArray(), Type = type };
             _ = await GXAgentWorker.client.PostAsJson<AddGatewayLogResponse>("/api/GatewayLog/Add", req);
         }
 
         /// <inheritdoc/>
-        public async Task<GXGatewayLog> AddAsync(ClaimsPrincipal? User, GXGateway gateway, Exception ex)
+        public async Task<GXGatewayLog> AddAsync(string type, GXGateway gateway, Exception ex)
         {
             GXGatewayLog log = new GXGatewayLog(TraceLevel.Error)
             {
@@ -60,13 +60,13 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
                 StackTrace = ex.StackTrace,
                 Gateway = gateway,
             };
-            AddGatewayLog req = new AddGatewayLog() { Logs = new[] { log } };
+            AddGatewayLog req = new AddGatewayLog() { Logs = [log] };
             _ = await GXAgentWorker.client.PostAsJson<AddGatewayLogResponse>("/api/GatewayLog/Add", req);
             return log;
         }
 
         /// <inheritdoc/>
-        public async Task ClearAsync(ClaimsPrincipal User, Guid[]? gateways)
+        public async Task ClearAsync(Guid[]? gateways)
         {
             ClearGatewayLogs req = new ClearGatewayLogs()
             {
@@ -76,7 +76,7 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs)
+        public async Task CloseAsync(IEnumerable<Guid> logs)
         {
             CloseGatewayLog req = new CloseGatewayLog() { Logs = logs.ToArray() };
             _ = await GXAgentWorker.client.PostAsJson<AddGatewayLogResponse>("/api/GatewayLog/Close", req);
@@ -84,7 +84,6 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
 
         /// <inheritdoc/>
         public async Task<GXGatewayLog[]> ListAsync(
-            ClaimsPrincipal User,
             ListGatewayLogs? request,
             ListGatewayLogsResponse? response,
             CancellationToken cancellationToken)
@@ -100,7 +99,7 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public Task<GXGatewayLog?> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public Task<GXGatewayLog?> ReadAsync(Guid id)
         {
             return Helpers.GetAsync<GXGatewayLog>(string.Format("/api/GatewayLog/?Id={0}", id));
             /*TODO:
@@ -117,7 +116,7 @@ namespace Gurux.DLMS.AMI.Gateway.Worker.Repositories
             */
         }
 
-        Task<GXGatewayLog> IGatewayLogRepository.AddAsync(ClaimsPrincipal User, GXGateway Gateway, Exception ex)
+        Task<GXGatewayLog> IGatewayLogRepository.AddAsync(string type, GXGateway Gateway, Exception ex)
         {
             throw new NotImplementedException();
         }

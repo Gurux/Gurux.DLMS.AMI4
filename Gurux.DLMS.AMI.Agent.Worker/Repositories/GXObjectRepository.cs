@@ -44,27 +44,26 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
     class GXObjectRepository : IObjectRepository
     {
         /// <inheritdoc/>
-        public async Task DeleteAsync(ClaimsPrincipal? user, IEnumerable<Guid> devices, bool delete)
+        public async Task DeleteAsync(IEnumerable<Guid> devices, bool delete)
         {
             RemoveObject req = new RemoveObject() { Ids = devices.ToArray(), Delete = delete };
             _ = await GXAgentWorker.client.PostAsJson<RemoveObjectResponse>("/api/Object/Delete", req);
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? objectId)
+        public Task<List<string>> GetUsersAsync(Guid? objectId)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
-        public Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? objectIds)
+        public Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
         public async Task<GXObject[]> ListAsync(
-            ClaimsPrincipal User,
             ListObjects? request,
             ListObjectsResponse? response,
             CancellationToken cancellationToken)
@@ -80,14 +79,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task<GXObject> ReadAsync(ClaimsPrincipal? User, Guid id)
+        public async Task<GXObject> ReadAsync(Guid id)
         {
             return await Helpers.GetAsync<GXObject>(string.Format("/api/Object/?Id={0}", id));
         }
 
         /// <inheritdoc/>
         public async Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal? user,
             IEnumerable<GXObject> objects,
              Expression<Func<GXObject, object?>>? columns = null)
         {
@@ -96,7 +94,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker.Repositories
         }
 
         /// <inheritdoc/>
-        public async Task UpdateDatatypeAsync(ClaimsPrincipal user, IEnumerable<GXAttribute> attributes)
+        public async Task UpdateDatatypeAsync(IEnumerable<GXAttribute> attributes)
         {
             UpdateDatatype req = new UpdateDatatype() { Items = attributes.ToArray() };
             _ = await GXAgentWorker.client.PostAsJson<UpdateDatatypeResponse>("/api/Attribute/UpdateDatatype", req);

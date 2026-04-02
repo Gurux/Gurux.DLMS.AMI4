@@ -10,7 +10,7 @@
 //                  $Date$
 //                  $Author$
 //
-// Copyright (c) Gurux Ltd
+// Copyright (c) Gurux Ltd   
 //
 //---------------------------------------------------------------------------
 //
@@ -29,94 +29,94 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Script;
 using Gurux.DLMS.AMI.Shared;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.Net;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace Gurux.DLMS.AMI.Agent.Worker
 {
     static class Helpers
     {
-        public static void ValidateStatusCode(HttpResponseMessage response)
-        {
-            if (!response.IsSuccessStatusCode)
-            {
-                if (response.StatusCode == HttpStatusCode.Unauthorized)
-                {
-                    throw new UnauthorizedAccessException();
-                }
-                if (response.StatusCode == HttpStatusCode.NotFound)
-                {
-                    string? error = response.Content.ReadAsStringAsync().Result;
-                    if (string.IsNullOrEmpty(error))
-                    {
-                        error = response?.ReasonPhrase;
-                    }
-                    throw new GXAmiNotFoundException(error);
-                }
-                if (response.StatusCode == HttpStatusCode.ServiceUnavailable)
-                {
-                    string? error = response.Content.ReadAsStringAsync().Result;
-                    if (string.IsNullOrEmpty(error))
-                    {
-                        error = response.ReasonPhrase;
-                    }
-                    GXMaintenanceException e1 = new GXMaintenanceException(error);
-                    if (response.Headers.RetryAfter != null)
-                    {
-                        e1.RetryAfter = response.Headers.RetryAfter.Delta;
-                        e1.EndTime = DateTime.Now + response.Headers.RetryAfter.Delta;
-                    }
-                    throw e1;
-                }
-                if (response.StatusCode == HttpStatusCode.Forbidden)
-                {
-                    //Throw HttpRequestException.
-                    response.EnsureSuccessStatusCode();
-                }
-                else if (response.StatusCode == HttpStatusCode.BadRequest)
-                {
-                    string error = response.Content.ReadAsStringAsync().Result;
-                    throw new Exception(error);
-                }
-                else
-                {
-                    Exception? ex = null;
-                    try
-                    {
-                        string str = response.Content.ReadAsStringAsync().Result;
-                        if (str.StartsWith("{"))
-                        {
-                            ex = JsonSerializer.Deserialize<GXAmiException>(str);
-                        }
-                        else
-                        {
-                            ex = new Exception(str);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        ex = null;
-                    }
-                    if (ex != null)
-                    {
-                        throw ex;
-                    }
-                    response.EnsureSuccessStatusCode();
-                }
-            }
-            else if (response.StatusCode == HttpStatusCode.NoContent)
-            {
-                throw new Exception("No content is returned from the server.");
-            }
-        }
-
         public static async Task<T?> GetAsync<T>(string url)
         {
             HttpResponseMessage response = await GXAgentWorker.client.GetAsync(url);
-            ValidateStatusCode(response);
+            await AMI.Shared.Helpers.ValidateStatusCode(response, default);
             return await response.Content.ReadFromJsonAsync<T>();
+        }
+
+        /// <inheritdoc />
+        public static byte[]? Compile(
+            string script,
+            string? additionalNamespaces)
+        {
+            if (string.IsNullOrEmpty(script))
+            {
+                throw new ArgumentNullException("Invalid script.");
+            }
+            List<GXScriptException> errors = new();
+            StringBuilder sb = new();
+            List<string> namespaces = new List<string>
+            {
+                "System",
+                "System.Linq",
+                "System.Linq.Expressions",
+                "System.Collections.Generic",
+                "Gurux.Common",
+                "Gurux.DLMS.Enums",
+                "Gurux.DLMS.AMI.Script",
+                "Gurux.DLMS.AMI.Shared.DIs",
+                "Gurux.DLMS.AMI.Shared.DTOs",
+                "Gurux.DLMS.AMI.Shared.DTOs.Enums",
+                "Gurux.DLMS.AMI.Shared.DTOs.Agent",
+                "Gurux.DLMS.AMI.Shared.DTOs.Authentication",
+                "Gurux.DLMS.AMI.Shared.DTOs.Content",
+                "Gurux.DLMS.AMI.Shared.DTOs.ComponentView",
+                "Gurux.DLMS.AMI.Shared.DTOs.Device",
+                "Gurux.DLMS.AMI.Shared.DTOs.Gateway",
+                "Gurux.DLMS.AMI.Shared.DTOs.KeyManagement",
+                "Gurux.DLMS.AMI.Shared.DTOs.Manufacturer",
+                "Gurux.DLMS.AMI.Shared.DTOs.Module",
+                "Gurux.DLMS.AMI.Shared.DTOs.Schedule",
+                "Gurux.DLMS.AMI.Shared.DTOs.Script",
+                "Gurux.DLMS.AMI.Shared.DTOs.Subtotal",
+                "Gurux.DLMS.AMI.Shared.DTOs.Report",
+                "Gurux.DLMS.AMI.Shared.DTOs.Trigger",
+                "Gurux.DLMS.AMI.Shared.DTOs.User",
+                "Gurux.DLMS.AMI.Shared.DTOs.Workflow",
+            };
+            if (!string.IsNullOrEmpty(additionalNamespaces))
+            {
+                namespaces.AddRange(additionalNamespaces.Split(';', StringSplitOptions.RemoveEmptyEntries));
+            }
+            foreach (string it in namespaces)
+            {
+                if (!string.IsNullOrEmpty(it))
+                {
+                    sb.AppendLine("using " + it + ";");
+                }
+            }
+            sb.AppendLine("namespace Gurux.DLMS.AMI.GeneratedScript");
+            sb.AppendLine("{");
+            sb.AppendLine("public class GXAmiScript");
+            sb.AppendLine("{");
+            sb.AppendLine("public GXAmiScript(IGXAmi ami)");
+            sb.AppendLine("{");
+            sb.AppendLine("Ami = ami;");
+            sb.AppendLine("}");
+            sb.AppendLine("public IGXAmi Ami{get;private set;}");
+            sb.AppendLine(script);
+            sb.AppendLine("}");
+            sb.AppendLine("}");
+            DateTime start = DateTime.Now;
+            return GXAmiScript.Generate(ScriptLanguage.CSharp, Guid.NewGuid().ToString(), sb.ToString(), errors, null);
         }
     }
 }

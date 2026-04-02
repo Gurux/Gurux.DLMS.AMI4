@@ -80,6 +80,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         private static ILogger? _logger;
         private IGXTaskNotification? _taskNotification;
         static AutoResetEvent _newVersion;
+        static AutoResetEvent _updated;
         ServiceProvider? _services;
         private CancellationToken cancellationToken = new CancellationToken();
         /// <summary>
@@ -139,12 +140,14 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         public void Init(
             IServiceCollection services,
             AgentOptions options,
-            AutoResetEvent newVersion)
+            AutoResetEvent newVersion,
+            AutoResetEvent updated)
         {
             _closing.Reset();
             Options = options;
             services.AddSingleton<GXNotifyService>();
             services.AddSingleton<GXAutoConnectService>();
+            services.AddSingleton<GXGatewayService>();
             services.AddTransient<IDeviceErrorRepository, GXDeviceErrorRepository>();
             services.AddTransient<IAgentLogRepository, GXAgentLogRepository>();
             services.AddTransient<IAgentRepository, GXAgentRepository>();
@@ -158,6 +161,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             _logger = _services.GetRequiredService<ILogger<GXAgentWorker>>();
             _taskNotification = _services.GetRequiredService<IGXTaskNotification>();
             _newVersion = newVersion;
+            _updated = updated;
             client.BaseAddress = new Uri(Options.Address);
             if (Options.Token != null)
             {
@@ -211,11 +215,13 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
                 if (agent != null)
                 {
+                    bool updated = false;
                     if (!string.IsNullOrEmpty(agent.ReaderSettings))
                     {
                         var tmp = JsonSerializer.Deserialize<ReaderSettings?>(agent.ReaderSettings);
-                        if (tmp != null)
+                        if (tmp != null && Convert.ToString(tmp) != Convert.ToString(Options.ReaderSettings))
                         {
+                            updated = true;
                             Options.ReaderSettings = tmp;
                             _logger?.LogInformation("Reader settings: " + Options.ReaderSettings.ToString());
                             _meterReads.Complete();
@@ -234,8 +240,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (!string.IsNullOrEmpty(agent.ListenerSettings))
                     {
                         var tmp = JsonSerializer.Deserialize<ListenerSettings?>(agent.ListenerSettings);
-                        if (tmp != null)
+                        if (tmp != null && Convert.ToString(tmp) != Convert.ToString(Options.ListenerSettings))
                         {
+                            updated = true;
                             Options.ListenerSettings = tmp;
                             _logger?.LogInformation("Listener settings: " + tmp.ToString());
                         }
@@ -243,15 +250,31 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (!string.IsNullOrEmpty(agent.NotifySettings))
                     {
                         var tmp = JsonSerializer.Deserialize<NotifySettings?>(agent.NotifySettings);
-                        if (tmp != null)
+                        if (tmp != null && Convert.ToString(tmp) != Convert.ToString(Options.NotifySettings))
                         {
+                            updated = true;
                             Options.NotifySettings = tmp;
                             _logger?.LogInformation("Notify settings: " + tmp.ToString());
+                        }
+                    }
+                    if (!string.IsNullOrEmpty(agent.GatewaySettings))
+                    {
+                        var tmp = JsonSerializer.Deserialize<GatewaySettings?>(agent.GatewaySettings);
+                        if (tmp != null && Convert.ToString(tmp) != Convert.ToString(Options.GatewaySettings))
+                        {
+                            updated = true;
+                            Options.GatewaySettings = tmp;
+                            _logger?.LogInformation("Gateway settings: " + tmp.ToString());
                         }
                     }
                     Options.SerialPort = agent.SerialPort;
                     Options.SerialPorts = agent.SerialPorts;
                     await UpdateAgentSerialPorts();
+                    if (updated)
+                    {
+                        //Ask agent to save settings.
+                        _updated.Set();
+                    }
                     _logger?.LogInformation("Agent '{0}' started.", agent.Name);
                 }
                 if (!string.IsNullOrEmpty(agent?.UpdateVersion) &&
@@ -312,7 +335,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (Options.ReaderSettings != null && Options.ReaderSettings.Active &&
                         //If the buffer is full.
                         _meterReads.InputCount < Options.ReaderSettings.Threads &&
-                        AutoResetEvent.WaitAny(new WaitHandle[] { _newTask, _closing }) == 0)
+                        AutoResetEvent.WaitAny([_newTask, _closing]) == 0)
                     {
                         GetNextTask req = new GetNextTask();
                         req.AgentId = Options.Id;
@@ -590,7 +613,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 }
             }
         }
-       
+
         internal static async Task<GXDevice?> ReadMeter(GXActionBlock action,
             bool autoConnect = false,
             ListenerSettings? listenerSettings = null)
@@ -733,7 +756,7 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 {
                                     settings.PhysicalAddress = it.PhysicalAddress;
                                 }
-                                else if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber && 
+                                else if (settings.HDLCAddressing == (int)ManufacturerSettings.HDLCAddressType.SerialNumber &&
                                     settings.PhysicalAddress == 0)
                                 {
                                     //If serial number is not given.
@@ -882,13 +905,20 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             Exception ex,
             string message)
         {
-            AddDeviceError error = new AddDeviceError();
-            error.Errors = new GXDeviceError[]{
-                new GXDeviceError()
+            AddDeviceError error = new AddDeviceError()
+            {
+                Type = TraceLevel.Verbose.ToString()
+            };            
+            error.Errors = [
+                new GXDeviceError(TraceLevel.Error)
                         {
-                            Device = dev,
+                    //Only device ID is needed to report error.
+                    //Other properties are not needed and can cause problems if they are not correct.
+                            Device = new GXDevice(){
+                                Id = dev.Id
+                            },
                             Message = message + " " + ex.Message
-                        } };
+                        } ];
             _logger?.LogError(DateTime.Now + "\t" + error.Errors[0].Message);
             await client.PostAsJson("/api/DeviceError/Add", error);
         }
@@ -914,6 +944,9 @@ namespace Gurux.DLMS.AMI.Agent.Worker
         /// <inheritdoc />
         public async System.Threading.Tasks.Task StartAsync()
         {
+            //Create GXNet and GXDate so they are found from the assembly.
+            new GXNet();
+            new GXDate();
             Assembly asm = typeof(GXAgentWorker).Assembly;
             FileVersionInfo info = FileVersionInfo.GetVersionInfo(asm.Location);
             _logger?.LogInformation(string.Format("Starting Gurux.DLMS.Agent.Worker version {0}", string.Join(";", info.FileVersion)));
@@ -989,14 +1022,19 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                     if (agent.Id == Options.Id)
                     {
                         _logger?.LogInformation("Agent '{0}' updated.", agent.Name);
+                        if (agent.TraceLevel != null)
+                        {
+                            Options.TraceLevel = agent.TraceLevel.Value;
+                        }
+                        bool changed = false;
                         Options.SerialPort = agent.SerialPort;
-                        if (!string.IsNullOrEmpty(agent.ReaderSettings) &&
-                            JsonSerializer.Serialize(Options.ReaderSettings) != agent.ReaderSettings)
+                        if (!string.IsNullOrEmpty(agent.ReaderSettings))
                         {
                             int threadCount = Options.ReaderSettings.Threads;
                             ReaderSettings? rs = JsonSerializer.Deserialize<ReaderSettings>(agent.ReaderSettings);
-                            if (rs != null)
+                            if (Convert.ToString(rs) != Convert.ToString(Options.ReaderSettings))
                             {
+                                changed = true;
                                 _logger?.LogInformation("Agent reader settings updated. " +
                                     Environment.NewLine + rs.ToString());
                                 Options.ReaderSettings = rs;
@@ -1011,12 +1049,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 }
                             }
                         }
-                        if (!string.IsNullOrEmpty(agent.NotifySettings) &&
-                        JsonSerializer.Serialize(Options.NotifySettings) != agent.NotifySettings)
+                        if (!string.IsNullOrEmpty(agent.NotifySettings))
                         {
                             NotifySettings? s = JsonSerializer.Deserialize<NotifySettings>(agent.NotifySettings);
-                            if (s != null)
+                            if (Convert.ToString(s) != Convert.ToString(Options.NotifySettings))
                             {
+                                changed = true;
                                 _logger?.LogInformation("Agent notify settings updated. " +
                                     Environment.NewLine + s.ToString());
                                 Options.NotifySettings = s;
@@ -1025,12 +1063,12 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 ns?.StartAsync(cancellationToken);
                             }
                         }
-                        if (!string.IsNullOrEmpty(agent.ListenerSettings) &&
-                        JsonSerializer.Serialize(Options.ListenerSettings) != agent.ListenerSettings)
+                        if (!string.IsNullOrEmpty(agent.ListenerSettings))
                         {
                             var ls = JsonSerializer.Deserialize<ListenerSettings>(agent.ListenerSettings);
-                            if (ls != null)
+                            if (Convert.ToString(ls) != Convert.ToString(Options.ListenerSettings))
                             {
+                                changed = true;
                                 _logger?.LogInformation("Agent auto connect settings updated. " +
                                     Environment.NewLine + ls.ToString());
                                 Options.ListenerSettings = ls;
@@ -1039,11 +1077,30 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                                 ns?.StartAsync(cancellationToken);
                             }
                         }
+                        if (!string.IsNullOrEmpty(agent.GatewaySettings))
+                        {
+                            var settings = JsonSerializer.Deserialize<GatewaySettings>(agent.GatewaySettings);
+                            if (settings?.ToString() != Options.GatewaySettings?.ToString())
+                            {
+                                changed = true;
+                                _logger?.LogInformation("Gateway settings updated. " +
+                                    Environment.NewLine + settings?.ToString());
+                                Options.GatewaySettings = settings;
+                                GXGatewayService? gws = _services?.GetRequiredService<GXGatewayService>();
+                                gws?.StopAsync(cancellationToken);
+                                gws?.StartAsync(cancellationToken);
+                            }
+                        }
                         //if the version is updated.
                         if (!string.IsNullOrEmpty(agent.UpdateVersion))
                         {
                             _logger?.LogInformation(string.Format("Agent version {0} upgraded to version {1}.", Options.Version, agent.UpdateVersion));
                             await InstallNewVersion();
+                        }
+                        //Ask agent to save settings.
+                        if (changed)
+                        {
+                            _updated.Set();
                         }
                         //Read tasks if agent mapping is changed.
                         _newTask.Set();
@@ -1067,6 +1124,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
             ns?.StartAsync(cancellationToken).Wait();
             GXAutoConnectService? ac = _services?.GetRequiredService<GXAutoConnectService>();
             ac?.StartAsync(cancellationToken).Wait();
+            GXGatewayService? gw = _services?.GetRequiredService<GXGatewayService>();
+            gw?.StartAsync(cancellationToken).Wait();
             await System.Threading.Tasks.Task.Factory.StartNew(TaskPoller);
             _logger?.LogInformation("Agent started");
         }
@@ -1119,6 +1178,8 @@ namespace Gurux.DLMS.AMI.Agent.Worker
                 ns?.StopAsync(cancellationToken).Wait();
                 GXAutoConnectService? ac = _services?.GetRequiredService<GXAutoConnectService>();
                 ac?.StopAsync(cancellationToken).Wait();
+                GXGatewayService? gw = _services?.GetRequiredService<GXGatewayService>();
+                gw?.StopAsync(cancellationToken).Wait();
                 if (_hubConnection != null)
                 {
                     await _hubConnection.DisposeAsync();
