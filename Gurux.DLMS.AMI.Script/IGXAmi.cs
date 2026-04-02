@@ -35,6 +35,15 @@ using Gurux.DLMS.AMI.Shared.DTOs.Device;
 
 namespace Gurux.DLMS.AMI.Script
 {
+    /// <summary>
+    /// Defines the contract for an agent management interface that provides access to user, device, and service
+    /// operations, including querying, adding, updating, and removing entities in the database.
+    /// </summary>
+    /// <remarks>Implementations of this interface enable interaction with the underlying data store for
+    /// users, devices, logs, and related entities. The interface supports both synchronous and asynchronous operations
+    /// for most actions. Not all entity types may support all operations; for example, clearing is typically restricted
+    /// to errors and logs for security reasons. Thread safety and specific behavior may depend on the concrete
+    /// implementation.</remarks>
     public interface IGXAmi
     {
         /// <summary>
