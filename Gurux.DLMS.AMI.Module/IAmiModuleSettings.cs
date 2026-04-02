@@ -31,30 +31,51 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
-    /// IGXModule UI notification interface.
+    /// Defines methods for initializing, saving, and managing the settings of an AMI module.
     /// </summary>
+    /// <remarks>Implement this interface to provide initialization, persistence, and cancellation
+    /// functionality for AMI module settings. Methods support both synchronous and asynchronous initialization, as well
+    /// as saving and discarding changes.</remarks>
     public interface IAmiModuleSettings
     {
         /// <summary>
-        /// Initialize settings.
+        /// Initializes the component using the specified settings.
         /// </summary>
-        void Initialize();
+        /// <param name="settings">An optional string containing configuration settings for initialization. If <see langword="null"/> or empty,
+        /// default settings are used.</param>
+        void Initialize(string? settings);
 
         /// <summary>
-        /// Initialize async settings.
+        /// Asynchronously initializes the component using the specified settings.
         /// </summary>
-        Task InitializeAsync();
+        /// <param name="settings">An optional string containing initialization settings. If <see langword="null"/> or empty, default settings
+        /// are used.</param>
+        /// <returns>A task that represents the asynchronous initialization operation.</returns>
+        Task InitializeAsync(string? settings);
 
         /// <summary>
-        /// Save settings.
+        /// Saves the current data to the underlying storage.
         /// </summary>
-        void Save();
+        /// <returns>A string containing the data of the saved resource.</returns>
+        string? Save();
+
+        /// <summary>
+        /// Saves the current data to the underlying storage.
+        /// </summary>
+        /// <returns>A string containing the data of the saved resource.</returns>
+        Task<string?> SaveAsync();
 
         /// <summary>
         /// Cancel changes.
         /// </summary>
         void Cancel();
-    }   
+
+        /// <summary>
+        /// Cancel changes.
+        /// </summary>
+        Task CancelAsync();
+
+    }
 }

@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Module
 {
@@ -60,7 +59,7 @@ namespace Gurux.DLMS.AMI.Module
                 return null;
             }
         }
-        
+
         /// <inheritdoc/>
         public abstract string Description
         {
@@ -83,7 +82,7 @@ namespace Gurux.DLMS.AMI.Module
             {
                 return null;
             }
-        }
+        }       
 
         /// <inheritdoc/>
         public virtual Type? Extension
@@ -128,18 +127,12 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <inheritdoc/>
-        public virtual void ConfigureFrameworkServices(IServiceCollection services)
-        {
-        }
-
-        /// <inheritdoc/>
         public virtual void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
         {
         }
 
         /// <inheritdoc/>
         public virtual void Execute(
-            ClaimsPrincipal user,
             IServiceProvider services,
             string? settings,
             string? instanceSettings)
@@ -148,7 +141,6 @@ namespace Gurux.DLMS.AMI.Module
 
         /// <inheritdoc/>
         public virtual Task ExecuteAsync(
-            ClaimsPrincipal user,
             IServiceProvider services,
             string? settings,
             string? instanceSettings)
@@ -157,12 +149,12 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <inheritdoc/>
-        public virtual void Install(ClaimsPrincipal user, IServiceProvider services, object module)
+        public virtual void Install(IServiceProvider services, object module)
         {
         }
 
         /// <inheritdoc/>
-        public virtual Task InstallAsync(ClaimsPrincipal user, IServiceProvider services, object module)
+        public virtual Task InstallAsync(IServiceProvider services, object module)
         {
             return Task.CompletedTask;
         }
@@ -190,25 +182,30 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <inheritdoc/>
-        public virtual void Uninstall(ClaimsPrincipal user, IServiceProvider services, object module)
+        public virtual void Uninstall(IServiceProvider services, object module)
         {
         }
 
         /// <inheritdoc/>
-        public virtual Task UninstallAsync(ClaimsPrincipal user, IServiceProvider services, object module)
+        public virtual Task UninstallAsync(IServiceProvider services, object module)
         {
             return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
-        public virtual void Update(ClaimsPrincipal user, IServiceProvider services, string current, string updated)
+        public virtual void Update(IServiceProvider services, string current, string updated)
         {
         }
 
         /// <inheritdoc/>
-        public virtual Task UpdateAsync(ClaimsPrincipal user, IServiceProvider services, object current, object updated)
+        public virtual Task UpdateAsync(IServiceProvider services, object current, object updated)
         {
             return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public virtual void Register(AmiModuleContext context)
+        {
         }
     }
 }

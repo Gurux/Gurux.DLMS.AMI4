@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Module
 {
@@ -90,12 +89,21 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
-        /// Css icon.
+        /// Used icon.
         /// </summary>
+        /// <remarks>
+        /// Icon can be HTML emoji, SVG or empty.
+        /// </remarks>
         string? Icon
         {
             get;
         }
+
+        /// <summary>
+        /// Registers the specified module context with the application, enabling its services and event handlers.
+        /// </summary>
+        /// <param name="context">The <see cref="AmiModuleContext"/> representing the module to be registered.  Must not be <c>null</c>.</param>
+        void Register(AmiModuleContext context);
 
         /// <summary>
         /// Extension UI.
@@ -140,62 +148,6 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
-        /// Configure module middlewares.
-        /// </summary>
-        /// <param name="services">Services.</param>
-        void ConfigureMidlewares(IServiceCollection services);
-
-        /// <summary>
-        /// Module is installed.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="module">Installed module.</param>
-        void Install(ClaimsPrincipal user, IServiceProvider services, object module);
-
-        /// <summary>
-        /// Module is installed.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="module">Installed module.</param>
-        Task InstallAsync(ClaimsPrincipal user, IServiceProvider services, object module);
-
-        /// <summary>
-        /// Module is updated.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="current">Current module version.</param>
-        /// <param name="updated">Updated module version.</param>
-        void Update(ClaimsPrincipal user, IServiceProvider services, string current, string updated);
-
-        /// <summary>
-        /// Module is updated.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="current">Current module.</param>
-        /// <param name="updated">Updated module.</param>
-        Task UpdateAsync(ClaimsPrincipal user, IServiceProvider services, object current, object updated);
-
-        /// <summary>
-        /// Module is uninstalled.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="module">Installed module.</param>
-        void Uninstall(ClaimsPrincipal user, IServiceProvider services, object module);
-
-        /// <summary>
-        /// Module is uninstalled.
-        /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="services">Available services.</param>
-        /// <param name="module">Installed module.</param>
-        Task UninstallAsync(ClaimsPrincipal user, IServiceProvider services, object module);
-
-        /// <summary>
         /// Framework calls this so module can configure intenal services.
         /// </summary>
         /// <param name="services">Available services.</param>
@@ -203,14 +155,48 @@ namespace Gurux.DLMS.AMI.Module
         void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration);
 
         /// <summary>
-        /// Framework calls this so module can implement services that the framework can use.
+        /// Module is installed.
         /// </summary>
         /// <param name="services">Available services.</param>
-        /// <remarks>
-        /// The list of the services is null if module doesn't offer any services for the framework.
-        /// Framework services requite that application must reboot after install or update.
-        /// </remarks>
-        void ConfigureFrameworkServices(IServiceCollection services);
+        /// <param name="module">Installed module.</param>
+        void Install(IServiceProvider services, object module);
+
+        /// <summary>
+        /// Module is installed.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        /// <param name="module">Installed module.</param>
+        Task InstallAsync(IServiceProvider services, object module);
+
+        /// <summary>
+        /// Module is updated.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        /// <param name="current">Current module version.</param>
+        /// <param name="updated">Updated module version.</param>
+        void Update(IServiceProvider services, string current, string updated);
+
+        /// <summary>
+        /// Module is updated.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        /// <param name="current">Current module.</param>
+        /// <param name="updated">Updated module.</param>
+        Task UpdateAsync(IServiceProvider services, object current, object updated);
+
+        /// <summary>
+        /// Module is uninstalled.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        /// <param name="module">Installed module.</param>
+        void Uninstall(IServiceProvider services, object module);
+
+        /// <summary>
+        /// Module is uninstalled.
+        /// </summary>
+        /// <param name="services">Available services.</param>
+        /// <param name="module">Installed module.</param>
+        Task UninstallAsync(IServiceProvider services, object module);
 
         /// <summary>
         /// Module is started.
@@ -227,7 +213,6 @@ namespace Gurux.DLMS.AMI.Module
         /// <summary>
         /// Execute module operations.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="services">Available services.</param>
         /// <param name="settings">Schedule settings.</param>
         /// <param name="instanceSettings">Schedule settings.</param>
@@ -237,15 +222,13 @@ namespace Gurux.DLMS.AMI.Module
         /// <seealso cref="CanSchedule"/>
         /// <seealso cref="Schedule"/>
         void Execute(
-            ClaimsPrincipal user,
-            IServiceProvider services, 
+            IServiceProvider services,
             string? settings,
             string? instanceSettings);
 
         /// <summary>
         /// Execute module operations.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="services">Available services.</param>
         /// <param name="settings">Module global settings.</param>
         /// <param name="instanceSettings">Schedule settings.</param>
@@ -254,8 +237,7 @@ namespace Gurux.DLMS.AMI.Module
         /// </remarks>
         /// <seealso cref="CanSchedule"/>
         Task ExecuteAsync(
-            ClaimsPrincipal user,
-            IServiceProvider services, 
+            IServiceProvider services,
             string? settings,
             string? instanceSettings);
 

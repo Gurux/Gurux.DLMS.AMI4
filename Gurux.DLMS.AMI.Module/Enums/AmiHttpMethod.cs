@@ -29,40 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Module.Enums
 {
-    /// <summary>
-    /// This interface is used to get crypto service.
-    /// </summary>
-    public interface IAmiCryproService
+    public enum AmiHttpMethod
     {
-        /// <summary>
-        /// Decrypt the string.
-        /// </summary>
-        /// <param name="encrypted">Decrypted string.</param>
-        /// <returns>Decrypted string.</returns>
-        string Decrypt(string encrypted);
-
-        /// <summary>
-        /// Encrypt the string.
-        /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
-        /// <returns>Encrypted ASCII string</returns>
-        string Encrypt(string plainText);
-
-        /// <summary>
-        /// Decrypt the byte array.
-        /// </summary>
-        /// <param name="encrypted">Decrypted byte array.</param>
-        /// <returns>Decrypted byte array.</returns>
-        byte[] Decrypt(byte[] encrypted);
-
-        /// <summary>
-        /// Encrypt the byte array.
-        /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
-        /// <returns>Encrypted byte array.</returns>
-        byte[] Encrypt(byte[] plainText);
+        Get,
+        Post,
+        Put,
+        Delete
     }
 }
