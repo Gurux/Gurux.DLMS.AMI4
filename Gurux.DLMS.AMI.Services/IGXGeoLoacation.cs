@@ -32,6 +32,13 @@
 
 namespace Gurux.DLMS.AMI.Services
 {
+    /// <summary>
+    /// Represents a geographic location, including latitude, longitude, and optional altitude and accuracy information.
+    /// </summary>
+    /// <remarks>This class is used to store or transfer geolocation data, 
+    /// such as that obtained from a GPS sensor or location service. 
+    /// All properties use the WGS 84 coordinate system. 
+    /// Optional properties may be null if the corresponding data is unavailable.</remarks>
     public class GXGeoLocation
     {
         /// <summary>
