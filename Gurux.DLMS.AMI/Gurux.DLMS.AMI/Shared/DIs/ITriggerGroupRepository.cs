@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXTriggerGroup[]> ListAsync(
-            ClaimsPrincipal User,
             ListTriggerGroups? request,
             ListTriggerGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,53 +53,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read trigger group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Trigger group id.</param>
         /// <returns></returns>
-        Task<GXTriggerGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXTriggerGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update trigger groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated trigger groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXTriggerGroup> groups,
             Expression<Func<GXTriggerGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete trigger group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Trigger groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns trigger groups list where trigger belongs.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="triggerId">Trigger ID</param>
         /// <returns>List of trigger groups.</returns>
-        Task<List<GXTriggerGroup>> GetJoinedTriggerGroups(ClaimsPrincipal User, Guid triggerId);
+        Task<List<GXTriggerGroup>> GetJoinedTriggerGroups(Guid triggerId);
 
         /// <summary>
         /// Get all users that can access trigger group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groupId">Trigger group id.</param>
         /// <returns>User Ids that can access this script.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? groupId);
+        Task<List<string>> GetUsersAsync(Guid? groupId);
 
         /// <summary>
         /// Get all users that can access trigger groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groupIds">Trigger group ids.</param>
         /// <returns>User Ids that can access this scripts.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? groupIds);
-
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds);
     }
 }

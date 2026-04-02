@@ -29,8 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -38,7 +40,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// List of allowed (white list) or blocked (black list) IP addresses.
+    /// List IP addresses where user has establish the connection.
     /// </summary>
     public class GXIpAddress : GXTableBase, IUnique<Guid>
     {
@@ -54,34 +56,40 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// IP address where connection is established.
+        /// IP address.
         /// </summary>
+        [DataMember]
+        [Description("IP address.")]
         [Index(false)]
-        [Filter(FilterType.Exact)]
-        public UInt64 IPAddress
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [StringLength(39)]
+        public string? IPAddress
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Is IP address blocked.
-        /// </summary>
-        [Index(false)]
-        [Filter(FilterType.Exact)]
-        public bool Blocked
-        {
-            get;
-            set;
-        }
-       
-        /// <summary>
         /// User.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXUser User
+        public GXUser? User
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Is IP address in blocked or allowed lists.
+        /// </summary>
+        [Index(false)]
+        [DefaultValue(false)]
+        [IsRequired]
+        [Filter(FilterType.Exact)]
+        public IpAddressListStatus? Status
         {
             get;
             set;
@@ -95,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -118,7 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

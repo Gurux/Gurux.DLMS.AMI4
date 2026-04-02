@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -48,16 +48,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Script information.
         /// </summary>
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id),
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id),
             nameof(GXScriptGroup.Name))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id),
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id),
             nameof(GXWorkflow.Name))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
             nameof(GXScriptMethod.Name))]
-        [ExcludeSwagger(typeof(GXScript), nameof(GXScript.Logs)
-            , nameof(GXScript.Resources), nameof(GXScript.Languages),
+        [ExcludeOpenApi(typeof(GXScript), nameof(GXScript.Logs),
             nameof(GXScript.ByteAssembly), nameof(GXScript.Module))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXScript Item
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
@@ -84,7 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the scripts to retreave.
+        /// Amount of the scripts to retrieve.
         /// </summary>
         public int Count
         {
@@ -95,14 +94,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter scripts.
         /// </summary>
-        [ExcludeSwagger(typeof(GXScript),
+        [ExcludeOpenApi(typeof(GXScript),
         nameof(GXScript.ScriptGroups),
              nameof(GXScript.Workflows),
              nameof(GXScript.Methods),
              nameof(GXScript.Logs),
              nameof(GXScript.Creator),
-             nameof(GXScript.Resources),
-             nameof(GXScript.Languages),
              nameof(GXScript.Module))]
         public GXScript? Filter
         {
@@ -180,6 +177,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
+        /// <summary>
+        /// Byte assembly is send for the client.
+        /// </summary>
+        [DataMember]
+        [Description("Byte assembly is send for the client.")]
+        public bool Assembly
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>
@@ -194,15 +201,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of script items.")]
         [DataMember]
-        [ExcludeSwagger(typeof(GXScript),
+        [ExcludeOpenApi(typeof(GXScript),
         nameof(GXScript.ScriptGroups),
             nameof(GXScript.Workflows),
             nameof(GXScript.Methods),
             nameof(GXScript.Logs),
-            nameof(GXScript.Resources),
-            nameof(GXScript.Languages),
             nameof(GXScript.Module))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXScript[]? Scripts
         {
             get;
@@ -232,15 +237,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Scripts to update.")]
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [ExcludeSwagger(typeof(GXScript),
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXScript),
             nameof(GXScript.Workflows),
             nameof(GXScript.Methods),
             nameof(GXScript.Logs),
             nameof(GXScript.Creator),
-            nameof(GXScript.Resources),
-            nameof(GXScript.Languages),
             nameof(GXScript.Module))]
         public List<GXScript> Scripts { get; set; } = new List<GXScript>();
     }
@@ -274,7 +277,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed script identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

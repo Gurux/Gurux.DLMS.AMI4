@@ -29,8 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.Common.Db;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -51,8 +52,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember(Name = "UserID")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.None)]
         [StringLength(36)]
-        public string UserId
+        public string? UserId
         {
+            //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -60,7 +62,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// Block ID.
         /// </summary>
-        [DataMember(Name = "BlockID"), ForeignKey(typeof(GXBlock), OnDelete = ForeignKeyDelete.Cascade)]
+        [DataMember(Name = "BlockID"), ForeignKey(typeof(GXBlock), 
+            OnDelete = ForeignKeyDelete.Cascade)]
         public Guid BlockId
         {
             get;

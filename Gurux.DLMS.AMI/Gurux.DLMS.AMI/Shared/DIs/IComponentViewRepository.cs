@@ -47,56 +47,50 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Blocks.</returns>
         Task<GXComponentView[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListComponentViews? request, 
+            ListComponentViews? request,
             ListComponentViewsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read component view.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Component view ID.</param>
         /// <returns></returns>
-        Task<GXComponentView> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXComponentView> ReadAsync(Guid id);
 
         /// <summary>
         /// Update component view(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="componentviews">Updated component view(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXComponentView> componentviews,
             Expression<Func<GXComponentView, object?>>? columns = null);
 
         /// <summary>
         /// Delete component view(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="componentviews">Component view(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> componentviews, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> componentviews, bool delete);
 
         /// <summary>
         /// Get all users that can access this component view.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="componentViewId">Component view id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? componentViewId);
+        Task<List<string>> GetUsersAsync(Guid? componentViewId);
+
         /// <summary>
         /// Get all users that can access component views.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="componentViewIds">Component view ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? componentViewIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? componentViewIds);
 
         /// <summary>
         /// Refresh component view(s).
         /// </summary>
-        Task<bool> RefrestAsync(ClaimsPrincipal User);
+        Task<bool> RefrestAsync();
     }
 }

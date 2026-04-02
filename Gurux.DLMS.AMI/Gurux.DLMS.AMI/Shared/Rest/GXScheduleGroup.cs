@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,12 +48,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Schedule group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXScheduleGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXScheduleGroup? Item
         {
             get;
             set;
@@ -76,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the schedule groups to retreave.
+        /// Amount of the schedule groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -87,9 +88,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter schedule groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXScheduleGroup),
+        [ExcludeOpenApi(typeof(GXScheduleGroup),
            nameof(GXScheduleGroup.Schedules),
            nameof(GXScheduleGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXScheduleGroup? Filter
         {
             get;
@@ -178,9 +180,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of schedule groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXScheduleGroup),
+        [ExcludeOpenApi(typeof(GXScheduleGroup),
            nameof(GXScheduleGroup.Schedules),
            nameof(GXScheduleGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXScheduleGroup[]? ScheduleGroups
         {
             get;
@@ -208,8 +212,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New schedule group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXScheduleGroup[] ScheduleGroups
         {
             get;
@@ -243,7 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Schedule group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

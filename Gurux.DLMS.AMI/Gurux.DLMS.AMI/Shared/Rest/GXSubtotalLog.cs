@@ -33,6 +33,7 @@
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -45,7 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Subtotal log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXSubtotal),
+        [IncludeOpenApi(typeof(GXSubtotal),
                 nameof(GXSubtotal.Id),
                 nameof(GXSubtotal.Name))]
         public GXSubtotalLog? Item
@@ -64,7 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXSubtotal),
+        [IncludeOpenApi(typeof(GXSubtotal),
                 nameof(GXSubtotal.Id),
                 nameof(GXSubtotal.Name))]
         public GXSubtotalLog? Filter
@@ -95,7 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -172,7 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Subtotal logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXSubtotal),
+        [IncludeOpenApi(typeof(GXSubtotal),
                 nameof(GXSubtotal.Id),
                 nameof(GXSubtotal.Name))]
         public GXSubtotalLog[]? Logs
@@ -204,13 +205,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New subtotal log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXSubtotal),
+        [IncludeOpenApi(typeof(GXSubtotal),
                 nameof(GXSubtotal.Id))]
         public GXSubtotalLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>

@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,44 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of workflow logs.</returns>
         Task<GXWorkflowLog[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListWorkflowLogs? request, 
+            ListWorkflowLogs? request,
             ListWorkflowLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read workflow log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Workflow log id.</param>
         /// <returns>Workflow information.</returns>
-        Task<GXWorkflowLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXWorkflowLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear workflow logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, IEnumerable<Guid>? workflows);
+        Task ClearAsync(IEnumerable<Guid>? workflows);
 
         /// <summary>
         /// Add workflow log.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="errors">New log.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXWorkflowLog> errors);
+        /// <param name="type">Log type.</param>
+        /// <param name="logs">New log items.</param>
+        Task AddAsync(string type, IEnumerable<GXWorkflowLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Log type.</param>
         /// <param name="workflow">Workflow.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXWorkflowLog> AddAsync(ClaimsPrincipal User, GXWorkflow workflow, Exception ex);
+        Task<GXWorkflowLog> AddAsync(string type, GXWorkflow workflow, Exception ex);
 
         /// <summary>
         /// Close workflow log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="errors">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

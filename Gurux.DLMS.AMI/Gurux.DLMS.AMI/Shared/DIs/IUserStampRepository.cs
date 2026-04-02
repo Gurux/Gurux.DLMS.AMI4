@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of user stamps.</returns>
         Task<GXUserStamp[]> ListAsync(
-            ClaimsPrincipal user,
             ListUserStamps? request,
             ListUserStampsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,13 +53,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Delete user stamps.
         /// </summary>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> userStamps);
+        Task DeleteAsync(IEnumerable<Guid> userStamps);
 
         /// <summary>
         /// Add user stamps.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="userStamps">New user stamps.</param>
-        Task UpdateAsync(ClaimsPrincipal User, IEnumerable<GXUserStamp> userStamps);
+        Task UpdateAsync(IEnumerable<GXUserStamp> userStamps);
     }
 }

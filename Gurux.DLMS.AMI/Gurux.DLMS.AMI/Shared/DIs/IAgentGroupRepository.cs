@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,53 +46,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXAgentGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListAgentGroups? request, 
+            ListAgentGroups? request,
             ListAgentGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read agent.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Agent id.</param>
         /// <returns></returns>
-        Task<GXAgentGroup> ReadAsync(ClaimsPrincipal User, Guid id);
-
+        Task<GXAgentGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update agent groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated agent groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXAgentGroup> groups,
             Expression<Func<GXAgentGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete agent group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">User agent to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Get all users that can access this agent group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agentGroupId">Agent group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? agentGroupId);
+        Task<List<string>> GetUsersAsync(Guid? agentGroupId);
 
         /// <summary>
         /// Get all users that can access agent groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agentGroupIds">Agent group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? agentGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentGroupIds);
     }
 }

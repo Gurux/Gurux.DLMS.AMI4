@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
@@ -38,6 +37,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
@@ -89,11 +90,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// The name of the agent.
         /// </summary>
         [Description("The name of the agent.")]
-        [StringLength(32, ErrorMessage = "Name is too long.")]
+        [StringLength(128, ErrorMessage = "Name is too long.")]
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -138,7 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// The creator of the agent.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator
@@ -215,7 +226,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         }
 
         /// <summary>
-        /// Notify settings. Agent waits notify, event or push messages to this port.
+        /// Notification settings. Agent waits notification, event or push messages to this port.
         /// </summary>
         [DefaultValue(null)]
         public string? NotifySettings
@@ -247,13 +258,29 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         }
 
         /// <summary>
+        /// Holds metadata about the client connection, including the remote IP address and other optional 
+        /// network-related details associated with the current request.
+        /// </summary>
+        [DataMember]
+        [Description("Holds metadata about the client connection, including the remote IP address and other optional network-related details associated with the current request.")]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [StringLength(64)]
+        public string? ConnectionInfo
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// Creation time.
         /// </summary>
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -453,7 +480,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

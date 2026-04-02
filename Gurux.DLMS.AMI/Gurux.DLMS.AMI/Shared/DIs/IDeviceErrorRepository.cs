@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,44 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of device errors.</returns>
         Task<GXDeviceError[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListDeviceErrors? request, 
+            ListDeviceErrors? request,
             ListDeviceErrorsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read device error information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Device error id.</param>
         /// <returns>Device error information.</returns>
-        Task<GXDeviceError> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXDeviceError> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear device errors.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, IEnumerable<Guid>? devices);
+        Task ClearAsync(IEnumerable<Guid>? devices);
 
         /// <summary>
         /// Add device errors.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Device error type.</param>
         /// <param name="errors">New errors.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXDeviceError> errors);
+        Task AddAsync(string type, IEnumerable<GXDeviceError> errors);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Device error type.</param>
         /// <param name="device">Device.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXDeviceError> AddAsync(ClaimsPrincipal User, GXDevice device, Exception ex);
+        Task<GXDeviceError> AddAsync(string type, GXDevice device, Exception ex);
 
         /// <summary>
         /// Close device error(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

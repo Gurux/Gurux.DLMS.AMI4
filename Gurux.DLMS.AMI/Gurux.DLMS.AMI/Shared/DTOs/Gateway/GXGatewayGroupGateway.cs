@@ -29,14 +29,15 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing gateway group to gateway binding object.
     /// </summary>
     [DataContract(Name = "GXGatewayGroupGateway"), Serializable]
     [IndexCollection(true, nameof(GatewayGroupId), nameof(GatewayId), Clustered = true)]
@@ -46,10 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// The database ID of the gateway group.
         /// </summary>
         [DataMember(Name = "GatewayGroupID")]
-        [ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid GatewayGroupId
         {
+            //ForeignKeyDelete is None because creator of the gateway is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -75,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

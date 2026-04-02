@@ -29,13 +29,16 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,16 +50,34 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Key management information.
         /// </summary>
-        [IncludeSwagger(typeof(GXDevice),
+        [ExcludeOpenApi(typeof(GXKeyManagement),
+        nameof(GXKeyManagement.Logs))]
+        [ExcludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.DeviceTemplateGroups),
+            nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXDevice),
         nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXUser),
+        [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXKeyManagementLog),
+        [ExcludeOpenApi(typeof(GXKeyManagementLog),
         nameof(GXKeyManagementLog.KeyManagement))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey),
+        [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup),
+        [IncludeOpenApi(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceGroupParameter),
+        nameof(GXDeviceGroupParameter.DeviceGroup))]
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.Assemblies))]
+        [IncludeOpenApi(typeof(GXDeviceGroup),
+        nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+
+        [ExcludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version),
+            nameof(GXDeviceSettings.Template))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.ManufacturerGroups))]
+        [ExcludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.DeviceTemplate))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.ObjectTemplate))]
+        [ExcludeOpenApi(typeof(GXAttributeListItem), nameof(GXAttributeListItem.Template))]
         public GXKeyManagement? Item
         {
             get;
@@ -81,7 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the key managements to retreave.
+        /// Amount of the key managements to retrieve.
         /// </summary>
         public int Count
         {
@@ -92,20 +113,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter key managements.
         /// </summary>
-        [IncludeSwagger(typeof(GXKeyManagement),
+        [IncludeOpenApi(typeof(GXKeyManagement),
         nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name),
             nameof(GXKeyManagement.SystemTitle), nameof(GXKeyManagement.Modified)
             , nameof(GXKeyManagement.CreationTime)
             )]
-        [IncludeSwagger(typeof(GXDevice),
+        [IncludeOpenApi(typeof(GXDevice),
         nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXUser),
+        [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXKeyManagementLog),
+        [ExcludeOpenApi(typeof(GXKeyManagementLog),
         nameof(GXKeyManagementLog.KeyManagement))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey),
+        [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup),
+        [IncludeOpenApi(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
         public GXKeyManagement? Filter
         {
@@ -196,23 +217,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of key management items.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXKeyManagement),
+        [IncludeOpenApi(typeof(GXKeyManagement),
         nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name),
             nameof(GXKeyManagement.SystemTitle), nameof(GXKeyManagement.Modified)
             , nameof(GXKeyManagement.CreationTime)
             )]
-        /*
-        [IncludeSwagger(typeof(GXDevice),
-        nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXUser),
-        nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXKeyManagementLog),
-        nameof(GXKeyManagementLog.KeyManagement))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey),
-        nameof(GXKeyManagementKey.KeyManagement))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup),
-        nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-        */
         public GXKeyManagement[]? KeyManagements
         {
             get;
@@ -248,17 +257,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// KeyManagements to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDevice),
+        [IncludeOpenApi(typeof(GXDevice),
         nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXUser),
+        [IncludeOpenApi(typeof(GXDeviceGroup),
+        nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate),
+        nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id))]
-        [ExcludeSwagger(typeof(GXKeyManagementLog),
+        [ExcludeOpenApi(typeof(GXKeyManagementLog),
         nameof(GXKeyManagementLog.KeyManagement))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey),
+        [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup),
+        [IncludeOpenApi(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-
         public List<GXKeyManagement> KeyManagements
         {
             get;
@@ -276,7 +288,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New key management identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -293,7 +305,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed key management identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -340,9 +352,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Keys to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXKeyManagement),
+        [IncludeOpenApi(typeof(GXKeyManagement),
         nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Keys))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey), 
+        [ExcludeOpenApi(typeof(GXKeyManagementKey), 
             nameof(GXKeyManagementKey.KeyManagement))]
         /*
         [IncludeSwagger(typeof(GXDevice),

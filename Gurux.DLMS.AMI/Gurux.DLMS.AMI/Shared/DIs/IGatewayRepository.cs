@@ -48,7 +48,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Gateways.</returns>
         Task<GXGateway[]> ListAsync(
-            ClaimsPrincipal User,
             ListGateways? request,
             ListGatewaysResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -56,59 +55,51 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read gateway.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Gateway id.</param>
         /// <returns></returns>
-        Task<GXGateway> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXGateway> ReadAsync(Guid id);
 
         /// <summary>
         /// Update gateway(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gateways">Updated gateway(s).</param>
         /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXGateway> gateways,
             Expression<Func<GXGateway, object?>>? columns = null);
 
         /// <summary>
         /// Delete gateway(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gateways">Gateway(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> gateways, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> gateways, bool delete);
 
         /// <summary>
         /// Get all users that can access this gateway.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gatewayId">Gateway id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? gatewayId);
+        Task<List<string>> GetUsersAsync(Guid? gatewayId);
 
         /// <summary>
         /// Get all users that can access gateways.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gatewayIds">Gateway ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? gatewayIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? gatewayIds);
 
         /// <summary>
         /// Gateway updates the status.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gatewayId">Gateway ID.</param>
         /// <param name="status">Gateway status</param>
-        Task UpdateStatusAsync(ClaimsPrincipal User, Guid gatewayId, GatewayStatus status);
+        Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status);
 
         /// <summary>
         /// Reset gateways to offline.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="gateways">Resetted gateway(s).</param>
-        Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> gateways);
+        Task ResetAsync(IEnumerable<Guid> gateways);
     }
 }

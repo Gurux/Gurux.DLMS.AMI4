@@ -29,14 +29,20 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
+using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -48,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent information.
         /// </summary>
-        [ExcludeSwagger(typeof(GXUser),
+        [ExcludeOpenApi(typeof(GXUser),
             nameof(GXUser.Password),
             nameof(GXUser.PasswordHash),
             nameof(GXUser.SecurityStamp),
@@ -62,10 +68,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Tasks),
             nameof(GXUser.Stamps),
             nameof(GXUser.Settings))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id)
-            , nameof(GXAgentGroup.Name)
-            , nameof(GXAgentGroup.Description))]
-        [IncludeSwagger(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXAgentGroup.Name), 
+            nameof(GXAgentGroup.Description))]
+        [IncludeOpenApi(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id), nameof(GXComponentView.Name))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXContent), nameof(GXContent.Id), nameof(GXContent.Name))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id), nameof(GXContentGroup.Name))]
+        [IncludeOpenApi(typeof(GXContentType), nameof(GXContentType.Id), nameof(GXContentType.Name))]
+        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id), nameof(GXContentTypeGroup.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
         public GXUser? Item
         {
             get;
@@ -90,7 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the users to retreave.
+        /// Amount of the users to retrieve.
         /// </summary>
         public int Count
         {
@@ -101,7 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter users.
         /// </summary>
-        [ExcludeSwagger(typeof(GXUser),
+        [ExcludeOpenApi(typeof(GXUser),
             nameof(GXUser.Password),
             nameof(GXUser.PasswordHash),
             nameof(GXUser.SecurityStamp),
@@ -116,6 +135,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUser.Tasks),
             nameof(GXUser.Stamps),
             nameof(GXUser.Settings))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXAgentGroup.Name),
+            nameof(GXAgentGroup.Description))]
+        [IncludeOpenApi(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id), nameof(GXComponentView.Name))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXContent), nameof(GXContent.Id), nameof(GXContent.Name))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id), nameof(GXContentGroup.Name))]
+        [IncludeOpenApi(typeof(GXContentType), nameof(GXContentType.Id), nameof(GXContentType.Name))]
+        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id), nameof(GXContentTypeGroup.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
         public GXUser? Filter
         {
             get;
@@ -207,7 +243,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("List of users.")]
-        [ExcludeSwagger(typeof(GXUser),
+        [ExcludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Password),
                 nameof(GXUser.PasswordHash),
                 nameof(GXUser.SecurityStamp),
@@ -222,7 +258,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.Favorites),
                 nameof(GXUser.RestStatistics),
                 nameof(GXUser.Settings))]
-        public GXUser[] Users
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXAgentGroup.Name),
+            nameof(GXAgentGroup.Description))]
+        [IncludeOpenApi(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id), nameof(GXComponentView.Name))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXContent), nameof(GXContent.Id), nameof(GXContent.Name))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id), nameof(GXContentGroup.Name))]
+        [IncludeOpenApi(typeof(GXContentType), nameof(GXContentType.Id), nameof(GXContentType.Name))]
+        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id), nameof(GXContentTypeGroup.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        public GXUser[]? Users
         {
             get;
             set;
@@ -254,7 +307,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Users to add or update.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXUser),
+        [ExcludeOpenApi(typeof(GXUser),
                 nameof(GXUser.PasswordHash),
                 nameof(GXUser.Actions),
                 nameof(GXUser.UserGroups),
@@ -266,10 +319,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.Tasks),
                 nameof(GXUser.Stamps),
                 nameof(GXUser.RestStatistics))]
-        [ExcludeSwagger(typeof(GXUserSetting),
+        [ExcludeOpenApi(typeof(GXUserSetting),
                 nameof(GXUserSetting.User))]
 
-        public GXUser[] Users
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXUserStamp), nameof(GXUserStamp.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
+        [IncludeOpenApi(typeof(GXContent), nameof(GXContent.Id))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id))]
+        [IncludeOpenApi(typeof(GXContentType), nameof(GXContentType.Id))]
+        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXUserSetting), nameof(GXUserSetting.User),
+            nameof(GXUserSetting.Module))]
+        public GXUser[]? Users
         {
             get;
             set;
@@ -285,8 +356,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New users.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        public GXUser[] Users
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXUser[]? Users
         {
             get;
             set;
@@ -303,7 +374,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// User Ids to remove.
         /// </summary>
         [DataMember]
-        public string[] Ids
+        public string[]? Ids
         {
             get;
             set;

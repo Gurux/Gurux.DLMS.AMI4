@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -49,15 +49,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Trigger information.
         /// </summary>
-        [ExcludeSwagger(typeof(GXTrigger), nameof(GXTrigger.Schedules),
+        [ExcludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Schedules),
             nameof(GXTrigger.Workflows), nameof(GXTrigger.TriggerGroups),
             nameof(GXTrigger.Module))]
-        [ExcludeSwagger(typeof(GXTriggerActivity),
+        [ExcludeOpenApi(typeof(GXTriggerActivity),
              nameof(GXTriggerActivity.Trigger))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
         public GXTrigger? Item
         {
             get;
@@ -82,7 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the triggers to retreave.
+        /// Amount of the triggers to retrieve.
         /// </summary>
         public int Count
         {
@@ -93,7 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter triggers.
         /// </summary>
-        [ExcludeSwagger(typeof(GXTrigger),
+        [ExcludeOpenApi(typeof(GXTrigger),
             nameof(GXTrigger.Workflows),
             nameof(GXTrigger.Activities),
             nameof(GXTrigger.TriggerGroups),
@@ -103,6 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXTrigger.Device), 
             nameof(GXTrigger.DeviceGroup),
             nameof(GXTrigger.Module))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXTrigger? Filter
         {
             get;
@@ -192,7 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of trigger items.")]
         [DataMember]
-        [ExcludeSwagger(typeof(GXTrigger),
+        [ExcludeOpenApi(typeof(GXTrigger),
             nameof(GXTrigger.Workflows),
             nameof(GXTrigger.Activities),
             nameof(GXTrigger.TriggerGroups),
@@ -202,6 +203,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXTrigger.Device),
             nameof(GXTrigger.DeviceGroup),
             nameof(GXTrigger.Module))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXTrigger[]? Triggers
         {
             get;
@@ -238,7 +240,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Triggers to update.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXTrigger),
+        [ExcludeOpenApi(typeof(GXTrigger),
             nameof(GXTrigger.Workflows),
             nameof(GXTrigger.Activities),
             nameof(GXTrigger.TriggerGroups),
@@ -248,6 +250,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXTrigger.Device),
             nameof(GXTrigger.DeviceGroup),
             nameof(GXTrigger.Module))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public List<GXTrigger> Triggers
         {
             get;
@@ -284,7 +287,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed trigger identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

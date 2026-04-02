@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -44,9 +43,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List system logs.
         /// </summary>
+        /// <param name="request">Request filter.</param>
+        /// <param name="response">Response filter.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>List of system logs.</returns>
         Task<GXSystemLog[]> ListAsync(
-            ClaimsPrincipal User,
             ListSystemLogs? request,
             ListSystemLogsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,35 +55,39 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read system log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">System log id.</param>
         /// <returns>System log information.</returns>
-        Task<GXSystemLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXSystemLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear system logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User);
+        Task ClearAsync();
 
         /// <summary>
         /// Add system logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXSystemLog> logs);
+        Task AddAsync(string type, IEnumerable<GXSystemLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Log type.</param>
         /// <param name="ex">Occurred exception.</param>
-        Task<GXSystemLog> AddAsync(ClaimsPrincipal User, Exception ex);
+        Task<GXSystemLog> AddAsync(string type, Exception ex);
 
         /// <summary>
         /// Close system log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
+        Task CloseAsync(IEnumerable<Guid>? logs);
+
+        /// <summary>
+        /// Delete system logs items.
+        /// </summary>
+        /// <param name="logs">Deleted logs.</param>
+        Task DeleteAsync(IEnumerable<GXSystemLog>? logs);
     }
 }

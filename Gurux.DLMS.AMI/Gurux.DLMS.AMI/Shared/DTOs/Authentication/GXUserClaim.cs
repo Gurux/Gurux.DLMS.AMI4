@@ -29,8 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
-using System.ComponentModel;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
@@ -53,26 +53,38 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// User identifier.
+        /// </summary>
+        /// <remarks>
+        /// User who has the claim.
+        /// </remarks>
         [DataMember]
         [Index]
         [IsRequired]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(36)]
-        public string UserId
+        public string? UserId
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Claim type defines e,g. role, name, etc.
+        /// </summary>
         [DataMember]
-        public string ClaimType
+        public string? ClaimType
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// Claim value defines the value of the claim.
+        /// </summary>
         [DataMember]
-        public string ClaimValue
+        public string? ClaimValue
         {
             get;
             set;

@@ -47,62 +47,54 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXComponentViewGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListComponentViewGroups? request, 
+            ListComponentViewGroups? request,
             ListComponentViewGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read component view group information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Component view id.</param>
         /// <returns></returns>
-        Task<GXComponentViewGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXComponentViewGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update component view groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated component view groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
+
             IEnumerable<GXComponentViewGroup> groups,
             Expression<Func<GXComponentViewGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete component view group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Block component view to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns component view groups list where component view belongs.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="componentViewId">Component view ID</param>
         /// <returns>List of component view groups.</returns>
-        Task<List<GXComponentViewGroup>> GetJoinedComponentViewGroups(ClaimsPrincipal User, Guid componentViewId);
-
+        Task<List<GXComponentViewGroup>> GetJoinedComponentViewGroups(Guid componentViewId);
 
         /// <summary>
         /// Get all users that can access this component view group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="componentViewGroupId">Component view group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? componentViewGroupId);
+        Task<List<string>> GetUsersAsync(Guid? componentViewGroupId);
 
         /// <summary>
         /// Get all users that can access component view groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="componentViewGroupIds">Component view group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? componentViewGroupIds);
-
+        Task<List<string>> GetUsersAsync(
+            IEnumerable<Guid>? componentViewGroupIds);
     }
 }

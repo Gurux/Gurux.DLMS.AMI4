@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Device templates.</returns>
         Task<GXDeviceTemplate[]> ListAsync(
-            ClaimsPrincipal user,
             ListDeviceTemplates? request,
             ListDeviceTemplatesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,47 +54,40 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read device template information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Device template id.</param>
         /// <returns></returns>
-        Task<GXDeviceTemplate> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXDeviceTemplate> ReadAsync(Guid id);
 
         /// <summary>
         /// Update device template.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="templates">Updated device templates.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXDeviceTemplate> templates,
             Expression<Func<GXDeviceTemplate, object?>>? columns = null);
 
         /// <summary>
         /// Delete device template(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="templates">Device templates to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
-            ClaimsPrincipal user,
             IEnumerable<Guid> templates,
             bool delete);
 
         /// <summary>
         /// Get all users that can access device template.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="deviceTemplateId">Device template id.</param>
         /// <returns>User Ids that can access device template.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? deviceTemplateId);
+        Task<List<string>> GetUsersAsync(Guid? deviceTemplateId);
 
         /// <summary>
         /// Get all users that can access given device templates.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="deviceTemplateIds">Device template ids.</param>
         /// <returns>User Ids that can access device template.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? deviceTemplateIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceTemplateIds);
     }
 }

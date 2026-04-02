@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXModuleGroup[]> ListAsync(
-            ClaimsPrincipal User,
             ListModuleGroups? request,
             ListModuleGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,30 +54,26 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read module group information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Module group id.</param>
         /// <returns></returns>
-        Task<GXModuleGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXModuleGroup> ReadAsync(Guid id);
 
 
         /// <summary>
         /// Update module groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated module groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXModuleGroup> groups,
             Expression<Func<GXModuleGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete module group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Module groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User,
+        Task DeleteAsync(
             IEnumerable<Guid> groups,
             bool delete);
 
@@ -92,17 +87,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Returns list of users that can access this module group.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groupId">Module group Id.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? groupId);
+        Task<List<string>> GetUsersAsync(Guid? groupId);
 
         /// <summary>
         /// Returns list of users that can access module groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groupIds">Module group Ids.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? groupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds);
     }
 }

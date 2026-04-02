@@ -47,60 +47,52 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXManufacturerGroup[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListManufacturerGroups? request, 
+            ListManufacturerGroups? request,
             ListManufacturerGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read manufacturer group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Manufacturer group id.</param>
         /// <returns></returns>
-        Task<GXManufacturerGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXManufacturerGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update manufacturer groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated manufacturer groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXManufacturerGroup> groups,
             Expression<Func<GXManufacturerGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete manufacturer group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Manufacturer groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns manufacturer groups list where manufacturer belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="manufacturerId">Manufacturer ID</param>
         /// <returns>List of manufacturer groups.</returns>
-        Task<List<GXManufacturerGroup>> GetJoinedManufacturerGroups(ClaimsPrincipal user, Guid manufacturerId);
+        Task<List<GXManufacturerGroup>> GetJoinedManufacturerGroups(Guid manufacturerId);
 
         /// <summary>
         /// Get all users that can access this manufacturer group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturerGroupId">Manufacturer group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? manufacturerGroupId);
+        Task<List<string>> GetUsersAsync(Guid? manufacturerGroupId);
 
         /// <summary>
         /// Get all users that can access manufacturer group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturerGroupIds">Agent Manufacturer ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? manufacturerGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerGroupIds);
     }
 }

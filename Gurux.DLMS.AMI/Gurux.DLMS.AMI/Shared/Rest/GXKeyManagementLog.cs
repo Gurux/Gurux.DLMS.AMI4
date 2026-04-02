@@ -30,11 +30,12 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,7 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Key management log
         /// </summary>
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
             , nameof(GXKeyManagement.Name))]
         public GXKeyManagementLog? Item
         {
@@ -65,7 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
            , nameof(GXKeyManagement.Name))]
         public GXKeyManagementLog? Filter
         {
@@ -96,7 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -174,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of KeyManagement logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
            , nameof(GXKeyManagement.Name))]
         public GXKeyManagementLog[]? Logs
         {
@@ -205,13 +206,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New key management log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id)
            , nameof(GXKeyManagement.Name))]
-        public GXKeyManagementLog[]? Logs
+        public GXKeyManagementLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>

@@ -48,60 +48,52 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXReportGroup[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListReportGroups? request, 
+            ListReportGroups? request,
             ListReportGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read report group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Report group id.</param>
         /// <returns></returns>
-        Task<GXReportGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXReportGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update report groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated report groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXReportGroup> groups,
             Expression<Func<GXReportGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete report group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Report groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns report groups list where report belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="reportId">Report ID</param>
         /// <returns>List of report groups.</returns>
-        Task<List<GXReportGroup>> GetJoinedReportGroups(ClaimsPrincipal user, Guid reportId);
+        Task<List<GXReportGroup>> GetJoinedReportGroups(Guid reportId);
 
         /// <summary>
         /// Get all users that can access this report group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="reportGroupId">Report group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? reportGroupId);
+        Task<List<string>> GetUsersAsync(Guid? reportGroupId);
 
         /// <summary>
         /// Get all users that can access report group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="reportGroupIds">Agent Report ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? reportGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? reportGroupIds);
     }
 }

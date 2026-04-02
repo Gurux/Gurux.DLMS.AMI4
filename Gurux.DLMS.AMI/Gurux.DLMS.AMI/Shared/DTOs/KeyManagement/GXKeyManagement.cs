@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
@@ -37,6 +36,8 @@ using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.Diagnostics;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
 {
@@ -98,6 +99,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Target device.
         /// </summary>
         [DataMember]
@@ -114,11 +125,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Target device group.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXDeviceGroup? DeviceGroup
         {
+            //ForeignKeyDelete is None because Device will handle the deletion.
             get;
             set;
         }
@@ -145,6 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [IsRequired]
         public GXUser? Creator
         {
+            //ForeignKeyDelete is None because Device will handle the deletion.
             get;
             set;
         }
@@ -204,7 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -281,7 +294,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

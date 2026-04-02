@@ -53,7 +53,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Tasks.</returns>
         Task<GXConfiguration[]> ListAsync(
-            ClaimsPrincipal User,
             ListConfiguration? request,
             ListConfigurationResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -61,30 +60,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read configuration information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Configuration id.</param>
         /// <param name="culture">Used culture.</param>
         /// <returns></returns>
-        Task<GXConfiguration> ReadAsync(ClaimsPrincipal User, Guid id, string? culture);
+        Task<GXConfiguration> ReadAsync(Guid id, string? culture);
 
         /// <summary>
         /// Add or update configuration settings.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="configurations">Updated configuration(s).</param>
-        /// <param name="notify">Is update notified.</param>
+        /// <param name="notification">Is update notified.</param>
         Task UpdateAsync(
-        ClaimsPrincipal User,
             IEnumerable<GXConfiguration> configurations,
-            bool notify);
+            bool notification);
 
         /// <summary>
         /// Delete configuration(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="configurations">Deleted configuration(s).</param>
         Task DeleteAsync(
-            ClaimsPrincipal User,
             IEnumerable<Guid> configurations);
 
         /// <summary>

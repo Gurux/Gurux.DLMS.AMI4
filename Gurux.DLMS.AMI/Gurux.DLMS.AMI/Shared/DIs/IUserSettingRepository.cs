@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of user settings.</returns>
         Task<GXUserSetting[]> ListAsync(
-            ClaimsPrincipal User,
             ListUserSettings? request,
             ListUserSettingsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,27 +53,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read user settings.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Object id.</param>
         /// <returns>User setting.</returns>
-        Task<GXUserSetting> ReadAsync(ClaimsPrincipal User, string id);
+        Task<GXUserSetting> ReadAsync(string id);
 
         /// <summary>
         /// Update user settings.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="settings">User settings to add.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXUserSetting> settings,
             Expression<Func<GXUserSetting, object?>>? columns = null);
 
         /// <summary>
         /// Delete user settings.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="settings">User settings to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<string> settings);
+        Task DeleteAsync(IEnumerable<string> settings);
     }
 }

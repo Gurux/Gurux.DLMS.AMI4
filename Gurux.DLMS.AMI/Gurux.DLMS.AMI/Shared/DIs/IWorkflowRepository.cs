@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -45,13 +44,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List workflows.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="request"></param>
         /// <param name="response"></param>
         /// <param name="includeActivity"></param>
         /// <returns>Workflows.</returns>
         Task<GXWorkflow[]> ListAsync(
-            ClaimsPrincipal User,
             ListWorkflows? request,
             ListWorkflowsResponse? response,
             bool includeActivity);
@@ -59,63 +56,53 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read workflow.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Workflow id.</param>
         /// <param name="includeScripts">Are script byte assemblies included.</param>
         /// <returns></returns>
         Task<GXWorkflow> ReadAsync(
-            ClaimsPrincipal User,
             Guid id,
             bool includeScripts);
 
         /// <summary>
         /// Update workflow(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="workflows">Updated workflow(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXWorkflow> workflows,
             Expression<Func<GXWorkflow, object?>>? columns = null);
 
         /// <summary>
         /// Delete workflow(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="workflows">Workflow(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> workflows, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> workflows, bool delete);
 
         /// <summary>
         /// Get all users that can access this workflow.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="workflowId">Workflow id.</param>
         /// <returns>User Ids that can access this workflow.</returns>
         /// <remarks>
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? workflowId);
+        Task<List<string>> GetUsersAsync(Guid? workflowId);
 
         /// <summary>
         /// Get all users that can access given workflows.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="workflowIds">Workflow ids.</param>
         /// <returns>User Ids that can access this workflow.</returns>
         /// <remarks>
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? workflowIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? workflowIds);
 
         /// <summary>
         /// Run the workflow.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Workflow id.</param>
-        Task RunAsync(
-            ClaimsPrincipal User,
-            Guid id);
+        Task RunAsync(Guid id);
     }
 }

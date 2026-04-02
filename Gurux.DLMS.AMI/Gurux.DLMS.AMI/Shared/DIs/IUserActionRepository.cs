@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -45,31 +44,29 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user activities.
         /// </summary>
         /// <returns>UserActivitys.</returns>
-        Task<GXUserAction[]> ListAsync(ClaimsPrincipal user, 
-            ListUserAction? request, 
-            ListUserActionResponse? response = null, 
+        Task<GXUserAction[]> ListAsync(
+            ListUserAction? request,
+            ListUserActionResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user activity.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">User activity id.</param>
         /// <returns></returns>
-        Task<GXUserAction> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXUserAction> ReadAsync(Guid id);
 
         /// <summary>
         /// Add user activity.
         /// </summary>
-        /// <param name="user">Current user.</param>
+        /// <param name="type">Action type.</param>
         /// <param name="userActions">Added user actions.</param>
-        Task AddAsync(ClaimsPrincipal user, IEnumerable<GXUserAction> userActions);
+        Task AddAsync(string type, IEnumerable<GXUserAction> userActions);
 
         /// <summary>
         /// Clear all user activitys.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="users">List of user Ids whoes activities are cleared.</param>
-        Task ClearAsync(ClaimsPrincipal user, IEnumerable<string>? users);
+        Task ClearAsync(IEnumerable<string>? users);
     }
 }

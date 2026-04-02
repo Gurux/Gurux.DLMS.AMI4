@@ -29,12 +29,13 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
@@ -106,9 +107,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// The module whose settings these are.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXModule? Module
         {
+            //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }

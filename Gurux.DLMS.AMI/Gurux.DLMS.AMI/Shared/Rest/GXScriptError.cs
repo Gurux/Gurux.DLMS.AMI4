@@ -30,11 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -44,10 +44,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class GetScriptLog
     {
         /// <summary>
-        /// User error.
+        /// Get script log.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
-            , nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id)
+            , nameof(GXScript.Name))]
         public GXScriptLog? Item
         {
             get;
@@ -65,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
         public GXScriptLog? Filter
         {
             get;
@@ -94,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -172,6 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Script logs.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
         public GXScriptLog[]? Logs
         {
             get;
@@ -201,11 +203,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New script log.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
         public GXScriptLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
@@ -217,7 +231,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Clear logs. All logs are removed from the given user.
+    /// Clear sctipt logs.
     /// </summary>
     [DataContract]
     public class ClearScriptLogs : IGXRequest<ClearScriptLogsResponse>
@@ -234,7 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Clear logs response.
+    /// Clear script logs response.
     /// </summary>
     [DataContract]
     public class ClearScriptLogsResponse
@@ -242,18 +256,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Close logs.
+    /// Close script logs.
     /// </summary>
     [DataContract]
     public class CloseScriptLog : IGXRequest<CloseScriptLogResponse>
     {
         /// <summary>
-        /// Closed logs.
+        /// Closed script logs.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Logs
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[]? Logs
         {
             get;
             set;
@@ -261,7 +273,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Close logs response.
+    /// Close script logs response.
     /// </summary>
     [DataContract]
     public class CloseScriptLogResponse

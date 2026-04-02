@@ -29,26 +29,35 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
+    /// <summary>
+    /// A data contract class representing schedule to device group binding object.
+    /// </summary>
     [IndexCollection(true, nameof(ScheduleId), nameof(DeviceGroupId), Clustered = true)]
     public class GXScheduleToDeviceGroup
     {
+        /// <summary>
+        /// Schedule ID.
+        /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
-
+        [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.None)]
         public Guid ScheduleId
         {
+            //ForeignKeyDelete is None because creator of the device group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
 
+        /// <summary>
+        /// Device group ID.
+        /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid DeviceGroupId
@@ -65,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

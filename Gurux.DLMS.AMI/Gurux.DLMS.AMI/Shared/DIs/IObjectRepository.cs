@@ -31,9 +31,7 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Rest;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
@@ -47,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List objects.
         /// </summary>
         /// <returns>Objects.</returns>
-        Task<GXObject[]> ListAsync(ClaimsPrincipal user,
+        Task<GXObject[]> ListAsync(
             ListObjects? request,
             ListObjectsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,44 +53,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read object information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Object id.</param>
         /// <returns>Object information.</returns>
-        Task<GXObject> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXObject> ReadAsync(Guid id);
 
         /// <summary>
         /// Update object(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objects">Updated object(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXObject> objects,
             Expression<Func<GXObject, object?>>? columns = null);
 
         /// <summary>
         /// Delete object(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objects">Object(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> objects, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> objects, bool delete);
 
         /// <summary>
         /// Get all users that can access this object.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objectId">Object id.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? objectId);
+        Task<List<string>> GetUsersAsync(Guid? objectId);
 
         /// <summary>
         /// Get all users that can access objects.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objectIds">Object ids.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? objectIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds);
     }
 }

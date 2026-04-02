@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of values.</returns>
         Task<GXValue[]> ListAsync(
-            ClaimsPrincipal User,
             ListValues? request,
             ListValuesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,44 +54,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read value information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Object id.</param>
         /// <returns>Value information.</returns>
-        Task<GXValue> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXValue> ReadAsync(Guid id);
 
         /// <summary>
         /// Add values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="values">Added values.</param>
-        Task<Guid[]> AddAsync(ClaimsPrincipal User, IEnumerable<GXValue> values);
+        Task<Guid[]> AddAsync(IEnumerable<GXValue> values);
 
         /// <summary>
         /// Delete values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="values">Values(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> values);
+        Task DeleteAsync(IEnumerable<Guid> values);
 
         /// <summary>
         /// Clear device values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="devices">Cleared devices.</param>
-        Task ClearDeviceAsync(ClaimsPrincipal User, IEnumerable<GXDevice> devices);
+        Task ClearDeviceAsync(IEnumerable<GXDevice> devices);
 
         /// <summary>
         /// Clear object values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="objects">Cleared objects.</param>
-        Task ClearObjectAsync(ClaimsPrincipal User, IEnumerable<GXObject> objects);
+        Task ClearObjectAsync(IEnumerable<GXObject> objects);
 
         /// <summary>
         /// Clear attribute values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="attributes">Values(s) to clear.</param>
-        Task ClearAttributeAsync(ClaimsPrincipal User, IEnumerable<GXAttribute> attributes);
+        Task ClearAttributeAsync(IEnumerable<GXAttribute> attributes);
     }
 }

@@ -29,15 +29,15 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Script
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing script group to script binding object.
     /// </summary>
     [DataContract(Name = "GXScriptGroupScript"), Serializable]
     [IndexCollection(true, nameof(ScriptGroupId), nameof(ScriptId), Clustered = true)]
@@ -47,7 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// The database ID of the Script group.
         /// </summary>
         [DataMember(Name = "ScriptGroupId")]
-        [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid ScriptGroupId
         {
             get;
@@ -72,7 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -96,7 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

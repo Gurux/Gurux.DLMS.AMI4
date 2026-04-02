@@ -29,53 +29,62 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
-
     /// <summary>
-    /// Add new system error.
+    /// Add new system logs.
     /// </summary>
     [DataContract]
     public class AddSystemLog : IGXRequest<AddSystemLogResponse>
     {
         /// <summary>
-        /// Occurred error.
+        /// Log item.
         /// </summary>
         [DataMember]
-        [Description("Occurred error.")]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXSystemLog Error
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [Description("Log item.")]
+        [Required]
+        public GXSystemLog? Item
         {
             get;
             set;
         }
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
-    /// Add system error response.
+    /// Add system log response.
     /// </summary>
     [DataContract]
-    [Description("Add system error response.")]
+    [Description("Add system log response.")]
     public class AddSystemLogResponse
     {
     }
 
     /// <summary>
-    /// Get system errors.
+    /// Get system logs.
     /// </summary>
     [DataContract]
-    [Description("Get system errors.")]
+    [Description("Get system logs.")]
     public class ListSystemLogs : IGXRequest<ListSystemLogsResponse>
     {
         /// <summary>
-        /// Filter can be used to filter system error example by date.
+        /// Filter can be used to filter system logs example by date.
         /// </summary>
         public GXSystemLog? Filter
         {
@@ -106,7 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the errors to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -175,32 +184,32 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Get system errors response.
+    /// Get system logs response.
     /// </summary>
-    [Description("Get system errors response.")]
+    [Description("Get system logs response.")]
     [DataContract]
     public class ListSystemLogsResponse
     {
         /// <summary>
-        /// System errors.
+        /// System logs.
         /// </summary>
         [DataMember]
-        [Description("System errors.")]
-        public GXSystemLog[] Errors
+        [Description("System logs.")]
+        public GXSystemLog[]? Logs
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Amount of the system errors.
+        /// Amount of the system logs.
         /// </summary>
         /// <remarks>
         /// With large databases reading the amount of the data can take a very long time.
         /// In those cases the count is set to -1.
         /// </remarks>
         [DataMember]
-        [Description("Amount of the system errors.")]
+        [Description("Amount of the system logs.")]
         public int Count
         {
             get;
@@ -209,7 +218,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Clear system errors.
+    /// Clear system logs.
     /// </summary>
     [DataContract]
     public class ClearSystemLog : IGXRequest<ClearSystemLogResponse>
@@ -217,26 +226,26 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Clear system errors response.
+    /// Clear system logs response.
     /// </summary>
-    [Description("Clear system errors response.")]
+    [Description("Clear system logs response.")]
     [DataContract]
     public class ClearSystemLogResponse
     {
     }
 
     /// <summary>
-    /// Close system errors.
+    /// Close system logs.
     /// </summary>
     [DataContract]
     public class CloseSystemLog : IGXRequest<CloseSystemLogResponse>
     {
         /// <summary>
-        /// System errors to close.
+        /// System logs to close.
         /// </summary>
         [DataMember]
-        [Description("System errors to close.")]
-        public Guid[] Errors
+        [Description("System logs to close.")]
+        public Guid[]? Logs
         {
             get;
             set;
@@ -244,9 +253,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     }
 
     /// <summary>
-    /// Close system errors response.
+    /// Close system logs response.
     /// </summary>
-    [Description("Close system errors response.")]
+    [Description("Close system logs response.")]
     [DataContract]
     public class CloseSystemLogResponse
     {

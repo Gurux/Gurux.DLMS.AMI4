@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List attributes.
         /// </summary>
         /// <returns>Attributes.</returns>
-        Task<GXAttribute[]> ListAsync(ClaimsPrincipal user,
+        Task<GXAttribute[]> ListAsync(
             ListAttributes? request,
             ListAttributesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,36 +53,31 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read attribute information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Attribute id.</param>
         /// <returns>Attribute information.</returns>
-        Task<GXAttribute> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXAttribute> ReadAsync(Guid id);
 
         /// <summary>
         /// Update attribute(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="attributers">Updated attribute(s).</param>
         /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(ClaimsPrincipal user,
+        Task<Guid[]> UpdateAsync(
             IEnumerable<GXAttribute> attributers,
             Expression<Func<GXAttribute, object?>>? columns = null);
 
         /// <summary>
         /// Delete attribute(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="attributes">Attribute(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> attributes, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> attributes, bool delete);
 
         /// <summary>
         /// Update attribute datatype.
         /// </summary>
-        /// <param name="user"></param>
         /// <param name="attributes"></param>
         /// <returns></returns>
-        Task UpdateDatatypeAsync(ClaimsPrincipal user, 
-            IEnumerable<GXAttribute> attributes);
+        Task UpdateDatatypeAsync(IEnumerable<GXAttribute> attributes);
     }
 }

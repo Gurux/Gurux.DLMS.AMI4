@@ -29,10 +29,11 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -44,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// User error.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
         public GXUserAction? Item
         {
@@ -63,11 +64,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added User actions.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUserAction[] Actions
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Action type.
+        /// </summary>
+        [DataMember]
+        [Description("Action type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
@@ -108,6 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user actions.
         /// </summary>
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUserAction? Filter
         {
             get;
@@ -197,7 +211,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of User actions.
         /// </summary>
         [DataMember]
-        public GXUserAction[] Actions
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        public GXUserAction[]? Actions
         {
             get;
             set;

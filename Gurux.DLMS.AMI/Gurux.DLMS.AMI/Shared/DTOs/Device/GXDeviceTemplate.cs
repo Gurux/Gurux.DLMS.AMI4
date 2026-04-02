@@ -29,7 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
@@ -119,6 +121,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Protocol that the device uses.
         /// </summary>
         [DataMember(Name = "Protocol")]
@@ -188,12 +200,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         }
 
         /// <summary>
+        /// The creator of the device template.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXUser? Creator
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Creation time.
         /// </summary>
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -278,7 +303,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// List of device template groups where this device template belongs.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXDeviceTemplateGroup), typeof(GXDeviceTemplateGroupDeviceTemplate))]
+        [ForeignKey(typeof(GXDeviceTemplateGroup), 
+            typeof(GXDeviceTemplateGroupDeviceTemplate))]
         public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
         {
             get;
@@ -302,7 +328,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

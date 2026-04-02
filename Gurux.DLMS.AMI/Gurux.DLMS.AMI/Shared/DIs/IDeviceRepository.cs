@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -48,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Devices.</returns>
         Task<GXDevice[]> ListAsync(
-        ClaimsPrincipal user,
         ListDevices? request,
         ListDevicesResponse? response = null,
         CancellationToken cancellationToken = default);
@@ -56,15 +54,13 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read device information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Device id.</param>
         /// <returns>Device information.</returns>
-        Task<GXDevice> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXDevice> ReadAsync(Guid id);
 
         /// <summary>
         /// Update device(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="devices">Updated device(s).</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <param name="columns">Updated columns(s).</param>
@@ -75,7 +71,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// This is handy when only a part of device objects is read, but the objects want to remain active just in case.
         /// </remarks>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXDevice> devices,
             CancellationToken cancellationToken,
             Expression<Func<GXDevice, object?>>? columns = null,
@@ -85,43 +80,37 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Delete device(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="devices">Deleted device(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
-            ClaimsPrincipal user,
             IEnumerable<Guid> devices,
             bool delete);
 
         /// <summary>
         /// Returns list of users that can access this device.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? deviceId);
+        Task<List<string>> GetUsersAsync(Guid? deviceId);
 
         /// <summary>
         /// Returns list of users that can access devices.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="deviceIds">Device Ids.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid> deviceIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid> deviceIds);
 
         /// <summary>
         /// Updates the device status.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="deviceId">Device ID.</param>
         /// <param name="status">Device status</param>
-        Task UpdateStatusAsync(ClaimsPrincipal User, Guid deviceId, DeviceStatus status);
+        Task UpdateStatusAsync(Guid deviceId, DeviceStatus status);
 
         /// <summary>
         /// Reset devices to disconnected state.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="devices">Resetted device(s).</param>
-        Task ResetAsync(ClaimsPrincipal user, IEnumerable<Guid> devices);
+        Task ResetAsync(IEnumerable<Guid> devices);
     }
 }

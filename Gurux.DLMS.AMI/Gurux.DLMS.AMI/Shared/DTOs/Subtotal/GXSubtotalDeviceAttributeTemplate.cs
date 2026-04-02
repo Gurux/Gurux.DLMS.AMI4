@@ -29,9 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
@@ -41,17 +41,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
     /// </summary>
     [DataContract(Name = "GXSubtotalDeviceAttributeTemplate"), Serializable]
     [IndexCollection(true, nameof(SubtotalId), nameof(AttributeTemplateId), Clustered = true)]
-    public class GXSubtotalDeviceAttributeTemplate : GXTableBase
+    public class GXSubtotalDeviceAttributeTemplate
     {
         /// <summary>
         /// The database ID of the subtotal.
         /// </summary>
         [DataMember(Name = "SubtotalID")]
-        [ForeignKey(typeof(GXSubtotal), OnDelete = ForeignKeyDelete.Cascade)]
-        [StringLength(36)]
+        [ForeignKey(typeof(GXSubtotal), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid SubtotalId
         {
+            //ForeignKeyDelete is None because creator of the attribute template is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -76,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -93,17 +93,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
-        }
+        }      
     }
 }

@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -37,19 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing manufacturer group to manufacturer binding object.
     /// </summary>
     [DataContract(Name = "GXManufacturerGroupManufacturer"), Serializable]
     [IndexCollection(true, nameof(ManufacturerGroupId), nameof(ManufacturerId), Clustered = true)]
-    public class GXManufacturerGroupManufacturer : GXTableBase
+    public class GXManufacturerGroupManufacturer
     {
         /// <summary>
         /// The database ID of the Schedule group.
         /// </summary>
         [DataMember(Name = "ManufacturerGroupId")]
-        [ForeignKey(typeof(GXManufacturerGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXManufacturerGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid ManufacturerGroupId
         {
+            //ForeignKeyDelete is None because creator of the manufacturer is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -59,7 +61,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// </summary>
         [DataMember(Name = "ManufacturerID")]
         [ForeignKey(typeof(GXManufacturer), OnDelete = ForeignKeyDelete.Cascade)]
-        [StringLength(36)]
         public Guid ManufacturerId
         {
             get;
@@ -74,7 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -91,17 +92,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
-        }
+        }       
     }
 }

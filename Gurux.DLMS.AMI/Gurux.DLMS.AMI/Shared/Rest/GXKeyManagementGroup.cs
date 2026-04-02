@@ -29,12 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,9 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Key management group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.SystemTitle))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.SystemTitle))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXKeyManagementGroup? Item
         {
             get;
@@ -73,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the key management groups to retreave.
+        /// Amount of the key management groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -84,9 +87,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter key management groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXKeyManagementGroup),
+        [ExcludeOpenApi(typeof(GXKeyManagementGroup),
            nameof(GXKeyManagementGroup.KeyManagements),
            nameof(GXKeyManagementGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXKeyManagementGroup? Filter
         {
             get;
@@ -175,9 +179,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of key management groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXKeyManagementGroup),
+        [ExcludeOpenApi(typeof(GXKeyManagementGroup),
            nameof(GXKeyManagementGroup.KeyManagements),
            nameof(GXKeyManagementGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXKeyManagementGroup[]? KeyManagementGroups
         {
             get;
@@ -205,8 +210,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New key management group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXKeyManagementGroup[]? KeyManagementGroups
         {
             get;

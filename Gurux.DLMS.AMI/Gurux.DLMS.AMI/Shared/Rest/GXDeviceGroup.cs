@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
@@ -38,6 +38,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -49,18 +50,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id),
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id),
                 nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id),
                 nameof(GXAgentGroup.Name))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id),
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id),
                 nameof(GXGatewayGroup.Name))]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id),
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id),
                 nameof(GXKeyManagement.Name))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
-        [ExcludeSwagger(typeof(GXDeviceGroupParameter), nameof(GXDeviceGroupParameter.DeviceGroup),
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceGroupParameter), nameof(GXDeviceGroupParameter.DeviceGroup),
                 nameof(GXDeviceGroupParameter.Module))]
         public GXDeviceGroup? Item
         {
@@ -87,7 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the device groups to retreave.
+        /// Amount of the device groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -98,10 +101,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
+        [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups), 
             nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys), 
             nameof(GXDeviceGroup.Parameters))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXDeviceGroup? Filter
         {
             get;
@@ -191,7 +195,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
+        [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Devices),
         nameof(GXDeviceGroup.UserGroups), nameof(GXDeviceGroup.AgentGroups), 
             nameof(GXDeviceGroup.Gateways), nameof(GXDeviceGroup.Keys), 
             nameof(GXDeviceGroup.Parameters))]
@@ -222,18 +226,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [ExcludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Keys))]
-        [ExcludeSwagger(typeof(GXDeviceGroupParameter),
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Keys))]
+        [ExcludeOpenApi(typeof(GXDeviceGroupParameter),
             nameof(GXDeviceGroupParameter.Removed),
             nameof(GXDeviceGroupParameter.Updated),
             nameof(GXDeviceGroupParameter.CreationTime),
             nameof(GXDeviceGroupParameter.DeviceGroup),
             nameof(GXDeviceGroupParameter.Module))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXDeviceGroup[]? DeviceGroups
         {
             get;

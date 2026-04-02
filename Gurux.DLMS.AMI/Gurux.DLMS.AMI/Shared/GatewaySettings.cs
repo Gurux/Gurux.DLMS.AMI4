@@ -29,7 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Shared
 {
@@ -50,6 +53,18 @@ namespace Gurux.DLMS.AMI.Shared
         /// Is gateway of the agent active.
         /// </summary>
         public bool Active { get; set; }
+
+        /// <summary>
+        /// Selected gateway ID.
+        /// </summary>
+        /// <remarks>
+        /// This is used when the gateway is selected from the list of saved gateways.
+        /// </remarks>
+        public Guid? Id
+        {
+            get;
+            set;
+        }
 
         /// <summary>
         /// How long in seconds the gateway identify message is waited from the gateway.
@@ -87,12 +102,36 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Gateway script is used to identify the connecting gateway.
         /// </summary>
-        public Guid? GatewayScriptMethod { get; set; }
+        public Guid? ScriptMethod { get; set; }
+
+        /// <summary>
+        /// Gateway script.
+        /// </summary>
+        public byte[]? Script { get; set; }
+
+        /// <summary>
+        /// Saved gateway script Id.
+        /// </summary>
+        public Guid? ScriptId { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return Helpers.GetProperties(this);
+            StringBuilder sb = new StringBuilder();
+            var list = Helpers.GetDictionaryProperties(this);
+            foreach (var it in list)
+            {
+                if (sb.Length != 0)
+                {
+                    sb.Append(", ");
+                }
+                //Script is not shown in the string.
+                if (it.Key != nameof(Script))
+                {
+                    sb.Append(it.Key + ": " + it.Value);
+                }
+            }
+            return sb.ToString();
         }
     }
 }

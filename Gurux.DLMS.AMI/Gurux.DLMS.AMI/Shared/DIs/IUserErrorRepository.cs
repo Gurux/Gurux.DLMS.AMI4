@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -47,44 +46,40 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of user errors.</returns>
         Task<GXUserError[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListUserErrors? request, 
+            ListUserErrors? request,
             ListUserErrorsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user error information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">User error id.</param>
         /// <returns>User error information.</returns>
-        Task<GXUserError> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXUserError> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear user errors.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal user, IEnumerable<string>? users);
+        Task ClearAsync(IEnumerable<string>? users);
 
         /// <summary>
         /// Add user errors.
         /// </summary>
-        /// <param name="user">Current user.</param>
+        /// <param name="type">Log type.</param>
         /// <param name="errors">New errors.</param>
-        Task AddAsync(ClaimsPrincipal user, IEnumerable<GXUserError> errors);
+        Task AddAsync(string type, IEnumerable<GXUserError> errors);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="user">User.</param>
+        /// <param name="type">Log type.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXUserError> AddAsync(ClaimsPrincipal User, GXUser user, Exception ex);
+        Task<GXUserError> AddAsync(string type, GXUser user, Exception ex);
 
         /// <summary>
         /// Close user error(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(ClaimsPrincipal user, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

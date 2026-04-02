@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of Gateway logs.</returns>
         Task<GXGatewayLog[]> ListAsync(
-            ClaimsPrincipal user, 
             ListGatewayLogs? request,
             ListGatewayLogsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,36 +53,34 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read Gateway log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Gateway log id.</param>
         /// <returns>Gateway log information.</returns>
-        Task<GXGatewayLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXGatewayLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear Gateway logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? Gateways);
+        Task ClearAsync(Guid[]? Gateways);
 
         /// <summary>
         /// Add Gateway logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Gateway log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXGatewayLog> logs);
+        Task AddAsync(string type, IEnumerable<GXGatewayLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Gateway log type.</param>
         /// <param name="Gateway">Gateway.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXGatewayLog> AddAsync(ClaimsPrincipal User, GXGateway Gateway, Exception ex);
+        Task<GXGatewayLog> AddAsync(string type, GXGateway Gateway, Exception ex);
 
         /// <summary>
         /// Close Gateway log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
+        Task CloseAsync(IEnumerable<Guid> logs);
     }
 }

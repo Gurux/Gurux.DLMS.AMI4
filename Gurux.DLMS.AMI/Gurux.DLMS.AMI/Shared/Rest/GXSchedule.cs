@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -51,30 +51,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Schedule information.
         /// </summary>
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
             nameof(GXScheduleGroup.Name))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id),
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id),
             nameof(GXAttribute.Template))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id),
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id),
             nameof(GXAttributeTemplate.Name))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id),
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id),
             nameof(GXObject.Template))]
-        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id),
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id),
             nameof(GXObjectTemplate.Name))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id),
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id),
             nameof(GXDevice.Template))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id),
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id),
             nameof(GXDeviceTemplate.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
             nameof(GXDeviceGroup.Name))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id),
             nameof(GXScriptMethod.Name))]
-        [IncludeSwagger(typeof(GXTrigger), nameof(GXTrigger.Id),
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id),
             nameof(GXTrigger.Name))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXSchedule),
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXSchedule),
         nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
              nameof(GXSchedule.Objects),
@@ -109,7 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the schedules to retreave.
+        /// Amount of the schedules to retrieve.
         /// </summary>
         public int Count
         {
@@ -120,7 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter schedules.
         /// </summary>
-        [ExcludeSwagger(typeof(GXSchedule),
+        [ExcludeOpenApi(typeof(GXSchedule),
         nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
              nameof(GXSchedule.Objects),
@@ -128,9 +128,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.ScriptMethods),
              nameof(GXSchedule.DeviceGroups),
              nameof(GXSchedule.ScheduleGroups),
+             nameof(GXSchedule.DeviceAttributeTemplates),
+             nameof(GXSchedule.DeviceGroupAttributeTemplates),
+             nameof(GXSchedule.DeviceObjectTemplates),
+             nameof(GXSchedule.DeviceGroupObjectTemplates),
              nameof(GXSchedule.Triggers),
              nameof(GXSchedule.Logs),
              nameof(GXSchedule.Modules))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXSchedule? Filter
         {
             get;
@@ -220,7 +226,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of schedule items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXSchedule),
+        [ExcludeOpenApi(typeof(GXSchedule),
         nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
              nameof(GXSchedule.Objects),
@@ -231,6 +237,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.Triggers),
              nameof(GXSchedule.Logs),
              nameof(GXSchedule.Modules))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXSchedule[]? Schedules
         {
             get;
@@ -266,17 +274,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Schedules to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [ExcludeSwagger(typeof(GXSchedule), nameof(GXSchedule.ScriptMethods),
-            nameof(GXSchedule.Creator),
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [ExcludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.ScriptMethods),
             nameof(GXSchedule.Triggers),
             nameof(GXSchedule.Logs),
             nameof(GXSchedule.Modules))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
         public List<GXSchedule> Schedules
         {
             get;
@@ -311,7 +322,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed schedule identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -384,6 +395,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Module and schedule settings.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXScheduleModule? Item
         {
             get;
@@ -400,6 +413,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Updated item.
         /// </summary>
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                      nameof(GXUser.UserName))]
         public GXScheduleModule? Item
         {
             get;

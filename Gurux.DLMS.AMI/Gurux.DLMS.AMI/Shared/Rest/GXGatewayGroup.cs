@@ -30,12 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,11 +48,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Gateway group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXGateway),nameof(GXGateway.Id),
+        [IncludeOpenApi(typeof(GXGateway),nameof(GXGateway.Id),
                 nameof(GXGateway.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
                 nameof(GXDeviceGroup.Name))]
         public GXGatewayGroup? Item
         {
@@ -77,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the gateway groups to retreave.
+        /// Amount of the gateway groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -88,8 +91,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter gateway groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
+        [ExcludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
             nameof(GXGatewayGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXGatewayGroup? Filter
         {
             get;
@@ -177,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of gateway groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
+        [ExcludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Gateways),
             nameof(GXGatewayGroup.UserGroups))]
         public GXGatewayGroup[]? GatewayGroups
         {
@@ -206,9 +210,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New gateway group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXGatewayGroup[] GatewayGroups
         {
             get;
@@ -242,7 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Gateway group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

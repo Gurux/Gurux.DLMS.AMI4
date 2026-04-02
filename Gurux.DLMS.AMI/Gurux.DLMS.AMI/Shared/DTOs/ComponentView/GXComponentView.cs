@@ -29,19 +29,19 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
 {
     /// <summary>
     /// List of components that can be shown in the UI.
     /// </summary>
-    public class GXComponentView : IUnique<Guid>
+    public class GXComponentView : GXTableBase, IUnique<Guid>
     {
         /// <summary>
         /// Constructor.
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// The creator of the Component view.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator
@@ -139,7 +139,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// <summary>
         /// List of component view groups where this component view belongs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXComponentViewGroup), typeof(GXUserGroupComponentViewGroup))]
+        [DataMember, ForeignKey(typeof(GXComponentViewGroup),
+            typeof(GXComponentViewGroupComponentView), OnDelete = ForeignKeyDelete.Cascade)]
         public List<GXComponentViewGroup>? ComponentViewGroups
         {
             get;
@@ -155,7 +156,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -183,6 +184,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Update creation time before update.
+        /// </summary>
+        public override void BeforeAdd()
+        {
+            if (CreationTime == null)
+            {
+                CreationTime = DateTime.Now;
+            }
+        }
+
+        /// <summary>
+        /// Update concurrency stamp.
+        /// </summary>
+        public override void BeforeUpdate()
+        {
+            Updated = DateTime.Now;
         }
 
         /// <inheritdoc/>

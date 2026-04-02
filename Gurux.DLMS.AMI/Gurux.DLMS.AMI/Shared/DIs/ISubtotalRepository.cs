@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Subtotals.</returns>
         Task<GXSubtotal[]> ListAsync(
-            ClaimsPrincipal user,
             ListSubtotals? request,
             ListSubtotalsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,66 +53,56 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read subtotal.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Subtotal id.</param>
         /// <returns></returns>
-        Task<GXSubtotal> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXSubtotal> ReadAsync(Guid id);
 
         /// <summary>
         /// Update subtotal(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotals">Updated subtotal(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXSubtotal> subtotals,
             Expression<Func<GXSubtotal, object?>>? columns = null);
 
         /// <summary>
         /// Delete subtotal(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotals">Subtotal(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> subtotals, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> subtotals, bool delete);
 
         /// <summary>
         /// Get all users that can access this subtotal.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="subtotalId">subtotal id.</param>
         /// <returns>Users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? subtotalId);
+        Task<List<string>> GetUsersAsync(Guid? subtotalId);
 
         /// <summary>
         /// Get all users that can access subtotals.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="subtotalIds">subtotal ids.</param>
         /// <returns>Users.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? subtotalIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? subtotalIds);
 
         /// <summary>
         /// Calculate subtotal(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotals">Calculated subtotals.</param>
-        Task CalculateAsync(ClaimsPrincipal user, IEnumerable<Guid>? subtotals);
+        Task CalculateAsync(IEnumerable<Guid>? subtotals);
 
         /// <summary>
         /// Cancel subtotal(s) calculation.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotals">Canceled subtotals.</param>
-        Task CancelAsync(ClaimsPrincipal user, IEnumerable<Guid>? subtotals);
+        Task CancelAsync(IEnumerable<Guid>? subtotals);
 
         /// <summary>
         /// Clear calculated subtotal(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotals">Cleared subtotals.</param>
-        Task ClearAsync(ClaimsPrincipal user, IEnumerable<Guid>? subtotals);
-
+        Task ClearAsync(IEnumerable<Guid>? subtotals);
     }
 }

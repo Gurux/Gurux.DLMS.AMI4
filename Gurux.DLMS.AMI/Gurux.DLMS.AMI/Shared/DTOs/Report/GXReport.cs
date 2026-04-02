@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -116,7 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         /// The creator of the report.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator
@@ -134,6 +135,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -229,9 +240,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         /// Script method that this report uses.
         /// </summary>
         [DefaultValue(null)]
-        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         public GXScriptMethod? ScriptMethod
         {
+            //ForeignKeyDelete is None because Creator will handle the deletion.
             get;
             set;
         }
@@ -513,7 +525,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -734,7 +746,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

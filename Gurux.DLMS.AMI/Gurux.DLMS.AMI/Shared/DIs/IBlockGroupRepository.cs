@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,60 +46,52 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXBlockGroup[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListBlockGroups? request, 
+            ListBlockGroups? request,
             ListBlockGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read block group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Block group id.</param>
         /// <returns></returns>
-        Task<GXBlockGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXBlockGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update block groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated block groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXBlockGroup> groups,
             Expression<Func<GXBlockGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete block group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Block groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns block groups list where block belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blockId">Block ID</param>
         /// <returns>List of block groups.</returns>
-        Task<List<GXBlockGroup>> GetJoinedBlockGroups(ClaimsPrincipal user, Guid blockId);
+        Task<List<GXBlockGroup>> GetJoinedBlockGroups(Guid blockId);
 
         /// <summary>
         /// Get all users that can access this block group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="blockGroupId">Block group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? blockGroupId);
+        Task<List<string>> GetUsersAsync(Guid? blockGroupId);
 
         /// <summary>
         /// Get all users that can access block group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="blockGroupIds">Agent Block ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? blockGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockGroupIds);
     }
 }

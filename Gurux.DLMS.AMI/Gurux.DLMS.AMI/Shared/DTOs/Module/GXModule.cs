@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -80,6 +81,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Protocols that can use this module.
         /// </summary>
         [DataMember(Name = "Protocols")]
@@ -96,7 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// The creator of the module.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator
@@ -154,45 +165,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [StringLength(64)]
         [Filter(FilterType.Contains)]
         public string? FileName
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Full Name of the module class.
-        /// </summary>
-        /// <remarks>
-        /// This is server main class name. Ex. Gurux.LoginNotifier.Server.Smtp
-        /// </remarks>
-        [StringLength(128)]
-        [Filter(FilterType.Contains)]
-        public string? Class
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Extension UI.
-        /// </summary>
-        [StringLength(128)]
-        [Filter(FilterType.Contains)]
-        public string? ExtensionUI
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Configuration UI.
-        /// </summary>
-        /// <remarks>
-        /// Optional configuration UI that server offers.
-        /// </remarks>
-        [StringLength(128)]
-        [Filter(FilterType.Contains)]
-        public string? ConfigurationUI
         {
             get;
             set;
@@ -370,7 +342,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -425,44 +397,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Icon name.
-        /// </summary>
-        public string? Icon
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized strings for this module.
-        /// </summary>
-        /// <remarks>
-        /// This is used only for database and it's not send for the user.
-        /// </remarks>
-        [DataMember]
-        [JsonIgnore]
-        public GXLocalizedResource[]? Resources
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized resources for this module.
-        /// </summary>
-        /// <remarks>
-        /// Localized resources are return with this.
-        /// </remarks>
-        [DataMember]
-        [Ignore(IgnoreType.Db)]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
+        }        
 
         /// <summary>
         /// Constructor.
@@ -498,7 +433,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List script groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXScriptGroup[]> ListAsync(ClaimsPrincipal user,
+        Task<GXScriptGroup[]> ListAsync(
             ListScriptGroups? request,
             ListScriptGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,52 +53,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read script group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Script group id.</param>
         /// <returns></returns>
-        Task<GXScriptGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXScriptGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update script groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated script groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXScriptGroup> groups,
             Expression<Func<GXScriptGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete script group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Script groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns script groups list where script belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="scriptId">Script ID</param>
         /// <returns>List of script groups.</returns>
-        Task<List<GXScriptGroup>> GetJoinedScriptGroups(ClaimsPrincipal user, Guid scriptId);
+        Task<List<GXScriptGroup>> GetJoinedScriptGroups(Guid scriptId);
 
         /// <summary>
         /// Get all users that can access this script group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groupId">Script group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? groupId);
+        Task<List<string>> GetUsersAsync(Guid? groupId);
 
         /// <summary>
         /// Get all users that can access script groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groupId">Script group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? groupId);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId);
     }
 }

@@ -29,11 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,6 +48,20 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Object information.
         /// </summary>        
+        [IncludeOpenApi(typeof(GXUser),
+        nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXDeviceModel),
+            nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion),
+            nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings),
+            nameof(GXDeviceSettings.Version))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate),
+            nameof(GXDeviceTemplate.Id))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
+            nameof(GXAttributeTemplate.ObjectTemplate))]
+        [ExcludeOpenApi(typeof(GXAttributeListItem),
+            nameof(GXAttributeListItem.Template))]
         public GXObjectTemplate? Item
         {
             get;
@@ -63,7 +80,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added COSEM object templates.
         /// </summary>
         [DataMember]
-        public GXObjectTemplate[] ObjectTemplates
+        [IncludeOpenApi(typeof(GXDeviceTemplate),
+            nameof(GXDeviceTemplate.Id))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
+            nameof(GXAttributeTemplate.ObjectTemplate))]
+        [ExcludeOpenApi(typeof(GXAttributeListItem),
+            nameof(GXAttributeListItem.Template))]
+        public GXObjectTemplate[]? ObjectTemplates
         {
             get;
             set;
@@ -80,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Object template identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -104,7 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the modules to retreave.
+        /// Amount of the modules to retrieve.
         /// </summary>
         [DataMember]
         public UInt64 Count
@@ -116,6 +139,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter object templates.
         /// </summary>
+        [ExcludeOpenApi(typeof(GXObjectTemplate),
+                    nameof(GXObjectTemplate.Attributes),
+            nameof(GXObjectTemplate.DeviceTemplate))]
         public GXObjectTemplate? Filter
         {
             get;
@@ -259,7 +285,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed COSEM object templates identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

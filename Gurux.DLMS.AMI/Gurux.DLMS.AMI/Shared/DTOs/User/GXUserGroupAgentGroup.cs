@@ -29,25 +29,38 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
+    /// <summary>
+    /// A data contract class representing user group to agent group binding object.
+    /// </summary>
     [DataContract(Name = nameof(GXUserGroupAgentGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(AgentGroupId), Clustered = true)]
     public class GXUserGroupAgentGroup
     {
-        [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        /// <summary>
+        /// User group ID.
+        /// </summary>
+        [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup), 
+            OnDelete = ForeignKeyDelete.None)]
         public Guid UserGroupId
         {
+            //ForeignKeyDelete is None because creator of the agent group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
 
-        [DataMember(Name = "AgentGroupID"), ForeignKey(typeof(GXAgentGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        /// <summary>
+        /// Agent group ID.
+        /// </summary>
+        [DataMember(Name = "AgentGroupID"), ForeignKey(typeof(GXAgentGroup), 
+            OnDelete = ForeignKeyDelete.Cascade)]
         public Guid AgentGroupId
         {
             get;
@@ -62,7 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

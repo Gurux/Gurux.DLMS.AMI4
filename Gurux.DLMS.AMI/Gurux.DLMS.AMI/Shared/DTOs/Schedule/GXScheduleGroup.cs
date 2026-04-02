@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
@@ -84,7 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// The creator of the schedule group.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator
@@ -102,6 +103,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -126,7 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -221,7 +232,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

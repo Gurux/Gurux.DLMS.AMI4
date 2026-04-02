@@ -46,44 +46,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of key management logs.</returns>
         Task<GXKeyManagementLog[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListKeyManagementLogs? request, 
+            ListKeyManagementLogs? request,
             ListKeyManagementLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read key management log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">KeyManagement log id.</param>
         /// <returns>KeyManagement information.</returns>
-        Task<GXKeyManagementLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXKeyManagementLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear key management logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? keys);
+        Task ClearAsync(Guid[]? keys);
 
         /// <summary>
         /// Add key management logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Key management log type.</param>
         /// <param name="logs">New key management logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXKeyManagementLog> logs);
+        Task AddAsync(string type, IEnumerable<GXKeyManagementLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Key management log type.</param>
         /// <param name="key">Key management.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXKeyManagementLog> AddAsync(ClaimsPrincipal User, GXKeyManagement key, Exception ex);
+        Task<GXKeyManagementLog> AddAsync(string type, GXKeyManagement key, Exception ex);
 
         /// <summary>
         /// Close key management log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

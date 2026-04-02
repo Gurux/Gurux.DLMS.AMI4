@@ -63,6 +63,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// Gateway is on error state.
         /// </summary>
         [XmlEnum("4")]
-        Error = 4
+        Error = 4,
+        /// <summary>
+        /// Indicates that the gateway has been detected.
+        /// </summary>
+        [XmlEnum("5")]
+        Detected = 5
     }
 }

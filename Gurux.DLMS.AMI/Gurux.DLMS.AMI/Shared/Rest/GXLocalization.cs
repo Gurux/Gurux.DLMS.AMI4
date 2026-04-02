@@ -29,11 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -48,11 +49,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Localization to add.
         /// </summary>
         [DataMember]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language), nameof(GXLocalizedResource.Creator))]
         public GXLanguage[] Localizations
         {
             get;
             set;
-        }
+        } = default!;
     }
 
     /// <summary>
@@ -89,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the localizations to retreave.
+        /// Amount of the localizations to retrieve.
         /// </summary>
         public int Count
         {
@@ -100,6 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter localizations.
         /// </summary>
+        [ExcludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Resources))]
         public GXLanguage? Filter
         {
             get;
@@ -176,11 +179,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of languages.
         /// </summary>
         [DataMember]
-        public GXLanguage[] Languages
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
+            nameof(GXLocalizedResource.Creator))]
+        public GXLanguage[]? Languages
         {
             get;
             set;
         }
+
         /// <summary>
         /// Total count of the languages.
         /// </summary>
@@ -202,7 +208,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Language identifiers to remove.
         /// </summary>
         [DataMember]
-        public string[] Ids
+        public string[]? Ids
         {
             get;
             set;
@@ -227,6 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Refrest localizations for the selected languages.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id))]
         public GXLanguage[]? Languages
         {
             get;

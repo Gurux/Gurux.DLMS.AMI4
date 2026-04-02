@@ -29,18 +29,22 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
-using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
+using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
     /// Localized resources.
     /// </summary>
+    [IndexCollection(true, nameof(Language), nameof(Hash))]
     public class GXLocalizedResource : IUnique<Guid>
     {
         /// <summary>
@@ -57,13 +61,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Localized string.
         /// </summary>
-        public string Value { get; set; } = "";
+        [Filter(FilterType.Contains)]
+        [IsRequired]
+        public string? Value { get; set; }
 
         /// <summary>
         /// Hash value for Localized string key.
         /// </summary>
         [Index(false)]
-        public int Hash
+        [Filter(FilterType.Exact)]
+        [StringLength(64)]
+        [IsRequired]
+        public string? Hash
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Status is used to tell when a resource is missing. 
+        /// </summary>
+        [Index(false)]
+        [DefaultValue(0)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public int? Status
         {
             get;
             set;
@@ -72,67 +94,66 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Parent language.
         /// </summary>
+        /// <remarks>
+        /// Creator 
+        /// </remarks>
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [Filter(FilterType.Exact)]
         [Index(false)]
-        [JsonIgnore]
         public GXLanguage? Language
         {
             get;
             set;
         }
 
-
         /// <summary>
-        /// Configuration that owns this language resouce.
+        /// The creator of the localized resource.
         /// </summary>
-        /// <remarks>
-        /// Language resource is removed when the configuration is removed.
-        /// </remarks>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Index(false)]
-        public GXConfiguration? Configuration
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Module that owns this language resouce.
-        /// </summary>
-        /// <remarks>
-        /// Language resource is removed when the module is removed.
-        /// </remarks>
+        [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        [Index(false)]
-        public GXModule? Module
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public GXUser? Creator
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Block that owns this language resouce.
+        /// Creation time.
         /// </summary>
-        /// <remarks>
-        /// Language resource is removed when the block is removed.
-        /// </remarks>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        [Index(false)]
-        public GXBlock? Block
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
         }
 
         /// <summary>
-        /// Script that owns this language resouce.
+        /// When was the localized resource last updated.
+        /// </summary>
+        [Description("When was the localized resource last updated.")]
+        [DefaultValue(null)]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? Updated
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Concurrency stamp.
         /// </summary>
         /// <remarks>
-        /// Language resource is removed when the script is removed.
+        /// Concurrency stamp is used to verify that several user's can't 
+        /// modify the target at the same time.
         /// </remarks>
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        [Index(false)]
-        public GXScript? Script
+        [DataMember]
+        [StringLength(36)]
+        public string? ConcurrencyStamp
         {
             get;
             set;

@@ -29,11 +29,11 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
@@ -60,10 +60,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// The database ID of the script method.
         /// </summary>
         [DataMember(Name = "MethodId")]
-        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid MethodId
         {
+            //ForeignKeyDelete is None because Agent will handle the deletion.
             get;
             set;
         }
@@ -75,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -99,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -71,6 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXUser? Creator
         {
+            //ForeignKeyDelete is None because Device will handle the deletion.
             get;
             set;
         }
@@ -139,6 +141,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXModule? Module
         {
+            //ForeignKeyDelete is None because ScriptMethod will handle the deletion.
             get;
             set;
         }
@@ -147,11 +150,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Target device group.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXDeviceGroup? DeviceGroup
         {
+            //ForeignKeyDelete is None because Device will handle the deletion.
             get;
             set;
         }
@@ -165,6 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXDevice? Device
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -178,6 +183,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXObject? Object
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -199,11 +205,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Schedule that triggers this task.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXSchedule? TriggerSchedule
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -212,11 +219,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// User that triggers this task.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? TriggerUser
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -230,6 +238,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXScript? TriggerScript
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -243,6 +252,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         public GXScript? TriggerModule
         {
+            //ForeignKeyDelete is None because Attribute will handle the deletion.
             get;
             set;
         }
@@ -323,7 +333,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
         [DefaultValue(null)]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -377,6 +387,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
+        /// Task error.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(null)]
+        public string? Error
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Attribute index.
         /// </summary>
         [DataMember]
@@ -407,7 +428,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         /// 
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXScriptMethod? Condition
@@ -434,10 +455,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }
+            Order ??= 0;
         }
 
         /// <inheritdoc />
@@ -447,13 +469,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             switch ((TaskType)TaskType.GetValueOrDefault())
             {
                 case Shared.Enums.TaskType.Read:
-                    str = Properties.Resources.Read;
+                    str = "Read";
                     break;
                 case Shared.Enums.TaskType.Write:
-                    str = Properties.Resources.Write;
+                    str = "Write";
                     break;
                 case Shared.Enums.TaskType.Action:
-                    str = Properties.Resources.Action;
+                    str = "Action";
                     break;
                 default:
                     break;
@@ -465,11 +487,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             }
             if (Ready != null)
             {
-                str += " " + Properties.Resources.Compleated;
+                str += " Compleated";
             }
             else if (Start != null)
             {
-                str += " " + Properties.Resources.Started;
+                str += " Started";
             }
             if (!string.IsNullOrEmpty(Result))
             {

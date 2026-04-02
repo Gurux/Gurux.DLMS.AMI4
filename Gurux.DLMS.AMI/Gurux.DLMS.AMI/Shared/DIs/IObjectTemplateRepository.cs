@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List objects.
         /// </summary>
         /// <returns>ObjectTemplates.</returns>
-        Task<GXObjectTemplate[]> ListAsync(ClaimsPrincipal user,
+        Task<GXObjectTemplate[]> ListAsync(
             ListObjectTemplates? request,
             ListObjectTemplatesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,44 +53,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read object information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">ObjectTemplate id.</param>
         /// <returns>ObjectTemplate information.</returns>
-        Task<GXObjectTemplate> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXObjectTemplate> ReadAsync(Guid id);
 
         /// <summary>
         /// Update object(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objects">Updated object(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXObjectTemplate> objects,
             Expression<Func<GXObjectTemplate, object?>>? columns = null);
 
         /// <summary>
         /// Delete object(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objects">ObjectTemplate(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> objects, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> objects, bool delete);
 
         /// <summary>
         /// Get all users that can access this object template.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objectId">ObjectTemplate id.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? objectId);
+        Task<List<string>> GetUsersAsync(Guid? objectId);
 
         /// <summary>
         /// Get all users that can access object templates.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="objectIds">ObjectTemplate ids.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? objectIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds);
     }
 }

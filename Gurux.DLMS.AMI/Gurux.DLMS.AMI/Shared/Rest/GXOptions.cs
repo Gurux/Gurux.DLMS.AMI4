@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -43,7 +43,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Configuration.
         /// </summary>
-        public string Configuration
+        public string? Configuration
         {
             get;
             set;
@@ -76,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Configuration.
         /// </summary>
-        public string Configuration
+        public string? Configuration
         {
             get;
             set;
@@ -86,7 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Settings data type.
         /// </summary>
         [DataMember]
-        public string SettingsType
+        public string? SettingsType
         {
             get;
             set;
@@ -96,7 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Configuration settings as JSON.
         /// </summary>
         [DataMember]
-        public string Settings
+        public string? Settings
         {
             get;
             set;

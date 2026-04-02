@@ -29,10 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
@@ -48,10 +48,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// The database ID of the subtotal.
         /// </summary>
         [DataMember(Name = "SubtotalID")]
-        [ForeignKey(typeof(GXSubtotal), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXSubtotal), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid SubtotalId
         {
+            //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -76,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -100,7 +101,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Subtotal
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

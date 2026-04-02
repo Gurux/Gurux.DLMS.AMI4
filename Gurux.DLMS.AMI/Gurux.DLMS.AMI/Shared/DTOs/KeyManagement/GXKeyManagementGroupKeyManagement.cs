@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -47,9 +48,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// The database ID of the KeyManagement group.
         /// </summary>
         [DataMember(Name = "KeyManagementGroupId")]
-        [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid KeyManagementGroupId
         {
+            //ForeignKeyDelete is None because creator of the key management is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -74,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -98,7 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

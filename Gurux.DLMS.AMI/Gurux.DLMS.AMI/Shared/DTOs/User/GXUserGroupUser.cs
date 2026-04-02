@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -40,17 +41,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// A data contract class representing user group to user binding object.
     /// </summary>
-    [DataContract(Name = "GXUserGroupUser"), Serializable]
+    [DataContract(Name = nameof(GXUserGroupUser)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(UserId), Clustered = true)]
     public class GXUserGroupUser : GXTableBase
     {
         /// <summary>
         /// The database ID of the user group
         /// </summary>
-        [DataMember(Name = "UserGroupID")]
-        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [DataMember]
+        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid UserGroupId
         {
+            //ForeignKeyDelete is None because creator of the user group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -58,10 +60,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// The database ID of the user
         /// </summary>
-        [DataMember(Name = "UserID")]
+        [DataMember]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(36)]
-        public string UserId
+        public string? UserId
         {
             get;
             set;
@@ -75,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -99,7 +101,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </summary>
         public override void BeforeAdd()
         {
-            CreationTime = DateTime.Now;
+            if (CreationTime == null)
+            {
+                CreationTime = DateTime.Now;
+            }
         }
     }
 }

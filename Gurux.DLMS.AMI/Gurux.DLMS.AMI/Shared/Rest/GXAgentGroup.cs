@@ -30,13 +30,14 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -48,15 +49,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXAgent),nameof(GXAgent.Id),
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id),
                 nameof(GXAgent.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
                 nameof(GXDeviceGroup.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXAgentGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXAgentGroup? Item
         {
             get;
             set;
@@ -80,7 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the agent groups to retreave.
+        /// Amount of the agent groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -91,8 +92,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agent groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
+        [ExcludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
             nameof(GXAgentGroup.UserGroups), nameof(GXAgentGroup.DeviceGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXAgentGroup? Filter
         {
             get;
@@ -180,9 +183,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agent groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
+        [ExcludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Agents),
             nameof(GXAgentGroup.UserGroups), nameof(GXAgentGroup.DeviceGroups))]
-        public GXAgentGroup[] AgentGroups
+        public GXAgentGroup[]? AgentGroups
         {
             get;
             set;
@@ -209,10 +212,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        public GXAgentGroup[] AgentGroups
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXAgentGroup[]? AgentGroups
         {
             get;
             set;
@@ -245,7 +249,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

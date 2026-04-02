@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
@@ -47,11 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Manufacturer information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
-        [ExcludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
-        [ExcludeSwagger(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version), nameof(GXDeviceSettings.Template))]
+        [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
         public GXManufacturer? Item
         {
             get;
@@ -82,8 +82,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Model information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
-        [IncludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
+        [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
         public GXDeviceModel? Item
         {
             get;
@@ -114,8 +114,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Version information.
         /// </summary>        
-        [ExcludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Settings))]
-        [IncludeSwagger(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]        
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Settings))]
+        [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]
         public GXDeviceVersion? Item
         {
             get;
@@ -133,14 +133,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated manufacturers.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceModel), nameof(GXDeviceModel.Id), nameof(GXDeviceModel.Versions))]
-        [IncludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id), nameof(GXDeviceVersion.Settings))]
-        [ExcludeSwagger(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version),
+        [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id), nameof(GXDeviceModel.Versions))]
+        [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id), nameof(GXDeviceVersion.Settings))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version), nameof(GXDeviceSettings.Template),
             nameof(GXDeviceSettings.CreationTime), nameof(GXDeviceSettings.InstallationTime),
             nameof(GXDeviceSettings.Removed), nameof(GXDeviceSettings.Updated))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
-        [ExcludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
-        public GXManufacturer[] Manufacturers
+        [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
+        public GXManufacturer[]? Manufacturers
         {
             get;
             set;
@@ -157,7 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New manufacturer identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -181,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the manufacturers to retreave.
+        /// Amount of the manufacturers to retrieve.
         /// </summary>
         public int Count
         {
@@ -192,7 +192,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter manufacturers.
         /// </summary>
-        [ExcludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.Models), nameof(GXManufacturer.ManufacturerGroups))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Models), nameof(GXManufacturer.ManufacturerGroups))]
         public GXManufacturer? Filter
         {
             get;
@@ -281,16 +281,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of manufacturers.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceModel), nameof(GXDeviceModel.Id), nameof(GXDeviceModel.Versions))]
-        [IncludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id), nameof(GXDeviceVersion.Settings))]
-        [ExcludeSwagger(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version),
+        [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id), nameof(GXDeviceModel.Versions))]
+        [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id), nameof(GXDeviceVersion.Settings))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version),
             nameof(GXDeviceSettings.CreationTime), nameof(GXDeviceSettings.InstallationTime),
             nameof(GXDeviceSettings.Removed), nameof(GXDeviceSettings.Updated))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
-        [ExcludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
+        [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
         //Select device template ID and name.
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
-        public GXManufacturer[] Manufacturers
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
+        public GXManufacturer[]? Manufacturers
         {
             get;
             set;
@@ -317,7 +317,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed manufacturers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -357,7 +357,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Installed manufacturers IDs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
         public GXManufacturer[]? Manufacturers
         {
             get;
@@ -368,7 +368,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Installed model IDs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]
+        [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]
         public GXDeviceModel[]? Models
         {
             get;
@@ -379,7 +379,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Installed version IDs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
+        [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
         public GXDeviceVersion[]? Versions
         {
             get;
@@ -390,7 +390,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Installed settings IDs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Id))]
+        [IncludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Id))]
         public GXDeviceSettings[]? Settings
         {
             get;

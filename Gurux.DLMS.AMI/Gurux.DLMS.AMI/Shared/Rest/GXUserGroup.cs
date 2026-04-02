@@ -29,25 +29,29 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
+using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
+using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
-using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -59,24 +63,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// User group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
             nameof(GXUser.GivenName), nameof(GXUser.Surname))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id),
             nameof(GXScheduleGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id),
             nameof(GXDeviceGroup.Name))]
-        [ExcludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.DeviceTemplateGroups),
+        [ExcludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.DeviceTemplateGroups),
             nameof(GXUserGroup.AgentGroups),
             nameof(GXUserGroup.GatewayGroups),
             nameof(GXUserGroup.ModuleGroups),
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
             nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ContentTypeGroups),
+            nameof(GXUserGroup.ContentGroups),
+            nameof(GXUserGroup.MenuGroups),
+            nameof(GXUserGroup.NotificationGroups),
             nameof(GXUserGroup.ReportGroups))]
         public GXUserGroup? Item
         {
@@ -102,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the user groups to retreave.
+        /// Amount of the user groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -113,7 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXUserGroup),
+        [ExcludeOpenApi(typeof(GXUserGroup),
             nameof(GXUserGroup.Users),
             nameof(GXUserGroup.DeviceGroups),
             nameof(GXUserGroup.ScheduleGroups),
@@ -124,12 +133,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
              nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ContentTypeGroups),
+            nameof(GXUserGroup.ContentGroups),
+            nameof(GXUserGroup.MenuGroups),
+            nameof(GXUserGroup.NotificationGroups),
             nameof(GXUserGroup.ReportGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUserGroup? Filter
         {
             get;
@@ -218,7 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of user groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXUserGroup),
+        [ExcludeOpenApi(typeof(GXUserGroup),
             nameof(GXUserGroup.Users),
             nameof(GXUserGroup.DeviceGroups),
             nameof(GXUserGroup.ScheduleGroups),
@@ -229,13 +244,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
+            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
             nameof(GXUserGroup.SubtotalGroups),
+            nameof(GXUserGroup.ContentTypeGroups),
+            nameof(GXUserGroup.ContentGroups),
+            nameof(GXUserGroup.MenuGroups),
+            nameof(GXUserGroup.NotificationGroups),
             nameof(GXUserGroup.ReportGroups))]
-        public GXUserGroup[] UserGroups
+        public GXUserGroup[]? UserGroups
         {
             get;
             set;
@@ -262,23 +282,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New user group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
-        [IncludeSwagger(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
-        [IncludeSwagger(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
-        [IncludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
-        [IncludeSwagger(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id))]
-        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
-        [IncludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
-        public GXUserGroup[] UserGroups
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
+        [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
+        [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id))]
+        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
+        [IncludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id))]
+        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id))]
+        [IncludeOpenApi(typeof(GXMenuGroup), nameof(GXMenuGroup.Id))]
+        [IncludeOpenApi(typeof(GXNotificationGroup), nameof(GXNotificationGroup.Id))]
+        public GXUserGroup[]? UserGroups
         {
             get;
             set;
@@ -311,7 +336,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// User group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -54,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the values to retreave.
+        /// Amount of the values to retrieve.
         /// </summary>
         public int Count
         {
@@ -65,7 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter values.
         /// </summary>
-        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
+        [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public GXValue? Filter
         {
             get;
@@ -178,7 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of value items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
+        [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public GXValue[]? Values
         {
             get;
@@ -207,7 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Values to add")]
-        [ExcludeSwagger(typeof(GXValue), nameof(GXValue.Attribute))]
+        [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
         public GXValue[]? Values
         {
             get;
@@ -226,7 +226,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New value identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -243,7 +243,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Devices to clear.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         public GXDevice[]? Devices
         {
             get;
@@ -253,7 +253,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Objects to clear.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         public GXObject[]? Objects
         {
             get;
@@ -263,7 +263,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Attributes to clear.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
         public GXAttribute[]? Attributes
         {
             get;

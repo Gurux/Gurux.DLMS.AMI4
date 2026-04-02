@@ -29,9 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -45,7 +46,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         ///Identifier. 
         /// </summary>
         [Key]
-        [DataMember(Name = "ID"), Index(Unique = true)]
+        [DataMember(Name = "ID"), Index]
+        [AutoIncrement]
         public int Id
         {
             get;
@@ -57,20 +59,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember]
         [StringLength(36)]
-        [Index]
+        [Index(Unique = false)]
         [IsRequired]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
         public string RoleId
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Claim type.
         /// </summary>
         [DataMember]
-        public string ClaimType
+        public string? ClaimType
         {
             get;
             set;
@@ -80,7 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// Claim value.
         /// </summary>
         [DataMember]
-        public string ClaimValue
+        public string? ClaimValue
         {
             get;
             set;

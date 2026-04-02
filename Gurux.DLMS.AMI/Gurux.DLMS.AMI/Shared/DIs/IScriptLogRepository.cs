@@ -46,44 +46,42 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of script logs.</returns>
         Task<GXScriptLog[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListScriptLogs? request, 
+
+            ListScriptLogs? request,
             ListScriptLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read script log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Script log id.</param>
         /// <returns>Script information.</returns>
-        Task<GXScriptLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXScriptLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear script logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? scripts);
+        Task ClearAsync(Guid[]? scripts);
 
         /// <summary>
         /// Add script logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Script log type.</param>
         /// <param name="errors">New script logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXScriptLog> errors);
+        Task AddAsync(string type, IEnumerable<GXScriptLog> errors);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Script log type.</param>
         /// <param name="script">Script.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXScriptLog> AddAsync(ClaimsPrincipal User, GXScript script, Exception ex);
+        Task<GXScriptLog> AddAsync(string type, GXScript script, Exception ex);
 
         /// <summary>
         /// Close script log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

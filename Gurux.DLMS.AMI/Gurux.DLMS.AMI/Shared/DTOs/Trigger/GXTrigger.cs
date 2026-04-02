@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
@@ -85,7 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// The creator of the trigger.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator
@@ -114,6 +115,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -160,7 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// User that triggers this event.
         /// </summary>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXUser? User
         {
             get;
@@ -170,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// User group that triggers this event.
         /// </summary>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXUserGroup? UserGroup
         {
             get;
@@ -180,7 +191,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Device that triggers this event.
         /// </summary>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXDevice? Device
         {
             get;
@@ -190,7 +201,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// DeviceGroup that triggers this event.
         /// </summary>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXDeviceGroup? DeviceGroup
         {
             get;
@@ -200,9 +211,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// <summary>
         /// Module that triggers this event.
         /// </summary>
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         public GXModule? Module
         {
+            //ForeignKeyDelete is None because creator is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -256,7 +268,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -330,7 +342,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

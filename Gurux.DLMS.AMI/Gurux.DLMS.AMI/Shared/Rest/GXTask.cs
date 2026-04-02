@@ -29,14 +29,15 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -50,17 +51,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Tasks to execute.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
-        public GXTask[] Tasks
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXTask[]? Tasks
         {
             get;
             set;
@@ -77,7 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New task identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] TaskIds
+        public Guid[]? TaskIds
         {
             get;
             set;
@@ -101,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the tasks to retreave.
+        /// Amount of the tasks to retrieve.
         /// </summary>
         public int Count
         {
@@ -113,15 +115,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter tasks.
         /// </summary>
 
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         public GXTask? Filter
         {
             get;
@@ -211,16 +214,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of tasks.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        public GXTask[] Tasks
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXTask[]? Tasks
         {
             get;
             set;
@@ -314,16 +318,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks. Null if there are no operations to execute.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         public GXTask[]? Tasks
         {
             get;
@@ -342,18 +347,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks.
         /// </summary>
         [DataMember]
-
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [ExcludeSwagger(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
-        public GXTask[] Tasks
+        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id))]
+        public GXTask[]? Tasks
         {
             get;
             set;
@@ -379,8 +374,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Executed tasks.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXTask), nameof(GXTask.Id))]
-        public GXTask[] Tasks
+        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id))]
+        public GXTask[]? Tasks
         {
             get;
             set;
@@ -406,7 +401,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed Tasks identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

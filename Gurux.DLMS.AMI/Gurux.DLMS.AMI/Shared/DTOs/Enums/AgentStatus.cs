@@ -84,5 +84,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// </summary>
         [XmlEnum("8")]
         SerialPortChange = 8,
+        /// <summary>
+        /// Indicates that the agent has been detected.
+        /// </summary>
+        [XmlEnum("9")]
+        Detected = 9,
     }
 }

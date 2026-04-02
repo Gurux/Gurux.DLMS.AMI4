@@ -46,7 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List key management groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXKeyManagementGroup[]> ListAsync(ClaimsPrincipal user,
+        Task<GXKeyManagementGroup[]> ListAsync(
             ListKeyManagementGroups? request,
             ListKeyManagementGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,52 +54,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read key management group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">KeyManagement group id.</param>
         /// <returns></returns>
-        Task<GXKeyManagementGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXKeyManagementGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update key management groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated key management groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXKeyManagementGroup> groups,
             Expression<Func<GXKeyManagementGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete key management group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">KeyManagement groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns key management groups list where key management belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="keyId">Key management ID</param>
         /// <returns>List of key management groups.</returns>
-        Task<List<GXKeyManagementGroup>> GetJoinedKeyManagementGroups(ClaimsPrincipal user, Guid keyId);
+        Task<List<GXKeyManagementGroup>> GetJoinedKeyManagementGroups(Guid keyId);
 
         /// <summary>
         /// Get all users that can access this key management group.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="groupId">KeyManagement group id.</param>
+        /// <param name="groupId">Key management group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? groupId);
+        Task<List<string>> GetUsersAsync(Guid? groupId);
 
         /// <summary>
         /// Get all users that can access key management groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groupId">KeyManagement group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? groupId);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId);
     }
 }

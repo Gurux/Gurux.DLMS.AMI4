@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
@@ -60,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -85,8 +86,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         [Filter(FilterType.Equals)]
         [IsRequired]
-        [DefaultValue(null)]
-        public DeviceActionType? Type
+        [DefaultValue(0)]
+        public int? Type
         {
             get;
             set;
@@ -120,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

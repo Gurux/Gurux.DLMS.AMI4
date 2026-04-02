@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
@@ -48,7 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Country English name.
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Country flag in SVG.
@@ -68,7 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Is country location in EU area.
@@ -82,16 +83,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// IP address blocks for the county.
-        /// </summary>
-        public GXIpAddressBlock[]? Clocks
-        {
-            get;
-            set;
-        }
-        
+        }                
     }
 }

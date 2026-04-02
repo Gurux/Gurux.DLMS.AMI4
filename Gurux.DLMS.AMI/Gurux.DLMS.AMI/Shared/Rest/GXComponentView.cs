@@ -29,12 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,10 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Component view information.
         /// </summary>
-        [IncludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXComponentView Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXComponentViewGroup),
+            nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXComponentView? Item
         {
             get;
             set;
@@ -72,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the component views to retreave.
+        /// Amount of the component views to retrieve.
         /// </summary>
         public int Count
         {
@@ -83,9 +85,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter component views.
         /// </summary>
-        [ExcludeSwagger(typeof(GXComponentView),
+        [ExcludeOpenApi(typeof(GXComponentView),
             nameof(GXComponentView.ComponentViewGroups),
             nameof(GXComponentView.Icon))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXComponentView? Filter
         {
             get;
@@ -174,10 +177,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of component view items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXComponentViewGroup),
+        [ExcludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
-        public GXComponentView[] ComponentViews
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        public GXComponentView[]? ComponentViews
         {
             get;
             set;
@@ -212,8 +216,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// ComponentViews to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXComponentViewGroup),
+        [IncludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public List<GXComponentView> ComponentViews
         {
             get;
@@ -231,7 +236,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New component view identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] ComponentViewIds
+        public Guid[]? ComponentViewIds
         {
             get;
             set;
@@ -248,7 +253,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed component view identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

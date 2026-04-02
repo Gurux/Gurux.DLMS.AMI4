@@ -29,7 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using System.Diagnostics;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Shared
 {
@@ -200,11 +202,34 @@ namespace Gurux.DLMS.AMI.Shared
         /// </remarks>
         public int? ConnectionUpTime { get; set; }
 
+        /// <summary>
+        /// Listener script.
+        /// </summary>
+        public byte[]? Script { get; set; }
+
+        /// <summary>
+        /// Saved listener script Id.
+        /// </summary>
+        public Guid? ScriptId { get; set; }
+
         /// <inheritdoc/>
         public override string ToString()
         {
-            return Helpers.GetProperties(this);
+            StringBuilder sb = new StringBuilder();
+            var list = Helpers.GetDictionaryProperties(this);
+            foreach (var it in list)
+            {
+                if (sb.Length != 0)
+                {
+                    sb.Append(", ");
+                }
+                //Script is not shown in the string.
+                if (it.Key != nameof(Script))
+                {
+                    sb.Append(it.Key + ": " + it.Value);
+                }
+            }
+            return sb.ToString();
         }
-
     }
 }

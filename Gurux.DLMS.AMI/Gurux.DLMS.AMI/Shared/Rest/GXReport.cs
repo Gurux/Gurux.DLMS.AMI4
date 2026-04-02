@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -43,6 +43,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -52,30 +53,40 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class GetReportResponse
     {
         /// <summary>
-        /// Device information.
+        /// Report information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
-        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id), nameof(GXObject.Template))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
-        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
-        [IncludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id), nameof(GXSubtotalGroup.Name))]
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id), nameof(GXSubtotal.Name))]
+        [ExcludeOpenApi(typeof(GXReport), nameof(GXReport.Logs), nameof(GXReport.Scripts)
+            , nameof(GXReport.ScriptMethod))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id), nameof(GXObject.Template))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
+        [IncludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id), nameof(GXSubtotalGroup.Name))]
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id), nameof(GXSubtotal.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id),
+                nameof(GXComponentView.Name))]
+        [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id),
+                nameof(GXComponentViewGroup.Name))]
         public GXReport? Item
         {
             get;
@@ -100,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the reports to retreave.
+        /// Amount of the reports to retrieve.
         /// </summary>
         public int Count
         {
@@ -111,7 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter reports.
         /// </summary>
-        [ExcludeSwagger(typeof(GXReport),
+        [ExcludeOpenApi(typeof(GXReport),
             nameof(GXReport.ReportGroups),
             nameof(GXReport.Devices),
             nameof(GXReport.DeviceGroups),
@@ -120,6 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXReport.Schedules),
             nameof(GXReport.ScheduleGroups),
             nameof(GXReport.Scripts),
+            nameof(GXReport.ScriptMethod),
             nameof(GXReport.ScriptGroups),
             nameof(GXReport.Workflows),
             nameof(GXReport.WorkflowGroups),
@@ -131,8 +143,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXReport.SubtotalGroups),
             nameof(GXReport.Subtotals),
             nameof(GXReport.UserGroups),
-            nameof(GXReport.AgentGroups),
-            nameof(GXReport.Creator))]
+            nameof(GXReport.AgentGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXReport? Filter
         {
             get;
@@ -221,7 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of report items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXReport),
+        [ExcludeOpenApi(typeof(GXReport),
             nameof(GXReport.Devices),
             nameof(GXReport.DeviceGroups),
             nameof(GXReport.DeviceAttributeTemplates),
@@ -240,9 +252,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXReport.Agents),
             nameof(GXReport.AgentGroups),
             nameof(GXReport.Creator))]
-        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id), nameof(GXReportGroup.Name))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXReport[]? Reports
         {
             get;
@@ -282,30 +294,31 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Reports to update.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXReport),
+        [ExcludeOpenApi(typeof(GXReport),
             nameof(GXReport.Logs),
             nameof(GXReport.Creator))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
-        [IncludeSwagger(typeof(GXSchedule), nameof(GXSchedule.Id))]
-        [IncludeSwagger(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
-        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
-        [IncludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
+        [IncludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
         public List<GXReport> Reports
         {
             get;
@@ -379,6 +392,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Generated reports.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXReport), nameof(GXReport.Id))]
         public GXReport[]? Reports
         {
             get;
@@ -399,7 +413,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// The result is returned only when Report delivery is set to Caller.
         /// </remarks>
         [DataMember]
-        [IncludeSwagger(typeof(GXReport),
+        [IncludeOpenApi(typeof(GXReport),
             nameof(GXReport.Id),
             nameof(GXReport.Delivery))]
         public GXReport[]? Reports

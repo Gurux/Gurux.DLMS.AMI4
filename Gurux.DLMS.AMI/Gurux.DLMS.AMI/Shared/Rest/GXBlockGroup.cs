@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,14 +48,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Block group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXBlock), nameof(GXBlock.Id),
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id),
                 nameof(GXBlock.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXBlockGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXBlockGroup? Item
         {
             get;
             set;
@@ -78,7 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the block groups to retreave.
+        /// Amount of the block groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -89,9 +90,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter block groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
             nameof(GXBlockGroup.UserGroups))]
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXBlockGroup? Filter
         {
             get;
@@ -180,9 +183,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of block groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Blocks),
             nameof(GXBlockGroup.UserGroups))]
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles))]
         public GXBlockGroup[]? BlockGroups
         {
             get;
@@ -210,10 +213,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New block group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXBlock), nameof(GXBlock.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [ExcludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles), nameof(GXBlockGroup.CreationTime), nameof(GXBlockGroup.Updated))]
-        public GXBlockGroup[] BlockGroups
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [ExcludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Roles), nameof(GXBlockGroup.CreationTime), nameof(GXBlockGroup.Updated))]
+        public GXBlockGroup[]? BlockGroups
         {
             get;
             set;
@@ -246,7 +250,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Block group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Tasks.</returns>
         Task<GXTask[]> ListAsync(
-            ClaimsPrincipal user,
             ListTasks? request,
             ListTasksResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,59 +53,46 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read task information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Task id.</param>
         /// <returns></returns>
-        Task<GXTask> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXTask> ReadAsync(Guid id);
 
         /// <summary>
         /// Add new tasks.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="tasks">Updated task(s).</param>
-        Task<Guid[]> AddAsync(
-            ClaimsPrincipal user,
-            IEnumerable<GXTask> tasks);
+        Task<Guid[]> AddAsync(IEnumerable<GXTask> tasks);
 
         /// <summary>
         /// Delete task(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="tasks">Deleted task(s).</param>
-        Task DeleteAsync(
-            ClaimsPrincipal user,
-            IEnumerable<Guid> tasks);
+        Task DeleteAsync(IEnumerable<Guid> tasks);
 
         /// <summary>
         /// Mark task(s) to complete.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="tasks">Completed task(s).</param>
-        Task DoneAsync(
-            ClaimsPrincipal user,
-            IEnumerable<GXTask> tasks);
+        Task DoneAsync(IEnumerable<GXTask> tasks);
 
         /// <summary>
         /// Restart task(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="tasks">Restarted task(s).</param>
-        Task RestartAsync(
-            ClaimsPrincipal user,
-            IEnumerable<GXTask> tasks);
+        Task RestartAsync(IEnumerable<GXTask> tasks);
 
         /// <summary>
         /// Agent asks for the next tasks to execute.
         /// </summary>
-        /// <param name="user">Current user.</param>
+        /// <param name="connectionInfo">Connection information.</param>
         /// <param name="agentId">Agent ID.</param>
         /// <param name="DeviceId">Device Id</param>
         /// <param name="gatewayId">GatewayId Id</param>
         /// <param name="listener">Is agent in listener mode.</param>
         /// <returns>Collections of tasks to execute.</returns>
         Task<GXTask[]> GetNextAsync(
-            ClaimsPrincipal user, 
-            Guid agentId, 
+            string? connectionInfo,
+            Guid agentId,
             Guid? DeviceId,
             Guid? gatewayId,
             bool listener);
@@ -114,7 +100,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Clear tasks.
         /// </summary>
-        /// <param name="user">Current user.</param>
-        Task ClearAsync(ClaimsPrincipal user);
+        Task ClearAsync();
     }
 }

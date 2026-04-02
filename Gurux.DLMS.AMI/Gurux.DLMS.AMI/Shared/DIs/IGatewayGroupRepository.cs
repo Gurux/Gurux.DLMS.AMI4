@@ -47,53 +47,46 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXGatewayGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListGatewayGroups? request, 
+            ListGatewayGroups? request,
             ListGatewayGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read gateway.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Gateway id.</param>
         /// <returns></returns>
-        Task<GXGatewayGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXGatewayGroup> ReadAsync(Guid id);
 
 
         /// <summary>
         /// Update gateway groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated gateway groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXGatewayGroup> groups,
             Expression<Func<GXGatewayGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete gateway group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Gateway groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Get all users that can access this gateway group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gatewayGroupId">Gateway group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? gatewayGroupId);
+        Task<List<string>> GetUsersAsync(Guid? gatewayGroupId);
 
         /// <summary>
         /// Get all users that can access gateway groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="gatewayGroupIds">Gateway group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? gatewayGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? gatewayGroupIds);
     }
 }

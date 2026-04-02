@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -50,27 +50,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Device information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Device))]
-        [ExcludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
-        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Traces),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Device))]
+        [ExcludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
+        [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.Traces),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions)
             , nameof(GXDevice.Keys)
             , nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        [ExcludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDevice Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        [ExcludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
+        [ExcludeOpenApi(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
+        public GXDevice? Item
         {
             get;
             set;
@@ -87,27 +85,25 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated devices.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
-        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.Creator),
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.Creator),
             nameof(GXDevice.Objects),
             nameof(GXDevice.Keys),
             nameof(GXDevice.Actions), nameof(GXDevice.Traces),
             nameof(GXDevice.Errors), nameof(GXDevice.Tasks))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
-        [ExcludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
-        [ExcludeSwagger(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDevice[] Devices
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [ExcludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
+        [ExcludeOpenApi(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
+        public GXDevice[]? Devices
         {
             get;
             set;
@@ -125,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Device groups where devices are added.
         /// </summary>
-        [IncludeSwagger(typeof(GXDeviceGroup),
+        [IncludeOpenApi(typeof(GXDeviceGroup),
             nameof(GXDeviceGroup.Id),
             nameof(GXDeviceGroup.Name))]
         public IEnumerable<GXDeviceGroup>? Groups
@@ -146,9 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device identifier(s).
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Ids
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[]? Ids
         {
             get;
             set;
@@ -181,7 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the devices to retreave.
+        /// Amount of the devices to retrieve.
         /// </summary>
         public int Count
         {
@@ -192,7 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter devices.
         /// </summary>
-        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.DeviceGroups),
+        [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.DeviceGroups),
                 nameof(GXDevice.Creator), nameof(GXDevice.Parameters),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions), nameof(GXDevice.Errors),
             nameof(GXDevice.Tasks), nameof(GXDevice.Traces)
@@ -200,16 +194,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             , nameof(GXDevice.Settings)
             , nameof(GXDevice.Keys)
             , nameof(GXDevice.MediaSettings))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         public GXDevice? Filter
         {
             get;
@@ -300,23 +294,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("List of devices.")]
-        [ExcludeSwagger(typeof(GXDevice), nameof(GXDevice.DeviceGroups)
+        [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.DeviceGroups)
             , nameof(GXDevice.Parameters), nameof(GXDevice.Objects)
             , nameof(GXDevice.Actions), nameof(GXDevice.Errors),
             nameof(GXDevice.Tasks), nameof(GXDevice.Keys), nameof(GXDevice.Traces))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
-        [IncludeSwagger(typeof(GXObject), nameof(GXObject.Id))]
-        [IncludeSwagger(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeSwagger(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDevice[] Devices
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
+        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
+        public GXDevice[]? Devices
         {
             get;
             set;
@@ -349,9 +341,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed devices.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Ids
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[]? Ids
         {
             get;
             set;

@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,12 +48,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Script group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXScriptGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXScriptGroup? Item
         {
             get;
             set;
@@ -76,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the script groups to retreave.
+        /// Amount of the script groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -87,9 +88,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter script groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXScriptGroup),
+        [ExcludeOpenApi(typeof(GXScriptGroup),
            nameof(GXScriptGroup.Scripts),
            nameof(GXScriptGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXScriptGroup? Filter
         {
             get;
@@ -179,10 +181,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of script groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXScriptGroup),
+        [ExcludeOpenApi(typeof(GXScriptGroup),
            nameof(GXScriptGroup.Scripts),
            nameof(GXScriptGroup.UserGroups))]
-        public GXScriptGroup[] ScriptGroups
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXScriptGroup[]? ScriptGroups
         {
             get;
             set;
@@ -209,9 +213,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New script group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXScript), nameof(GXScript.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        public GXScriptGroup[] ScriptGroups
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXScriptGroup[]? ScriptGroups
         {
             get;
             set;
@@ -244,7 +249,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Script group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

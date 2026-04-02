@@ -45,31 +45,28 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Get all users that can access this script.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scriptId">Script id.</param>
         /// <returns>User Ids that can access this script.</returns>
         /// <remarks>
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid scriptId);
+        Task<List<string>> GetUsersAsync(Guid scriptId);
 
         /// <summary>
         /// Get all users that can access this script.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scriptIds">Script ids.</param>
         /// <returns>User Ids that can access this scripts.</returns>
         /// <remarks>
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid> scriptIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid> scriptIds);
 
         /// <summary>
         /// List scripts.
         /// </summary>
         /// <returns>Scripts.</returns>
         Task<GXScript[]> ListAsync(
-            ClaimsPrincipal User,
             ListScripts? request,
             ListScriptsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -77,37 +74,31 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read script information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Script id.</param>
         /// <returns></returns>
-        Task<GXScript> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXScript> ReadAsync(Guid id);
 
         /// <summary>
         /// Add or update scripts.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scripts">Updated script(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXScript> scripts,
             Expression<Func<GXScript, object?>>? columns = null);
 
         /// <summary>
         /// Delete script(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scripts">Deleted script(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
-            ClaimsPrincipal User,
             IEnumerable<Guid> scripts,
             bool delete);
 
         /// <summary>
         /// Validate script.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="fileName">File name.</param>
         /// <param name="script">Validated script.</param>
         /// <param name="additionalNamespaces">Additional name spaces.</param>
@@ -115,7 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="errorJson">Errors as JSON.</param>
         /// <param name="compileTime">Compile time in ms.</param>
         /// <returns>Byte assembly if compile succeeded.</returns>
-        public byte[]? Compile(ClaimsPrincipal User,
+        public byte[]? Compile(
             string fileName,
             string script,
             string? additionalNamespaces,
@@ -125,16 +116,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Run script.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="methodId">Script method ID to run.</param>
         /// <returns>Script output.</returns>
-        public Task<object?> RunAsync(ClaimsPrincipal User, Guid methodId);
+        public Task<object?> RunAsync(Guid methodId);
 
         /// <summary>
         /// Rebuild scripts.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scripts">Rebuild script IDs.</param>
-        public Task RebuildAsync(ClaimsPrincipal User, IEnumerable<Guid>? scripts);
+        public Task RebuildAsync(IEnumerable<Guid>? scripts);
     }
 }

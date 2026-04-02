@@ -48,7 +48,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Users.</returns>
         Task<GXUser[]> ListAsync(
-            ClaimsPrincipal User,
             ListUsers? request,
             ListUsersResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -56,35 +55,31 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read user.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">User id.</param>
         /// <returns>User information.</returns>
-        Task<GXUser> ReadAsync(ClaimsPrincipal User, string? id);
+        Task<GXUser> ReadAsync(string? id);
 
         /// <summary>
         /// Update users.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="users">Updated users.</param>
         /// <param name="columns">Updated columns(s).</param>
-        Task<string[]> UpdateAsync(ClaimsPrincipal User, 
+        Task<string[]> UpdateAsync(
             IEnumerable<GXUser> users,
             Expression<Func<GXUser, object?>>? columns = null);
 
         /// <summary>
         /// Delete user(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="users">Users to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<string> users, bool delete);
+        Task DeleteAsync(IEnumerable<string> users, bool delete);
 
         /// <summary>
         /// Return users that are in the given role.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="roles">´Searched roles.</param>
+        /// <param name="roles">Searched roles.</param>
         /// <returns>List of used IDs.</returns>
-        Task<List<string>> GetUserIdsInRoleAsync(ClaimsPrincipal User, IEnumerable<string> roles);
+        Task<List<string>> GetUserIdsInRoleAsync(IEnumerable<string> roles);
     }
 }

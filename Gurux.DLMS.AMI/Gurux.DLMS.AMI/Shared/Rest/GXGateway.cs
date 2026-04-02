@@ -29,13 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -47,14 +47,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Gateway information.
         /// </summary>
-        [ExcludeSwagger(typeof(GXGateway),
-                nameof(GXGateway.Logs))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id)
+        [ExcludeOpenApi(typeof(GXGateway),
+                nameof(GXGateway.Logs), nameof(GXGateway.ScriptMethod))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id)
             , nameof(GXGatewayGroup.Name)
             , nameof(GXGatewayGroup.Description))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
         public GXGateway? Item
         {
             get;
@@ -72,16 +73,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Gateway to add.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
-            nameof(GXGateway.Logs), nameof(GXGateway.Detected)
-            , nameof(GXGateway.CreationTime), nameof(GXGateway.Updated))]
-        [IncludeSwagger(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.ScriptMethod),
+            nameof(GXGateway.Logs), nameof(GXGateway.Detected), 
+            nameof(GXGateway.CreationTime), nameof(GXGateway.Updated))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
         [Required]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXGateway[] Gateways
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
@@ -122,7 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the gateways to retreave.
+        /// Amount of the gateways to retrieve.
         /// </summary>
         public int Count
         {
@@ -133,10 +134,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter gateways.
         /// </summary>
-        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
+        [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.ScriptMethod),
             nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs))]
-        [IncludeSwagger(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
         public GXGateway? Filter
         {
             get;
@@ -225,9 +228,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of gateways.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXGateway), nameof(GXGateway.Creator),
+        [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
+            nameof(GXGateway.ScriptMethod),
             nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs)
             , nameof(GXGateway.DeviceGroups), nameof(GXGateway.Devices))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
         public GXGateway[]? Gateways
         {
             get;

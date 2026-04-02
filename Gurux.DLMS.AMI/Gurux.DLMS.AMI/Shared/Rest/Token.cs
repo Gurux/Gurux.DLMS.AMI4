@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -48,7 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of tokens to add or update.")]
         [DataMember]
-        public GXPersonalToken[] Tokens
+        public GXPersonalToken[]? Tokens
         {
             get;
             set;
@@ -91,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the token to retreave.
+        /// Amount of the token to retrieve.
         /// </summary>
         public int Count
         {
@@ -121,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of tokens.")]
         [DataMember]
-        public GXPersonalToken[] Tokens
+        public GXPersonalToken[]? Tokens
         {
             get;
             set;
@@ -165,5 +165,5 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [Description("Delete tokens response.")]
     public class DeleteTokenResponse
     {
-    }   
+    }
 }

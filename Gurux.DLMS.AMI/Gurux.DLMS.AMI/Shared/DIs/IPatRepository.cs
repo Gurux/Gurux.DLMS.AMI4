@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -44,31 +43,27 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Get personal token by ID that belows for the user.
         /// </summary>
-        /// <param name="User">User</param>
         /// <param name="id">Token ID.</param>
         /// <returns>Personal token by ID.</returns>
-        Task<GXPersonalToken> GetPersonalTokenByIdAsync(ClaimsPrincipal User, string id);
+        Task<GXPersonalToken> GetPersonalTokenByIdAsync(string id);
 
         /// <summary>
         /// Get personal tokens that belows for the user.
         /// </summary>
-        /// <param name="User">User</param>
         /// <param name="request">Request parameters.</param>
         /// <returns>Collection of personal tokens.</returns>
-        Task<GXPersonalToken[]> GetPersonalTokensAsync(ClaimsPrincipal User, ListTokens? request);
+        Task<GXPersonalToken[]> GetPersonalTokensAsync(ListTokens? request);
 
         /// <summary>
         /// Add new personal access token.
         /// </summary>
-        /// <param name="User">User</param>
         /// <param name="token"></param>
-        Task<string> AddPersonalTokenAsync(ClaimsPrincipal User, GXPersonalToken token);
+        Task<string> AddPersonalTokenAsync(GXPersonalToken token);
 
         /// <summary>
         /// Remove personal token.
         /// </summary>
-        /// <param name="User">User</param>
         /// <param name="id">Removed token ID</param>
-        Task<GXPersonalToken> RemovePersonalTokenAsync(ClaimsPrincipal User, string id);
+        Task<GXPersonalToken> RemovePersonalTokenAsync(string id);
     }
 }

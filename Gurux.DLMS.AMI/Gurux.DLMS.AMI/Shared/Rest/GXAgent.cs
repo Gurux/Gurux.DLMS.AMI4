@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -45,21 +45,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent information.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAgent),
+        [ExcludeOpenApi(typeof(GXAgent),
+                nameof(GXAgent.UrlAlias),
                 nameof(GXAgent.Template),
                 nameof(GXAgent.ScriptMethods),
                 nameof(GXAgent.Versions), nameof(GXAgent.Tasks),
                 nameof(GXAgent.Logs))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id)
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id)
             , nameof(GXAgentGroup.Name)
             , nameof(GXAgentGroup.Description))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
         public GXAgent? Item
         {
             get;
             set;
-        }
+        }      
     }
 
     /// <summary>
@@ -72,12 +73,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent to add.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+        [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods)
             , nameof(GXAgent.LastRun), nameof(GXAgent.Detected)
             , nameof(GXAgent.CreationTime), nameof(GXAgent.Updated))]
-        [IncludeSwagger(typeof(GXAgentVersion), nameof(GXAgentVersion.Id))]
-        [IncludeSwagger(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
+        [IncludeOpenApi(typeof(GXAgentVersion), nameof(GXAgentVersion.Id))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
         [Required]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public GXAgent[] Agents
@@ -122,7 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the agents to retreave.
+        /// Amount of the agents to retrieve.
         /// </summary>
         public int Count
         {
@@ -133,7 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agents.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+        [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions), nameof(GXAgent.Template), nameof(GXAgent.ReaderSettings),
             nameof(GXAgent.ListenerSettings), nameof(GXAgent.NotifySettings))]
@@ -225,12 +226,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agents.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+        [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXAgent[] Agents
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXAgent[]? Agents
         {
             get;
             set;
@@ -264,7 +263,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the agent installers to retreave.
+        /// Amount of the agent installers to retrieve.
         /// </summary>
         public int Count
         {
@@ -275,7 +274,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter agent installers.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+        [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
       nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
       nameof(GXAgent.Versions))]
         public GXAgent? Filter
@@ -295,12 +294,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of agent installers.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
+        [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXAgent[] Agents
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXAgent[]? Agents
         {
             get;
             set;
@@ -406,7 +403,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent IDs and updated version.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
         public List<GXAgent> Agents
         {
             get;
@@ -433,7 +430,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agents to update and the version number.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
         public GXAgent? Agent
         {
             get;
@@ -451,7 +448,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of urls where agent can be loaded.
         /// </summary>
         [DataMember]
-        public string[] Urls
+        public string[]? Urls
         {
             get;
             set;

@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using System.Security.Cryptography;
+using System.ComponentModel.DataAnnotations;
 
 namespace Gurux.DLMS.AMI.Shared.Enums
 {
@@ -51,7 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string UserManager = "UserManager";
         /// <summary>
-        /// User is user action .
+        /// User is can access user actions.
         /// </summary>
         public const string UserAction = "UserAction";
         /// <summary>
@@ -100,14 +100,6 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string DeviceActionManager = "DeviceActionManager";
         /// <summary>
-        /// User can access templates.
-        /// </summary>
-        public const string Template = "Template";
-        /// <summary>
-        /// User is template manager.
-        /// </summary>
-        public const string TemplateManager = "TemplateManager";
-        /// <summary>
         /// User can access user groups.
         /// </summary>
         public const string UserGroup = "UserGroup";
@@ -127,10 +119,6 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User can access agent groups.
         /// </summary>
         public const string AgentGroup = "AgentGroup";
-        /// <summary>
-        /// User is agent group manager.
-        /// </summary>
-        public const string AgentGroupManager = "AgentGroupManager";
         /// <summary>
         /// User can access agent log.
         /// </summary>
@@ -218,9 +206,9 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string ModuleGroup = "ModuleGroup";
         /// <summary>
-        /// User is module manager.
+        /// User can access modules.
         /// </summary>
-        public const string ModuleManager = "ModuleManager";
+        public const string Module = "Module";
         /// <summary>
         /// User is module group manager.
         /// </summary>
@@ -279,6 +267,16 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// User is task manager.
         /// </summary>
         public const string TaskManager = "TaskManager";
+
+        /// <summary>
+        /// User is content manager.
+        /// </summary>
+        public const string ContentManager = "ContentManager";
+
+        /// <summary>
+        /// User is content group manager.
+        /// </summary>
+        public const string ContentGroupManager = "ContentGroupManager";
 
         /// <summary>
         /// User is block manager.
@@ -444,18 +442,108 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// </summary>
         public const string ReportLogManager = "ReportLogManager";
 
+        /// <summary>
+        /// User is menu manager.
+        /// </summary>
+        public const string MenuManager = "MenuManager";
+
+        /// <summary>
+        /// User is menu group manager.
+        /// </summary>
+        public const string MenuGroupManager = "MenuGroupManager";
+
+        /// <summary>
+        /// User is content type.
+        /// </summary>
+        public const string ContentType = "ContentType";
+
+        /// <summary>
+        /// User is content type group.
+        /// </summary>
+        public const string ContentTypeGroup = "ContentTypeGroup";
+
+        /// <summary>
+        /// User can access notification groups.
+        /// </summary>
+        public const string NotificationGroup = "NotificationGroup";
+        /// <summary>
+        /// User is notification group manager.
+        /// </summary>
+        public const string NotificationGroupManager = "NotificationGroupManager";
+        /// <summary>
+        /// User can access notifications.
+        /// </summary>
+        public const string Notification = "Notification";
+        /// <summary>
+        /// User is notification manager.
+        /// </summary>
+        public const string NotificationManager = "NotificationManager";
+        /// <summary>
+        /// User can access notification log.
+        /// </summary>
+        public const string NotificationLog = "NotificationLog";
+        /// <summary>
+        /// User is notification log manager.
+        /// </summary>
+        public const string NotificationLogManager = "NotificationLogManager";
+        /// <summary>
+        /// User is appearance manager.
+        /// </summary>
+        public const string AppearanceManager = "AppearanceManager";
+        /// <summary>
+        /// User can access localized resources.
+        /// </summary>
+        public const string LocalizedResource = "LocalizedResource";
+        /// <summary>
+        /// User is localized resources manager.
+        /// </summary>
+        public const string LocalizedResourceManager = "LocalizedResourceManager";
+        /// <summary>
+        /// User is announcement manager.
+        /// </summary>
+        public const string AnnouncementManager = "AnnouncementManager";
+
+
+
+        /// <summary>
+        /// Convert roles to string.
+        /// </summary>
+        /// <param name="param1">Role 1</param>
+        /// <returns>Converted roles.</returns>
         public static string ToString(string param1)
         {
             return param1;
         }
+        /// <summary>
+        /// Convert roles to string.
+        /// </summary>
+        /// <param name="param1">Role 1</param>
+        /// <param name="param2">Role 2</param>
+        /// <returns>Converted roles.</returns>
         public static string ToString(string param1, string param2)
         {
             return param1 + "," + param2;
         }
+
+        /// <summary>
+        /// Convert roles to string.
+        /// </summary>
+        /// <param name="param1">Role 1</param>
+        /// <param name="param2">Role 2</param>
+        /// <param name="param3">Role 3</param>
+        /// <returns>Converted roles.</returns>
         public static string ToString(string param1, string param2, string param3)
         {
             return param1 + "," + param2 + "," + param3;
         }
+        /// <summary>
+        /// Convert roles to string.
+        /// </summary>
+        /// <param name="param1">Role 1</param>
+        /// <param name="param2">Role 2</param>
+        /// <param name="param3">Role 3</param>
+        /// <param name="param4">Role 4</param>
+        /// <returns>Converted roles.</returns>
         public static string ToString(string param1, string param2, string param3, string param4)
         {
             return param1 + "," + param2 + "," + param3 + "," + param4;

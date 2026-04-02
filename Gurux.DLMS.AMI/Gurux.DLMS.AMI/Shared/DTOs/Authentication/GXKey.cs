@@ -29,9 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -76,7 +77,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
-        [Index(Unique=false)]
+        /// <summary>
+        /// Key use.
+        /// </summary>
+        [Index(Unique = false)]
         [DataMember]
         [StringLength(450)]
         public string? Use
@@ -96,7 +100,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
-
+        /// <summary>
+        /// Is Key X509 certificate.
+        /// </summary>
         [DataMember]
         [IsRequired]
         public bool IsX509Certificate
@@ -105,6 +111,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// Is key data protected.
+        /// </summary>
         [DataMember]
         [IsRequired]
         public bool DataProtected
@@ -113,11 +122,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// Key data.
+        /// </summary>
         [DataMember]
         public string? Data
         {
             get;
             set;
-        }       
+        }
     }
 }

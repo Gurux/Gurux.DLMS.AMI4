@@ -63,6 +63,11 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Refresh meter's association view.
         /// </summary>
         [XmlEnum("4")]
-        Refresh = 4
+        Refresh = 4,
+        /// <summary>
+        /// Send email.
+        /// </summary>
+        [XmlEnum("5")]
+        Email = 5,
     }
 }

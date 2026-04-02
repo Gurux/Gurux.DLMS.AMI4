@@ -29,11 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,8 +46,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Device trace.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id)
+            , nameof(GXDevice.Name))]
         public GXDeviceTrace? Item
         {
             get;
@@ -64,11 +67,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added Device traces.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         public GXDeviceTrace[] Traces
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Trace type.
+        /// </summary>
+        [DataMember]
+        [Description("Trace type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
@@ -109,6 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device traces.
         /// </summary>
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         public GXDeviceTrace? Filter
         {
             get;
@@ -198,6 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device traces.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         public GXDeviceTrace[] Traces
         {
             get;

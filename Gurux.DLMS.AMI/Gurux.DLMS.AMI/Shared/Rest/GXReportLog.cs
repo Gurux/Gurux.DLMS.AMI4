@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs.Report;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -43,7 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Report log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXReport),
+        [IncludeOpenApi(typeof(GXReport),
                 nameof(GXReport.Id),
                 nameof(GXReport.Name))]
         public GXReportLog? Item
@@ -62,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXReport),
+        [IncludeOpenApi(typeof(GXReport),
                 nameof(GXReport.Id),
                 nameof(GXReport.Name))]
         public GXReportLog? Filter
@@ -93,7 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -170,7 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Report logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXReport),
+        [IncludeOpenApi(typeof(GXReport),
                 nameof(GXReport.Id),
                 nameof(GXReport.Name))]
         public GXReportLog[]? Logs
@@ -202,13 +203,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New report log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXReport),
+        [IncludeOpenApi(typeof(GXReport),
                 nameof(GXReport.Id))]
         public GXReportLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>

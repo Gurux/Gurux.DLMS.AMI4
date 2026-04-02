@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -58,10 +59,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// Module ID.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.None)]
         [StringLength(64)]
         public string ModuleId
         {
+            //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -74,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

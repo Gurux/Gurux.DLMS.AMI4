@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
@@ -54,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the values to retreave.
+        /// Amount of the values to retrieve.
         /// </summary>
         public int Count
         {
@@ -65,7 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter values.
         /// </summary>
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
         public GXSubtotalValue? Filter
         {
             get;
@@ -142,7 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of value items.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
         public GXSubtotalValue[]? SubtotalValues
         {
             get;

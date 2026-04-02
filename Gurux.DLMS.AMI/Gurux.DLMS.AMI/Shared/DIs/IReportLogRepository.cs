@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,7 +45,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of report logs.</returns>
         Task<GXReportLog[]> ListAsync(
-            ClaimsPrincipal user,
             ListReportLogs? request,
             ListReportLogsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,36 +52,34 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read report log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Report log id.</param>
         /// <returns>Report log information.</returns>
-        Task<GXReportLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXReportLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear report logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? reports);
+        Task ClearAsync(Guid[]? reports);
 
         /// <summary>
         /// Add report logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Report log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXReportLog> logs);
+        Task AddAsync(string type, IEnumerable<GXReportLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Report log type.</param>
         /// <param name="report">Report.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXReportLog> AddAsync(ClaimsPrincipal User, GXReport report, Exception ex);
+        Task<GXReportLog> AddAsync(string type, GXReport report, Exception ex);
 
         /// <summary>
         /// Close report log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
+        Task CloseAsync(IEnumerable<Guid> logs);
     }
 }

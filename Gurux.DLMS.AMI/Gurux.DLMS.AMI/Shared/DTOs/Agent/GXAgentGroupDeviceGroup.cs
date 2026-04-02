@@ -29,29 +29,40 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
 {
+    /// <summary>
+    /// A data contract class representing agent group to device group binding object.
+    /// </summary>
     [IndexCollection(true, nameof(DeviceGroupId), nameof(AgentGroupId), Clustered = true)]
     public class GXAgentGroupDeviceGroup
     {
+        /// <summary>
+        /// Agent group ID.
+        /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXAgentGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid DeviceGroupId
+        public Guid AgentGroupId
         {
+            //ForeignKeyDelete is None because creator of the device group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
 
+        /// <summary>
+        /// Device group ID.
+        /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXAgentGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid AgentGroupId
+        public Guid DeviceGroupId
         {
             get;
             set;
@@ -65,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

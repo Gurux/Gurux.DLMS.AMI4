@@ -29,18 +29,26 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
 {
+    /// <summary>
+    /// A data contract class representing gateway to device group binding object.
+    /// </summary>
+
     [IndexCollection(true, nameof(DeviceGroupId), nameof(GatewayId), Clustered = true)]
     public class GXGatewayDeviceGroup
     {
+        /// <summary>
+        /// Device group ID.
+        /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid DeviceGroupId
         {
@@ -48,6 +56,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
             set;
         }
 
+        /// <summary>
+        /// Gateway ID.
+        /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -65,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

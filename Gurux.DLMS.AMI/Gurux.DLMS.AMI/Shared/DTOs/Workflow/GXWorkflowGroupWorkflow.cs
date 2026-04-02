@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -37,17 +38,17 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing workflow group to workflow binding object.
     /// </summary>
     [DataContract(Name = "GXWorkflowGroupWorkflow"), Serializable]
     [IndexCollection(true, nameof(WorkflowGroupId), nameof(WorkflowId), Clustered = true)]
-    public class GXWorkflowGroupWorkflow : GXTableBase
+    public class GXWorkflowGroupWorkflow
     {
         /// <summary>
-        /// The database ID of the Schedule group.
+        /// The database ID of the workflow group.
         /// </summary>
         [DataMember(Name = "WorkflowGroupId")]
-        [ForeignKey(typeof(GXWorkflowGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXWorkflowGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid WorkflowGroupId
         {
             get;
@@ -59,7 +60,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </summary>
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.Cascade)]
-        [StringLength(36)]
         public Guid WorkflowId
         {
             get;
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -91,17 +91,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
         }
     }
 }

@@ -47,57 +47,51 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Triggers.</returns>
         Task<GXTrigger[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListTriggers? request, 
+            ListTriggers? request,
             ListTriggersResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read trigger.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Trigger id.</param>
         /// <returns></returns>
-        Task<GXTrigger> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXTrigger> ReadAsync(Guid id);
 
         /// <summary>
         /// Update trigger(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="triggers">Updated trigger(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXTrigger> triggers,
             Expression<Func<GXTrigger, object?>>? columns = null);
 
         /// <summary>
         /// Delete trigger(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="triggers">Trigger(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> triggers, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> triggers, bool delete);
 
         /// <summary>
         /// Get all users that can access this trigger.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="triggerId">Trigger id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? triggerId);
+        Task<List<string>> GetUsersAsync(Guid? triggerId);
 
         /// <summary>
         /// Get all users that can access triggers.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="triggerIds">Trigger ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? triggerIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? triggerIds);
 
         /// <summary>
         /// Refresh triggers(s).
         /// </summary>
-        Task RefrestAsync(ClaimsPrincipal User);
+        /// <returns>True, if there are new triggers.</returns>
+        Task<bool> RefrestAsync();
     }
 }

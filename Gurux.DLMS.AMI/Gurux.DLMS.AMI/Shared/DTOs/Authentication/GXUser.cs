@@ -29,9 +29,18 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
+using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -43,7 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     /// Users table.
     /// </summary>
     [DataContract(Name = "GXUser"), Serializable]
-    public class GXUser : IUnique<string>
+    public class GXUser : IUnique<string?>
     {
         /// <summary>
         /// Constructor.
@@ -82,11 +91,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(36)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public string Id
+        [IsRequired]
+        public string? Id
         {
             get;
             set;
-        } = "";
+        } = default!;
 
         /// <summary>
         /// User name.
@@ -97,6 +107,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Filter(FilterType.Contains)]
         [IsRequired]
         public string? UserName
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -186,6 +206,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             set;
         }
 
+        /// <summary>
+        /// If the user has modified the settings.
+        /// </summary>
         [DataMember]
         [JsonIgnore]
         public string? SecurityStamp
@@ -260,6 +283,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public bool? LockoutEnabled { get; set; }
 
         /// <summary>
+        ///  Has this user been approved by an administrator.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(false)]
+        [Filter(FilterType.Exact)]
+        [IsRequired()]
+        public bool? IsApproved { get; set; } = false;
+
+        /// <summary>
         /// Amount of failed access.
         /// </summary>
         [DataMember]
@@ -273,8 +305,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTime CreationTime
         {
+            //Creation time must be DateTime.
             get;
             set;
         }
@@ -291,11 +324,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// IP address where last connection is established.
+        /// What types of notifications the user is interested in.
         /// </summary>
         [DataMember]
-        [Index(false)]
-        public UInt64 IPAddress
+        [Filter(FilterType.GreaterOrEqual)]
+        public virtual UserNotification? Notification
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
+        /// Holds metadata about the client connection, including the remote IP address and other optional 
+        /// network-related details associated with the current request.
+        /// </summary>
+        [DataMember]
+        [Description("Holds metadata about the client connection, including the remote IP address and other optional network-related details associated with the current request.")]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [StringLength(64)]
+        public string? ConnectionInfo
         {
             get;
             set;
@@ -315,12 +364,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// User notifications.
+        /// User Scopes.
         /// </summary>
         [Ignore(IgnoreType.Db)]
         [DataMember]
         [DefaultValue(null)]
-        public List<string>? Notifications
+        [Filter(FilterType.Contains)]
+        public List<string>? Scopes
         {
             get;
             set;
@@ -370,6 +420,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupUser))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXUserGroup>? UserGroups
         {
             get;
@@ -382,6 +433,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         //Actions are not saved for the DB column.
         [DataMember, ForeignKey(typeof(GXUserAction))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXUserAction>? Actions
         {
             get;
@@ -393,6 +445,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserError))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXUserError>? Errors
         {
             get;
@@ -410,6 +463,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DefaultValue(null)]
         [ForeignKey(typeof(GXIpAddress))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXIpAddress>? IpAddresses
         {
             get;
@@ -422,6 +476,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXBlock))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXBlock>? BlockSettings
         {
             get;
@@ -429,11 +484,61 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// User workflows.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXWorkflow>? Workflows
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User workflow groups.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXWorkflowGroup>? WorkflowGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User component views.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXComponentView>? ComponentViews
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User component view groups.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXComponentViewGroup>? ComponentViewGroups
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// User depending settings.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXUserSetting))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXUserSetting>? Settings
         {
             get;
@@ -450,6 +555,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXRestStatistic))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXRestStatistic>? RestStatistics
         {
             get;
@@ -461,6 +567,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [DataMember, ForeignKey(typeof(GXFavorite))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXFavorite>? Favorites
         {
             get;
@@ -473,7 +580,80 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXTask>? Tasks
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Schedules.
+        /// </summary>
+        [DataMember]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXSchedule>? Schedules
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Schedule groups.
+        /// </summary>
+        [DataMember]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXScheduleGroup>? ScheduleGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Available contents.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXContent))]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXContent>? Contents
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Available content groups.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXContentGroup>? ContentGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Available contents.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXContentType>? ContentTypes
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Available content type groups.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXContentTypeGroup>? ContentTypeGroups
         {
             get;
             set;
@@ -554,11 +734,72 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public string? ProfilePicture { get; set; }
 
         /// <summary>
+        /// Time zone.
+        /// </summary>
+        [DataMember]
+        public string? TimeZone
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User agents
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXAgent))]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXAgent>? Agents
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User agent groups.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXAgent))]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXAgentGroup>? AgentGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User devices.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXDevice>? Devices
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// User device groups.
+        /// </summary>
+        [DataMember]
+        [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public List<GXDeviceGroup>? DeviceGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// User stamps tell what user has stamped and when.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXTask))]
+        [ForeignKey(typeof(GXUserStamp))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXUserStamp>? Stamps
         {
             get;

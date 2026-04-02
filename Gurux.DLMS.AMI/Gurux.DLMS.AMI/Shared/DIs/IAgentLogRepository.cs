@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of agent logs.</returns>
         Task<GXAgentLog[]> ListAsync(
-            ClaimsPrincipal user, 
             ListAgentLogs? request,
             ListAgentLogsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,36 +53,34 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read agent log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Agent log id.</param>
         /// <returns>Agent log information.</returns>
-        Task<GXAgentLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXAgentLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear agent logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? agents);
+        Task ClearAsync(Guid[]? agents);
 
         /// <summary>
         /// Add agent logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Agent log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXAgentLog> logs);
+        Task AddAsync(string type, IEnumerable<GXAgentLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Agent log type.</param>
         /// <param name="agent">Agent.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXAgentLog> AddAsync(ClaimsPrincipal User, GXAgent agent, Exception ex);
+        Task<GXAgentLog> AddAsync(string type, GXAgent agent, Exception ex);
 
         /// <summary>
         /// Close agent log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
+        Task CloseAsync(IEnumerable<Guid> logs);
     }
 }

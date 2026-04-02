@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -59,11 +60,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// Parent device.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Index(false)]
         [JsonIgnore]
         public GXDeviceGroup? DeviceGroup
         {
+            //ForeignKeyDelete is None because Module will handle the deletion.
             get;
             set;
         }

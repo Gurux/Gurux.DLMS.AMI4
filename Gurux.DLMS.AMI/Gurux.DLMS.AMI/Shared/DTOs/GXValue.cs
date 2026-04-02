@@ -29,7 +29,9 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Text;
@@ -76,6 +78,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Attribute value.")]
         [Filter(FilterType.Contains)]
         public string? Value
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Is value send without parsing.
+        /// </summary>
+        /// <remarks>
+        /// Data can be send without parsing when push messages are received.
+        /// </remarks>
+        [DataMember]
+        [Description("Block index.")]
+        [Filter(FilterType.Equals)]
+        public bool? Raw
         {
             get;
             set;

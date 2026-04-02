@@ -32,8 +32,10 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.Common.Db;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
+using System.Data;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -51,7 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public string Id { get; set; } = "";
+        public string Id { get; set; } = default!;
 
         /// <summary>
         /// Name of the role.
@@ -80,6 +82,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// Localized role name.
+        /// </summary>
+        /// <remarks>
+        /// Localized role name is not saved to the database.
+        /// </remarks>
+        [DataMember]
+        [Description("Localized role name.")]
+        [Ignore]
+        public string? LocalizedName
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Concurrency stamp.
         /// </summary>
         /// <remarks>
@@ -88,6 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </remarks>
         [DataMember]
         [StringLength(36)]
+        [ConcurrencyCheck]
         public string? ConcurrencyStamp
         {
             get;
@@ -111,7 +129,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// The creator module.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public GXModule? Module
         {
             get;
@@ -140,6 +159,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [ForeignKey(typeof(GXScope))]
         [Filter(FilterType.Contains)]
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public List<GXScope>? Scopes
         {
             get;
@@ -165,14 +185,148 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
             Scopes = new List<GXScope>();
         }
 
+        /// <summary>
+        /// Make role clone.
+        /// </summary>
+        /// <returns></returns>
+        public GXRole Clone()
+        {
+            GXRole item = new GXRole()
+            {
+                Id = Id,
+                Name = Name,
+                NormalizedName = NormalizedName,
+                LocalizedName = LocalizedName,
+                ConcurrencyStamp = ConcurrencyStamp,
+                Default = Default,
+                Module = Module,
+                Removed = Removed,
+                Scopes = Scopes
+            };
+            if (Scopes != null)
+            {
+                item.Scopes = new List<GXScope>();
+                foreach (var it in Scopes)
+                {
+                    GXScope s = it.Clone();
+                    s.Role = item;
+                    item.Scopes.Add(s);
+                }
+            }
+            return item;
+        }
+
+        /// <summary>
+        /// Get list of role scopes.
+        /// </summary>
+        /// <returns></returns>
+        public string[] GetScopes()
+        {
+            string? name = Name?.ToLower();
+            string[] roles;
+            if (name != null && Default != true && Scopes?.Any() == true)
+            {
+                roles = Scopes.Select(s => (name + "." + s.Name?.ToLower()) ?? string.Empty).ToArray();
+            }
+            else
+            {
+                roles = [];
+            }
+            return roles;
+        }
+
+        /// <summary>
+        /// Returns selected roles.
+        /// </summary>
+        /// <param name="roles">List of roles where values are search for.</param>
+        /// <param name="names">Role names.</param>
+        /// <param name="onlyDefault">Only default roles are returned.</param>
+        /// <param name="unknownException">Throw exception if name is unknown.</param>
+        /// <returns></returns>
+        public static GXRole[] GetRoles(IEnumerable<GXRole> roles,
+            IEnumerable<string>? names,
+            bool onlyDefault,
+            bool unknownException)
+        {
+            List<GXRole> list = new List<GXRole>();
+            if (names != null)
+            {
+
+                foreach (var name in names)
+                {
+                    bool found = false;
+                    foreach (var role in roles)
+                    {
+                        if ((!onlyDefault || role.Default == true) && string.Compare(role.Name, name, true) == 0)
+                        {
+                            found = true;
+                            if (!list.Where(w => w.Name?.ToLower() == role.Name?.ToLower()).Any())
+                            {
+                                list.Add(role);
+                            }
+                            break;
+                        }
+                    }
+                    if (unknownException && !found)
+                    {
+                        throw new ArgumentException(string.Format("Unknown role '{0}'.", name));
+                    }
+                }
+            }
+            return list.ToArray();
+        }
+
+        /// <summary>
+        /// Returns scopes from the roles.
+        /// </summary>
+        /// <param name="roles">List of roles where values are search for.</param>
+        /// <param name="names">Scope names.</param>
+        /// <param name="unknownException">Throw exception if name is unknown.</param>
+        /// <returns></returns>
+        public static GXScope[] GetScopes(IEnumerable<GXRole> roles,
+            IEnumerable<string>? names,
+            bool unknownException)
+        {
+            List<GXScope> list = new List<GXScope>();
+            if (names != null)
+            {
+                foreach (var name in names)
+                {
+                    bool found = false;
+                    foreach (var role in roles)
+                    {
+                        string? roleName = role.Name?.ToLower();
+                        foreach (var scope in role.Scopes ?? Enumerable.Empty<GXScope>())
+                        {
+                            if (string.Compare(roleName + "." + scope.Name, name, true) == 0)
+                            {
+                                found = true;
+                                list.Add(scope);
+                                break;
+                            }
+                        }
+                        if (found)
+                        {
+                            break;
+                        }
+                    }
+                    if (unknownException && !found)
+                    {
+                        throw new ArgumentException(string.Format("Unknown role '{0}'.", name));
+                    }
+                }
+            }
+            return list.ToArray();
+        }
+
         /// <inheritdoc/>
         public override string ToString()
         {
             if (!string.IsNullOrEmpty(Name))
             {
-                if (Default.HasValue && Default.Value)
+                if (Scopes?.Any() == true)
                 {
-                    return Name + " Default";
+                    return Name + " [" + Scopes.Select(s => s.Name).Aggregate((current, next) => current + ", " + next) + "]";
                 }
                 return Name;
             }

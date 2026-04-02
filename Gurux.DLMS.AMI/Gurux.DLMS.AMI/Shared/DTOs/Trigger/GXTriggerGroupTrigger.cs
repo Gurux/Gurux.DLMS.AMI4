@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -37,17 +38,17 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing trigger group to trigger binding object.
     /// </summary>
     [DataContract(Name = "GXTriggerGroupTrigger"), Serializable]
     [IndexCollection(true, nameof(TriggerGroupId), nameof(TriggerId), Clustered = true)]
-    public class GXTriggerGroupTrigger : GXTableBase
+    public class GXTriggerGroupTrigger
     {
         /// <summary>
         /// The database ID of the trigger group.
         /// </summary>
         [DataMember(Name = "TriggerGroupID")]
-        [ForeignKey(typeof(GXTriggerGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXTriggerGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid TriggerGroupId
         {
             get;
@@ -59,7 +60,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// </summary>
         [DataMember(Name = "TriggerID")]
         [ForeignKey(typeof(GXTrigger), OnDelete = ForeignKeyDelete.Cascade)]
-        [StringLength(36)]
         public Guid TriggerId
         {
             get;
@@ -73,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -90,13 +90,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         {
             get;
             set;
-        }
-        /// <summary>
-        /// Update Creation time.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            CreationTime = DateTime.Now;
         }
     }
 }

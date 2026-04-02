@@ -29,14 +29,17 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -48,9 +51,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Device template information.
         /// </summary>
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [ExcludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version)
+            , nameof(GXDeviceSettings.Template))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Models), nameof(GXManufacturer.ManufacturerGroups))]
         public GXDeviceTemplate? Item
         {
             get;
@@ -69,10 +78,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated device templates.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects)
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects)
             , nameof(GXDeviceTemplate.Keys))]
-        [IncludeSwagger(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version), nameof(GXDeviceSettings.Template))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.ManufacturerGroups))]
         public GXDeviceTemplate[]? Templates
         {
             get;
@@ -91,7 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device template identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -115,7 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the device templates to retreave.
+        /// Amount of the device templates to retrieve.
         /// </summary>
         public int Count
         {
@@ -126,8 +140,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device templates.
         /// </summary>
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Manufacturer))]
+        [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
+        [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version), nameof(GXDeviceSettings.Template))]
+        [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.ManufacturerGroups))]
         public GXDeviceTemplate? Filter
         {
             get;
@@ -228,8 +247,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("List of device templates.")]
-        [IncludeSwagger(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
-        [ExcludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        [ExcludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Objects), nameof(GXDeviceTemplate.Keys))]
         public GXDeviceTemplate[] Templates
         {
             get;
@@ -259,7 +278,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("Removed device identifier(s).")]
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

@@ -29,17 +29,15 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -49,24 +47,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class GetBlockResponse
     {
         /// <summary>
-        /// Device information.
+        /// Block information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
-        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]        
-        [ExcludeSwagger(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
-            nameof(GXLocalizedResource.Module), nameof(GXLocalizedResource.Block),
-            nameof(GXLocalizedResource.Script))]
-        [ExcludeSwagger(typeof(GXBlock), 
-            nameof(GXBlock.Resources),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXBlock),
             nameof(GXBlock.Parent))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXBlock Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id),
+            nameof(GXLanguage.EnglishName),
+            nameof(GXLanguage.NativeName))]
+        public GXBlock? Item
         {
             get;
             set;
@@ -90,7 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the blocks to retreave.
+        /// Amount of the blocks to retrieve.
         /// </summary>
         public int Count
         {
@@ -101,14 +97,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter blocks.
         /// </summary>
-        [ExcludeSwagger(typeof(GXBlock), 
+        [ExcludeOpenApi(typeof(GXBlock),
             nameof(GXBlock.BlockGroups),
             nameof(GXBlock.User),
-            nameof(GXBlock.Resources), 
-            nameof(GXBlock.Languages),
+            nameof(GXBlock.Creator),
             nameof(GXBlock.Parent),
-            nameof(GXBlock.ComponentView), 
+            nameof(GXBlock.ComponentView),
             nameof(GXBlock.ScriptMethod))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+            nameof(GXUser.UserName))]
         public GXBlock? Filter
         {
             get;
@@ -197,16 +194,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of block items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXBlock), nameof(GXBlock.BlockGroups),
-            nameof(GXBlock.User), 
-            nameof(GXBlock.Resources),
-            nameof(GXBlock.Parent), 
-            nameof(GXBlock.Languages))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]        
+        [ExcludeOpenApi(typeof(GXBlock), nameof(GXBlock.BlockGroups),
+            nameof(GXBlock.User),
+            nameof(GXBlock.Parent))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
         public GXBlock[]? Blocks
         {
             get;
@@ -242,15 +237,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Blocks to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [ExcludeSwagger(typeof(GXBlock), 
-            nameof(GXBlock.Resources),
-            nameof(GXBlock.Parent), 
-            nameof(GXBlock.Languages), 
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
+        [ExcludeOpenApi(typeof(GXBlock),
+            nameof(GXBlock.Parent),
             nameof(GXBlock.User))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
         public List<GXBlock> Blocks
         {
             get;
@@ -285,7 +279,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed block identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -324,7 +318,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Blocks IDs to close.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

@@ -30,8 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common.Db;
-using System.ComponentModel.DataAnnotations;
+using Gurux.Service.Orm.Common;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -62,7 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Creation time.
         /// </summary>
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

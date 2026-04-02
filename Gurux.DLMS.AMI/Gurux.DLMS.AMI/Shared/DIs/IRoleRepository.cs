@@ -48,33 +48,27 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Roles.</returns>
         Task<GXRole[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListRoles? request, 
+            ListRoles? request,
             ListRolesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read role.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Role id.</param>
         /// <returns></returns>
-        Task<GXRole> ReadAsync(ClaimsPrincipal user, string id);
+        Task<GXRole> ReadAsync(string id);
 
         /// <summary>
-        /// Add role(s).
+        /// Update role(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
-        /// <param name="roles">Added role(s).</param>
-        Task<string[]> AddAsync(
-            ClaimsPrincipal user, 
-            IEnumerable<GXRole> roles);
+        /// <param name="roles">Updated role(s).</param>
+        Task<string[]> UpdateAsync(IEnumerable<GXRole> roles);
 
         /// <summary>
         /// Delete role(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="roles">Role(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<string> roles);
+        Task DeleteAsync(IEnumerable<string> roles);
     }
 }

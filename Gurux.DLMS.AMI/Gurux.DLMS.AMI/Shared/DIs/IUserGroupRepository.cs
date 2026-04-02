@@ -47,54 +47,46 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXUserGroup[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListUserGroups? request, 
+            ListUserGroups? request,
             ListUserGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read user group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">User group id.</param>
         /// <returns></returns>
-        Task<GXUserGroup> ReadAsync(ClaimsPrincipal user, Guid id);
-
+        Task<GXUserGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update user groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated user groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXUserGroup> groups,
             Expression<Func<GXUserGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete user group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">User groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Get all users that can access this user group. 
         /// </summary>
-        /// <param name="user">Current User.</param>
         /// <param name="groupId">User group ID.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? groupId);
+        Task<List<string>> GetUsersAsync(Guid? groupId);
 
         /// <summary>
         /// Get all users that can access user groups. 
         /// </summary>
-        /// <param name="user">Current User.</param>
         /// <param name="groupId">User group IDs.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? groupId);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId);
 
         /// <summary>
         /// Add user to user groups.
@@ -113,9 +105,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Returns default user groups for the user.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="userId">User ID.</param>
         /// <returns>List of user groups.</returns>
-        Task<List<GXUserGroup>> GetDefaultUserGroups(ClaimsPrincipal user, string userId);
+        Task<List<GXUserGroup>> GetDefaultUserGroups(string userId);
     }
 }

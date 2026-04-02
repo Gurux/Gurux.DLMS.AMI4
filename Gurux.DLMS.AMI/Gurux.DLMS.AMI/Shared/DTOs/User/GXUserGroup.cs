@@ -29,10 +29,11 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
@@ -49,6 +50,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
+using Gurux.DLMS.AMI.Shared.DTOs.Menu;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
@@ -85,6 +90,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
             WorkflowGroups = new List<GXWorkflowGroup>();
             TriggerGroups = new List<GXTriggerGroup>();
             BlockGroups = new List<GXBlockGroup>();
+            ContentGroups = new List<GXContentGroup>();
+            ContentTypeGroups = new List<GXContentTypeGroup>();
+            MenuGroups = new List<GXMenuGroup>();
             ComponentViewGroups = new List<GXComponentViewGroup>();
             ScriptGroups = new List<GXScriptGroup>();
             ManufacturerGroups = new List<GXManufacturerGroup>();
@@ -109,7 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// The creator of the user group.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXUser? Creator
@@ -127,6 +135,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [StringLength(64)]
         [IsRequired]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -153,7 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -246,7 +264,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// List of device templates that this user group can access.
         /// </summary>      
-        [DataMember, ForeignKey(typeof(GXDeviceTemplateGroup), typeof(GXUserGroupDeviceTemplateGroup))]
+        [DataMember, ForeignKey(typeof(GXDeviceTemplateGroup),
+            typeof(GXUserGroupDeviceTemplateGroup))]
         [DefaultValue(null)]
         public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
         {
@@ -310,11 +329,44 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         }
 
         /// <summary>
-        /// List of schedule groups that this user group can access.
+        /// List of block groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXUserGroupBlockGroup))]
         [DefaultValue(null)]
         public List<GXBlockGroup>? BlockGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of content groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXContentGroup), typeof(GXUserGroupContentGroup))]
+        [DefaultValue(null)]
+        public List<GXContentGroup>? ContentGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of content type groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXContentTypeGroup), typeof(GXUserGroupContentTypeGroup))]
+        [DefaultValue(null)]
+        public List<GXContentTypeGroup>? ContentTypeGroups
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// List of content type groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXMenuGroup), typeof(GXUserGroupMenuGroup))]
+        [DefaultValue(null)]
+        public List<GXMenuGroup>? MenuGroups
         {
             get;
             set;
@@ -387,6 +439,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         }
 
         /// <summary>
+        /// List of notification groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXNotificationGroup), typeof(GXUserGroupNotificationGroup))]
+        [DefaultValue(null)]
+        public List<GXNotificationGroup>? NotificationGroups
+        {
+            get;
+            set;
+        }
+
+
+        /// <summary>
         /// This is default user group where new users are added automatically when user creates them.
         /// </summary>
         [DataMember]
@@ -417,7 +481,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

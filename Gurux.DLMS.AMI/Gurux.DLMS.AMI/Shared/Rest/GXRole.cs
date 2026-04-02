@@ -29,16 +29,34 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
     /// <summary>
-    /// Add or Update role information.
+    /// Get role.
+    /// </summary>
+    public class GetRoleResponse
+    {
+        /// <summary>
+        /// Role information.
+        /// </summary>
+        [ExcludeOpenApi(typeof(GXScope),
+                nameof(GXScope.Role))]
+        [IncludeOpenApi(typeof(GXModule),
+                nameof(GXModule.Id), nameof(GXModule.Name))]
+        public GXRole? Item
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Add or update role information.
     /// </summary>
     [DataContract]
     public class UpdateRole : IGXRequest<UpdateRoleResponse>
@@ -47,8 +65,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Inserted or updated roles.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXModule),
-            nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [ExcludeOpenApi(typeof(GXScope), nameof(GXScope.Role))]
         public GXRole[] Roles
         {
             get;
@@ -66,7 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New role identifier(s).
         /// </summary>
         [DataMember]
-        public string[] Ids
+        public string[]? Ids
         {
             get;
             set;
@@ -89,7 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the roles to retreave.
+        /// Amount of the roles to retrieve.
         /// </summary>
         public int Count
         {
@@ -100,9 +118,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter roles.
         /// </summary>
-        [IncludeSwagger(typeof(GXModule),
+        [IncludeOpenApi(typeof(GXModule),
             nameof(GXModule.Id),
             nameof(GXModule.Name))]
+        [ExcludeOpenApi(typeof(GXScope), nameof(GXScope.Role))]
         public GXRole? Filter
         {
             get;
@@ -179,10 +198,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of roles.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXModule),
+        [IncludeOpenApi(typeof(GXModule),
             nameof(GXModule.Id),
             nameof(GXModule.Name))]
-        public GXRole[] Roles
+        [IncludeOpenApi(typeof(GXScope),
+            nameof(GXScope.Id),
+            nameof(GXScope.Name))]
+        public GXRole[]? Roles
         {
             get;
             set;
@@ -209,7 +231,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed roles.
         /// </summary>
         [DataMember]
-        public string[] Ids
+        public string[]? Ids
         {
             get;
             set;

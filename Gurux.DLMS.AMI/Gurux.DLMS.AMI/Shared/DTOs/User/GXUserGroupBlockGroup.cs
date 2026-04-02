@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using System.ComponentModel;
 using System.Runtime.Serialization;
@@ -39,7 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// A data contract class representing user group to block group binding object.
     /// </summary>
-    [DataContract(Name = "GXUserGroupBlockGroup"), Serializable]
+    [DataContract(Name = nameof(GXUserGroupBlockGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(BlockGroupId), Clustered = true)]
     public class GXUserGroupBlockGroup
     {
@@ -47,9 +48,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// The database ID of the user group
         /// </summary>
         [DataMember(Name = "UserGroupID")]
-        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid UserGroupId
         {
+            //ForeignKeyDelete is None because creator of the block group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -73,7 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("Creation time.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

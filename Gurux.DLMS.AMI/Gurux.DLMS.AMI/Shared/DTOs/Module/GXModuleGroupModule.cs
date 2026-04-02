@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -37,19 +38,20 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing module group to module binding object.
     /// </summary>
     [DataContract(Name = "GXModuleGroupModule"), Serializable]
     [IndexCollection(true, nameof(ModuleGroupId), nameof(ModuleId), Clustered = true)]
-    public class GXModuleGroupModule : GXTableBase
+    public class GXModuleGroupModule
     {
         /// <summary>
         /// The database ID of the Module group.
         /// </summary>
         [DataMember(Name = "ModuleGroupId")]
-        [ForeignKey(typeof(GXModuleGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXModuleGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid ModuleGroupId
         {
+            //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -64,7 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         {
             get;
             set;
-        }
+        } = string.Empty;
 
         /// <summary>
         /// Creation time.
@@ -74,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset CreationTime
         {
             get;
             set;
@@ -91,15 +93,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Update Creation time.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            CreationTime = DateTime.Now;
-        }
+        }      
     }
 }

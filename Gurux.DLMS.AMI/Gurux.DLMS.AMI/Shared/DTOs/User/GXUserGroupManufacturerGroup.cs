@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using System.ComponentModel;
 using System.Runtime.Serialization;
@@ -39,7 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// A data contract class representing user group to manufacturer group binding object.
     /// </summary>
-    [DataContract(Name = "GXUserGroupManufacturerGroup"), Serializable]
+    [DataContract(Name = nameof(GXUserGroupManufacturerGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ManufacturerGroupId), Clustered = true)]
     public class GXUserGroupManufacturerGroup
     {
@@ -47,9 +48,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// The database ID of the user group
         /// </summary>
         [DataMember(Name = "UserGroupID")]
-        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid UserGroupId
         {
+            //ForeignKeyDelete is None because creator of the manufacturer group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -74,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

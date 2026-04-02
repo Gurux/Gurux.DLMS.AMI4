@@ -46,7 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user stamps example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser),
+        [IncludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
         public GXUserStamp? Filter
@@ -77,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -155,7 +155,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Agent logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUser),
+        [IncludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
         public GXUserStamp[]? Stamps
@@ -188,8 +188,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New user stamp.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUser),
-                nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXUserStamp),
+                nameof(GXUserStamp.Creator))]
         public GXUserStamp[]? Stamps
         {
             get;
@@ -203,6 +203,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class UpdateUserStampResponse
     {
+        /// <summary>
+        /// New user stamp.
+        /// </summary>
+        [DataMember]
+        [ExcludeOpenApi(typeof(GXUserStamp),
+                nameof(GXUserStamp.Creator))]
+        public GXUserStamp[]? Stamps
+        {
+            get;
+            set;
+        }
     }
 
     /// <summary>

@@ -29,10 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Report
@@ -42,13 +42,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
     /// </summary>
     [DataContract(Name = "GXReportDevice"), Serializable]
     [IndexCollection(true, nameof(ReportId), nameof(DeviceId), Clustered = true)]
-    public class GXReportDevice : GXTableBase
+    public class GXReportDevice
     {
         /// <summary>
         /// The database ID of the report.
         /// </summary>
         [DataMember(Name = "ReportID")]
-        [ForeignKey(typeof(GXReport), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXReport), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid ReportId
         {
@@ -76,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -93,17 +93,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Report
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
-        }
+        }        
     }
 }

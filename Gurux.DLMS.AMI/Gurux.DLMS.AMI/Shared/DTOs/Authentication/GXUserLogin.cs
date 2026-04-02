@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 
@@ -53,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 
         [DataMember]
         [StringLength(128)]
-        public string ProviderKey
+        public string? ProviderKey
         {
             get;
             set;
@@ -61,12 +62,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 
         [DataMember]
         [StringLength(128)]
-        public string ProviderDisplayName
+        public string? ProviderDisplayName
         {
             get;
             set;
         }
 
+        /// <summary>
+        /// User ID.
+        /// </summary>
         [DataMember]
         [Index]
         public Guid UserId

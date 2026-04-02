@@ -29,27 +29,28 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing schedule group to schedule binding object.
     /// </summary>
     [DataContract(Name = "GXScheduleGroupSchedule"), Serializable]
     [IndexCollection(true, nameof(ScheduleGroupId), nameof(ScheduleId), Clustered = true)]
-    public class GXScheduleGroupSchedule : GXTableBase
+    public class GXScheduleGroupSchedule
     {
         /// <summary>
         /// The database ID of the Schedule group.
         /// </summary>
         [DataMember(Name = "ScheduleGroupId")]
-        [ForeignKey(typeof(GXScheduleGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScheduleGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid ScheduleGroupId
         {
+            //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -59,7 +60,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </summary>
         [DataMember(Name = "ScheduleID")]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
-        [StringLength(36)]
         public Guid ScheduleId
         {
             get;
@@ -74,7 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset CreationTime
         {
             get;
             set;
@@ -91,17 +91,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
-        }
+        }        
     }
 }

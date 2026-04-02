@@ -32,7 +32,6 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
-using System.Security.Claims;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -46,56 +45,48 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Languages.</returns>
         Task<GXLanguage[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListLanguages? request, 
+            ListLanguages? request,
             ListLanguagesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read language.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Language id.</param>
         /// <returns></returns>
-        Task<GXLanguage> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXLanguage> ReadAsync(Guid id);
 
         /// <summary>
         /// Get default culture for the user.
         /// </summary>
-        /// <param name="User">Current user.</param>
-        /// <param name="userId">User ID.</param>
-        /// <returns>Default culture.</returns>
-        Task<string?> GetUserLanguageAsync(ClaimsPrincipal User, string? userId);
+        /// <returns>User culture.</returns>
+        Task<string?> GetUserLanguageAsync();
 
         /// <summary>
         /// Get installed cultures.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="activeOnly">Only active cultures are returned.</param>
         /// <returns>Installed cultures.</returns>
-        Task<GXLanguage[]> GetInstalledCulturesAsync(ClaimsPrincipal User, bool activeOnly);
+        Task<GXLanguage[]> GetInstalledCulturesAsync(bool activeOnly);
 
         /// <summary>
         /// Update active state of the cultures.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="languages">Languages to update.</param>
-        Task UpdateCulturesAsync(ClaimsPrincipal User, IEnumerable<GXLanguage> languages);
+        Task UpdateCulturesAsync(IEnumerable<GXLanguage> languages);
 
         /// <summary>
         /// Get localized string.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="language">Used language</param>
         /// <param name="hash">Hash for invaliant string.</param>
         /// <returns>Localized string.</returns>
-        Task<string?> GetLocalizedStringAsync(ClaimsPrincipal User, string language, int hash);
+        Task<string?> GetLocalizedStringAsync(string language, string hash);
 
         /// <summary>
         /// Refresh Localized strings.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="languages">Languages to update.</param>
-        Task RefreshLocalizationsAsync(ClaimsPrincipal User, IEnumerable<GXLanguage> languages);
+        Task RefreshLocalizationsAsync(IEnumerable<GXLanguage>? languages);
     }
 }

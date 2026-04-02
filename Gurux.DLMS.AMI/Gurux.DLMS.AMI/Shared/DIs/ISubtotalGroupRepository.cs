@@ -31,8 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -48,60 +46,52 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXSubtotalGroup[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListSubtotalGroups? request, 
+            ListSubtotalGroups? request,
             ListSubtotalGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read subtotal group information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Subtotal group id.</param>
         /// <returns></returns>
-        Task<GXSubtotalGroup> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXSubtotalGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update subtotal groups.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Updated subtotal groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXSubtotalGroup> groups,
             Expression<Func<GXSubtotalGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete subtotal group(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="groups">Subtotal groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns subtotal groups list where subtotal belongs.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="subtotalId">Subtotal ID</param>
         /// <returns>List of subtotal groups.</returns>
-        Task<List<GXSubtotalGroup>> GetJoinedSubtotalGroups(ClaimsPrincipal user, Guid subtotalId);
+        Task<List<GXSubtotalGroup>> GetJoinedSubtotalGroups(Guid subtotalId);
 
         /// <summary>
         /// Get all users that can access this subtotal group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="subtotalGroupId">Subtotal group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? subtotalGroupId);
+        Task<List<string>> GetUsersAsync(Guid? subtotalGroupId);
 
         /// <summary>
         /// Get all users that can access subtotal group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="subtotalGroupIds">Agent Subtotal ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? subtotalGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? subtotalGroupIds);
     }
 }

@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -54,7 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the statistics to retreave.
+        /// Amount of the statistics to retrieve.
         /// </summary>
         public int Count
         {
@@ -141,7 +141,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of statistics.
         /// </summary>
         [DataMember]
-        public GXRestStatistic[] Statistics
+        public GXRestStatistic[]? Statistics
         {
             get;
             set;
@@ -172,7 +172,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Statistics to add or update.
         /// </summary>
         [DataMember]
-        public GXRestStatistic[] Statistics
+        public GXRestStatistic[]? Statistics
         {
             get;
             set;
@@ -188,7 +188,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New statistics IDs.
         /// </summary>
-        public GXRestStatistic[] Statistics
+        public GXRestStatistic[]? Statistics
         {
             get;
             set;
@@ -205,7 +205,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Statistic Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

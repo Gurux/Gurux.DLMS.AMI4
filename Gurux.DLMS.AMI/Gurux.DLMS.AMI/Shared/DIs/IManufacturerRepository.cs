@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Manufacturers.</returns>
         Task<GXManufacturer[]> ListAsync(
-            ClaimsPrincipal User,
             ListManufacturers? request,
             ListManufacturersResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,71 +54,62 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read manufacturer.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Manufacturer id.</param>
         /// <returns></returns>
-        Task<GXManufacturer> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXManufacturer> ReadAsync(Guid id);
 
         /// <summary>
         /// Read manufacturer model information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Manufacturer id.</param>
         /// <returns></returns>
-        Task<GXDeviceModel> ReadModelAsync(ClaimsPrincipal user, Guid id);
+        Task<GXDeviceModel> ReadModelAsync(Guid id);
 
         /// <summary>
         /// Read model version information.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Manufacturer id.</param>
         /// <returns></returns>
-        Task<GXDeviceVersion> ReadVersionAsync(ClaimsPrincipal user, Guid id);
+        Task<GXDeviceVersion> ReadVersionAsync(Guid id);
 
         /// <summary>
         /// Update manufacturer(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturers">Updated manufacturer(s).</param>
         /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXManufacturer> manufacturers,
             Expression<Func<GXManufacturer, object?>>? columns = null);
 
         /// <summary>
         /// Delete manufacturer(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturers">Manufacturer(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> manufacturers, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> manufacturers, bool delete);
 
         /// <summary>
         /// Get all users that can access this manufacturer.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturerId">Manufacturer id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? manufacturerId);
+        Task<List<string>> GetUsersAsync(Guid? manufacturerId);
 
         /// <summary>
         /// Get all users that can access manufacturers.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturerIds">Manufacturer ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? manufacturerIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerIds);
 
         /// <summary>
         /// Install device templates for the manufacturers.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="manufacturers">List of installed manufacturers.</param>
         /// <param name="models">List of installed models.</param>
         /// <param name="versions">List of installed versions.</param>
         /// <param name="settings">List of installed settings.</param>
-        Task InstallAsync(ClaimsPrincipal User,
+        Task InstallAsync(
             IEnumerable<GXManufacturer>? manufacturers,
             IEnumerable<GXDeviceModel>? models,
             IEnumerable<GXDeviceVersion>? versions,

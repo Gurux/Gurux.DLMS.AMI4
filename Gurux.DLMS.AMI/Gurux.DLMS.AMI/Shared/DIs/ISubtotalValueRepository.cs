@@ -30,8 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
-using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,7 +45,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of subtotal values.</returns>
         Task<GXSubtotalValue[]> ListAsync(
-            ClaimsPrincipal User,
             ListSubtotalValues? request,
             ListSubtotalValuesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,16 +52,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read subtotal value information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Subtotal value id.</param>
         /// <returns>Subtotal value information.</returns>
-        Task<GXSubtotalValue> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXSubtotalValue> ReadAsync(Guid id);
 
         /// <summary>
         /// Add subtotal values(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="values">Added subtotal values.</param>
-        Task<Guid[]> AddAsync(ClaimsPrincipal User, IEnumerable<GXSubtotalValue> values);
+        Task<Guid[]> AddAsync(IEnumerable<GXSubtotalValue> values);
     }
 }

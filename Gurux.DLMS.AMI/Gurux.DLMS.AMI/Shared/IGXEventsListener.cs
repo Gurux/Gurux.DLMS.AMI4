@@ -33,7 +33,7 @@
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
@@ -415,29 +415,29 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXUser>?> OnTaskClear;
 
         /// <summary>
-        /// Blocks are updated or modified.
+        /// Contents are updated or modified.
         /// </summary>
-        event Action<IEnumerable<GXBlock>> OnBlockUpdate;
+        event Action<IEnumerable<GXContent>> OnContentUpdate;
 
         /// <summary>
-        /// Block is deleted.
+        /// Content is deleted.
         /// </summary>
-        event Action<IEnumerable<GXBlock>> OnBlockDelete;
+        event Action<IEnumerable<GXContent>> OnContentDelete;
 
         /// <summary>
-        /// Blocks are closed.
+        /// Contents are closed.
         /// </summary>
-        event Action<IEnumerable<GXBlock>> OnBlockClose;
+        event Action<IEnumerable<GXContent>> OnContentClose;
 
         /// <summary>
-        /// New block group is added or modified.
+        /// New content group is added or modified.
         /// </summary>
-        event Action<IEnumerable<GXBlockGroup>> OnBlockGroupUpdate;
+        event Action<IEnumerable<GXContentGroup>> OnContentGroupUpdate;
 
         /// <summary>
-        /// Block group is deleted.
+        /// Content group is deleted.
         /// </summary>
-        event Action<IEnumerable<GXBlockGroup>> OnBlockGroupDelete;
+        event Action<IEnumerable<GXContentGroup>> OnContentGroupDelete;
 
         /// <summary>
         /// New user action is added.
@@ -565,6 +565,13 @@ namespace Gurux.DLMS.AMI.Shared
         /// Manufacturer group is deleted.
         /// </summary>
         event Action<IEnumerable<GXManufacturerGroup>>? OnManufacturerGroupDelete;
-
+        /// <summary>
+        /// New localized resource is added or modified.
+        /// </summary>
+        event Action<IEnumerable<GXLocalizedResource>>? OnLocalizedResourceUpdate;
+        /// <summary>
+        /// Localized resource group is deleted.
+        /// </summary>
+        event Action<IEnumerable<GXLocalizedResource>>? OnLocalizedResourceDelete;
     }
 }

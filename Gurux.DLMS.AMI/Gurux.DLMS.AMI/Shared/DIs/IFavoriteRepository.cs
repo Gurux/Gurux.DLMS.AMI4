@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Favorites.</returns>
         Task<GXFavorite[]> ListAsync(
-            ClaimsPrincipal user,
             ListFavorites? request,
             ListFavoritesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,27 +54,24 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read Favorite.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Favorite id.</param>
         /// <returns></returns>
-        Task<GXFavorite> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXFavorite> ReadAsync(Guid id);
 
         /// <summary>
         /// Update Favorite(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="favorites">Updated Favorite(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
+
             IEnumerable<GXFavorite> favorites,
             Expression<Func<GXFavorite, object?>>? columns = null);
 
         /// <summary>
         /// Delete Favorite(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="favorites">Favorite(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> favorites);
+        Task DeleteAsync(IEnumerable<Guid> favorites);
     }
 }

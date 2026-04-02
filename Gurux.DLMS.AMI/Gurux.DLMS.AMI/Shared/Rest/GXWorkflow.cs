@@ -29,18 +29,18 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -52,24 +52,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Workflow information.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
-        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [IncludeSwagger(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [ExcludeSwagger(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
-            nameof(GXLocalizedResource.Module), nameof(GXLocalizedResource.Block),
-            nameof(GXLocalizedResource.Script))]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id), nameof(GXContentGroup.Name))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id),
             nameof(GXWorkflowGroup.Name))]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
             nameof(GXWorkflow.TriggerActivity),
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
-            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device), 
-            nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods), 
+            nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
+            nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
             nameof(GXWorkflow.WorkflowGroups))]
         public GXWorkflow? Item
         {
@@ -95,7 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the workflows to retreave.
+        /// Amount of the workflows to retrieve.
         /// </summary>
         public int Count
         {
@@ -107,7 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter workflows.
         /// </summary>
         /// 
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
             nameof(GXWorkflow.TriggerActivity),
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
@@ -131,7 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             get;
             set;
         }
-        
+
         /// <summary>
         /// Selected extra information.
         /// </summary>
@@ -202,7 +200,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of workflow items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
             nameof(GXWorkflow.TriggerActivity),
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
@@ -236,15 +234,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Workflows to update.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
-        [IncludeSwagger(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Logs),
             nameof(GXWorkflow.Modules), nameof(GXWorkflow.Creator),
             nameof(GXWorkflow.TriggerActivity),
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup))]
-        public GXWorkflow[] Workflows
+        public GXWorkflow[]? Workflows
         {
             get;
             set;
@@ -280,7 +278,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed workflow identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

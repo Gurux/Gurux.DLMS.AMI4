@@ -29,12 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using System.Diagnostics;
+using System.Text;
 
 namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// Notify settings.
+    /// Notification settings.
     /// </summary>
     public class NotifySettings
     {
@@ -46,12 +48,12 @@ namespace Gurux.DLMS.AMI.Shared
         }
 
         /// <summary>
-        /// Is notify active.
+        /// Is notification active.
         /// </summary>
         public bool Active { get; set; }
 
         /// <summary>
-        /// Amount of the notify threads.
+        /// Amount of the notification threads.
         /// </summary>
         public int Threads { get; set; } = 100;
 
@@ -77,6 +79,13 @@ namespace Gurux.DLMS.AMI.Shared
         /// Interface type.
         /// </summary>
         public int Interface { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the received data should be forwarded
+        /// exactly as it was received, without any processing, transformation, or validation.
+        /// </summary>
+        public bool PassThroughData { get; set; }
+
 
         /// <summary>
         /// Use logical name referencing.
@@ -146,10 +155,34 @@ namespace Gurux.DLMS.AMI.Shared
         /// </remarks>
         public int? ConnectionUpTime { get; set; }
 
+        /// <summary>
+        /// Notify script.
+        /// </summary>
+        public byte[]? Script { get; set; }
+
+        /// <summary>
+        /// Saved notify script Id.
+        /// </summary>
+        public Guid? ScriptId { get; set; }
+
         /// <inheritdoc/>
         public override string ToString()
         {
-            return Helpers.GetProperties(this);
+            StringBuilder sb = new StringBuilder();
+            var list = Helpers.GetDictionaryProperties(this);
+            foreach (var it in list)
+            {
+                if (sb.Length != 0)
+                {
+                    sb.Append(", ");
+                }
+                //Script is not shown in the string.
+                if (it.Key != nameof(Script))
+                {
+                    sb.Append(it.Key + ": " + it.Value);
+                }
+            }
+            return sb.ToString();
         }
     }
 }

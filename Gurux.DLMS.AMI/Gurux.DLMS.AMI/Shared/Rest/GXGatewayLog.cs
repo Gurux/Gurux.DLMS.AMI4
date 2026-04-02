@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
-using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -44,7 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Gateway log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXGateway),
+        [IncludeOpenApi(typeof(GXGateway),
                 nameof(GXGateway.Id),
                 nameof(GXGateway.Name))]
         public GXGatewayLog? Item
@@ -63,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXGateway),
+        [IncludeOpenApi(typeof(GXGateway),
                 nameof(GXGateway.Id),
                 nameof(GXGateway.Name))]
         public GXGatewayLog? Filter
@@ -94,7 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -171,7 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Gateway logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXGateway),
+        [IncludeOpenApi(typeof(GXGateway),
                 nameof(GXGateway.Id),
                 nameof(GXGateway.Name))]
         public GXGatewayLog[]? Logs
@@ -203,13 +203,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New Gateway log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXGateway),
+        [IncludeOpenApi(typeof(GXGateway),
                 nameof(GXGateway.Id))]
         public GXGatewayLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>

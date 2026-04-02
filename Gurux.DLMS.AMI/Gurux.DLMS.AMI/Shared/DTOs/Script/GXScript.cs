@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
@@ -105,6 +106,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Script description.
         /// </summary>
         [DataMember]
@@ -169,7 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// The creator of the script.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? Creator
@@ -186,6 +197,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [Filter(FilterType.Exact)]
         public GXModule? Module
         {
+            //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -236,35 +248,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
             set;
         }
 
-
-        /// <summary>
-        /// Localized strings for this script.
-        /// </summary>
-        /// <remarks>
-        /// This is used only for database and it's not send for the user.
-        /// </remarks>
-        [DataMember]
-        [JsonIgnore]
-        public GXLocalizedResource[]? Resources
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized resources for this script.
-        /// </summary>
-        /// <remarks>
-        /// Localized resources are return with this.
-        /// </remarks>
-        [DataMember]
-        [Ignore(IgnoreType.Db)]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
-
         /// <summary>
         /// Creation time.
         /// </summary>
@@ -273,7 +256,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -348,7 +331,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

@@ -31,8 +31,9 @@
 //---------------------------------------------------------------------------
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.Common.Db;
 using System.ComponentModel;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
 {
@@ -45,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <summary>
         /// Scope identifier.
         /// </summary>
-        [StringLength(36)]
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
@@ -59,7 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "RoleID"), Index(Unique = false)]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public string? RoleId { get; set; }
+        public GXRole? Role { get; set; }
 
         /// <summary>
         /// If true, the scope is added for the new user as a default role.
@@ -87,6 +87,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
+        /// Localized scope name.
+        /// </summary>
+        /// <remarks>
+        /// Localized scope name is not saved to the database.
+        /// </remarks>
+        [DataMember]
+        [Description("Localized scope name.")]
+        [Ignore]
+        public string? LocalizedName
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Constructor.
         /// </summary>
         public GXScope()
@@ -101,6 +116,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public GXScope(string? name)
         {
             Name = name;
+        }
+
+        /// <summary>
+        /// Make scope clone.
+        /// </summary>
+        /// <returns></returns>
+        public GXScope Clone()
+        {
+            GXScope item = new GXScope()
+            {
+                Id = Id,
+                Role = Role,
+                Default = Default,
+                Name = Name,
+                LocalizedName = LocalizedName
+            };
+            return item;
         }
 
         /// <inheritdoc/>

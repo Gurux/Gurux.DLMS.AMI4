@@ -29,8 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.Common.Db;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.ComponentModel;
@@ -41,7 +42,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// User settings is used to save user depending settings.
     /// </summary>
-    [DataContract(Name = "GXUserSetting"), Serializable]
+    [DataContract(Name = nameof(GXUserSetting)), Serializable]
     public class GXUserSetting : IUnique<Guid>
     {
         /// <summary>
@@ -71,11 +72,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// Settings owner.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
         public GXUser? User
         {
+            //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -109,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -98,6 +99,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Description.
         /// </summary>
         [DataMember]
@@ -115,7 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// Unique gateway identifier.
         /// </summary>
         [StringLength(128)]
-        [Index]
+        [Index(false)]
         [Filter(FilterType.Equals)]
         public string? Identifier
         {
@@ -140,7 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// Script method that this gateway uses.
         /// </summary>
         [DefaultValue(null)]
-        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScriptMethod))]
         public GXScriptMethod? ScriptMethod
         {
             get;
@@ -195,7 +206,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -221,6 +232,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
         public DateTimeOffset? Detected
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Holds metadata about the client connection, including the remote IP address and other optional 
+        /// network-related details associated with the current request.
+        /// </summary>
+        [DataMember]
+        [Description("Holds metadata about the client connection, including the remote IP address and other optional network-related details associated with the current request.")]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [StringLength(64)]
+        public string? ConnectionInfo
         {
             get;
             set;

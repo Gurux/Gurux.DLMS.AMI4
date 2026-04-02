@@ -29,9 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
@@ -47,10 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// The database ID of the Schedule group.
         /// </summary>
         [DataMember(Name = "DeviceTemplateGroupId")]
-        [ForeignKey(typeof(GXDeviceTemplateGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXDeviceTemplateGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid DeviceTemplateGroupId
         {
+            //ForeignKeyDelete is None because creator of the device template is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -75,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
@@ -44,7 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Favorite information.
         /// </summary>        
-        [ExcludeSwagger(typeof(GXFavorite), nameof(GXFavorite.User))]
+        [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
         public GXFavorite? Item
         {
             get;
@@ -69,7 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the favorites to retreave.
+        /// Amount of the favorites to retrieve.
         /// </summary>
         public int Count
         {
@@ -80,7 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter favorites.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXFavorite? Filter
         {
             get;
@@ -121,7 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of favorite items.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXFavorite), nameof(GXFavorite.User))]
+        [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
         public GXFavorite[]? Favorites
         {
             get;
@@ -149,7 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Favorites to update.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXFavorite),
+        [ExcludeOpenApi(typeof(GXFavorite),
             nameof(GXFavorite.CreationTime), nameof(GXFavorite.User))]
         public GXFavorite[] Favorites
         {
@@ -185,7 +185,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed favorite identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

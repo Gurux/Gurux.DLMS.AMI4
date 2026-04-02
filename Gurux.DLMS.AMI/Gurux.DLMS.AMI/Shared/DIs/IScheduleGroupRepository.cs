@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXScheduleGroup[]> ListAsync(
-            ClaimsPrincipal User,
             ListScheduleGroups? request,
             ListScheduleGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,53 +54,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read schedule group information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Schedule group id.</param>
         /// <returns></returns>
-        Task<GXScheduleGroup> ReadAsync(ClaimsPrincipal User, Guid id);
-
+        Task<GXScheduleGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update schedule groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated schedule groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXScheduleGroup> groups,
             Expression<Func<GXScheduleGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete schedule group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Schedule groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns schedule groups list where schedule belongs.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scheduleId">Schedule ID</param>
         /// <returns>List of schedule groups.</returns>
-        Task<List<GXScheduleGroup>> GetJoinedScheduleGroups(ClaimsPrincipal User, Guid scheduleId);
+        Task<List<GXScheduleGroup>> GetJoinedScheduleGroups(Guid scheduleId);
 
         /// <summary>
         /// Get all users that can access this schedule group.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scheduleGroupId">Schedule group id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? scheduleGroupId);
+        Task<List<string>> GetUsersAsync(Guid? scheduleGroupId);
 
         /// <summary>
         /// Get all users that can access schedule groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="scheduleGroupIds">Schedule group ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? scheduleGroupIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? scheduleGroupIds);
     }
 }

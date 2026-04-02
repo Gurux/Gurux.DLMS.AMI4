@@ -29,18 +29,24 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
 {
+    /// <summary>
+    /// A data contract class representing schedule to attribute binding object.
+    /// </summary>
     [IndexCollection(true, nameof(ScheduleId), nameof(AttributeId), Clustered = true)]
     public class GXScheduleToAttribute
     {
+        /// <summary>
+        /// Schedule ID.
+        /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.None)]
 
         public Guid ScheduleId
         {
@@ -48,6 +54,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
             set;
         }
 
+        /// <summary>
+        /// Attribute ID.
+        /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXAttribute), OnDelete = ForeignKeyDelete.Cascade)]
         public Guid AttributeId
@@ -64,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

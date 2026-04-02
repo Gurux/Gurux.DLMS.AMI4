@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -44,7 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// AttributeTemplate information.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAttributeTemplate),
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ObjectTemplate),
                 nameof(GXAttributeTemplate.ListItems))]
         public GXAttributeTemplate? Item
@@ -68,8 +68,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// AttributeTemplate information.
         /// </summary>
-        [IncludeSwagger(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
-        [ExcludeSwagger(typeof(GXAttributeTemplate),
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ListItems))]
         public GXAttributeTemplate[]? AttributeTemplates
         {
@@ -124,7 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter attribute templates.
         /// </summary>
-        [ExcludeSwagger(typeof(GXAttributeTemplate),
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
                nameof(GXAttributeTemplate.ObjectTemplate),
                nameof(GXAttributeTemplate.ListItems))]
         public GXAttributeTemplate? Filter
@@ -245,7 +245,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of COSEM attribute templates.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXAttributeTemplate),
+        [ExcludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.ObjectTemplate),
                 nameof(GXAttributeTemplate.ListItems))]
         public GXAttributeTemplate[]? AttributeTemplates
@@ -312,7 +312,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Updated attribute templates.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAttributeTemplate),
+        [IncludeOpenApi(typeof(GXAttributeTemplate),
             nameof(GXAttributeTemplate.Id),
             nameof(GXAttributeTemplate.DataType),
             nameof(GXAttributeTemplate.UIDataType))]

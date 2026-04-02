@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -57,10 +58,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// System setting category Name.
+        /// Configuration name.
         /// </summary>
         [DataMember]
-        [Description("System setting category Name.")]
+        [Description("Configuration name")]
         [Index(true)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
@@ -109,9 +110,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         }
 
         /// <summary>
-        /// Icon name.
+        /// Used icon.
         /// </summary>
-        [Description("Icon name.")]
+        /// <remarks>
+        /// Client doesn't send this icon to the sever or get it from the server.
+        /// </remarks>
+        [IgnoreDataMember]
+        [Ignore]
+        [JsonIgnore]
         public string? Icon
         {
             get;
@@ -136,7 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -179,42 +185,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Localized resources for this configuration.
-        /// </summary>
-        /// <remarks>
-        /// This is used only for database.
-        /// </remarks>
-        [DataMember]
-        [JsonIgnore]
-        public GXLocalizedResource[]? Resources
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized resources for this configuration.
-        /// </summary>
-        /// <remarks>
-        /// Localized resources are return with this.
-        /// </remarks>
-        [DataMember]
-        [Ignore(IgnoreType.Db)]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
+        }     
 
         /// <summary>
         /// Update creation time before update.
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

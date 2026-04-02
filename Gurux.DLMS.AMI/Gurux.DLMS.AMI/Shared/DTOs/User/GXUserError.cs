@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -49,7 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <remarks>
         /// Error levels from 0 to 4 are reserved for Gurux.DLMS.AMI.
         /// </remarks>
-        public GXUserError() : this((int)TraceLevel.Error)
+        public GXUserError()
         {
         }
 
@@ -63,7 +64,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         public GXUserError(int level)
         {
             Level = level;
-            Type = 0;
             Message = "";
         }
 
@@ -111,7 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -187,10 +187,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            if (!string.IsNullOrEmpty(Message))
+            {
+                return Message;
+            }
+            return nameof(GXUserError);
         }
     }
 }

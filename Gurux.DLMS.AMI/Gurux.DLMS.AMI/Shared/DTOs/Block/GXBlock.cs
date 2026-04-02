@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
@@ -67,6 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
             Name = name;
             BlockGroups = new List<GXBlockGroup>();
         }
+
         /// <summary>
         /// Block ID.
         /// </summary>
@@ -88,6 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DefaultValue(null)]
         public GXUser? Creator
         {
+            //ForeignKeyDelete is None because User will handle the deletion.
             get;
             set;
         }
@@ -109,6 +112,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false)]
         [Filter(FilterType.Contains)]
         public string? Name
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
         {
             get;
             set;
@@ -138,7 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// Script method that this block uses.
         /// </summary>
         [DefaultValue(null)]
-        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         public GXScriptMethod? ScriptMethod
         {
             get;
@@ -251,7 +264,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// <summary>
         /// List of block groups where this block belongs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXBlockGroupBlock))]
+        [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXBlockGroupBlock), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
         public List<GXBlockGroup>? BlockGroups
         {
@@ -262,7 +275,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// <summary>
         /// Block settings for the user.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXUser), typeof(GXUserBlockSettings))]
+        [DataMember, ForeignKey(typeof(GXUser), typeof(GXUserBlockSettings), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
         public GXUser? User
         {
@@ -277,7 +290,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -343,36 +356,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         {
             get;
             set;
-        }
-
-
-        /// <summary>
-        /// Localized strings for this block.
-        /// </summary>
-        /// <remarks>
-        /// This is used only for database and it's not send for the user.
-        /// </remarks>
-        [DataMember]
-        [JsonIgnore]
-        public GXLocalizedResource[]? Resources
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized resources for this block.
-        /// </summary>
-        /// <remarks>
-        /// Localized resources are return with this.
-        /// </remarks>
-        [DataMember]
-        [Ignore(IgnoreType.Db)]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
+        }       
 
         /// <summary>
         /// Parent block.

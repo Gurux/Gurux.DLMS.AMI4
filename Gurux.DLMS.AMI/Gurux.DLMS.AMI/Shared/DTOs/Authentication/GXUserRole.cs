@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
 
@@ -39,7 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     /// User Role table.
     /// </summary>
     [DataContract(Name = "GXUserRole"), Serializable]
-    [IndexCollection(true, nameof(UserId), nameof(RoleId), Clustered=true)]
+    [IndexCollection(true, nameof(UserId), nameof(RoleId), Clustered = true)]
     public class GXUserRole
     {
         /// <summary>
@@ -49,9 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [IsRequired]
         [DataMember]
         [StringLength(36)]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string UserId
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public string? UserId
         {
             get;
             set;
@@ -64,9 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(36)]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string RoleId
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public string? RoleId
         {
             get;
             set;

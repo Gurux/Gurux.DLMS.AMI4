@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.Serialization;
@@ -37,7 +38,7 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
     /// <summary>
-    /// System errors controller.
+    /// System log table.
     /// </summary>
     [DataContract]
     public class GXSystemLog : GXTableBase, IUnique<Guid>
@@ -90,7 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime? CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -123,6 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Error severity level.
         /// </summary>
+        /// <seealso cref="TraceLevel"/>
         [DataMember]
         [DefaultValue(1)]
         [IsRequired]
@@ -140,6 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(0)]
         [IsRequired]
         [Filter(FilterType.Exact)]
+        [Index(false)]
         public int? Type
         {
             get;
@@ -178,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

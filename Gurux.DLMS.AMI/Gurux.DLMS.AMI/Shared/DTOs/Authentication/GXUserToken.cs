@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
@@ -49,13 +50,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "UserId")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string Id
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Login provider.
@@ -66,21 +65,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Name.
         /// </summary>
         [DataMember]
         [StringLength(128)]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string Name
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-
         {
             get;
             set;
-        }
+        } = "";
 
         /// <summary>
         /// Value.
@@ -90,6 +86,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             get;
             set;
-        }
+        } = "";
     }
 }

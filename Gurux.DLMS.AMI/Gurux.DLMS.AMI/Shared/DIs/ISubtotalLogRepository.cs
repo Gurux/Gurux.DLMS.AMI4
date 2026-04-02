@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,7 +45,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>List of subtotal logs.</returns>
         Task<GXSubtotalLog[]> ListAsync(
-            ClaimsPrincipal user,
             ListSubtotalLogs? request,
             ListSubtotalLogsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,36 +52,34 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read subtotal log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Subtotal log id.</param>
         /// <returns>Subtotal log information.</returns>
-        Task<GXSubtotalLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXSubtotalLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear subtotal logs.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, Guid[]? subtotals);
+        Task ClearAsync(Guid[]? subtotals);
 
         /// <summary>
         /// Add subtotal logs.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Subtotal type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXSubtotalLog> logs);
+        Task AddAsync(string type, IEnumerable<GXSubtotalLog> logs);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Subtotal type.</param>
         /// <param name="subtotal">Subtotal.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXSubtotalLog> AddAsync(ClaimsPrincipal User, GXSubtotal subtotal, Exception ex);
+        Task<GXSubtotalLog> AddAsync(string type, GXSubtotal subtotal, Exception ex);
 
         /// <summary>
         /// Close subtotal log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> logs);
+        Task CloseAsync(IEnumerable<Guid> logs);
     }
 }

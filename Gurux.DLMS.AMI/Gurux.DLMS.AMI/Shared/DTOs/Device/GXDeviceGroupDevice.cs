@@ -29,16 +29,23 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Device
 {
+    /// <summary>
+    /// A data contract class representing device group to device group binding object.
+    /// </summary>
     [DataContract(Name = "GXDeviceGroupDevice"), Serializable]
     [IndexCollection(true, nameof(DeviceId), nameof(DeviceGroupId), Clustered = true)]
     public class GXDeviceGroupDevice
     {
+        /// <summary>
+        /// Device ID.
+        /// </summary>
         [DataMember(Name = "DeviceID")]
         [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
@@ -48,11 +55,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
             set;
         }
 
+        /// <summary>
+        /// Device Group ID.
+        /// </summary>
         [DataMember(Name = "DeviceGroupID")]
-        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXDeviceGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid DeviceGroupId
         {
+            //ForeignKeyDelete is None because Device will handle the deletion.
             get;
             set;
         }
@@ -65,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

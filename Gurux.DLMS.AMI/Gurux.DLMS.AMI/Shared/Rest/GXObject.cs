@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -47,10 +47,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Object information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
-        [IncludeSwagger(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id), nameof(GXAttribute.Template))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [ExcludeOpenApi(typeof(GXObjectParameter), 
+            nameof(GXObjectParameter.Object), nameof(GXObjectParameter.Module))]
         public GXObject? Item
         {
             get;
@@ -68,10 +72,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added COSEM objects.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
-        [IncludeSwagger(typeof(GXDevice), nameof(GXDevice.Id))]
-        [IncludeSwagger(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        public GXObject[] Objects
+        [ExcludeOpenApi(typeof(GXObject),
+            nameof(GXObject.Template),
+            nameof(GXObject.Device),
+            nameof(GXObject.Tasks), 
+            nameof(GXObject.Errors))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [ExcludeOpenApi(typeof(GXObjectParameter),
+            nameof(GXObjectParameter.Object),
+            nameof(GXObjectParameter.Module))]
+        public GXObject[]? Objects
         {
             get;
             set;
@@ -88,7 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Object identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
@@ -113,7 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the modules to retreave.
+        /// Amount of the modules to retrieve.
         /// </summary>
         [DataMember]
         public UInt64 Count
@@ -126,7 +137,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Filter can be used to filter objects.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
+        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks),
+            nameof(GXObject.Template),
+            nameof(GXObject.Errors), nameof(GXObject.Device), 
+            nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
         public GXObject? Filter
         {
             get;
@@ -227,10 +241,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Ignored object types.
         /// </summary>
-        public int[]? IgnoredObjectTypes 
-        { 
-            get; 
-            set; 
+        public int[]? IgnoredObjectTypes
+        {
+            get;
+            set;
         }
     }
 
@@ -245,8 +259,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of COSEM objects.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject[] Objects
+        [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
+        public GXObject[]? Objects
         {
             get;
             set;
@@ -271,7 +285,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed COSEM objects identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

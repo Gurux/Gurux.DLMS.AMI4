@@ -29,28 +29,29 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
 {
     /// <summary>
-    /// A data contract class representing User Group to User binding object.
+    /// A data contract class representing component view group to component view binding object.
     /// </summary>
     [DataContract(Name = "GXComponentViewGroupComponentView"), Serializable]
     [IndexCollection(true, nameof(ComponentViewGroupId), nameof(ComponentViewId), Clustered = true)]
-    public class GXComponentViewGroupComponentView : GXTableBase
+    public class GXComponentViewGroupComponentView
     {
         /// <summary>
         /// The database ID of the component view group.
         /// </summary>
         [DataMember(Name = "ComponentViewGroupId")]
-        [ForeignKey(typeof(GXComponentViewGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXComponentViewGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
         public Guid ComponentViewGroupId
         {
+            //ForeignKeyDelete is None because creator of the component view is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -75,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -92,17 +93,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         {
             get;
             set;
-        }
-
-        /// <summary>
-        /// Update creation time before update.
-        /// </summary>
-        public override void BeforeAdd()
-        {
-            if (CreationTime == DateTime.MinValue)
-            {
-                CreationTime = DateTime.Now;
-            }
         }
     }
 }

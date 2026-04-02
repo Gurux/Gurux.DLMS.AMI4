@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
@@ -45,17 +45,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Configuration information.
         /// </summary>        
-        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [ExcludeSwagger(typeof(GXConfiguration), nameof(GXConfiguration.Resources))]
-        [ExcludeSwagger(typeof(GXLocalizedResource),
-            nameof(GXLocalizedResource.Module),
-            nameof(GXLocalizedResource.Block),
-            nameof(GXLocalizedResource.Script),
-            nameof(GXLocalizedResource.Configuration),
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource),
             nameof(GXLocalizedResource.Language))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXConfiguration Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXConfiguration? Item
         {
             get;
             set;
@@ -79,7 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the configuration items to retreave.
+        /// Amount of the configuration items to retrieve.
         /// </summary>
         public int Count
         {
@@ -90,9 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter system info.
         /// </summary>
-        [ExcludeSwagger(typeof(GXConfiguration),
-            nameof(GXConfiguration.Resources),
-            nameof(GXConfiguration.Languages))]
+        [ExcludeOpenApi(typeof(GXConfiguration))]
         public GXConfiguration? Filter
         {
             get;
@@ -169,9 +160,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of configuration settings.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXConfiguration),
-            nameof(GXConfiguration.Resources),
-            nameof(GXConfiguration.Languages))]
         public GXConfiguration[]? Configurations
         {
             get;
@@ -198,13 +186,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Updated configurations.
         /// </summary>
-        [IncludeSwagger(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [ExcludeSwagger(typeof(GXConfiguration), nameof(GXConfiguration.Resources))]
-        [ExcludeSwagger(typeof(GXLocalizedResource), 
-            nameof(GXLocalizedResource.Module),
-            nameof(GXLocalizedResource.Block),
-            nameof(GXLocalizedResource.Script),
-            nameof(GXLocalizedResource.Configuration),            
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeOpenApi(typeof(GXConfiguration))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource),
             nameof(GXLocalizedResource.Language))]
         public GXConfiguration[]? Configurations
         {
@@ -235,6 +219,22 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// </summary>
     [DataContract]
     public class ConfigurationRunCronResponse
+    {
+    }
+
+    /// <summary>
+    /// Run prune reply.
+    /// </summary>
+    [DataContract]
+    public class ConfigurationRunPruneResponse
+    {
+    }
+
+    /// <summary>
+    /// Run prune.
+    /// </summary>
+    [DataContract]
+    public class ConfigurationRunPrune : IGXRequest<ConfigurationRunPruneResponse>
     {
     }
 

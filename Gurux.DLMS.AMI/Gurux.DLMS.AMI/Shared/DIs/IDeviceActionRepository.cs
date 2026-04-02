@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Device actions.</returns>
         Task<GXDeviceAction[]> ListAsync(
-            ClaimsPrincipal user,
             ListDeviceAction? request,
             ListDeviceActionResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,23 +53,22 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read device activity.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Device activity id.</param>
         /// <returns></returns>
-        Task<GXDeviceAction> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXDeviceAction> ReadAsync(
+            Guid id);
 
         /// <summary>
         /// Add device activity.
         /// </summary>
-        /// <param name="user">Current user.</param>
+        /// <param name="type">Device action type.</param>
         /// <param name="deviceActions">Added device actions.</param>
-        Task AddAsync(ClaimsPrincipal user, IEnumerable<GXDeviceAction> deviceActions);
+        Task AddAsync(string type, IEnumerable<GXDeviceAction> deviceActions);
 
         /// <summary>
         /// Clear all device activitys.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="devices">List of device Ids whoes activities are cleared.</param>
-        Task ClearAsync(ClaimsPrincipal user, IEnumerable<Guid>? devices);
+        Task ClearAsync(IEnumerable<Guid>? devices);
     }
 }

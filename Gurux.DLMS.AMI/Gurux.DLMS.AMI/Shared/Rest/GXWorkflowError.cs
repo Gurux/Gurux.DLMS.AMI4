@@ -30,9 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using Microsoft.AspNetCore.Authorization;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -44,7 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Workflow log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
         public GXWorkflowLog? Item
         {
             get;
@@ -61,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
              nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
              nameof(GXWorkflow.User),
              nameof(GXWorkflow.UserGroup),
@@ -71,7 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXWorkflow.Modules),
              nameof(GXWorkflow.WorkflowGroups),
              nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
         public GXWorkflowLog? Filter
         {
             get;
@@ -101,7 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -179,7 +181,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Workflow logs.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
+        [ExcludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Creator),
              nameof(GXWorkflow.TriggerActivity), nameof(GXWorkflow.TriggerMethod),
              nameof(GXWorkflow.User),
              nameof(GXWorkflow.UserGroup),
@@ -189,7 +191,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXWorkflow.Modules),
              nameof(GXWorkflow.WorkflowGroups),
              nameof(GXWorkflow.Logs))]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
         public GXWorkflowLog[]? Logs
         {
             get;
@@ -216,13 +218,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New workflow log(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        [ExcludeSwagger(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [ExcludeOpenApi(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
         public GXWorkflowLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>

@@ -30,7 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -45,44 +44,42 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List module errors.
         /// </summary>
         /// <returns>List of module log.</returns>
-        Task<GXModuleLog[]> ListAsync(ClaimsPrincipal User, 
-            ListModuleLogs? request, 
+        Task<GXModuleLog[]> ListAsync(
+            ListModuleLogs? request,
             ListModuleLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read module log information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Module log id.</param>
         /// <returns>Module error information.</returns>
-        Task<GXModuleLog> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXModuleLog> ReadAsync(Guid id);
 
         /// <summary>
         /// Clear module log.
         /// </summary>
-        Task ClearAsync(ClaimsPrincipal User, string[]? modules);
+        Task ClearAsync(string[]? modules);
 
         /// <summary>
         /// Add module log.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Module log type.</param>
         /// <param name="errors">New log.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXModuleLog> errors);
+        Task AddAsync(string type, IEnumerable<GXModuleLog> errors);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
-        /// <param name="User">Current user.</param>
+        /// <param name="type">Module log type.</param>
         /// <param name="module">Module.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXModuleLog> AddAsync(ClaimsPrincipal User, GXModule module, Exception ex);
+        Task<GXModuleLog> AddAsync(string type, GXModule module, Exception ex);
 
         /// <summary>
         /// Close module log(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="errors">Log items to close.</param>
-        Task CloseAsync(ClaimsPrincipal User, IEnumerable<Guid> errors);
+        Task CloseAsync(IEnumerable<Guid> errors);
     }
 }

@@ -29,9 +29,9 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
-using System;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -40,7 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// A data contract class representing User Group to block group binding object.
     /// </summary>
-    [DataContract(Name = "GXUserGroupSubtotalGroup"), Serializable]
+    [DataContract(Name = nameof(GXUserGroupSubtotalGroup)), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(SubtotalGroupId), Clustered = true)]
     public class GXUserGroupSubtotalGroup
     {
@@ -48,9 +48,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// The database ID of the user group.
         /// </summary>
         [DataMember(Name = "UserGroupID")]
-        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
         public Guid UserGroupId
         {
+            //ForeignKeyDelete is None because creator of the subtotal group is causing multiple cascade paths error in MSSQL.
             get;
             set;
         }
@@ -74,7 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("Creation time.")]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;

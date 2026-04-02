@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using Gurux.DLMS.AMI.Shared.Enums;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,15 +46,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class GetDeviceTemplateGroupResponse
     {
         /// <summary>
-        /// Device template  group information.
+        /// Device template group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id),
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id),
                 nameof(GXDeviceTemplate.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXDeviceTemplateGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public GXDeviceTemplateGroup? Item
         {
             get;
             set;
@@ -77,7 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the device template  groups to retreave.
+        /// Amount of the device template  groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -88,9 +89,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter device template groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXDeviceTemplateGroup), 
+        [ExcludeOpenApi(typeof(GXDeviceTemplateGroup), 
             nameof(GXDeviceTemplateGroup.UserGroups),
             nameof(GXDeviceTemplateGroup.DeviceTemplates))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXDeviceTemplateGroup? Filter
         {
             get;
@@ -179,10 +181,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of device template groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXDeviceTemplateGroup),
+        [ExcludeOpenApi(typeof(GXDeviceTemplateGroup),
             nameof(GXDeviceTemplateGroup.UserGroups),
             nameof(GXDeviceTemplateGroup.DeviceTemplates))]
-        public GXDeviceTemplateGroup[] DeviceTemplateGroups
+        public GXDeviceTemplateGroup[]? DeviceTemplateGroups
         {
             get;
             set;
@@ -209,9 +211,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device template group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [IncludeSwagger(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
-        public GXDeviceTemplateGroup[] DeviceTemplateGroups
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXDeviceTemplateGroup[]? DeviceTemplateGroups
         {
             get;
             set;
@@ -225,9 +228,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class AddDeviceTemplateGroupResponse
     {
         /// <summary>
-        /// New device groups.
+        /// New device template groups.
         /// </summary>
-        public GXDeviceTemplateGroup[] DeviceTemplateGroups
+        public GXDeviceTemplateGroup[]? DeviceTemplateGroups
         {
             get;
             set;
@@ -244,7 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Device template group Id(s) to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

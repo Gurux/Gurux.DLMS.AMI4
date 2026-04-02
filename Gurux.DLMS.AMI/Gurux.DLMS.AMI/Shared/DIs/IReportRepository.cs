@@ -47,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Reports.</returns>
         Task<GXReport[]> ListAsync(
-            ClaimsPrincipal user,
             ListReports? request,
             ListReportsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -55,70 +54,55 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read report.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Report id.</param>
         /// <returns></returns>
-        Task<GXReport> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXReport> ReadAsync(Guid id);
 
         /// <summary>
         /// Update report(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="reports">Updated report(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXReport> reports,
             Expression<Func<GXReport, object?>>? columns = null);
 
         /// <summary>
         /// Delete report(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="reports">Report(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
         Task DeleteAsync(
-            ClaimsPrincipal user,
             IEnumerable<Guid> reports,
             bool delete);
 
         /// <summary>
         /// Get all users that can access this report.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="reportId">Report id.</param>
         /// <returns>Users.</returns>
-        Task<List<string>> GetUsersAsync(
-            ClaimsPrincipal User,
-            Guid? reportId);
+        Task<List<string>> GetUsersAsync(Guid? reportId);
 
         /// <summary>
         /// Get all users that can access reports.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="reportIds">Report ids.</param>
         /// <returns>Users.</returns>
         Task<List<string>> GetUsersAsync(
-            ClaimsPrincipal User,
             IEnumerable<Guid>? reportIds);
 
         /// <summary>
         /// Send report(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="reports">Generated Reports.</param>
         /// <returns>Generated reports.</returns>
         Task<IEnumerable<GXReport>> SendAsync(
-            ClaimsPrincipal user,
             IEnumerable<GXReport> reports);
 
         /// <summary>
         /// Cancel report(s) sending.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="reports">Canceled reports.</param>
-        Task CancelAsync(
-            ClaimsPrincipal user,
-            IEnumerable<Guid>? reports);
+        Task CancelAsync(IEnumerable<Guid>? reports);
     }
 }

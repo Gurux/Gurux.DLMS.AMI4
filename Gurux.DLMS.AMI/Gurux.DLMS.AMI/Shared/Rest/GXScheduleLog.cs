@@ -30,11 +30,12 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using Gurux.Common;
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,8 +47,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Schedule log.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
-            , nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id)
+            , nameof(GXSchedule.Name))]
         public GXScheduleLog? Item
         {
             get;
@@ -64,6 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
         public GXScheduleLog? Filter
         {
             get;
@@ -93,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -171,6 +173,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Schedule logs.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id)
+            , nameof(GXSchedule.Name))]
         public GXScheduleLog[]? Logs
         {
             get;
@@ -201,11 +205,23 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New schedule logs.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
         public GXScheduleLog[] Logs
         {
             get;
             set;
-        }
+        } = default!;
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
@@ -251,9 +267,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Closed logs.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public Guid[] Logs
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;

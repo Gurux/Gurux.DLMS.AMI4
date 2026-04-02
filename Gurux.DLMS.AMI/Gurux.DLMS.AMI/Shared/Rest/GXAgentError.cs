@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.Enums;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
@@ -44,7 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent log information.
         /// </summary>
-        [IncludeSwagger(typeof(GXAgent),
+        [IncludeOpenApi(typeof(GXAgent),
                 nameof(GXAgent.Id),
                 nameof(GXAgent.Name))]
         public GXAgentLog? Item
@@ -63,7 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeSwagger(typeof(GXAgent),
+        [IncludeOpenApi(typeof(GXAgent),
                 nameof(GXAgent.Id),
                 nameof(GXAgent.Name))]
         public GXAgentLog? Filter
@@ -94,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the logs to retreave.
+        /// Amount of the logs to retrieve.
         /// </summary>
         public int Count
         {
@@ -171,7 +172,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Agent logs.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent),
+        [IncludeOpenApi(typeof(GXAgent),
                 nameof(GXAgent.Id),
                 nameof(GXAgent.Name))]
         public GXAgentLog[]? Logs
@@ -203,13 +204,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent log.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXAgent),
+        [IncludeOpenApi(typeof(GXAgent),
                 nameof(GXAgent.Id))]
-        public GXAgentLog[] Logs
+        public GXAgentLog[]? Logs
         {
             get;
             set;
         }
+
+        /// <summary>
+        /// Log type.
+        /// </summary>
+        [DataMember]
+        [Description("Log type.")]
+        public string Type
+        {
+            get;
+            set;
+        } = default!;
     }
 
     /// <summary>
@@ -255,9 +267,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Closed logs.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Logs
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        public Guid[]? Logs
         {
             get;
             set;

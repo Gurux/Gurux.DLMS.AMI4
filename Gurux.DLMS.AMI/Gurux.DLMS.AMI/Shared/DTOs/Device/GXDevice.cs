@@ -29,7 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common.Db;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
@@ -115,6 +116,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         }
 
         /// <summary>
+        /// Url alias.
+        /// </summary>
+        [Ignore]
+        public string? UrlAlias
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// The system title of the meter.
         /// </summary>
         [StringLength(16)]
@@ -177,12 +188,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [IsRequired]
         public GXUser? Creator
         {
+            //ForeignKeyDelete is None because Template will handle the deletion.
             get;
             set;
         }
 
         /// <summary>
-        /// Device identifier.
+        /// Device template identifier.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
@@ -250,7 +262,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
+        public DateTimeOffset? CreationTime
         {
             get;
             set;
@@ -316,6 +328,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Detected
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Holds metadata about the client connection, including the remote IP address and other optional 
+        /// network-related details associated with the current request.
+        /// </summary>
+        [DataMember]
+        [Description("Holds metadata about the client connection, including the remote IP address and other optional network-related details associated with the current request.")]
+        [Filter(FilterType.Contains)]
+        [DefaultValue(null)]
+        [StringLength(64)]
+        public string? ConnectionInfo
         {
             get;
             set;
@@ -622,7 +649,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         public override void BeforeAdd()
         {
-            if (CreationTime == DateTime.MinValue)
+            if (CreationTime == null)
             {
                 CreationTime = DateTime.Now;
             }

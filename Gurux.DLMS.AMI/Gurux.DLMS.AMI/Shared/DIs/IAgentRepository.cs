@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -48,7 +47,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Agents.</returns>
         Task<GXAgent[]> ListAsync(
-            ClaimsPrincipal User,
             ListAgents? request,
             ListAgentsResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -56,68 +54,60 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Read agent.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Agent id.</param>
         /// <returns></returns>
-        Task<GXAgent> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXAgent> ReadAsync(Guid id);
 
         /// <summary>
         /// Update agent(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agents">Updated agent(s).</param>
         /// <param name="columns">Updated column(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User,
             IEnumerable<GXAgent> agents,
             Expression<Func<GXAgent, object?>>? columns = null);
 
         /// <summary>
         /// Delete agent(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agents">Agent(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> agents, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> agents, bool delete);
 
         /// <summary>
         /// Get all users that can access this agent.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agentId">Agent id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, Guid? agentId);
+        Task<List<string>> GetUsersAsync(Guid? agentId);
 
         /// <summary>
         /// Get all users that can access agents.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agentIds">Agent ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<Guid>? agentIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds);
 
         /// <summary>
         /// Agent updates the status.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agentId">Agent ID.</param>
+        /// <param name="connectionInfo">Connection info e.g. IP address.</param>
         /// <param name="status">Agent status</param>
         /// <param name="data">Optional data. List of available serial ports.</param>
-        Task UpdateStatusAsync(ClaimsPrincipal User, Guid agentId, AgentStatus status, string? data);
+        Task UpdateStatusAsync(Guid agentId, string? connectionInfo, AgentStatus status, string? data);
 
         /// <summary>
         /// Upgrade agent version.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="agents">Upgraded agents.</param>
-        Task UpgradeAsync(ClaimsPrincipal User, IEnumerable<GXAgent> agents);
+        Task UpgradeAsync(IEnumerable<GXAgent> agents);
 
         /// <summary>
         /// List agent installers.
         /// </summary>
         /// <returns>Agent installers.</returns>
         Task<GXAgent[]> ListInstallersAsync(
-            ClaimsPrincipal User,
             ListAgentInstallers? request,
             bool includeRemoved,
             ListAgentInstallersResponse? response);
@@ -125,11 +115,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Clear agents' cache.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="Ids">Agent IDs.</param>
         /// <param name="names">Cache names to clear</param>
-        Task ClearCache(
-            ClaimsPrincipal User,
-            Guid[]? Ids, string[] names);
+        Task ClearCache(Guid[]? Ids, string[] names);
     }
 }

@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Performances.</returns>
         Task<GXPerformance[]> ListAsync(
-            ClaimsPrincipal user,
             ListPerformances? request,
             ListPerformancesResponse? response = null,
             CancellationToken cancellationToken = default);
@@ -54,22 +53,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Add new performances.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="performances">Added performances.</param>
-        Task<Guid[]> AddAsync(ClaimsPrincipal user, IEnumerable<GXPerformance> performances);
+        Task<Guid[]> AddAsync(IEnumerable<GXPerformance> performances);
 
         /// <summary>
         /// Delete performance(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="performances">Performance(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> performances);
+        Task DeleteAsync(IEnumerable<Guid> performances);
 
         /// <summary>
         /// Clear performances.
         /// </summary>
-        /// <param name="user">Current user.</param>
-        Task ClearAsync(ClaimsPrincipal user);
+        Task ClearAsync();
 
         /// <summary>
         /// Snapshot values.

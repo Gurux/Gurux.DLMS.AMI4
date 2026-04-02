@@ -29,12 +29,15 @@
 // This code is licensed under the GNU General Public License v2. 
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,10 +49,46 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// User settings information.
         /// </summary>
-        [IncludeSwagger(typeof(GXUser), nameof(GXUser.Id)
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
-        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]        
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]        
         public GXUserSetting? Item
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Update user settings.
+    /// </summary>
+    [DataContract]
+    public class UpdateUserSettings : IGXRequest<UpdateUserSettingsResponse>
+    {
+        /// <summary>
+        /// User settings to add.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXUserSetting[]? Settings
+        {
+            get;
+            set;
+        }
+    }
+
+    /// <summary>
+    /// Update user settings.
+    /// </summary>
+    [DataContract]
+    public class UpdateUserSettingsResponse
+    {
+        /// <summary>
+        /// New user settings identifiers.
+        /// </summary>
+        [DataMember]
+        public Guid[]? Ids
         {
             get;
             set;
@@ -73,7 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the user settings to retreave.
+        /// Amount of the user settings to retrieve.
         /// </summary>
         public int Count
         {
@@ -84,7 +123,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter user settings.
         /// </summary>
-        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]        
         public GXValue? Filter
         {
             get;
@@ -161,7 +201,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of user settings items.
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXUserSetting[] Settings
         {
             get;

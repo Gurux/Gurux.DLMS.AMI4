@@ -29,12 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,10 +47,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Manufacturer group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.Id),
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id),
                 nameof(GXManufacturer.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXManufacturerGroup? Item
         {
             get;
@@ -74,7 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the manufacturer groups to retreave.
+        /// Amount of the manufacturer groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -85,8 +88,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter manufacturer groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Manufacturers),
+        [ExcludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Manufacturers),
             nameof(GXManufacturerGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXManufacturerGroup? Filter
         {
             get;
@@ -175,8 +179,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of manufacturer groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Manufacturers),
+        [ExcludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Manufacturers),
             nameof(GXManufacturerGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXManufacturerGroup[]? ManufacturerGroups
         {
             get;
@@ -204,10 +209,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New manufacturer group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [ExcludeSwagger(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.CreationTime), nameof(GXManufacturerGroup.Updated))]
-        public GXManufacturerGroup[] ManufacturerGroups
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXManufacturerGroup), 
+            nameof(GXManufacturerGroup.CreationTime), 
+            nameof(GXManufacturerGroup.Updated))]
+        public GXManufacturerGroup[]? ManufacturerGroups
         {
             get;
             set;
@@ -240,7 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Manufacturer group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

@@ -29,11 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,10 +46,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Report group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXReport), nameof(GXReport.Id),
+        [IncludeOpenApi(typeof(GXReport), nameof(GXReport.Id),
                 nameof(GXReport.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXReportGroup? Item
         {
             get;
@@ -73,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the report groups to retreave.
+        /// Amount of the report groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -84,8 +87,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter report groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Reports),
+        [ExcludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Reports),
             nameof(GXReportGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXReportGroup? Filter
         {
             get;
@@ -174,9 +178,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of report groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXReportGroup), nameof(GXReportGroup.Reports),
+        [ExcludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Reports),
             nameof(GXReportGroup.UserGroups))]
-        [ExcludeSwagger(typeof(GXReportGroup))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
         public GXReportGroup[]? ReportGroups
         {
             get;
@@ -204,11 +209,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New report group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXReport), nameof(GXReport.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [ExcludeSwagger(typeof(GXReportGroup),
+        [IncludeOpenApi(typeof(GXReport), nameof(GXReport.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [ExcludeOpenApi(typeof(GXReportGroup),
             nameof(GXReportGroup.CreationTime),
             nameof(GXReportGroup.Updated))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXReportGroup[]? ReportGroups
         {
             get;
@@ -242,7 +248,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Report group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

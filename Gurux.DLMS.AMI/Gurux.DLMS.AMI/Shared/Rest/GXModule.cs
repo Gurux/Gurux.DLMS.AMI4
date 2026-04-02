@@ -29,12 +29,17 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel;
+using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -46,17 +51,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Module information.
         /// </summary>        
-        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
             nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
-            nameof(GXModule.Creator), nameof(GXModule.Resources),
-            nameof(GXModule.Languages))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXModule Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+            nameof(GXModule.Creator))]
+        public GXModule? Item
         {
             get;
             set;
@@ -74,11 +76,30 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Added modules.
         /// </summary>
         [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.Logs)
+            , nameof(GXModule.ObjectParameters), nameof(GXModule.DeviceParameters)
+            , nameof(GXModule.AttributeParameters))]
+        [IncludeOpenApi(typeof(GXModuleAssembly), nameof(GXModuleAssembly.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXModuleVersion), nameof(GXModuleVersion.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXAttributeParameter), nameof(GXAttributeParameter.Module))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+
         public GXModule[] Modules
         {
             get;
             set;
-        }
+        } = default!;
 
         /// <summary>
         /// Is restart required.
@@ -99,14 +120,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class InstallModule
     {
         /// <summary>
-        /// Module to update.
+        /// Installed module.
         /// </summary>
         [DataMember]
-        public GXModule? Module
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXModule Module
         {
             get;
             set;
-        }
+        } = default!;
     }
 
     /// <summary>
@@ -137,11 +159,29 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Module to update.
         /// </summary>
         [DataMember]
-        public GXModule? Module
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.Logs)
+            , nameof(GXModule.ObjectParameters), nameof(GXModule.DeviceParameters)
+            , nameof(GXModule.AttributeParameters))]
+        [IncludeOpenApi(typeof(GXModuleAssembly), nameof(GXModuleAssembly.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXModuleVersion), nameof(GXModuleVersion.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Module))]
+        [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.Module))]
+        [ExcludeOpenApi(typeof(GXAttributeParameter), nameof(GXAttributeParameter.Module))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        public GXModule Module
         {
             get;
             set;
-        }
+        } = default!;
     }
 
     /// <summary>
@@ -170,14 +210,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter modules.
         /// </summary>
-        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
             nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
-            nameof(GXModule.Creator), nameof(GXModule.Resources),
-            nameof(GXModule.Languages))]
+            nameof(GXModule.Creator))]
         public GXModule? Filter
         {
             get;
@@ -206,7 +245,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the modules to retreave.
+        /// Amount of the modules to retrieve.
         /// </summary>
         public int Count
         {
@@ -285,14 +324,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Installed modules.")]
-        [ExcludeSwagger(typeof(GXModule), nameof(GXModule.UserGroups),
+        [ExcludeOpenApi(typeof(GXModule), nameof(GXModule.UserGroups),
             nameof(GXModule.ModuleGroups), nameof(GXModule.Logs),
             nameof(GXModule.Versions), nameof(GXModule.Scripts),
             nameof(GXModule.Assemblies), nameof(GXModule.DeviceParameters),
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
-            nameof(GXModule.Creator), nameof(GXModule.Resources),
-            nameof(GXModule.Languages))]
+            nameof(GXModule.Creator))]
         public GXModule[]? Modules
         {
             get;
@@ -322,13 +360,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed modules.
         /// </summary>
         [DataMember]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         public string[] Modules
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             get;
             set;
-        }
+        } = default!;
     }
 
     /// <summary>
@@ -342,40 +378,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         public bool Restart
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Get module configuration UI.
-    /// </summary>
-    [DataContract]
-    public class ModuleConfigurationUI : IGXRequest<ModuleConfigurationUIResponse>
-    {
-        /// <summary>
-        /// Module name.
-        /// </summary>
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string Name
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
-    }
-
-    /// <summary>
-    /// Get module configuration UI response.
-    /// </summary>
-    [DataContract]
-    public class ModuleConfigurationUIResponse
-    {
-        /// <summary>
-        /// UI module and dependencies.
-        /// </summary>
-        public string[]? Modules
         {
             get;
             set;

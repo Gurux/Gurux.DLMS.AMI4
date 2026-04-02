@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,44 +46,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>User groups.</returns>
         Task<GXWorkflowGroup[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListWorkflowGroups? request, 
+            ListWorkflowGroups? request,
             ListWorkflowGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read workflow group information.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Workflow group id.</param>
         /// <returns></returns>
-        Task<GXWorkflowGroup> ReadAsync(ClaimsPrincipal User, Guid id);
+        Task<GXWorkflowGroup> ReadAsync(Guid id);
 
         /// <summary>
         /// Update workflow groups.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Updated workflow groups.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal User, 
             IEnumerable<GXWorkflowGroup> groups,
             Expression<Func<GXWorkflowGroup, object?>>? columns = null);
 
         /// <summary>
         /// Delete workflow group(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="groups">Workflow groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> groups, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
 
         /// <summary>
         /// Returns workflow groups list where workflow belongs.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="workflowId">Workflow ID</param>
         /// <returns>List of workflow groups.</returns>
-        Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(ClaimsPrincipal User, Guid workflowId);
+        Task<List<GXWorkflowGroup>> GetJoinedWorkflowGroups(Guid workflowId);
     }
 }

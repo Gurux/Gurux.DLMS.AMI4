@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -48,8 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Modules.</returns>
         Task<GXModule[]> ListAsync(
-            ClaimsPrincipal User, 
-            ListModules? request, 
+            ListModules? request,
             ListModulesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -57,63 +55,55 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List modules.
         /// </summary>
         /// <returns>Modules.</returns>
-        Task<GXModule[]> ListWithVersionsAsync(ClaimsPrincipal User);
+        Task<GXModule[]> ListWithVersionsAsync();
 
         /// <summary>
         /// Read module.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="id">Module id.</param>
         /// <returns></returns>
-        Task<GXModule> ReadAsync(ClaimsPrincipal User, string id);
+        Task<GXModule> ReadAsync(string id);
 
         /// <summary>
         /// Update module.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="module">Updated module.</param>
         /// <param name="columns">Updated columns(s).</param>
         Task UpdateAsync(
-            ClaimsPrincipal user, 
             GXModule module,
             Expression<Func<GXModule, object?>>? columns = null);
 
         /// <summary>
         /// Add new module.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="modules">Added modules.</param>
-        Task AddAsync(ClaimsPrincipal User, IEnumerable<GXModule> modules);
+        Task AddAsync(IEnumerable<GXModule> modules);
 
         /// <summary>
         /// Delete module(s).
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="modules">Module(s) to delete.</param>
-        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<string> modules);
+        Task DeleteAsync(IEnumerable<string> modules);
 
         /// <summary>
         /// Get all users that can access this module.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="moduleId">Module id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, string? moduleId);
+        Task<List<string>> GetUsersAsync(string? moduleId);
 
         /// <summary>
         /// Get all users that can access modules.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="moduleIds">Module ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal User, IEnumerable<string>? moduleIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<string>? moduleIds);
 
         /// <summary>
         /// Get all scripts that belong for the given module.
         /// </summary>
-        /// <param name="User">Current user.</param>
         /// <param name="moduleId">Module id.</param>
         /// <returns></returns>
-        Task<List<GXScript>> GetScriptsAsync(ClaimsPrincipal User, string? moduleId);
+        Task<List<GXScript>> GetScriptsAsync(string? moduleId);
     }
 }

@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -47,59 +46,51 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <returns>Blocks.</returns>
         Task<GXBlock[]> ListAsync(
-            ClaimsPrincipal user, 
-            ListBlocks? request, 
+            ListBlocks? request,
             ListBlocksResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read block.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="id">Block id.</param>
         /// <returns></returns>
-        Task<GXBlock> ReadAsync(ClaimsPrincipal user, Guid id);
+        Task<GXBlock> ReadAsync(Guid id);
 
         /// <summary>
         /// Update block(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blocks">Updated block(s).</param>
         /// <param name="columns">Updated columns(s).</param>
         Task<Guid[]> UpdateAsync(
-            ClaimsPrincipal user, 
             IEnumerable<GXBlock> blocks,
             Expression<Func<GXBlock, object?>>? columns = null);
 
         /// <summary>
         /// Delete block(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blocks">Block(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> blocks, bool delete);
+        Task DeleteAsync(IEnumerable<Guid> blocks, bool delete);
 
         /// <summary>
         /// Close block(s).
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blocks">Blocks to close.</param>
-        Task CloseAsync(ClaimsPrincipal user, IEnumerable<Guid> blocks);
+        Task CloseAsync(IEnumerable<Guid>? blocks);
 
         /// <summary>
         /// Get all users that can access this block.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blockId">Block id.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, Guid? blockId);
+        Task<List<string>> GetUsersAsync(Guid? blockId);
 
         /// <summary>
         /// Get all users that can access blocks.
         /// </summary>
-        /// <param name="user">Current user.</param>
         /// <param name="blockIds">Block ids.</param>
         /// <returns></returns>
-        Task<List<string>> GetUsersAsync(ClaimsPrincipal user, IEnumerable<Guid>? blockIds);
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds);
     }
 }

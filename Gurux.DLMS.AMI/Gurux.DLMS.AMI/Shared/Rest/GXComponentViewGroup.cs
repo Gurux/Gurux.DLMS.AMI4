@@ -29,13 +29,14 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
+using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,15 +46,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class GetComponentViewGroupResponse
     {
         /// <summary>
-        /// Block group information.
+        /// Component view group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id),
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id),
                 nameof(GXComponentView.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXComponentViewGroup Item
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]
+        public GXComponentViewGroup? Item
         {
             get;
             set;
@@ -77,7 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the component view groups to retreave.
+        /// Amount of the component view groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -91,8 +92,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter block groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
+        [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXComponentViewGroup? Filter
         {
             get;
@@ -181,8 +183,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of component view groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
+        [ExcludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
+                nameof(GXUser.UserName))]        
         public GXComponentViewGroup[]? ComponentViewGroups
         {
             get;
@@ -210,9 +214,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New component view group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXComponentView), nameof(GXComponentView.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        public GXComponentViewGroup[] ComponentViewGroups
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXComponentViewGroup[]? ComponentViewGroups
         {
             get;
             set;
@@ -245,7 +250,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// ComponentView group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;

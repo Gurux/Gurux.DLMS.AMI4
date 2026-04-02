@@ -29,11 +29,13 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.Common;
-using System.Runtime.Serialization;
-using System.ComponentModel.DataAnnotations;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
 {
@@ -45,10 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Subtotal group information.
         /// </summary>
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id),
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id),
                 nameof(GXSubtotal.Name))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id),
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id),
                 nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXSubtotalGroup? Item
         {
             get;
@@ -73,7 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         }
 
         /// <summary>
-        /// Amount of the subtotal groups to retreave.
+        /// Amount of the subtotal groups to retrieve.
         /// </summary>
         public int Count
         {
@@ -84,8 +87,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter subtotal groups.
         /// </summary>
-        [ExcludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Subtotals),
+        [ExcludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Subtotals),
             nameof(GXSubtotalGroup.UserGroups))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXSubtotalGroup? Filter
         {
             get;
@@ -174,9 +178,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of subtotal groups.
         /// </summary>
         [DataMember]
-        [ExcludeSwagger(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Subtotals),
+        [ExcludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Subtotals),
             nameof(GXSubtotalGroup.UserGroups))]
-        [ExcludeSwagger(typeof(GXSubtotalGroup))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         public GXSubtotalGroup[]? SubtotalGroups
         {
             get;
@@ -204,11 +208,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New subtotal group(s).
         /// </summary>
         [DataMember]
-        [IncludeSwagger(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
-        [IncludeSwagger(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        [ExcludeSwagger(typeof(GXSubtotalGroup),
+        [IncludeOpenApi(typeof(GXSubtotal), nameof(GXSubtotal.Id))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
+        [ExcludeOpenApi(typeof(GXSubtotalGroup),
             nameof(GXSubtotalGroup.CreationTime),
             nameof(GXSubtotalGroup.Updated))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         public GXSubtotalGroup[]? SubtotalGroups
         {
             get;
@@ -242,7 +247,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Subtotal group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
+        public Guid[]? Ids
         {
             get;
             set;
