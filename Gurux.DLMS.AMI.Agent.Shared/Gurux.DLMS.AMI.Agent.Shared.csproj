@@ -1,13 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
    <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Company>Gurux Ltd</Company>
     <Authors>Gurux Ltd</Authors>
-    <Copyright>Copyright (c) 1998-2024 Gurux Ltd. All rights reserved.</Copyright>
+    <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
     <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
     <Description>Gurux.DLMS.AMI.Agent.Shared implements agent support for Gurux DLMS AMI v4.</Description>
     <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
@@ -28,11 +28,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2404.502" />
+    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2604.201" />
   </ItemGroup>
 
 </Project>

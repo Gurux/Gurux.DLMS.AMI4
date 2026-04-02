@@ -75,7 +75,6 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <summary>
         /// Reader settings.
         /// </summary>
-        [JsonIgnore]
         public ReaderSettings? ReaderSettings
         {
             get;
@@ -85,7 +84,6 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <summary>
         /// Listener settings. Agent waits server to connect for the listener.
         /// </summary>
-        [JsonIgnore]
         public ListenerSettings? ListenerSettings
         {
             get;
@@ -95,8 +93,16 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <summary>
         /// Notify settings. Agent waits notify, event or push messages to this port.
         /// </summary>
-        [JsonIgnore]
         public NotifySettings? NotifySettings
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Gateway settings. Agent waits gateway connections.
+        /// </summary>
+        public GatewaySettings? GatewaySettings
         {
             get;
             set;

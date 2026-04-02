@@ -45,9 +45,11 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <param name="services">Services.</param>
         /// <param name="options">Agent options.</param>
         /// <param name="newVersion">New version is released.</param>
-        void Init(IServiceCollection services, 
-            AgentOptions options, 
-            AutoResetEvent newVersion);
+        /// <param name="updated">Agent settings are changed.</param>
+        void Init(IServiceCollection services,
+            AgentOptions options,
+            AutoResetEvent newVersion,
+            AutoResetEvent updated);
 
         /// <summary>
         /// Add new agent.
