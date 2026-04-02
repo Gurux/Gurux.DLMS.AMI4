@@ -1,0 +1,469 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Client.Pages.Agent
+@using System.Text.Json
+@using System.Text.Encodings.Web;
+@using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+
+@attribute [Authorize(Roles = "Admin, AgentManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_agentValidator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Name" />
+                    <ValidationMessage For="@(() => Active.Name)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.TraceLevel</label>
+                    <GXInputDropdown class="form-select"
+                                         Id="Agent.TraceLevel"
+                                         LastValue="@(action == CrudAction.Create)"
+                                         @bind-Value="Active.TraceLevel">
+                    </GXInputDropdown>
+                    <ValidationMessage For="@(() => Active.TraceLevel)" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Version</label>
+                    @if (string.IsNullOrEmpty(Active.Version))
+                    {
+                        <input class="form-control" type="text" readonly="readonly" value="@Properties.Resources.CustomBuild" />
+                    }
+                    else
+                    {
+                        <input class="form-control" type="text" readonly="readonly" value="@Active.Version" />
+                    }
+                </div>
+                @if (!string.IsNullOrEmpty(Active.SerialPorts))
+                {
+                    <div class="form-group">
+                        <label style="margin:auto">@Properties.Resources.SerialPort</label>
+                        <select class="form-select" @bind="@Active.SerialPort">
+                            @foreach (string it in GetSerialPorts())
+                            {
+                                <option value="@it">@it</option>
+                            }
+                        </select>
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+    <TabControl>
+        <TabTextTemplate>
+            <Image Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <TabPage Text="Reader" Icon="Reader">
+                <ReaderOptions Settings="@ReaderSettings"
+                               @ref="_readerOptions"
+                               @bind-SerialPort="@Active.SerialPort"></ReaderOptions>
+            </TabPage>
+            <TabPage Text="Push events" Icon="Notification">
+                <NotifyOptions Settings="@NotificationSettings"
+                               Scripts="@scripts"
+                               @ref="_notificationOptions"
+                               @bind-SerialPort="@Active.SerialPort"></NotifyOptions>
+            </TabPage>
+            <TabPage Text="Auto connect" Icon="AutoConnect">
+                <AutoConnectOptions Settings="@ListenerSettings"
+                                    Scripts="@scripts"
+                                    @ref="_autoConnectOptions"
+                                    @bind-SerialPort="@Active.SerialPort"></AutoConnectOptions>
+            </TabPage>
+            <TabPage Text="Gateway" Icon="Gateway">
+                <GatewayOptions Settings="@GatewaySettings"
+                                Scripts="@scripts"
+                                @ref="_gatewayOptions" />
+            </TabPage>
+        </ChildContent>
+    </TabControl>
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <ConnectionInformation Detected="@Active.Detected" ConnectionInfo="@Active.ConnectionInfo"></ConnectionInformation>
+                <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="Active.CreationTime"
+                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                @if (action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    private AgentTab? Parent { get; set; }
+
+    private GXAgent? _active;
+
+    private GXAgent? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    private List<string> GetSerialPorts()
+    {
+        List<string> list = new();
+        if (!string.IsNullOrEmpty(Active?.SerialPorts))
+        {
+            list.Add("");
+            list.AddRange(Active.SerialPorts.Split(";"));
+        }
+        return list;
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool DeleteTarget;
+    public string? IsDeleting
+    {
+        get
+        {
+            if (action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+    private GXValidator? _agentValidator;
+    /// <summary>
+    /// Validate the agent content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null && string.IsNullOrEmpty(Active.Name))
+        {
+            sender.AddError(() => Active.Name, "Invalid name.");
+        }
+        _readerOptions?.Validate(sender);
+        _notificationOptions?.Validate(sender);
+        _autoConnectOptions?.Validate(sender);
+        _gatewayOptions?.Validate(sender);
+    }
+
+    ReaderSettings? ReaderSettings { get; set; }
+    NotifySettings? NotificationSettings { get; set; }
+    ListenerSettings? ListenerSettings { get; set; }
+    GatewaySettings? GatewaySettings { get; set; }
+
+    ReaderOptions? _readerOptions;
+    NotifyOptions? _notificationOptions;
+    AutoConnectOptions? _autoConnectOptions;
+    GatewayOptions? _gatewayOptions;
+
+    //Available scripts.
+    private GXScript[]? scripts;
+
+    private List<GXScript> Scripts = new();
+
+    /// <summary>
+    /// Update agent settings after they are read from the server.
+    /// </summary>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Active?.ReaderSettings))
+        {
+            ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
+                (Active.ReaderSettings);
+        }
+        if (!string.IsNullOrEmpty(Active?.NotifySettings))
+        {
+            NotificationSettings = JsonSerializer.Deserialize<NotifySettings>
+                (Active.NotifySettings);
+        }
+        if (!string.IsNullOrEmpty(Active?.ListenerSettings))
+        {
+            ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
+                (Active.ListenerSettings);
+        }
+        if (!string.IsNullOrEmpty(Active?.GatewaySettings))
+        {
+            GatewaySettings = JsonSerializer.Deserialize<GatewaySettings>
+                (Active.GatewaySettings);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get agent data.
+                var tmp = (await Http.GetAsJsonAsync<GetAgentResponse>
+                    (string.Format("api/Agent?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Remove,
+                    Icon = "Remove",
+                    OnClick = EventCallback.Factory.Create(this, OnSave)
+                });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem(
+                    Properties.Resources.Save,
+                    "Save",
+                    EventCallback.Factory.Create(this, OnSave)
+                ));
+            }
+            Notifier.AddMenuItem(new GXMenuItem(
+                Properties.Resources.Cancel,
+                "Cancel",
+                EventCallback.Factory.Create(this, OnCancel)
+            ));
+            Notifier.UpdateButtons();
+            ListScripts req = new ListScripts();
+            var ret = await Http.PostAsJson<ListScriptsResponse>
+                ("api/Script/List", req);
+            scripts = ret.Scripts;
+
+            if (!string.IsNullOrEmpty(Active?.ReaderSettings))
+            {
+                ReaderSettings = JsonSerializer.Deserialize<ReaderSettings>
+                    (Active.ReaderSettings);
+            }
+            else
+            {
+                ReaderSettings = new ReaderSettings();
+            }
+            if (!string.IsNullOrEmpty(Active?.NotifySettings))
+            {
+                NotificationSettings = JsonSerializer.Deserialize<NotifySettings>
+                    (Active.NotifySettings);
+            }
+            else
+            {
+                NotificationSettings = new NotifySettings();
+            }
+            if (!string.IsNullOrEmpty(Active?.ListenerSettings))
+            {
+                ListenerSettings = JsonSerializer.Deserialize<ListenerSettings>
+                    (Active.ListenerSettings);
+            }
+            else
+            {
+                ListenerSettings = new ListenerSettings();
+            }
+            if (!string.IsNullOrEmpty(Active?.GatewaySettings))
+            {
+                GatewaySettings = JsonSerializer.Deserialize<GatewaySettings>
+                    (Active.GatewaySettings);
+            }
+            else
+            {
+                GatewaySettings = new GatewaySettings();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save agent.
+    ///</summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            _agentValidator?.ClearErrors();
+            if (_agentValidator?.Validate() == false)
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveAgentResponse>
+                    ("api/Agent/Delete", new RemoveAgent()
+                    {
+                        Ids = new Guid[] { Active.Id },
+                        Delete = DeleteTarget
+                    });
+            }
+            else
+            {
+                //This is needed to serialize special chars.
+                var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+                };
+                Active.ReaderSettings = JsonSerializer.Serialize(ReaderSettings, options);
+                Active.NotifySettings = JsonSerializer.Serialize(NotificationSettings, options);
+                Active.ListenerSettings = JsonSerializer.Serialize(ListenerSettings, options);
+                if (GatewaySettings != null)
+                {
+                    GatewaySettings.MediaSettings = GatewaySettings.MediaSettings?.Trim();
+                }
+                Active.GatewaySettings = JsonSerializer.Serialize(GatewaySettings, options);
+
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/Agent/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/Agent/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateAgentResponse>
+                    (address, new UpdateAgent()
+                    {
+                        Agents = new GXAgent[] { Active }
+                    }
+                    );
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

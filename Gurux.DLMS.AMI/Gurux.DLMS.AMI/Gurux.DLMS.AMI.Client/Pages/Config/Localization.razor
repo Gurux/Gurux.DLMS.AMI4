@@ -1,0 +1,412 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Accordion
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject IGXResourceStorage ResourceStorage
+
+@implements IDisposable
+
+@if (Active?.Language != null)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Cancel"
+            OkButtonTitle="@Properties.Resources.Ok"
+            OnOk="Save">
+        <EditForm Model="@Active">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator" OnValidate="OnValidate" />
+            <label>@Properties.Resources.Language</label>
+            <label class="form-control">@GetLanguage(Active)</label>
+            <CopyLabel Value="@Active.Value">@Properties.Resources.Text</CopyLabel>
+            <InputText id="description" @bind-Value="Active.Value" class="form-control" />
+        </EditForm>
+    </Dialog>
+}
+
+<GXTable @ref="table"
+         Context="item"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Single"
+         ShowAllUsers="false"
+         ShowRemoved="false"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <Search2 id="localization-search-value"
+                     Immediate="true"
+                     LastValue="true"
+                     @bind-Value="filter.Value"
+                     OnValueChanged="@(async (e) => await Updated())" />
+        </th>
+        <Fh Id="localization-creationTime-field" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="localization-creationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <Fh Id="localization-updated-field" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="localization-updated"
+                                @bind-Value="@filter.Updated"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <Fh Id="localization-status" Visibility="Visibility.Medium">
+            <EnumTypeSelector Type="@TargetType.LocalizedResource"
+                              @bind-Value="@filter.Status"
+                              OnSelected="@((int? e) => Updated())">
+            </EnumTypeSelector>
+        </Fh>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
+            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="Value" Target="@item">@Properties.Resources.Value</Th>
+        <Th Name="CreationTime" Target="@item">@Properties.Resources.CreationTime</Th>
+        <Th Name="Updated" Target="@item">@Properties.Resources.Updated</Th>
+        <Th Name="Status" Target="@item">@Properties.Resources.Status</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>
+            @if (LocalizedTexts.ContainsKey(item.Hash) && LocalizedTexts[item.Hash].Any())
+            {
+                <Accordion Id="content-type-authoring">
+                    <HeaderTemplate>
+                        <div>
+                            <LinkButton Target="@item" OnClick="@Edit" Text="@item.Value" /><br />
+                        </div>
+                    </HeaderTemplate>
+                    <ChildContent>
+                        @foreach (var it in LocalizedTexts[item.Hash])
+                        {
+                            <div class="form-group">
+                                <label>@GetLanguage(it)</label>
+                                <LinkButton Target="@it" OnClick="@Edit" Text="@it.Value" /><br />
+                            </div>
+                        }
+                    </ChildContent>
+                </Accordion>
+            }
+            else
+            {
+                <LinkButton Target="@item" OnClick="@Edit" Text="@item.Value" />
+            }
+        </td>
+        <td>@item.CreationTime</td>
+        <td>@item.Updated</td>
+        <td>@(ResourceStorage.GetEnumType(TargetType.LocalizedResource, item.Status))</td>
+    </ItemContent>
+</GXTable>
+<br />
+
+@code {
+    [Parameter]
+    public List<GXLanguage> AvailableLanguages { get; set; } = new List<GXLanguage>();
+    private readonly Dictionary<string?, List<GXLocalizedResource>> LocalizedTexts = new();
+    internal GXLanguage[]? Installedlanguages = null;
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Selected resource ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    CrudAction Action;
+    GXLocalizedResource? Active;
+
+    /// <summary>
+    /// Amount of the resources shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Resource filter.
+    /// </summary>
+    private GXLocalizedResource filter = new GXLocalizedResource()
+    {
+    };
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXLocalizedResource>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private string? GetLanguage(GXLocalizedResource value)
+    {
+        var lang = AvailableLanguages.Where(w => w.Id == value.Language?.Id).SingleOrDefault();
+        if (lang != null)
+        {
+            return lang.NativeName + " (" + lang.EnglishName + ")";
+        }
+        return value.Language?.Id;
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXLocalizedResource>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            //Get enum types.
+            await ResourceStorage.RefreshEnumTypesAsync(TargetType.LocalizedResource);
+            ListLocalizedResources req = new ListLocalizedResources()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = new GXLocalizedResource(),
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+            };
+            var lang = AvailableLanguages.Where(w => w.Active == true && w.Default == true).SingleOrDefault();
+            req.Filter.Language = new() { Id = lang.Id };
+            req.Filter.Value = filter.Value;
+            req.Filter.Status = filter.Status;
+            if (filter.CreationTime != null && filter.CreationTime != DateTimeOffset.MinValue)
+            {
+                req.Filter.CreationTime = filter.CreationTime;
+            }
+            if (filter.Updated != null && filter.Updated != DateTimeOffset.MinValue)
+            {
+                req.Filter.Updated = filter.Updated;
+            }
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            //Get localized texts.
+            req.Select = [TargetType.Language];
+            var ret = await Http.PostAsJson<ListLocalizedResourcesResponse>("api/LocalizedResource/List", req, request.CancellationToken);
+            if (ret.LocalizedResources != null)
+            {
+                LocalizedTexts.Clear();
+                List<GXLocalizedResource> tmp = new();
+                //Group texts by language.
+                foreach (var it in ret.LocalizedResources)
+                {
+                    if (LocalizedTexts.ContainsKey(it.Hash))
+                    {
+                        //Localized language.
+                        LocalizedTexts[it.Hash].Add(it);
+                    }
+                    else
+                    {
+                        //Default language.
+                        LocalizedTexts[it.Hash] = new();
+                        tmp.Add(it);
+                    }
+                }
+                return new ItemsProviderResult<GXLocalizedResource>(tmp, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Edit localized resource.
+    /// </summary>
+
+    private void Edit(GXLocalizedResource value)
+    {
+        Action = CrudAction.Update;
+        Active = value;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Value))
+            {
+                sender.AddError(() => Active.Value, "Invalid text.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Edit image.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Edit(table.Active);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save icon.
+    ///</summary>
+    public async Task Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            if (Active == null)
+            {
+                return;
+            }
+            UpdateLocalizedResource req = new UpdateLocalizedResource()
+            {
+                LocalizedResources = [Active]
+            };
+            Active = null;
+            await Http.PostAsJson<UpdateLocalizedResourceResponse>("api/LocalizedResource/Update", req);
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Hide icon dlg.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

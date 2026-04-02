@@ -1,0 +1,1534 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About" xml:space="preserve">
+    <value>Om</value>
+  </data>
+  <data name="AboutInfo" xml:space="preserve">
+    <value>För information om Gurux produkter se:</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>Om Gurux.DLMS.AMI</value>
+  </data>
+  <data name="AccessFailed" xml:space="preserve">
+    <value>Åtkomsten misslyckades</value>
+  </data>
+  <data name="Action" xml:space="preserve">
+    <value>Handling</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Åtgärder</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Aktiv</value>
+  </data>
+  <data name="ActiveDeviceErrors" xml:space="preserve">
+    <value>Fel på aktiva enheter</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Addera</value>
+  </data>
+  <data name="AdministratorSettings" xml:space="preserve">
+    <value>Inställningar för administratör</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="AgentLogs" xml:space="preserve">
+    <value>Agentloggar</value>
+  </data>
+  <data name="AgentGroups" xml:space="preserve">
+    <value>Handläggare grupper</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agenter</value>
+  </data>
+  <data name="AmiForum" xml:space="preserve">
+    <value>Gurux.DLMS.AMI-forumet.</value>
+  </data>
+  <data name="AMiQuestions" xml:space="preserve">
+    <value>Om du har frågor eller problem kan du ställa dem på</value>
+  </data>
+  <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
+    <value>Är du säker på att du vill rensa bort fel?</value>
+  </data>
+  <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
+    <value>Är du säker på att du vill ta bort markerade objekt?</value>
+  </data>
+  <data name="BlockGroups" xml:space="preserve">
+    <value>Blockera grupper</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="Body" xml:space="preserve">
+    <value>Kropp</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annullera</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Klar</value>
+  </data>
+  <data name="Closable" xml:space="preserve">
+    <value>Förslutbara</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Stänga</value>
+  </data>
+  <data name="Closed" xml:space="preserve">
+    <value>Stängd</value>
+  </data>
+  <data name="CloseTime" xml:space="preserve">
+    <value>Stängd</value>
+  </data>
+  <data name="CompletedTime" xml:space="preserve">
+    <value>Fullbordad</value>
+  </data>
+  <data name="Component" xml:space="preserve">
+    <value>Komponent</value>
+  </data>
+  <data name="ComponentView" xml:space="preserve">
+    <value>Komponent</value>
+  </data>
+  <data name="ComponentViewGroup" xml:space="preserve">
+    <value>Komponentgrupp</value>
+  </data>
+  <data name="ComponentViewGroups" xml:space="preserve">
+    <value>Komponentgrupper</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Komponenter</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Konfiguration</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Kopia</value>
+  </data>
+  <data name="Copyright" xml:space="preserve">
+    <value>Upphovsrätt</value>
+  </data>
+  <data name="CopyrightAllRightsReserved" xml:space="preserve">
+    <value>Alla rättigheter förbehållna.</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Tid för skapande</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>Data</value>
+  </data>
+  <data name="DefaultGroup" xml:space="preserve">
+    <value>Standardgrupp</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Beskrivning</value>
+  </data>
+  <data name="Detected" xml:space="preserve">
+    <value>Upptäckt</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Apparat</value>
+  </data>
+  <data name="DeviceActions" xml:space="preserve">
+    <value>Åtgärder på enheten</value>
+  </data>
+  <data name="DeviceErrors" xml:space="preserve">
+    <value>Fel på enheten</value>
+  </data>
+  <data name="DeviceGroups" xml:space="preserve">
+    <value>Enhetsgrupper</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Enheter</value>
+  </data>
+  <data name="DevicesTitle" xml:space="preserve">
+    <value>Enheter</value>
+  </data>
+  <data name="DeviceTemplateGroups" xml:space="preserve">
+    <value>Grupper av enhetsmall</value>
+  </data>
+  <data name="DeviceTemplates" xml:space="preserve">
+    <value>Mallar för enheter</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Redigera</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-post</value>
+  </data>
+  <data name="EmailConfirmed" xml:space="preserve">
+    <value>E-post bekräftad</value>
+  </data>
+  <data name="EndTime" xml:space="preserve">
+    <value>Sluttid</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Fel</value>
+  </data>
+  <data name="Errors" xml:space="preserve">
+    <value>Fel</value>
+  </data>
+  <data name="ErrorSeverityLevel" xml:space="preserve">
+    <value>Allvarlighetsgrad för fel</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Förfallodagen</value>
+  </data>
+  <data name="GeneralInformation" xml:space="preserve">
+    <value>Allmän information</value>
+  </data>
+  <data name="Generation" xml:space="preserve">
+    <value>Generation</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Förnamn</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Hej</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Hem</value>
+  </data>
+  <data name="HostName" xml:space="preserve">
+    <value>Värdnamn</value>
+  </data>
+  <data name="Installed" xml:space="preserve">
+    <value>Installerad</value>
+  </data>
+  <data name="InvalidHttpAddress" xml:space="preserve">
+    <value>Tyvärr, det finns inget på den här adressen.</value>
+  </data>
+  <data name="LastExecutionTime" xml:space="preserve">
+    <value>Senaste körningstid</value>
+  </data>
+  <data name="LastLogin" xml:space="preserve">
+    <value>Senaste inloggning</value>
+  </data>
+  <data name="Level" xml:space="preserve">
+    <value>Nivå</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Lastning</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Plats</value>
+  </data>
+  <data name="LocationOrder" xml:space="preserve">
+    <value>Ordning på plats</value>
+  </data>
+  <data name="Logging" xml:space="preserve">
+    <value>Skogsavverkning</value>
+  </data>
+  <data name="LogicalName" xml:space="preserve">
+    <value>Logiskt namn</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Logga in</value>
+  </data>
+  <data name="LogOut" xml:space="preserve">
+    <value>Logga ut</value>
+  </data>
+  <data name="Method" xml:space="preserve">
+    <value>Metod</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Modul</value>
+  </data>
+  <data name="ModuleLogs" xml:space="preserve">
+    <value>Modul loggar</value>
+  </data>
+  <data name="ModuleGroups" xml:space="preserve">
+    <value>Modul grupper</value>
+  </data>
+  <data name="ModulesTitle" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Namn</value>
+  </data>
+  <data name="NoItemIsSelected" xml:space="preserve">
+    <value>Inget objekt är markerat.</value>
+  </data>
+  <data name="NotAuthorized" xml:space="preserve">
+    <value>Du har inte behörighet att komma åt den här resursen.</value>
+  </data>
+  <data name="Objects" xml:space="preserve">
+    <value>Objekt</value>
+  </data>
+  <data name="ObjectTemplates" xml:space="preserve">
+    <value>Mallar för objekt</value>
+  </data>
+  <data name="ObjectType" xml:space="preserve">
+    <value>Typ av objekt</value>
+  </data>
+  <data name="Options" xml:space="preserve">
+    <value>Alternativ</value>
+  </data>
+  <data name="PageSelectionPath" xml:space="preserve">
+    <value>Sökväg för sidmarkering</value>
+  </data>
+  <data name="Parameters" xml:space="preserve">
+    <value>Parametrar</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Token för personlig åtkomst</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Hamn</value>
+  </data>
+  <data name="Protocol" xml:space="preserve">
+    <value>Protokoll</value>
+  </data>
+  <data name="Publish" xml:space="preserve">
+    <value>Publicera</value>
+  </data>
+  <data name="Read" xml:space="preserve">
+    <value>Läsa</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Redo</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Svalka</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registrera dig</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Avlägsna</value>
+  </data>
+  <data name="Reply" xml:space="preserve">
+    <value>Svar</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Nollställa</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Resultat</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roller</value>
+  </data>
+  <data name="Run" xml:space="preserve">
+    <value>Springa</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Spara</value>
+  </data>
+  <data name="SaveConfigurationText" xml:space="preserve">
+    <value>Spara konfiguration</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Schema</value>
+  </data>
+  <data name="ScheduleLogs" xml:space="preserve">
+    <value>Schema logg</value>
+  </data>
+  <data name="ScheduleExecutionTime" xml:space="preserve">
+    <value>Schemalägg körningstid</value>
+  </data>
+  <data name="ScheduleGroups" xml:space="preserve">
+    <value>Schemalägg grupper</value>
+  </data>
+  <data name="ScheduleName" xml:space="preserve">
+    <value>Namn på schema</value>
+  </data>
+  <data name="SchedulesTitle" xml:space="preserve">
+    <value>Scheman</value>
+  </data>
+  <data name="Script" xml:space="preserve">
+    <value>Manus</value>
+  </data>
+  <data name="ScriptLogs" xml:space="preserve">
+    <value>Skript loggar</value>
+  </data>
+  <data name="ScriptGroups" xml:space="preserve">
+    <value>Skriptgrupper</value>
+  </data>
+  <data name="ScriptMethods" xml:space="preserve">
+    <value>Skript metoder</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Skript</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Söka</value>
+  </data>
+  <data name="ServerSide" xml:space="preserve">
+    <value>Kör på servern</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Konfiguration</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>Visa</value>
+  </data>
+  <data name="SiteInformation" xml:space="preserve">
+    <value>Information om webbplatsen</value>
+  </data>
+  <data name="StartTime" xml:space="preserve">
+    <value>Starttid</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Efternamn</value>
+  </data>
+  <data name="SystemLogs" xml:space="preserve">
+    <value>Systemlogg</value>
+  </data>
+  <data name="SystemSettings" xml:space="preserve">
+    <value>Systeminställningar</value>
+  </data>
+  <data name="Target" xml:space="preserve">
+    <value>Mål</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Uppgifter</value>
+  </data>
+  <data name="TaskType" xml:space="preserve">
+    <value>Typ av uppgift</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Titel</value>
+  </data>
+  <data name="TokensTitle" xml:space="preserve">
+    <value>Token</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Trigger" xml:space="preserve">
+    <value>Utlösa</value>
+  </data>
+  <data name="TriggerGroups" xml:space="preserve">
+    <value>Utlösargrupper</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Utlösare</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Typ</value>
+  </data>
+  <data name="Updated" xml:space="preserve">
+    <value>Uppdaterad</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Användare</value>
+  </data>
+  <data name="UserActions" xml:space="preserve">
+    <value>Åtgärder för användare</value>
+  </data>
+  <data name="UserErrors" xml:space="preserve">
+    <value>Fel från användare</value>
+  </data>
+  <data name="UserGroupsTitle" xml:space="preserve">
+    <value>Användargrupper</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Hantering av användare</value>
+  </data>
+  <data name="UsersTitle" xml:space="preserve">
+    <value>Användare</value>
+  </data>
+  <data name="Variables" xml:space="preserve">
+    <value>Variabler</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="WelcomeText" xml:space="preserve">
+    <value>Välkommen att använda Gurux.DLMS.AMI.</value>
+  </data>
+  <data name="Workflow" xml:space="preserve">
+    <value>Arbetsflöde</value>
+  </data>
+  <data name="WorkflowLogs" xml:space="preserve">
+    <value>Loggar för arbetsflöde</value>
+  </data>
+  <data name="WorkflowGroups" xml:space="preserve">
+    <value>Arbetsflödesgrupper</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Arbetsflöden</value>
+  </data>
+  <data name="Write" xml:space="preserve">
+    <value>Skriva</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>Ogiltigt ID.</value>
+  </data>
+  <data name="Threads" xml:space="preserve">
+    <value>Trådar</value>
+  </data>
+  <data name="ListenerPort" xml:space="preserve">
+    <value>Port för lyssnare</value>
+  </data>
+  <data name="NotificationPort" xml:space="preserve">
+    <value>Port för anmälan</value>
+  </data>
+  <data name="CustomBuild" xml:space="preserve">
+    <value>Anpassad version</value>
+  </data>
+  <data name="Network" xml:space="preserve">
+    <value>Nätverk</value>
+  </data>
+  <data name="RESTStatistic" xml:space="preserve">
+    <value>REST-statistik</value>
+  </data>
+  <data name="ExecutionTime" xml:space="preserve">
+    <value>Tid för utförande</value>
+  </data>
+  <data name="Install" xml:space="preserve">
+    <value>Installera</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Uppdatera</value>
+  </data>
+  <data name="AvailableVersion" xml:space="preserve">
+    <value>Tillgänglig version</value>
+  </data>
+  <data name="ConfirmUpdate" xml:space="preserve">
+    <value>Bekräfta uppdatering</value>
+  </data>
+  <data name="Manage" xml:space="preserve">
+    <value>Förvalta</value>
+  </data>
+  <data name="UpdateVersion" xml:space="preserve">
+    <value>Uppdatering</value>
+  </data>
+  <data name="TaskWaitTime" xml:space="preserve">
+    <value>Väntetid för uppgift</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Starta</value>
+  </data>
+  <data name="Readers" xml:space="preserve">
+    <value>Läsare</value>
+  </data>
+  <data name="ReadersTitle" xml:space="preserve">
+    <value>Läsare</value>
+  </data>
+  <data name="AliveTime" xml:space="preserve">
+    <value>Levande tid</value>
+  </data>
+  <data name="TraceLevels" xml:space="preserve">
+    <value>Spårnivåer</value>
+  </data>
+  <data name="ClientAddress" xml:space="preserve">
+    <value>Kundens adress</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>Serverns adress</value>
+  </data>
+  <data name="UseLogicalNameReferencing" xml:space="preserve">
+    <value>Använd referens till logiska namn</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Lösenord</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Säkerhet</value>
+  </data>
+  <data name="InvocationCounter" xml:space="preserve">
+    <value>Räknare för anrop</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Systemets titel</value>
+  </data>
+  <data name="BlockCipherKey" xml:space="preserve">
+    <value>Blockera chiffernyckel</value>
+  </data>
+  <data name="AuthenticationKey" xml:space="preserve">
+    <value>Nyckel för autentisering</value>
+  </data>
+  <data name="ExpirationTime" xml:space="preserve">
+    <value>Utgångstid</value>
+  </data>
+  <data name="Traces" xml:space="preserve">
+    <value>Spår</value>
+  </data>
+  <data name="DeviceTraces" xml:space="preserve">
+    <value>Spår av enhet</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Loggar</value>
+  </data>
+  <data name="DownloadAgent" xml:space="preserve">
+    <value>Ladda ned agenten</value>
+  </data>
+  <data name="GenerateAccessToken" xml:space="preserve">
+    <value>Generera åtkomsttoken</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Varning – Se till att du kopierar ovanstående token nu. Den lagras inte och du kommer inte att kunna se den igen.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>Du har lagt till en ny personlig åtkomsttoken. Kopiera token nu!</value>
+  </data>
+  <data name="ShowRemoved" xml:space="preserve">
+    <value>Visa borttagna mål</value>
+  </data>
+  <data name="FilterByName" xml:space="preserve">
+    <value>Filtrera efter namn...</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Språk</value>
+  </data>
+  <data name="Refreshed" xml:space="preserve">
+    <value>Uppdateras</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Räddad</value>
+  </data>
+  <data name="Path" xml:space="preserve">
+    <value>Stig</value>
+  </data>
+  <data name="MaintenanceModeEnds" xml:space="preserve">
+    <value>Underhållsläget förväntas sluta kl.</value>
+  </data>
+  <data name="Removed" xml:space="preserve">
+    <value>Avlägsnad</value>
+  </data>
+  <data name="Never" xml:space="preserve">
+    <value>Aldrig</value>
+  </data>
+  <data name="InvalidNotifier" xml:space="preserve">
+    <value>Anmälaren är ogiltig.</value>
+  </data>
+  <data name="InvalidTarget" xml:space="preserve">
+    <value>Ogiltigt mål.</value>
+  </data>
+  <data name="DefaultRole" xml:space="preserve">
+    <value>Standardroll</value>
+  </data>
+  <data name="ShowClosedErrors" xml:space="preserve">
+    <value>Visa stängda fel</value>
+  </data>
+  <data name="Task" xml:space="preserve">
+    <value>Uppgift</value>
+  </data>
+  <data name="Attributes" xml:space="preserve">
+    <value>Attribut</value>
+  </data>
+  <data name="Values" xml:space="preserve">
+    <value>Värden</value>
+  </data>
+  <data name="EnableSwagger" xml:space="preserve">
+    <value>Aktivera Swagger</value>
+  </data>
+  <data name="Restart" xml:space="preserve">
+    <value>Starta om</value>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>Meddelande</value>
+  </data>
+  <data name="StackTrace" xml:space="preserve">
+    <value>Stackspårning</value>
+  </data>
+  <data name="Capture" xml:space="preserve">
+    <value>Fånga</value>
+  </data>
+  <data name="UpgradeableModules" xml:space="preserve">
+    <value>Uppgraderingsbara moduler</value>
+  </data>
+  <data name="AgentTokenCreateSucceeded" xml:space="preserve">
+    <value>Du har lagt till en ny åtkomsttoken för agenten. Kopiera token nu!</value>
+  </data>
+  <data name="LastRead" xml:space="preserve">
+    <value>Senast lästa</value>
+  </data>
+  <data name="LastWrite" xml:space="preserve">
+    <value>Senaste skrivning</value>
+  </data>
+  <data name="LastAction" xml:space="preserve">
+    <value>Sista åtgärd</value>
+  </data>
+  <data name="LastError" xml:space="preserve">
+    <value>Senaste fel</value>
+  </data>
+  <data name="FilterByObjectType" xml:space="preserve">
+    <value>Filtrera efter objekttyp...</value>
+  </data>
+  <data name="FilterByLogicalName" xml:space="preserve">
+    <value>Filtrera efter logiskt namn...</value>
+  </data>
+  <data name="TargetDisableQuestion" xml:space="preserve">
+    <value>Inaktivera målet och avpublicera dess innehåll.</value>
+  </data>
+  <data name="TargetDeleteQuestion" xml:space="preserve">
+    <value>Ta bort målet och dess innehåll.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
+    <value>Är du säker på att du vill rensa uppgifter?</value>
+  </data>
+  <data name="ConfirmDataClear" xml:space="preserve">
+    <value>Bekräfta att data är klara</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
+    <value>Är du säker på att du vill stänga fel?</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
+    <value>Är du säker på att du vill stänga valda objekt?</value>
+  </data>
+  <data name="AgentUpdates" xml:space="preserve">
+    <value>Är du säker på att du vill uppdatera agenterna?\r\nAlla jobb som körs kommer att slutföras innan denna åtgärd påbörjas. Alla köade jobb fördröjs tills uppdateringen är klar.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
+    <value>Är du säker på att du vill rensa loggen?</value>
+  </data>
+  <data name="ShowDataForAllUsers" xml:space="preserve">
+    <value>Visa data för alla användare.</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Grupp Schema</value>
+  </data>
+  <data name="WorkflowGroup" xml:space="preserve">
+    <value>Grupp för arbetsflöde</value>
+  </data>
+  <data name="UserGroup" xml:space="preserve">
+    <value>Användargrupp</value>
+  </data>
+  <data name="ModuleGroup" xml:space="preserve">
+    <value>Grupp av moduler</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Grupp för enhetsmall</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Grupp för enhet</value>
+  </data>
+  <data name="BlockGroup" xml:space="preserve">
+    <value>Blockera grupper</value>
+  </data>
+  <data name="Block" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Grupp av handläggare</value>
+  </data>
+  <data name="TriggerGroup" xml:space="preserve">
+    <value>Grupp av utlösare</value>
+  </data>
+  <data name="ThisActionCannotBeUndone" xml:space="preserve">
+    <value>Det går inte att ångra den här åtgärden.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Enhetsmall</value>
+  </data>
+  <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
+    <value>Antal rader som visas i vyn</value>
+  </data>
+  <data name="ShowFilter" xml:space="preserve">
+    <value>Visa filter</value>
+  </data>
+  <data name="ShowTotal" xml:space="preserve">
+    <value>Visa totalt antal</value>
+  </data>
+  <data name="ShowMenu" xml:space="preserve">
+    <value>Visa menyn</value>
+  </data>
+  <data name="SerialPort" xml:space="preserve">
+    <value>Serieport</value>
+  </data>
+  <data name="ManufacturerGroups" xml:space="preserve">
+    <value>Grupper av tillverkare</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Tillverkare</value>
+  </data>
+  <data name="Manufacturer" xml:space="preserve">
+    <value>Tillverkare</value>
+  </data>
+  <data name="ManufacturerGroup" xml:space="preserve">
+    <value>Grupp av tillverkare</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Favoriter</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Favorit</value>
+  </data>
+  <data name="Versions" xml:space="preserve">
+    <value>Versioner</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Modeller</value>
+  </data>
+  <data name="Model" xml:space="preserve">
+    <value>Modell</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Okänd</value>
+  </data>
+  <data name="InterfaceType" xml:space="preserve">
+    <value>Typ av gränssnitt</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Autentisering</value>
+  </data>
+  <data name="LastChecked" xml:space="preserve">
+    <value>Senast kontrollerad: för {0} sedan.</value>
+  </data>
+  <data name="CheckManually" xml:space="preserve">
+    <value>Kontrollera manuellt</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>Dagar</value>
+  </data>
+  <data name="Hours" xml:space="preserve">
+    <value>Timmar</value>
+  </data>
+  <data name="Minutes" xml:space="preserve">
+    <value>protokoll</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>Sekunder</value>
+  </data>
+  <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
+    <value>Är du säker på att du vill installera valda objekt?</value>
+  </data>
+  <data name="Media" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="WaitTime" xml:space="preserve">
+    <value>Väntetid</value>
+  </data>
+  <data name="Generic" xml:space="preserve">
+    <value>Allmän</value>
+  </data>
+  <data name="Custom" xml:space="preserve">
+    <value>Sed</value>
+  </data>
+  <data name="Baudrate" xml:space="preserve">
+    <value>Överföringshastighet</value>
+  </data>
+  <data name="DataBits" xml:space="preserve">
+    <value>Databitar</value>
+  </data>
+  <data name="Parity" xml:space="preserve">
+    <value>Paritet</value>
+  </data>
+  <data name="StopBits" xml:space="preserve">
+    <value>StopBits (på engelska)</value>
+  </data>
+  <data name="SerialNumber" xml:space="preserve">
+    <value>Serienummer</value>
+  </data>
+  <data name="InstallMetersVerify" xml:space="preserve">
+    <value>Är du säker på att du vill installera stöd för följande mätare?</value>
+  </data>
+  <data name="InstallVersions" xml:space="preserve">
+    <value>Alla {0} versioner.</value>
+  </data>
+  <data name="InstallAllSettings" xml:space="preserve">
+    <value>Alla {0} {1} inställningar.</value>
+  </data>
+  <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
+    <value>{0}Tillverkare {1} eller {2}enhetsmallar{3} måste läggas till innan enheter kan läggas till.</value>
+  </data>
+  <data name="ModuleNeedsRestart" xml:space="preserve">
+    <value>Servern måste startas om för att tillämpa moduländringarna. Vill du starta om servern nu?</value>
+  </data>
+  <data name="ConfirmRestart" xml:space="preserve">
+    <value>Bekräfta omstart</value>
+  </data>
+  <data name="FilterByUser" xml:space="preserve">
+    <value>Filtrera efter användare...</value>
+  </data>
+  <data name="KeyManagementGroups" xml:space="preserve">
+    <value>Viktiga ledningsgrupper</value>
+  </data>
+  <data name="KeyManagements" xml:space="preserve">
+    <value>Viktiga ledningar</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Hantering av nycklar</value>
+  </data>
+  <data name="KeyManagementGroup" xml:space="preserve">
+    <value>Grupp för nyckelhantering</value>
+  </data>
+  <data name="KeyManagementLogs" xml:space="preserve">
+    <value>Loggar för nyckelhantering</value>
+  </data>
+  <data name="SystemTitle" xml:space="preserve">
+    <value>Systemets titel</value>
+  </data>
+  <data name="KeyManagementKeys" xml:space="preserve">
+    <value>Nycklar</value>
+  </data>
+  <data name="KeyManagementKey" xml:space="preserve">
+    <value>Nyckel</value>
+  </data>
+  <data name="KeyManagementLLSPassword" xml:space="preserve">
+    <value>Lösenord för låg säkerhet</value>
+  </data>
+  <data name="KeyManagementPublicKey" xml:space="preserve">
+    <value>Offentlig nyckel</value>
+  </data>
+  <data name="KeyManagementPrivateKey" xml:space="preserve">
+    <value>Privat nyckel</value>
+  </data>
+  <data name="KeyManagementHLSPassword" xml:space="preserve">
+    <value>Lösenord med hög säkerhet</value>
+  </data>
+  <data name="KeyManagementAuthenticationKey" xml:space="preserve">
+    <value>Nyckel för autentisering</value>
+  </data>
+  <data name="KeyManagementBroadcast" xml:space="preserve">
+    <value>Sändningsnyckel</value>
+  </data>
+  <data name="KeyManagementUnicastKey" xml:space="preserve">
+    <value>Unicast-nyckel</value>
+  </data>
+  <data name="KeyManagementKeyType" xml:space="preserve">
+    <value>Typ av nyckel</value>
+  </data>
+  <data name="InvalidKey" xml:space="preserve">
+    <value>Ogiltigt lösenord eller ogiltig nyckel.</value>
+  </data>
+  <data name="Hex" xml:space="preserve">
+    <value>Hex</value>
+  </data>
+  <data name="KeyManagementMasterKey" xml:space="preserve">
+    <value>Huvudnyckel</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="DeviceSystemTitle" xml:space="preserve">
+    <value>Titel på enhetssystem</value>
+  </data>
+  <data name="ClientSystemTitle" xml:space="preserve">
+    <value>Titel på klientsystem</value>
+  </data>
+  <data name="InvalidSystemTitle" xml:space="preserve">
+    <value>Ogiltig systemtitel.</value>
+  </data>
+  <data name="InvalidBlockCipherKey" xml:space="preserve">
+    <value>Ogiltig blockchiffernyckel.</value>
+  </data>
+  <data name="InvalidAuthenticationKey" xml:space="preserve">
+    <value>Ogiltig autentiseringsnyckel.</value>
+  </data>
+  <data name="PreEstablishedConnection" xml:space="preserve">
+    <value>Företablerad anslutning</value>
+  </data>
+  <data name="RowsPerPage" xml:space="preserve">
+    <value>Rader per sida</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Webbplatsens e-postadress</value>
+  </data>
+  <data name="RegenerateAgentTokens" xml:space="preserve">
+    <value>Är du säker på att du vill uppdatera agenternas tokens?</value>
+  </data>
+  <data name="Regenerate" xml:space="preserve">
+    <value>Regenerera</value>
+  </data>
+  <data name="Rebuild" xml:space="preserve">
+    <value>Återuppbygga</value>
+  </data>
+  <data name="ScriptRebuildWarning" xml:space="preserve">
+    <value>Skript behöver återskapas innan de kan användas. Detta kan ta lång tid.</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Frånkoppling</value>
+  </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Återkoppla</value>
+  </data>
+  <data name="Dynamic" xml:space="preserve">
+    <value>Mätaren upprättar anslutningen</value>
+  </data>
+  <data name="IdentifyWaitTime" xml:space="preserve">
+    <value>Identifiera väntetid</value>
+  </data>
+  <data name="LogicalDeviceName" xml:space="preserve">
+    <value>Namn på logisk enhet</value>
+  </data>
+  <data name="LogicalAddress" xml:space="preserve">
+    <value>Logisk adress</value>
+  </data>
+  <data name="PhysicalAddress" xml:space="preserve">
+    <value>Fysisk adress</value>
+  </data>
+  <data name="ConnectionUpTime" xml:space="preserve">
+    <value>Anslutningstid</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Värde</value>
+  </data>
+  <data name="FilterByDevice" xml:space="preserve">
+    <value>Filtrera efter enhetsnamn...</value>
+  </data>
+  <data name="FilterByDeviceType" xml:space="preserve">
+    <value>Filtrera efter enhetstyp...</value>
+  </data>
+  <data name="FilterByObject" xml:space="preserve">
+    <value>Filtrera efter objekt...</value>
+  </data>
+  <data name="RemoveAll" xml:space="preserve">
+    <value>Ta bort alla</value>
+  </data>
+  <data name="AddAll" xml:space="preserve">
+    <value>Lägg till alla</value>
+  </data>
+  <data name="FilterByAttributeIndex" xml:space="preserve">
+    <value>Filtrera efter attributindex...</value>
+  </data>
+  <data name="Gateways" xml:space="preserve">
+    <value>Gateways</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="GatewayGroups" xml:space="preserve">
+    <value>Gateway-grupper</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Grupp för gateway</value>
+  </data>
+  <data name="GatewayLogs" xml:space="preserve">
+    <value>Gateway-loggar</value>
+  </data>
+  <data name="Identifier" xml:space="preserve">
+    <value>Identifierare</value>
+  </data>
+  <data name="GatewayIdentificationScript" xml:space="preserve">
+    <value>Skript för gateway-identifiering</value>
+  </data>
+  <data name="AutoConnectIdentificationScript" xml:space="preserve">
+    <value>Identifieringsskript för automatisk anslutning.</value>
+  </data>
+  <data name="DefaultDeviceTemplate" xml:space="preserve">
+    <value>Standardmall för enhet</value>
+  </data>
+  <data name="Nothing" xml:space="preserve">
+    <value>Ingenting</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Kontrollera</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Aktivera</value>
+  </data>
+  <data name="Transfer" xml:space="preserve">
+    <value>Överföra</value>
+  </data>
+  <data name="FirmwareFile" xml:space="preserve">
+    <value>Fil för fast programvara</value>
+  </data>
+  <data name="Identification" xml:space="preserve">
+    <value>Identifikation:</value>
+  </data>
+  <data name="InvalidIdentification" xml:space="preserve">
+    <value>Ogiltig identifiering.</value>
+  </data>
+  <data name="InvalidFirmware" xml:space="preserve">
+    <value>Ogiltig firmware.</value>
+  </data>
+  <data name="Scaler" xml:space="preserve">
+    <value>Skalning</value>
+  </data>
+  <data name="Unit" xml:space="preserve">
+    <value>Enhet</value>
+  </data>
+  <data name="DataType" xml:space="preserve">
+    <value>Datatyp</value>
+  </data>
+  <data name="UIDataType" xml:space="preserve">
+    <value>Datatyp för användargränssnitt</value>
+  </data>
+  <data name="Index" xml:space="preserve">
+    <value>Index</value>
+  </data>
+  <data name="ToolTipReadValue" xml:space="preserve">
+    <value>Läs värde</value>
+  </data>
+  <data name="ToolTipReadValues" xml:space="preserve">
+    <value>Läsa värden</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Föreställning</value>
+  </data>
+  <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
+    <value>Är du säker på att du vill rensa prestandaräknare?</value>
+  </data>
+  <data name="Extension" xml:space="preserve">
+    <value>Förlängning</value>
+  </data>
+  <data name="Extensions" xml:space="preserve">
+    <value>Tillägg</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Rapporter</value>
+  </data>
+  <data name="Report" xml:space="preserve">
+    <value>Rapport</value>
+  </data>
+  <data name="ReportGroups" xml:space="preserve">
+    <value>Anmäl grupper</value>
+  </data>
+  <data name="ReportGroup" xml:space="preserve">
+    <value>Grupp för anmälan</value>
+  </data>
+  <data name="Interval" xml:space="preserve">
+    <value>Intervall</value>
+  </data>
+  <data name="Calculated" xml:space="preserve">
+    <value>Beräknad</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>Alla</value>
+  </data>
+  <data name="Calculate" xml:space="preserve">
+    <value>Beräkna</value>
+  </data>
+  <data name="Operation" xml:space="preserve">
+    <value>Operation</value>
+  </data>
+  <data name="ReportLogs" xml:space="preserve">
+    <value>Rapportloggar</value>
+  </data>
+  <data name="Fill" xml:space="preserve">
+    <value>Fyll i tomt värde med nollvärde</value>
+  </data>
+  <data name="Push" xml:space="preserve">
+    <value>Trycka</value>
+  </data>
+  <data name="AttributeIndex" xml:space="preserve">
+    <value>Attribut index</value>
+  </data>
+  <data name="DataIndex" xml:space="preserve">
+    <value>Index för data</value>
+  </data>
+  <data name="FilterByCreationTime" xml:space="preserve">
+    <value>Filtrera efter skapandetid...</value>
+  </data>
+  <data name="TraceLevel" xml:space="preserve">
+    <value>Spårnivå</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Ta bort</value>
+  </data>
+  <data name="Clone" xml:space="preserve">
+    <value>Klon</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destination</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Delsumma</value>
+  </data>
+  <data name="SubtotalGroups" xml:space="preserve">
+    <value>Grupper med delsummor</value>
+  </data>
+  <data name="SubtotalLogs" xml:space="preserve">
+    <value>Loggar för delsumma</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Delsummor</value>
+  </data>
+  <data name="SubtotalGroup" xml:space="preserve">
+    <value>Grupp med delsumma</value>
+  </data>
+  <data name="LastDevelivery" xml:space="preserve">
+    <value>Senaste utveckling</value>
+  </data>
+  <data name="NextDevelivery" xml:space="preserve">
+    <value>Nästa utveckling</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Sända</value>
+  </data>
+  <data name="Compression" xml:space="preserve">
+    <value>Komprimering</value>
+  </data>
+  <data name="Delivery" xml:space="preserve">
+    <value>Leverans</value>
+  </data>
+  <data name="ContentGroup" xml:space="preserve">
+    <value>Grupp för innehåll</value>
+  </data>
+  <data name="ContentGroups" xml:space="preserve">
+    <value>Innehållsgrupper</value>
+  </data>
+  <data name="Content" xml:space="preserve">
+    <value>Innehåll</value>
+  </data>
+  <data name="Contents" xml:space="preserve">
+    <value>Innehåll</value>
+  </data>
+  <data name="MenuGroups" xml:space="preserve">
+    <value>Meny grupper</value>
+  </data>
+  <data name="MenuDescription" xml:space="preserve">
+    <value>Hantera menyer och menylänkar.</value>
+  </data>
+  <data name="Menu" xml:space="preserve">
+    <value>Meny</value>
+  </data>
+  <data name="Menus" xml:space="preserve">
+    <value>Menyer</value>
+  </data>
+  <data name="MenuGroup" xml:space="preserve">
+    <value>Meny grupp</value>
+  </data>
+  <data name="Links" xml:space="preserve">
+    <value>Länkar</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Länk</value>
+  </data>
+  <data name="ContentTypeGroups" xml:space="preserve">
+    <value>Grupper av innehållstyp</value>
+  </data>
+  <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Grupper av innehållstyp</value>
+  </data>
+  <data name="ContentType" xml:space="preserve">
+    <value>Typ av innehåll</value>
+  </data>
+  <data name="ContentTypes" xml:space="preserve">
+    <value>Typer av innehåll</value>
+  </data>
+  <data name="Fields" xml:space="preserve">
+    <value>Fält</value>
+  </data>
+  <data name="NotificationGroups" xml:space="preserve">
+    <value>Grupper av anmälningar</value>
+  </data>
+  <data name="Notification" xml:space="preserve">
+    <value>Anmälan</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Meddelanden</value>
+  </data>
+  <data name="NotificationLogs" xml:space="preserve">
+    <value>Logg över meddelanden</value>
+  </data>
+  <data name="NotificationGroup" xml:space="preserve">
+    <value>Grupp för anmälan</value>
+  </data>
+  <data name="Required" xml:space="preserve">
+    <value>Krävs</value>
+  </data>
+  <data name="Enumeration" xml:space="preserve">
+    <value>Uppräkning</value>
+  </data>
+  <data name="PruneDescription" xml:space="preserve">
+    <value>Beskärning tar bort oanvända mål baserat på kriterier som tid.</value>
+  </data>
+  <data name="Creator" xml:space="preserve">
+    <value>Skapare</value>
+  </data>
+  <data name="Visibility" xml:space="preserve">
+    <value>Synlighet</value>
+  </data>
+  <data name="AvailableLanguages" xml:space="preserve">
+    <value>Tillgängliga språk</value>
+  </data>
+  <data name="SupportedLanguages" xml:space="preserve">
+    <value>Språk som stöds</value>
+  </data>
+  <data name="Minimum" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="Maximum" xml:space="preserve">
+    <value>Maximal</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>Ok</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="Execute" xml:space="preserve">
+    <value>Utföra</value>
+  </data>
+  <data name="AuthoringInformation" xml:space="preserve">
+    <value>Information om redigering</value>
+  </data>
+  <data name="Immediately" xml:space="preserve">
+    <value>Omedelbart offentlig</value>
+  </data>
+  <data name="Unique" xml:space="preserve">
+    <value>Unik</value>
+  </data>
+  <data name="AuthoringInformationFormat" xml:space="preserve">
+    <value>Av {0} på {1}</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Administratör</value>
+  </data>
+  <data name="UserAction" xml:space="preserve">
+    <value>Åtgärder för användare</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Icons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Theme" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Icon" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Color" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Text" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="IconPack" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="IpAddress" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="FilterByIpAddress" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Invite" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Blocked" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="ConnectionInformationFormat" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Localize" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="EnglishName" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="NativeName" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="SiteIsInMaintenanceMode" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="MaintenanceModeDescription" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="BootstrapIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="MaterialIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="FontawesomeIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Announcements" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Announcement" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="UploadFile" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="UploadModule" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Settings" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Utseende</value>
+  </data>
+  <data name="Appearances" xml:space="preserve">
+    <value>Framträdanden</value>
+  </data>
+  <data name="Icons" xml:space="preserve">
+    <value>Ikoner</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="Icon" xml:space="preserve">
+    <value>Ikon</value>
+  </data>
+  <data name="Color" xml:space="preserve">
+    <value>Färg</value>
+  </data>
+  <data name="Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="IconPack" xml:space="preserve">
+    <value>Ikonpaket</value>
+  </data>
+  <data name="IpAddress" xml:space="preserve">
+    <value>IP-adress</value>
+  </data>
+  <data name="FilterByIpAddress" xml:space="preserve">
+    <value>Filtrera efter IP-adress...</value>
+  </data>
+  <data name="Invite" xml:space="preserve">
+    <value>Bjuda</value>
+  </data>
+  <data name="Blocked" xml:space="preserve">
+    <value>Blockerad</value>
+  </data>
+  <data name="ConnectionInformationFormat" xml:space="preserve">
+    <value>{0} från {1}</value>
+  </data>
+  <data name="Localize" xml:space="preserve">
+    <value>Lokalisera</value>
+  </data>
+  <data name="EnglishName" xml:space="preserve">
+    <value>engelska namn</value>
+  </data>
+  <data name="NativeName" xml:space="preserve">
+    <value>Inhemskt namn</value>
+  </data>
+  <data name="SiteIsInMaintenanceMode" xml:space="preserve">
+    <value>Webbplatsen är i underhållsläge</value>
+  </data>
+  <data name="MaintenanceModeDescription" xml:space="preserve">
+    <value>När det är aktiverat kan endast administratörsanvändare komma åt webbplatsen för att utföra underhåll;\ralla andra besökare ser meddelandet om underhållsläge som konfigurerats nedan.\rAuktoriserade användare kan logga in direkt via användarinloggningssidan.</value>
+  </data>
+  <data name="Announcements" xml:space="preserve">
+    <value>Meddelanden</value>
+  </data>
+  <data name="Announcement" xml:space="preserve">
+    <value>Meddelande</value>
+  </data>
+  <data name="UploadFile" xml:space="preserve">
+    <value>Ladda upp fil</value>
+  </data>
+  <data name="UploadModule" xml:space="preserve">
+    <value>Ladda upp modul</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Inställningar</value>
+  </data>
+</root>

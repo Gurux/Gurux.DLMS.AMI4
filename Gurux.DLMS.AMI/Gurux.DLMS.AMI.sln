@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.1.32407.343
+VisualStudioVersion = 17.12.35728.132
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Server", "Gurux.DLMS.AMI\Server\Gurux.DLMS.AMI.Server.csproj", "{1B322205-F13D-471C-97FF-52AA313F14A1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI", "Gurux.DLMS.AMI\Gurux.DLMS.AMI\Gurux.DLMS.AMI.csproj", "{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Client", "Gurux.DLMS.AMI\Client\Gurux.DLMS.AMI.Client.csproj", "{94E9FEA9-7F1F-4A10-97D5-F284D38610A9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI.Client", "Gurux.DLMS.AMI\Gurux.DLMS.AMI.Client\Gurux.DLMS.AMI.Client.csproj", "{093E1302-6BCB-42F2-B59C-B38A6CE5471F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,19 +13,19 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1B322205-F13D-471C-97FF-52AA313F14A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1B322205-F13D-471C-97FF-52AA313F14A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1B322205-F13D-471C-97FF-52AA313F14A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1B322205-F13D-471C-97FF-52AA313F14A1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94E9FEA9-7F1F-4A10-97D5-F284D38610A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94E9FEA9-7F1F-4A10-97D5-F284D38610A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94E9FEA9-7F1F-4A10-97D5-F284D38610A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94E9FEA9-7F1F-4A10-97D5-F284D38610A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A08BA6B3-2260-4EE3-BCA5-E901588A48D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{093E1302-6BCB-42F2-B59C-B38A6CE5471F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{093E1302-6BCB-42F2-B59C-B38A6CE5471F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{093E1302-6BCB-42F2-B59C-B38A6CE5471F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{093E1302-6BCB-42F2-B59C-B38A6CE5471F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {102027EF-C1F6-473D-A245-8EF6A7D0CD0A}
+		SolutionGuid = {634F27B9-1D9C-465C-8F0F-29344D74A770}
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,429 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/config/Notification/logs"
+
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, NotificationLogManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject ConfirmBase Confirm
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+<PageTitle>@Properties.Resources.NotificationLogs</PageTitle>
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.NotificationLogManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="error"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="NotificationLogs-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by error..."
+                   @onchange="@((ChangeEventArgs __e) => filter.Message = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <GXInputDropdown class="form-select"
+                                 Id="NotificationLogs-TraceLevel"
+                                 LastValue="true"
+                                 @bind-Value="TraceLevel"
+                                 OnSelected="@((TraceLevel e) => Updated())">
+            </GXInputDropdown>
+        </th>
+        <th>
+            <input class="form-control" placeholder="Filter by close time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Closed = @StatusTile.ToDateTime(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="@OnShow"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="CreationTime" Target="@error" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Target="@error">@Properties.Resources.Error</Th>
+        <Th Name="Level" Target="@error">@Properties.Resources.Level</Th>
+        <Th Name="Closed" Target="@error">@Properties.Resources.CloseTime</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link="@("Config/NotificationLog/Edit/" + error.Id)">@error.CreationTime</Td>
+        <td>@error.Message</td>
+        <td>@ClientHelpers.LevelToString(error.Level)</td>
+        <td>@error.Closed</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="ClearConfirmation" ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
+</Confirm>
+
+@code {
+
+    /// <summary>
+    /// Selected schedule ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.NotificationLogs;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the notification log shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// Notification log filter.
+    /// </summary>
+    private GXNotificationLog filter = new GXNotificationLog();
+    /// <summary>
+    /// User is verified before notification log are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+
+    /// <summary>
+    /// User is verified before notification logs are closed.
+    /// </summary>
+    protected ConfirmBase? CloseConfirmation;
+
+    /// <summary>
+    /// Closed errors are shown.
+    /// </summary>
+    public bool ShowClosedErrors { get; set; }
+
+    /// <summary>
+    /// Get active item.
+    /// </summary>
+    public GXNotificationLog? Active
+    {
+        get
+        {
+            return table?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXNotificationLog>? table;
+
+    /// <summary>
+    /// Trace level.
+    /// </summary>
+    private TraceLevel TraceLevel
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        Notifier.ProgressStart();
+        Notifier.ClearStatus();
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.On<IEnumerable<GXNotification>?>(this, nameof(IGXHubEvents.ClearNotificationLogs), async (errors) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXNotificationLog>>(this, nameof(IGXHubEvents.AddNotificationLogs), async (errors) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXNotificationLog() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXNotificationLog>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier.ProgressStart();
+        try
+        {
+            if (ShowClosedErrors)
+            {
+                //Show closed errors.
+                filter.Closed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                //Show active errors.
+                filter.Closed = null;
+            }
+
+            if (TraceLevel == TraceLevel.Off)
+            {
+                filter.Level = null;
+            }
+            else
+            {
+                filter.Level = (int)TraceLevel;
+            }
+            ListNotificationLogs req = new ListNotificationLogs()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListNotificationLogsResponse>("api/NotificationLog/List", req, request.CancellationToken);
+            if (ret.Logs != null)
+            {
+                //Mark notification logs as seen.
+                await Notifier.Mark(Http, TargetType.NotificationLog, ret.Logs.Max(s => s.CreationTime));
+                return new ItemsProviderResult<GXNotificationLog>(ret.Logs, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Show notification log details.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/NotificationLog/Edit/" + table.Active.Id);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Clear the notification log list.
+    /// </summary>
+
+    public void OnClear()
+    {
+        Notifier.ClearStatus();
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the notification log list.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                Notifier.ProgressStart();
+                try
+                {
+                    await Http.PostAsJson<ClearNotificationLogsResponse>("api/NotificationLog/Clear", new ClearNotificationLogs());
+                }
+                finally
+                {
+                    Notifier.ProgressEnd();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+    }
+}

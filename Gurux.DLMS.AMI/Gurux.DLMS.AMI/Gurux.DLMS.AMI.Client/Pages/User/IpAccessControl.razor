@@ -1,0 +1,380 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Components.Panel
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+
+@using Microsoft.Extensions.Logging
+@using System.Diagnostics
+@using System.Net
+
+@attribute [Authorize(Roles = GXRoles.User)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Active != null)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Cancel"
+            OkButtonTitle="@Properties.Resources.Ok"
+            OnOk="@(async () => await Save())">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <Label Required="true">@Properties.Resources.IpAddress</Label>
+                        <InputText Id="IpAddressControl-Address" class="form-control"
+                                   @bind-Value="Active.IPAddress" />
+                    </div>
+                    <Label>@Properties.Resources.Status</Label>
+                    <GXInputDropdown class="form-select"
+                                     Id="IpAddressControl-Status"
+                                     LastValue="@(Action == CrudAction.Create)"
+                                     @bind-Value="Active.Status">
+                    </GXInputDropdown>
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AgentManager)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         Context="it"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="true"
+         Total="true"
+         ShowAllData="false"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByIpAddress"
+                   @onchange="@((ChangeEventArgs __e) => filter.IPAddress = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.User"
+                   @onchange="@((ChangeEventArgs __e) => filter.User.UserName = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.User)>
+            <ContextMenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="IpAddress" Target="@it" SortMode="SortMode.Ascending">@Properties.Resources.IpAddress</Th>
+        <Th Name="User" Target="@it" SortMode="SortMode.Ascending">@Properties.Resources.User</Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td><LinkButton Target="@it" OnClick="@Edit" Text="@it.IPAddress" /></Td>
+        <td>@it.User?.UserName</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+@code {
+    /// <inheritdoc/>
+    public void Update()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private GXValidator? _validator;
+    CrudAction Action;
+    GXIpAddress? Active;
+
+    private readonly GXIpAddress filter = new GXIpAddress()
+    {
+        User = new AMI.Shared.DTOs.Authentication.GXUser()
+    };
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXIpAddress>? table;
+
+    /// <summary>
+    /// Verify that IP Address can be removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (!IPAddress.TryParse(Active.IPAddress, out IPAddress? address))
+            {
+                sender.AddError(() => Active.IPAddress, "Invalid IP address.");
+            }
+            else
+            {
+                Active.IPAddress = address.ToString();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXIpAddress>>(this, nameof(IGXHubEvents.IpAddressUpdate), async (addresses) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXIpAddress>>(this, nameof(IGXHubEvents.IpAddressDelete), async (addresses) =>
+            {
+                await Updated();
+            });
+            Notifier.Clear();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXIpAddress>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            ListIpAddress req = new ListIpAddress()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                Descending = request.Descending,
+            };
+            var ret = await Http.PostAsJson<ListIpAddressResponse>("api/IpAddress/List", req, request.CancellationToken);
+            if (ret.IpAddress != null)
+            {
+                ItemsProviderResult<GXIpAddress> value = new ItemsProviderResult<GXIpAddress>(ret.IpAddress, ret.Count);
+                return value;
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new IP address.
+    /// </summary>
+    public void OnAdd()
+    {
+        Active = new GXIpAddress();
+        Action = CrudAction.Create;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Edit IP address.
+    /// </summary>
+    private void Edit(GXIpAddress address)
+    {
+        Action = CrudAction.Update;
+        Active = address;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Delete selected IP addresses.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null && !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.IPAddress).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove the selected IP addresses.
+    /// </summary>
+    /// <param name="args">Confirm arguments.</param>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (table != null && args.Confirm)
+            {
+                await Http.PostAsJson<RemoveIpAddressResponse>("api/IpAddress/Delete",
+                    new RemoveIpAddress()
+                    {
+                        Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                    });
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Save IP address changes.
+    ///</summary>
+    public async Task Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            var req = new UpdateIpAddress();
+            req.IpAddress.Add(Active);
+            await Http.PostAsJson<UpdateIpAddressResponse>("api/IpAddress/Update", req);
+            Active = null;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide IP address dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -1,0 +1,9 @@
+<!-- Virhe (Windows-tyyli) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     width="24" height="24" role="img" aria-label="Virhe">
+  <!-- tausta -->
+  <circle cx="12" cy="12" r="10" fill="var(--win-error, #D13438)"/>
+  <!-- X -->
+  <path d="M8 8L16 16M16 8L8 16"
+        stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

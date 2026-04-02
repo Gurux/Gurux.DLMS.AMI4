@@ -1,0 +1,122 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+
+@page "/about/{Show}"
+@using System.Reflection
+@using System.Diagnostics
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Shared.Rest
+@inject HttpClient Http
+@if (Visible)
+{
+    @*OK button is hidden.*@
+    <Dialog CancelButtonTitle="@Properties.Resources.Close"
+    OkButtonTitle=""
+    OnCancel="Close"    
+    Title="About">
+        <p>
+            &emsp;&emsp;@Properties.Resources.Version&nbsp;@Version
+        </p>
+        <p>
+            &emsp;&emsp;@Properties.Resources.Copyright&nbsp;1998-@Year&nbsp;Gurux Ltd.
+            <br>
+            &emsp;&emsp;@Properties.Resources.CopyrightAllRightsReserved
+        </p>
+        <p>
+            &emsp;&emsp;@Properties.Resources.AboutInfo
+            <br />
+            &emsp;&emsp;<a href="https://www.gurux.fi" target="_blank">https://www.gurux.fi</a>
+        </p>
+        <br />
+        <br />
+        <img src="footer.png" style="position: absolute; bottom: 0px; left: 0px; height: 3px; width: 100%" />
+        <img src="leaf.png" style="position: absolute; bottom: 0px; left: 0px " />
+        <img src="factory.png" style="position: absolute; bottom: 0px; right: 0px " />
+    </Dialog>
+}
+@code {
+    [Parameter]
+    public string Show
+    {
+        get
+        {
+            return Visible.ToString();
+        }
+        set
+        {
+            Visible = true;
+        }
+    }
+
+    /// <summary>
+    /// Is about window shown.
+    /// </summary>
+    bool Visible
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Version number
+    /// </summary>
+    string? Version
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// .
+    /// </summary>
+    string Year
+    {
+        get
+        {
+            return DateTime.Now.Year.ToString();
+        }
+    }
+
+    public void Close()
+    {
+        Visible = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage response = await Http.GetAsync("api/Configuration/Version");
+        await AMI.Shared.Helpers.ValidateStatusCode(response, default);
+        Version = await response.Content.ReadAsStringAsync();
+    }
+}

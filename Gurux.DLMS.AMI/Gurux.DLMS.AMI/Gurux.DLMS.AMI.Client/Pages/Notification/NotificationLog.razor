@@ -1,0 +1,147 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.NotificationLog)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>@Properties.Resources.Message</label>
+                    <InputText id="name" disabled="disabled" @bind-Value="_active.Message" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.ErrorSeverityLevel</label>
+                    <input type="text" id="level" disabled="disabled"
+                           value="@ClientHelpers.LevelToString(_active.Level)" class="form-control" />
+                </div>
+                @if (_active.Notification != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Notification</label>
+                        <InputText id="notification" disabled="disabled" @bind-Value="_active.Notification.Name" class="form-control" />
+                    </div>
+                }
+                @if (_active.CreationTime != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.CreationTime</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                                   @bind-Value="_active.CreationTime" />
+                    </div>
+                }
+                @if (_active.Closed != null)
+                {
+                    <div class="form-group">
+                        <label>@Properties.Resources.Closed</label>
+                        <InputDate Type="@InputDateType.DateTimeLocal" id="generation" readonly="readonly" class="form-control"
+                                   @bind-Value="_active.Closed" />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private GXNotificationLog? _active;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get selected item.
+            if (Id == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Cancel", OnClick = EventCallback.Factory.Create(this, OnCancel) });
+            Notifier.UpdateButtons();
+            //Get notification log data.
+            HttpResponseMessage response = await Http.GetAsync(string.Format("api/NotificationLog?id={0}", Id));
+            await AMI.Shared.Helpers.ValidateStatusCode(response, default);
+            var tmp = await response.Content.ReadFromJsonAsync<GetNotificationLogResponse>();
+            if (tmp?.Item != null)
+            {
+                _active = tmp.Item;
+            }
+            else
+            {
+                NavigationManager.NavigateTo("404");
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

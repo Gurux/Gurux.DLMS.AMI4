@@ -1,0 +1,175 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/config/appearance/theme/{Id}"
+@page "/config/appearance/theme/{Action}/{Id}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+
+<h1>
+    @Title
+</h1>
+
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <Image Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <TabPage Text=@Properties.Resources.Theme Icon="Theme">
+                <Themes AvailableThemes="@_themes"></Themes>
+            </TabPage>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
+                <TabPage Text=@Properties.Resources.Color Icon="Color">
+                    <Colors AvailableThemes="@_themes"></Colors>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
+                <TabPage Text=@Properties.Resources.Text Icon="Text">
+                    <Texts AvailableThemes="@_themes"></Texts>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    private readonly List<GXAppearance> _themes = new();
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXAppearance Active = new GXAppearance();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            switch (Action)
+            {
+                case "Add":
+                    Title = Properties.Resources.Add;
+                    break;
+                case "Edit":
+                    Title = Properties.Resources.Edit;
+                    break;
+                case "Remove":
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            Title += " " + Properties.Resources.Theme;
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            //Get available themes.
+            ListAppearances req = new ListAppearances()
+            {
+                Filter = new() { ResourceType = (byte)ResourceType.Theme },
+                //Active item is shown as the first one.
+                OrderBy = nameof(GXAppearance.Active),
+                Descending = true
+            };
+            var ret = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req);
+            if (ret.Appearances?.Any() == true)
+            {
+                _themes.Clear();
+                _themes.AddRange(ret.Appearances);
+            }
+            if (string.Compare(Action, "Add", true) != 0 && !string.IsNullOrEmpty(Id))
+            {
+                //Get Appearance data.
+                var tmp = (await Http.GetAsJsonAsync<GetAppearanceResponse>(string.Format("api/Appearance?type={0}&id={1}", 0, Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    StateHasChanged();
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

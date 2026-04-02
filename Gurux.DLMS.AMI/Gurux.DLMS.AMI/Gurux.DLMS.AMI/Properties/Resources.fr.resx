@@ -1,0 +1,856 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DeviceIdIsZero" xml:space="preserve">
+    <value>L’ID de l’appareil est égal à zéro.</value>
+  </data>
+  <data name="ReaderIdIsZero" xml:space="preserve">
+    <value>L’ID du lecteur est égal à zéro.</value>
+  </data>
+  <data name="InvalidEmailAddress" xml:space="preserve">
+    <value>Adresse e-mail non valide.</value>
+  </data>
+  <data name="SiteName" xml:space="preserve">
+    <value>Nom du site</value>
+  </data>
+  <data name="SiteNameDescription" xml:space="preserve">
+    <value>Nom du site</value>
+  </data>
+  <data name="SiteDetails" xml:space="preserve">
+    <value>Détails du site</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Messagerie électronique</value>
+  </data>
+  <data name="SiteEmailAddressDescription" xml:space="preserve">
+    <value>Adresse e-mail du site. Cette adresse est utilisée lors de l’envoi d’e-mails.</value>
+  </data>
+  <data name="SiteSlocan" xml:space="preserve">
+    <value>Site slocan</value>
+  </data>
+  <data name="SiteSlocanDescription" xml:space="preserve">
+    <value>Slogan du site.</value>
+  </data>
+  <data name="SiteStatus" xml:space="preserve">
+    <value>État du site</value>
+  </data>
+  <data name="SiteVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SiteVersionDescription" xml:space="preserve">
+    <value>Version du site</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Système</value>
+  </data>
+  <data name="SystemSiteInformation" xml:space="preserve">
+    <value>Informations sur le site</value>
+  </data>
+  <data name="SystemConfigurationDescription" xml:space="preserve">
+    <value>Modifiez le nom du site, l’adresse e-mail ou le slogan.</value>
+  </data>
+  <data name="SystemStatus" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="SystemStatusInformation" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="SystemStatusDescription" xml:space="preserve">
+    <value>Informations sur l’état du système.</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Déconnexion</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Bonjour</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Connectez-vous</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registre</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nom</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Messagerie électronique</value>
+  </data>
+  <data name="PhoneNumber" xml:space="preserve">
+    <value>Numéro de téléphone</value>
+  </data>
+  <data name="DateOfBirth" xml:space="preserve">
+    <value>Date de naissance</value>
+  </data>
+  <data name="ExternalLogins" xml:space="preserve">
+    <value>Connexions externes</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Rôles</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Mot de passe</value>
+  </data>
+  <data name="PersonalData" xml:space="preserve">
+    <value>Données personnelles</value>
+  </data>
+  <data name="TwoFactorAuthentication" xml:space="preserve">
+    <value>Authentification à deux facteurs</value>
+  </data>
+  <data name="SystemSecurityDescription" xml:space="preserve">
+    <value>Informations sur la sécurité du système.</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Sécurité</value>
+  </data>
+  <data name="SystemSecurity" xml:space="preserve">
+    <value>Sécurité du système</value>
+  </data>
+  <data name="PasswordOptions" xml:space="preserve">
+    <value>Options de mot de passe</value>
+  </data>
+  <data name="PasswordLength" xml:space="preserve">
+    <value>Longueur du mot de passe</value>
+  </data>
+  <data name="UniqueCharacters" xml:space="preserve">
+    <value>Des personnages uniques</value>
+  </data>
+  <data name="RequireNonAlphanumeric" xml:space="preserve">
+    <value>Exiger non alphanumérique</value>
+  </data>
+  <data name="RequireLowercase" xml:space="preserve">
+    <value>Exiger des minuscules</value>
+  </data>
+  <data name="RequireUppercase" xml:space="preserve">
+    <value>Exiger des majuscules</value>
+  </data>
+  <data name="RequireDigit" xml:space="preserve">
+    <value>Exiger le chiffre</value>
+  </data>
+  <data name="LockoutOptions" xml:space="preserve">
+    <value>Options de verrouillage</value>
+  </data>
+  <data name="MaxFailedAccessAttempts" xml:space="preserve">
+    <value>Nombre maximal de tentatives d’accès échouées</value>
+  </data>
+  <data name="DefaultLockoutTimeSpan" xml:space="preserve">
+    <value>Durée de verrouillage par défaut</value>
+  </data>
+  <data name="SignInOptions" xml:space="preserve">
+    <value>Options de connexion</value>
+  </data>
+  <data name="RequireConfirmedEmail" xml:space="preserve">
+    <value>Exiger une adresse e-mail de confirmation</value>
+  </data>
+  <data name="RequireConfirmedAccount" xml:space="preserve">
+    <value>Exiger un compte confirmé</value>
+  </data>
+  <data name="SystemSecuritySettings" xml:space="preserve">
+    <value>Paramètres de sécurité du système.</value>
+  </data>
+  <data name="TheMinimumLengthAPasswordMustBeDefaultsTo6" xml:space="preserve">
+    <value>La longueur minimale d’un mot de passe doit être. La valeur par défaut est 6.</value>
+  </data>
+  <data name="TheMinimumNumberOfUniqueCharactersWhichAPasswordMustContain" xml:space="preserve">
+    <value>Le nombre minimum de caractères uniques qu’un mot de passe doit contenir</value>
+  </data>
+  <data name="PasswordsMustContainANonAlphanumericCharacter" xml:space="preserve">
+    <value>Les mots de passe doivent contenir un caractère non alphanumérique.</value>
+  </data>
+  <data name="PasswordsMustContainALowerCaseASCIICharacter" xml:space="preserve">
+    <value>Les mots de passe doivent contenir un caractère ASCII minuscule.</value>
+  </data>
+  <data name="PasswordsMustContainAUpperCaseASCIICharacter" xml:space="preserve">
+    <value>Les mots de passe doivent contenir un caractère ASCII majuscule.</value>
+  </data>
+  <data name="PasswordsMustContainADigit" xml:space="preserve">
+    <value>Les mots de passe doivent contenir un chiffre.</value>
+  </data>
+  <data name="TheNumberOfFailedAccessAttemptsAllowedBeforeAUserIsLockedOutIfLockoutIsEnabled" xml:space="preserve">
+    <value>Nombre de tentatives d’accès infructueuses autorisées avant qu’un utilisateur ne soit verrouillé, si le verrouillage est activé.</value>
+  </data>
+  <data name="TheLockOutTimeInMinutesIfAUserIsLockedOutForWhenALockoutOccurs" xml:space="preserve">
+    <value>Temps de verrouillage en minutes si un utilisateur est verrouillé lorsqu’un verrouillage se produit.</value>
+  </data>
+  <data name="OptionsForConfiguringSignIn" xml:space="preserve">
+    <value>Options de configuration de la connexion.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedEmailAddressBeforeTheyCanSignIn" xml:space="preserve">
+    <value>Un utilisateur doit disposer d’une adresse e-mail confirmée avant de pouvoir se connecter.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedAccountBeforeTheyCanSignIn" xml:space="preserve">
+    <value>Un utilisateur doit disposer d’un compte confirmé avant de pouvoir se connecter.</value>
+  </data>
+  <data name="LocalizedResourceIsMissing" xml:space="preserve">
+    <value>Une ressource localisée est manquante.</value>
+  </data>
+  <data name="SystemException" xml:space="preserve">
+    <value>Exception système :</value>
+  </data>
+  <data name="LocalizedResourceDublicate" xml:space="preserve">
+    <value>Double valeur d’une ressource localisée.</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Jetons d’accès personnels</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Heure de création</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Expiration</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Supprimer</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Sauvegarder</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annuler</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Créer</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clair</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>Vue</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Éditer</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Avertissement - Assurez-vous de copier le jeton ci-dessus maintenant. Il n’est pas stocké et vous ne pourrez plus le revoir.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>Vous avez ajouté un nouveau jeton d’accès personnel. Copiez le jeton maintenant !</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>Réussi</value>
+  </data>
+  <data name="YourProfileHasBeenUpdated" xml:space="preserve">
+    <value>Votre profil a été mis à jour</value>
+  </data>
+  <data name="ModuleInstallationUnknownService" xml:space="preserve">
+    <value>L’installation du module a échoué. Le module nécessite {0} service qui n’est pas installé.</value>
+  </data>
+  <data name="UnknownModule" xml:space="preserve">
+    <value>Module inconnu {0}.</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Module</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Prénom</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Nom de famille</value>
+  </data>
+  <data name="ArrayIsEmpty" xml:space="preserve">
+    <value>Le tableau est vide.</value>
+  </data>
+  <data name="YouCanRemoveYourself" xml:space="preserve">
+    <value>Vous ne pouvez pas vous retirer.</value>
+  </data>
+  <data name="ProfilePicture" xml:space="preserve">
+    <value>Photo de profil</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Faire défaut</value>
+  </data>
+  <data name="Minutely" xml:space="preserve">
+    <value>Minutieusement</value>
+  </data>
+  <data name="Hourly" xml:space="preserve">
+    <value>Horaire</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Quotidien</value>
+  </data>
+  <data name="ContentEdited" xml:space="preserve">
+    <value>Échec de la mise à jour. Le contenu a été modifié par un autre utilisateur.</value>
+  </data>
+  <data name="UsersMustBelongToAtLeastOneUserGroup" xml:space="preserve">
+    <value>Les utilisateurs doivent appartenir à au moins un groupe d’utilisateurs.</value>
+  </data>
+  <data name="InvalidUserRoleAtLeastOneRoleMustBeSelected" xml:space="preserve">
+    <value>Rôle d’utilisateur non valide. Au moins un rôle doit être sélectionné.</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Nom non valide.</value>
+  </data>
+  <data name="InvalidStartTime" xml:space="preserve">
+    <value>Heure de début non valide.</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>Identifiant invalide.</value>
+  </data>
+  <data name="UnknownTaskTarget" xml:space="preserve">
+    <value>Cible de tâche inconnue.</value>
+  </data>
+  <data name="Cron" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronDescription" xml:space="preserve">
+    <value>Cron s’occupe d’exécuter des tâches périodiques telles que la vérification des mises à jour.</value>
+  </data>
+  <data name="CronTitle" xml:space="preserve">
+    <value>Gérez les tâches de maintenance automatique du site.</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agents</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Flux de travail</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Déclenche</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Cubes</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Vues des composants</value>
+  </data>
+  <data name="Modules" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="RegionalAndLanguage" xml:space="preserve">
+    <value>Régional et linguistique</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Statut</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Scripts</value>
+  </data>
+  <data name="Maintenance" xml:space="preserve">
+    <value>Entretien</value>
+  </data>
+  <data name="StatisticDescription" xml:space="preserve">
+    <value>La statique aide à améliorer la vitesse de réaction du site.</value>
+  </data>
+  <data name="Statistic" xml:space="preserve">
+    <value>Statistique</value>
+  </data>
+  <data name="SchedulerServiceIsStarting" xml:space="preserve">
+    <value>Le service de planification démarre.</value>
+  </data>
+  <data name="SchedulerServiceIsWorking" xml:space="preserve">
+    <value>Le service de planification fonctionne.</value>
+  </data>
+  <data name="SchedulerServiceIsStopping" xml:space="preserve">
+    <value>Le service de planification s’arrête.</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Les rôles sont utilisés pour gérer les autorisations.</value>
+  </data>
+  <data name="TargetMustBelongToOneGroup" xml:space="preserve">
+    <value>La cible doit appartenir à au moins un groupe.</value>
+  </data>
+  <data name="UnknownTarget" xml:space="preserve">
+    <value>Cible inconnue.</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Relié</value>
+  </data>
+  <data name="Offline" xml:space="preserve">
+    <value>Hors-ligne</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="PerformanceDescription" xml:space="preserve">
+    <value>Activez ou désactivez la notification pour améliorer les performances d’un grand nombre de compteurs.</value>
+  </data>
+  <data name="CronStarted" xml:space="preserve">
+    <value>Cron sursauta.</value>
+  </data>
+  <data name="CronCompleted" xml:space="preserve">
+    <value>Cron terminé.</value>
+  </data>
+  <data name="ExternalAuthenticationDescription" xml:space="preserve">
+    <value>Les authentifications externes permettent de se connecter via des services externes.</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Erreur</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>Téléchargement...</value>
+  </data>
+  <data name="Updating" xml:space="preserve">
+    <value>Actualisation...</value>
+  </data>
+  <data name="Restarting" xml:space="preserve">
+    <value>Redémarrage...</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Id" xml:space="preserve">
+    <value>Id:</value>
+  </data>
+  <data name="ModuleEnabled" xml:space="preserve">
+    <value>Module activé.</value>
+  </data>
+  <data name="ModuleDisabled" xml:space="preserve">
+    <value>Module désactivé.</value>
+  </data>
+  <data name="ModuleRemoved" xml:space="preserve">
+    <value>Module retiré.</value>
+  </data>
+  <data name="ModuleInstalled" xml:space="preserve">
+    <value>Module installé.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Modèle d’appareil</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Appareil</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Groupe de modèles d’appareil</value>
+  </data>
+  <data name="WorkflowInstalled" xml:space="preserve">
+    <value>Flux de travail installé.</value>
+  </data>
+  <data name="WorkflowRemoved" xml:space="preserve">
+    <value>Suppression du flux de travail.</value>
+  </data>
+  <data name="ScriptInstalled" xml:space="preserve">
+    <value>Script installé.</value>
+  </data>
+  <data name="ScriptRemoved" xml:space="preserve">
+    <value>Script supprimé.</value>
+  </data>
+  <data name="ScheduleCreated" xml:space="preserve">
+    <value>Calendrier créé.</value>
+  </data>
+  <data name="ScheduleRemoved" xml:space="preserve">
+    <value>Calendrier supprimé.</value>
+  </data>
+  <data name="ScheduleUpdated" xml:space="preserve">
+    <value>Calendrier mis à jour.</value>
+  </data>
+  <data name="WorkflowUpdated" xml:space="preserve">
+    <value>Flux de travail mis à jour.</value>
+  </data>
+  <data name="ScriptUpdated" xml:space="preserve">
+    <value>Script mis à jour.</value>
+  </data>
+  <data name="KeyManagementRemoved" xml:space="preserve">
+    <value>Gestion des clés supprimée.</value>
+  </data>
+  <data name="KeyManagementUpdated" xml:space="preserve">
+    <value>Mise à jour de la gestion des clés.</value>
+  </data>
+  <data name="KeyManagementInstalled" xml:space="preserve">
+    <value>Gestion des clés installée.</value>
+  </data>
+  <data name="KeyManagementsDescription" xml:space="preserve">
+    <value>Avec la gestion des clés, les paramètres des connexions cryptées sont traités.</value>
+  </data>
+  <data name="InvalidKeyType" xml:space="preserve">
+    <value>Type de clé non valide.</value>
+  </data>
+  <data name="InvalidKeyData" xml:space="preserve">
+    <value>Données de clé non valides.</value>
+  </data>
+  <data name="DatabaseType" xml:space="preserve">
+    <value>Type de base de données : {0}</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Connexion : {0}</value>
+  </data>
+  <data name="DatabaseServiceIsDisabled" xml:space="preserve">
+    <value>Le service de base de données est désactivé.</value>
+  </data>
+  <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
+    <value>Le titre du système {0} est déjà utilisé.</value>
+  </data>
+  <data name="WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts" xml:space="preserve">
+    <value>Lorsque les scripts sont activés, la fonctionnalité des flux de travail peut être étendue avec des scripts.</value>
+  </data>
+  <data name="MaintenanceDescription" xml:space="preserve">
+    <value>Mettez le site hors ligne pour la maintenance ou remettez-le en ligne.</value>
+  </data>
+  <data name="ManufacturerDescription" xml:space="preserve">
+    <value>En utilisant les fabricants, de nouveaux modèles d’appareils peuvent être proposés aux utilisateurs.</value>
+  </data>
+  <data name="WorkflowDescription" xml:space="preserve">
+    <value>Lorsque les flux de travail sont activés, de nouvelles fonctionnalités de flux de travail personnalisés peuvent être proposées aux utilisateurs.</value>
+  </data>
+  <data name="TriggerDescription" xml:space="preserve">
+    <value>Lorsque les déclencheurs sont activés, de nouvelles fonctionnalités personnalisées peuvent être proposées aux utilisateurs.</value>
+  </data>
+  <data name="BlockDescription" xml:space="preserve">
+    <value>Lorsque les blocs sont activés, de nouvelles interfaces utilisateur personnalisées peuvent être proposées aux utilisateurs.</value>
+  </data>
+  <data name="ComponentViewDescription" xml:space="preserve">
+    <value>Lorsque les vues par composants sont activées, de nouvelles interfaces utilisateur personnalisées peuvent être proposées aux utilisateurs.</value>
+  </data>
+  <data name="AgentDescription" xml:space="preserve">
+    <value>Versions de l’agent installables.</value>
+  </data>
+  <data name="ModuleDescription" xml:space="preserve">
+    <value>Lorsque les modules sont activés, de nouvelles fonctionnalités personnalisées peuvent être proposées aux utilisateurs.</value>
+  </data>
+  <data name="LanguageDescription" xml:space="preserve">
+    <value>Lorsque plusieurs langues sont activées, le texte de l’interface peut être traduit et les utilisateurs enregistrés peuvent sélectionner leur langue préférée.</value>
+  </data>
+  <data name="ScriptDescription" xml:space="preserve">
+    <value>Lorsque les scripts sont activés, la fonctionnalité des flux de travail peut être étendue avec des scripts.</value>
+  </data>
+  <data name="ScriptRebuild" xml:space="preserve">
+    <value>Reconstruisez le script.</value>
+  </data>
+  <data name="ScriptRebuildFailed" xml:space="preserve">
+    <value>La reconstruction du script a échoué. {0}</value>
+  </data>
+  <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
+    <value>De nouveaux groupes doivent d’abord être ajoutés.</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Passerelle</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Coupé</value>
+  </data>
+  <data name="ReportDescription" xml:space="preserve">
+    <value>Les rapports peuvent être utilisés pour améliorer la création de rapports à partir d’une grande quantité de données.</value>
+  </data>
+  <data name="SubtotalDescription" xml:space="preserve">
+    <value>Les sous-totaux peuvent être utilisés pour améliorer la création de rapports à partir d’une grande quantité de données.</value>
+  </data>
+  <data name="MenuDescription" xml:space="preserve">
+    <value>Gérez les menus et les liens de menu.</value>
+  </data>
+  <data name="ContentTypeDescription" xml:space="preserve">
+    <value>Gérer les types de contenu.</value>
+  </data>
+  <data name="ContentDescription" xml:space="preserve">
+    <value>Gérer le contenu.</value>
+  </data>
+  <data name="InvalidTitle" xml:space="preserve">
+    <value>Titre non valide</value>
+  </data>
+  <data name="InvalidLink" xml:space="preserve">
+    <value>Lien non valide.</value>
+  </data>
+  <data name="NotificationDescription" xml:space="preserve">
+    <value>Lorsque la notification est activée, les utilisateurs peuvent être informés des ajouts, des suppressions ou des mises à jour.</value>
+  </data>
+  <data name="PruneStarted" xml:space="preserve">
+    <value>Prune commencé</value>
+  </data>
+  <data name="PruneCompleted" xml:space="preserve">
+    <value>Élagage terminé</value>
+  </data>
+  <data name="PruneDescription" xml:space="preserve">
+    <value>L’option Élagage supprime les cibles inutilisées en fonction de critères tels que le temps.</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Fabricants</value>
+  </data>
+  <data name="Contents" xml:space="preserve">
+    <value>Contenu</value>
+  </data>
+  <data name="Menus" xml:space="preserve">
+    <value>Menus</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Sous-totaux</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Gestion des clés</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Rapports</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Authentification</value>
+  </data>
+  <data name="Prune" xml:space="preserve">
+    <value>Élaguer</value>
+  </data>
+  <data name="Components" xml:space="preserve">
+    <value>Composants</value>
+  </data>
+  <data name="ContentTypes" xml:space="preserve">
+    <value>Types de contenu</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Langue</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Administrateur</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Groupe d’agents</value>
+  </data>
+  <data name=" AgentGroupManager" xml:space="preserve">
+    <value>Gestionnaire de groupe d’agents</value>
+  </data>
+  <data name="AgentLog" xml:space="preserve">
+    <value>Journal de l’agent</value>
+  </data>
+  <data name="AgentLogManager" xml:space="preserve">
+    <value>Gestionnaire de journaux de l’agent</value>
+  </data>
+  <data name="AgentManager" xml:space="preserve">
+    <value>Gestionnaire d’agents.</value>
+  </data>
+  <data name="BlockGroupManager" xml:space="preserve">
+    <value>Gestionnaire de groupes d’îlots</value>
+  </data>
+  <data name="ContentType" xml:space="preserve">
+    <value>Type de contenu</value>
+  </data>
+  <data name="DataExchange" xml:space="preserve">
+    <value>Échange de données</value>
+  </data>
+  <data name="DataExchangeDescription" xml:space="preserve">
+    <value>Avec l’échange de données, l’utilisateur peut importer et exporter des données.</value>
+  </data>
+  <data name="AlreadyExists" xml:space="preserve">
+    <value>{0} {1} existe déjà.</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Groupe de passerelles</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Groupe d’appareils</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Groupe d’horaire</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Horaire</value>
+  </data>
+  <data name="ContentGroup" xml:space="preserve">
+    <value>Groupe de contenu</value>
+  </data>
+  <data name="Content" xml:space="preserve">
+    <value>Contenu</value>
+  </data>
+  <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Groupe de types de contenu</value>
+  </data>
+  <data name="ScriptGroup" xml:space="preserve">
+    <value>Groupe de scripts</value>
+  </data>
+  <data name="Script" xml:space="preserve">
+    <value>Script</value>
+  </data>
+  <data name="AppearanceDescription" xml:space="preserve">
+    <value>L’apparence peut être utilisée pour personnaliser le thème et les icônes utilisateur.</value>
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Apparence</value>
+  </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="ProxyDescription" xml:space="preserve">
+    <value>Le proxy peut être utilisé pour router et équilibrer la charge des requêtes entrantes entre plusieurs services backend.</value>
+  </data>
+  <data name="IpAccessDescription" xml:space="preserve">
+    <value>Le contrôle d’accès IP peut être utilisé pour bloquer des clients, adresses IP ou des schémas de requêtes spécifiques avant qu’ils n’atteignent l’application, améliorant ainsi la sécurité et réduisant le trafic indésirable.</value>
+  </data>
+  <data name="IpAccessControl" xml:space="preserve">
+    <value>Contrôle d’accès IP</value>
+  </data>
+  <data name="NewLoginTitle" xml:space="preserve">
+    <value>Nouvelle connexion</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="NewLogin" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="PATExpiring" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="PATExpired" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="AccountDescription" xml:space="preserve">
+    <value>Configurez les paramètres par défaut du compte utilisateur, y compris les champs, les exigences d’inscription et les messages e-mail.</value>
+  </data>
+  <data name="LocalizedResourceDescription" xml:space="preserve">
+    <value>Lorsque plusieurs langues sont activées, le texte de l’interface peut être traduit et les utilisateurs enregistrés peuvent sélectionner leur langue préférée.</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Accueil</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Dispositifs</value>
+  </data>
+  <data name="Schedules" xml:space="preserve">
+    <value>Horaires</value>
+  </data>
+  <data name="DeviceTemplates" xml:space="preserve">
+    <value>Modèles de dispositifs</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Gestion des utilisateurs</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Journaux d’ajournement</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Favoris</value>
+  </data>
+  <data name="SystemLogs" xml:space="preserve">
+    <value>Journaux système</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Tâches</value>
+  </data>
+  <data name="ScriptLog" xml:space="preserve">
+    <value>Journal de script</value>
+  </data>
+  <data name="ModuleLogs" xml:space="preserve">
+    <value>Journaux de modules</value>
+  </data>
+  <data name="ScheduleLogs" xml:space="preserve">
+    <value>Journaux de calendrier</value>
+  </data>
+  <data name="WorkflowLog" xml:space="preserve">
+    <value>Journal de flux de travail</value>
+  </data>
+</root>

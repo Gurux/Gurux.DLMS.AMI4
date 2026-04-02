@@ -1,0 +1,186 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/config/appearance"
+@page "/config/appearance/icon"
+@page "/config/appearance/theme"
+@page "/config/appearance/iconpack"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Text.Json
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AppearanceManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@*If user adds a new item or modifies the existing one.*@
+@if (string.Compare(Action, "Add", true) == 0 ||
+(Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "/config/appearance/theme", true) == 0)
+    {
+        <ThemeTab Action="@Action" Id="@Id"></ThemeTab>
+    }
+    @if (string.Compare(Path, "/config/appearance/iconpack", true) == 0)
+    {
+        <IconPackTab></IconPackTab>
+    }
+}
+else if (string.Compare(Path, "/config/appearance/iconpack", true) == 0)
+{
+    <IconPackTab></IconPackTab>
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+             <Image Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.AppearanceManager)>
+                <TabPage Path="config/appearance/Images" Text=@Properties.Resources.Icons
+                         Icon="Images">
+                    <Images Id="@Id" IconPacks="@IconPacks"></Images>
+                </TabPage>
+                <TabPage Path="config/appearance/theme" Text=@Properties.Resources.Theme
+                         Icon="Theme">
+                    <ThemeTab Id="@Id"></ThemeTab>
+                </TabPage>
+                <TabPage Path="config/appearance/iconpack" Text=@Properties.Resources.IconPack
+                         Icon="IconPack">
+                    <IconPackTab></IconPackTab>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+    /// <summary>
+    /// Appearance settings.
+    /// </summary>
+    internal GXConfiguration Configuration { get; set; } = new GXConfiguration()
+    {
+        Name = GXConfigurations.Appearance
+    };
+
+    IEnumerable<GXAppearance>? IconPacks;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+
+        //Get active icon packs.
+        ListAppearances req1 = new ListAppearances()
+        {
+            Filter = new()
+            {
+                ResourceType = (byte)ResourceType.Iconpack,
+                Active = true
+            }
+        };
+        var ret2 = await Http.PostAsJson<ListAppearancesResponse>("api/Appearance/List", req1);
+        if (ret2.Appearances != null)
+        {
+            IconPacks = ret2.Appearances;
+        }
+
+        //Get appereance settings.
+        ListConfiguration req = new ListConfiguration()
+        {
+            Filter = new GXConfiguration()
+            {
+                Name = GXConfigurations.Appearance
+            }
+        };
+
+        var ret = await Http.PostAsJson<ListConfigurationResponse>("api/Configuration/List", req);
+        if (ret?.Configurations?.Length == 1)
+        {
+            Configuration = ret.Configurations[0];
+        }
+        Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+        {
+            try
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Appearance && !string.IsNullOrEmpty(it.Settings))
+                        {
+                            Configuration = it;
+                            InvokeAsync(StateHasChanged);
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+        });
+    }
+}
+

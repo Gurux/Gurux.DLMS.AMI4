@@ -1,0 +1,173 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Text.Json
+@using System.Text
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@inject IJSRuntime JSRuntime
+
+@if (Active != null && _settings != null)
+{
+    <EditForm Model="@Active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Default" @bind-Value="Active.Active" />
+                </div>
+                <div class="form-group">
+                    <CopyLabel Value="@Active.Id">@Properties.Resources.Name</CopyLabel>
+                    <InputText id="theme-id" readonly @bind-Value="Active.Id" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <CopyLabel Value="@Active.Id">Url</CopyLabel>
+                    <InputText id="theme-url" @bind-Value="_settings.CssFile" class="form-control" />
+                </div>
+                <AuthoringInformationDateTimeOffset Action="Edit" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+
+    [Parameter]
+    public GXAppearance? Active { get; set; }
+
+    GXThemeInfo? _settings;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public CrudAction Action { get; set; }
+
+    /// <summary>
+    /// Available themes.
+    /// </summary>
+    [Parameter]
+    public List<GXAppearance> AvailableThemes { get; set; } = default!;
+
+    /// <summary>
+    /// Save resource.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (Active.Active == true)
+            {
+                //If theme is activated.
+                foreach (var it in AvailableThemes.Where(w => w.Active == true))
+                {
+                    if (it != Active)
+                    {
+                        it.Active = false;
+                    }
+                }
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveAppearanceResponse>("api/Appearance/Delete", new RemoveAppearance()
+                {
+                    Ids = new string[] { Active.Id },
+                });
+            }
+            else
+            {
+                string address;
+                if (Action == CrudAction.Create)
+                {
+                    address = "api/Appearance/Add";
+                }
+                else if (Action == CrudAction.Update)
+                {
+                    address = "api/Appearance/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                var ret = await Http.PostAsJson<UpdateAppearanceResponse>(address, new UpdateAppearance()
+                { Appearances = new List<GXAppearance>() { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Active?.Value != null)
+        {
+            _settings = JsonSerializer.Deserialize<GXThemeInfo>(Active.Value);
+        }
+        await base.OnInitializedAsync();
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
+

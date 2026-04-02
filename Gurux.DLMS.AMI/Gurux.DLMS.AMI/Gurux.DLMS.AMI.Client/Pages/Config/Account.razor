@@ -1,0 +1,238 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+
+@using Microsoft.Extensions.Logging
+
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
+@attribute [Authorize(Roles = GXRoles.Admin)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@implements IGXConfigUpdate
+
+@if (_settings != null)
+{
+    <EditForm EditContext="@Notifier.EditContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Who can register accounts</label><br>
+                    <InputRadioGroup @bind-Value="_settings.UserCreationType">
+                        <label class="clickable-option">
+                            <InputRadio Value="UserCreationType.Anyone" />Anyone
+                        </label><br />
+                        <label class="clickable-option">
+                            <InputRadio Value="UserCreationType.AdminApprovalRequired" />Anyone, but administrator approval is required
+                        </label><br />
+                        <label class="clickable-option">
+                            <InputRadio Value="UserCreationType.AdminOnly" />Administrators only
+                        </label><br />
+                    </InputRadioGroup>
+                    <br />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings);
+            Notifier.EditContext = new EditContext(_settings);
+            Notifier.EditContext.MarkAsUnmodified();
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    AccountSettings? _settings;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), (configurations) =>
+            {
+                try
+                {
+                    if (configurations != null)
+                    {
+                        foreach (var it in configurations)
+                        {
+                            if (it.Name == GXConfigurations.Account && !string.IsNullOrEmpty(it.Settings))
+                            {
+                                _settings = JsonSerializer.Deserialize<AccountSettings>(it.Settings);
+                                Notifier.EditContext = new EditContext(_settings);
+                                Notifier.EditContext.MarkAsUnmodified();
+                                InvokeAsync(StateHasChanged);
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Notifier?.ProcessError(ex);
+                }
+            });
+            Notifier.On(this, nameof(IGXHubEvents.CronCompleate), async () =>
+            {
+                try
+                {
+                    //Get configuration data.
+                    GXConfiguration? tmp = (await Http.GetAsJsonAsync<GetConfigurationResponse>(string.Format("api/Configuration?id={0}", Parent?.Active.Id))).Item;
+                    if (!string.IsNullOrEmpty(tmp?.Settings))
+                    {
+                        _settings = JsonSerializer.Deserialize<AccountSettings>(tmp.Settings);
+                        Notifier.EditContext = new EditContext(_settings);
+                        Notifier.EditContext.MarkAsUnmodified();
+                        StateHasChanged();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Notifier?.ProcessError(ex);
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Text = Properties.Resources.Save,
+                Icon = "Save",
+                Enabled = EnableStyle.Modified,
+                OnClick = EventCallback.Factory.Create(this, OnSave)
+            });
+
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Text = Properties.Resources.Cancel,
+                Icon = "Cancel",
+                OnClick = EventCallback.Factory.Create(this, OnCancel)
+            });
+            Notifier.UpdateButtons();
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<AccountSettings>(Parent.Active.Settings);
+                Notifier.EditContext = new EditContext(_settings);
+                Notifier.EditContext.MarkAsUnmodified();
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Parent.Active.Settings = JsonSerializer.Serialize(_settings);
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { Parent.Active };
+            await Http.PostAsJson("api/Configuration/Update", arg);
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

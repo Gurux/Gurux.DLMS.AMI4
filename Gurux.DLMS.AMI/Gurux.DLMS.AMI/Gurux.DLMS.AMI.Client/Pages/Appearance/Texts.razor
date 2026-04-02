@@ -1,0 +1,197 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = "Admin, AppearanceManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject IJSRuntime JSRuntime
+
+@implements IDisposable
+<div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4">
+    @foreach (var it in _styles)
+    {
+        <div class="col">
+            <div class="card card-var p-3">
+                <label class="form-label">@it.Description <small>@it.Name</small></label>
+                <div class="d-flex align-items-center gap-3">
+                    <input type="color" class="form-control form-control-color" value="@it.Value"
+                           @onchange="@((ChangeEventArgs e) => ChangeColor(it, e))" />
+                    <button type="button" class="btn btn-link" @onclick="@(() => ResetColor(it))">Reset</button>
+                    <div class="preview-box flex-grow-1" style="@($"background: var({it.Value})")"></div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@code {
+    /// <summary>
+    /// Available themes.
+    /// </summary>
+    [Parameter]
+    public List<GXAppearance>? AvailableThemes { get; set; }
+
+
+    public void ChangeColor(GXThemeStyle item, ChangeEventArgs value)
+    {
+        item.Value = Convert.ToString(value.Value);
+    }
+
+    public void ResetColor(GXThemeStyle item)
+    {
+        item.Value = _defaultValues[item.Name];
+    }
+
+    GXThemeInfo? _settings;
+    private Dictionary<string, string> _defaultValues = new();
+    List<GXThemeStyle> _styles = new();
+
+    private static IEnumerable<GXThemeStyle> GetDefaultValues()
+    {
+        return [new GXThemeStyle((byte)ThemeType.Color, "--bs-body-bg", "Body background", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-body-color", "Body text", null),
+        new GXThemeStyle((byte)ThemeType.Color, "--bs-heading-color", "Heading color", null),
+    ];
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            _settings = JsonSerializer.Deserialize<GXThemeInfo?>(AvailableThemes.Where(w => w.Active == true).SingleOrDefault().Value);
+            //Get values.
+            if (_settings != null)
+            {
+                var defs = GetDefaultValues();
+                var names = defs.Select(s => s.Name);
+                _styles.AddRange(_settings.Styles.Where(w => names.Contains(w.Name) && w.Type == (byte)ThemeType.Color));
+                names = _settings.Styles.Select(s => s.Name);
+                _styles.AddRange(defs.Where(w => !names.Contains(w.Name)));
+                IJSObjectReference theme = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./theme.js");
+                foreach (var it in _styles)
+                {
+                    string def = await theme.InvokeAsync<string>("getStyleValue", it.Name);
+                    _defaultValues[it.Name] = def;
+                    if (string.IsNullOrEmpty(it.Value))
+                    {
+                        it.Value = def;
+                    }
+                }
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem(
+                   Properties.Resources.Save,
+                   "Save",
+                   EventCallback.Factory.Create(this, OnSave)
+               ));
+            Notifier.AddMenuItem(new GXMenuItem(
+                Properties.Resources.Cancel,
+                "Cancel",
+                EventCallback.Factory.Create(this, OnCancel)
+            ));
+            Notifier.UpdateButtons();
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save color.
+    ///</summary>
+    public async Task OnSave()
+    {
+        try
+        {
+            //Remove default values.
+            //Remove default values.
+            var defs = GetDefaultValues();
+            var names = defs.Select(s => s.Name);
+            _settings.Styles.RemoveAll(w => names.Contains(w.Name) && w.Type == (byte)ThemeType.Color);
+            //Add non default values.
+            _settings.Styles.AddRange(_styles.Where(w => !string.IsNullOrEmpty(w.Value) && _defaultValues[w.Name] != w.Value));
+            var active = AvailableThemes?.Where(w => w.Active == true).SingleOrDefault();
+            active.Value = JsonSerializer.Serialize(_settings);
+            UpdateAppearance req = new UpdateAppearance()
+            {
+                Appearances = [active]
+            };
+            await Http.PostAsJson<UpdateAppearanceResponse>("api/Appearance/Update", req);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

@@ -1,0 +1,397 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.Enums
+@using Gurux.DLMS.Objects
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Components.Table
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (Target != null)
+{
+    <CascadingValue Value="this">
+        @*Attribute #1 and description is not shown for the object template.*@
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="0" Name="@Properties.Resources.Description" Value="@Target.Template?.Name"></AttributeTile>
+            <AttributeTile Index="1" Name="@Properties.Resources.LogicalName" Value="@Target.Template?.LogicalName"></AttributeTile>
+        }
+        else
+        {
+            @*Show capture columns for the template profile generic.*@
+            <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <ObjectList Target="@Target"
+                        Index="3"
+                        CaptureObjects="@captureObjects"></ObjectList>
+        }
+        <AttributeTile Index="4" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="5" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="6" Attributes="@Target.Attributes" GetValue="@GetShortObject"></AttributeTile>
+        <AttributeTile Index="7" Attributes="@Target.Attributes"></AttributeTile>
+        <AttributeTile Index="8" Attributes="@Target.Attributes"></AttributeTile>
+        <hr />
+        @if (Parent?.Template == null)
+        {
+            <AttributeTile Index="3" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <AttributeTile Index="2" Attributes="@Target.Attributes" HideValue="true"></AttributeTile>
+            <GXTable @ref="table"
+                     Context="row"
+                     ItemsProvider="@GetItems"
+                     SelectionMode="SelectionMode.None"
+                     ShowRemoved="false"
+                     Filter="false">
+                <FilterContent>
+                </FilterContent>
+                <MenuContent>
+                </MenuContent>
+                <HeaderContent>
+                    @foreach (var it in captureObjectNames)
+                    {
+                        <th Id="it.Key">@it.Key <br> @it.Value</th>
+                    }
+                </HeaderContent>
+                <ItemContent>
+                    @foreach (var it in row)
+                    {
+                        <td>@it</td>
+                    }
+                </ItemContent>
+            </GXTable>
+        }
+    </CascadingValue>
+}
+
+@code {
+    /// <summary>
+    /// Target device template.
+    /// </summary>
+    [Parameter]
+    public GXDeviceTemplate? DeviceTemplate { get; set; }
+
+    [CascadingParameter]
+    private ObjectView? Parent { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Target COSEM object.
+    ///</summary>
+    [Parameter]
+    public GXObject? Target { get; set; }
+
+    private GXDLMSSettings? _templateSettings = null;
+    private GXValue filter = new GXValue();
+    private GXObject[]? deviceObjects = null;
+    private List<KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>> captureObjects = new();
+    /// <summary>
+    /// Logical name and description of the capture object.
+    /// </summary>
+    private List<KeyValuePair<string, string>> captureObjectNames = new();
+
+    private string GetShortObject()
+    {
+        if (Target != null && Target.Attributes != null)
+        {
+            foreach (var it in Target.Attributes)
+            {
+                if (it.Template != null && it.Template.Index == 6 && !string.IsNullOrEmpty(it.Value))
+                {
+                    GXStructure tmp = (GXStructure)GXDLMSTranslator.XmlToValue(it.Value);
+                    string str = Gurux.DLMS.GXDLMSConverter.ToLogicalName(tmp[1]);
+                    if (str == "0.0.0.0.0.0")
+                    {
+                        return "";
+                    }
+                    return str;
+                }
+            }
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<object[]>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async System.Threading.Tasks.Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<object[]>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            //Don't clear status or error is lost.
+            Notifier?.ProgressStart();
+            List<object[]> rows = new();
+            ListValues req = new ListValues() { Index = request.StartIndex, Count = request.Count, Filter = filter, Descending = true };
+            var ret = await Http.PostAsJson<ListValuesResponse>("api/Value/List", req, request.CancellationToken);
+            if (ret.Values != null)
+            {
+                foreach (var row in ret.Values)
+                {
+                    if (!string.IsNullOrEmpty(row.Value))
+                    {
+                        GXStructure columns = (GXStructure)GXDLMSTranslator.XmlToValue(row.Value);
+                        for (int pos = 0; pos != columns.Count; ++pos)
+                        {
+                            @if (columns[pos] is byte[] bt)
+                            {
+                                @if (pos < captureObjects.Count && captureObjects[pos].Key is GXDLMSClock && captureObjects[pos].Value.AttributeIndex == 2)
+                                {
+                                    @*Show date time.*@
+                                    columns[pos] = GXDLMSClient.ChangeType(bt, DataType.DateTime, _templateSettings != null ? _templateSettings.UtcTimeZone : false);
+                                }
+                                else
+                                {
+                                    columns[pos] = @GXDLMSTranslator.ToHex(bt);
+                                }
+                            }
+
+                        }
+                        rows.Add(columns.ToArray());
+                    }
+                    else
+                    {
+                        --ret.Count;
+                    }
+                }
+            }
+            return new ItemsProviderResult<object[]>(rows, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Reset the buffer.
+    ///</summary>
+    private void Reset()
+    {
+        Parent?.OnAction(1, (sbyte)0);
+    }
+
+    /// <summary>
+    /// Add new row for the buffer.
+    ///</summary>
+    private void Capture()
+    {
+        Parent?.OnAction(2, (sbyte)0);
+    }
+
+    /// <summary>
+    /// Add action buttons.
+    /// </summary>
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Parent == null)
+            {
+                throw new ArgumentNullException(nameof(Parent), "View must exist within a Object view");
+            }
+            //Get capture objects.
+            if (Parent.Parent?.Device is GXDevice dev)
+            {
+                if (dev.Objects == null)
+                {
+                    deviceObjects = null;
+                }
+                else
+                {
+                    deviceObjects = dev.Objects.ToArray();
+                }
+                if (dev.Template != null && dev.Template.Settings != null)
+                {
+                    _templateSettings = JsonSerializer.Deserialize<GXDLMSSettings>(dev.Template.Settings);
+                }
+                DeviceTemplate = dev.Template;
+            }
+            if (Parent.Template == null)
+            {
+                Parent.MenuItems.Add(MenuItem.Create("Reset", @Properties.Resources.Reset,
+                               EventCallback.Factory.Create(this, Reset),
+                !Parent.CanInvokeAction(1)));
+                Parent.MenuItems.Add(MenuItem.Create("Capture", @Properties.Resources.Capture,
+               EventCallback.Factory.Create(this, Capture),
+                !Parent.CanInvokeAction(1)));
+            }
+            else
+            {
+                DeviceTemplate = Parent.Template.DeviceTemplate;
+            }
+            if (Target?.Attributes != null)
+            {
+                //Search buffer attribute.
+                foreach (var it in Target.Attributes)
+                {
+                    if (it.Template != null && it.Template.Index == 2)
+                    {
+                        filter.Attribute = new GXAttribute() { Id = it.Id };
+                        break;
+                    }
+                }
+                //Search capture objects.
+                foreach (var it in Target.Attributes)
+                {
+                    if (it.Template != null && it.Template.Index == 3)
+                    {
+                        string? str;
+                        if (Parent.Template == null)
+                        {
+                            str = it.Value;
+                        }
+                        else
+                        {
+                            str = it.Template.DefaultValue;
+                        }
+                        if (string.IsNullOrEmpty(str))
+                        {
+                            //Read capture objects.
+                            //If capture objects are not yet read.
+                            if (it.CreationTime != null)
+                            {
+                                var ret = (await Http.GetAsJsonAsync<GetAttributeResponse>("api/Attribute?id=" + it.Id))?.Item;
+                                it.Value = ret?.Value;
+                            }
+                        }
+                        if (!string.IsNullOrEmpty(str))
+                        {
+                            GXArray tmp = (GXArray)GXDLMSTranslator.XmlToValue(str);
+                            foreach (GXStructure it2 in tmp)
+                            {
+                                GXDLMSObject? o = null;
+                                ObjectType ot = (ObjectType)Convert.ToInt32(it2[0]);
+                                string ln = Gurux.DLMS.GXDLMSConverter.ToLogicalName(it2[1]);
+                                str = ln;
+                                KeyValuePair<string, string> kp = new KeyValuePair<string, string>("", "");
+                                int aIndex = Convert.ToInt32(it2[2]);
+                                int dIndex = Convert.ToInt32(it2[3]);
+                                GXDLMSCaptureObject co = new GXDLMSCaptureObject() { AttributeIndex = aIndex, DataIndex = dIndex };
+                                //Find capture objects from the association view and update capture object names.
+                                if (deviceObjects != null)
+                                {
+                                    foreach (var obj in deviceObjects)
+                                    {
+                                        if (obj.Template != null && obj.Template.ObjectType == (int)ot &&
+                                        obj.Template.LogicalName == str)
+                                        {
+                                            try
+                                            {
+                                                o = GXDLMSClient.CreateObject(ot);
+                                                if (aIndex != -1)
+                                                {
+                                                    str += " " + ((IGXDLMSBase)o).GetNames()[aIndex - 1];
+                                                }
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                str += " " + ex.Message;
+                                            }
+                                            if (obj.Template.Name == null)
+                                            {
+                                                throw new Exception(Properties.Resources.InvalidTarget);
+                                            }
+                                            kp = new KeyValuePair<string, string>(str, obj.Template.Name);
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (o == null)
+                                {
+                                    //If object is not in the association view.
+                                    o = GXDLMSClient.CreateObject(ot);
+                                    o.LogicalName = ln;
+                                    GXDLMSConverter c = new GXDLMSConverter();
+                                    kp = new KeyValuePair<string, string>(str, c.GetDescription(str, ot)[0]);
+                                }
+                                captureObjects.Add(new KeyValuePair<GXDLMSObject, GXDLMSCaptureObject>(o, co));
+                                captureObjectNames.Add(kp);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            InvokeAsync(StateHasChanged);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

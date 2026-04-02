@@ -1,7 +1,11 @@
 {
   "profiles": {
     "Gurux.DLMS.AMI.Agent": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "commandLineArgs": "-h https://localhost:44338/"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
     }
   }
 }

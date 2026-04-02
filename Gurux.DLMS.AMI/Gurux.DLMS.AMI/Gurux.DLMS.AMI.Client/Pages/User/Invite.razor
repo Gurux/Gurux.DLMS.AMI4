@@ -1,0 +1,82 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/invite"
+@using Gurux.DLMS.AMI.Shared.DTOs.Invite
+@inject NavigationManager Nav
+@inject HttpClient Http
+
+<h3>Create invite link</h3>
+
+<div class="mb-2">
+    <label>Group ID</label>
+    <input class="form-control" @bind="_groupId" />
+</div>
+<div class="mb-2">
+    <label>Allowed User (optional)</label>
+    <input class="form-control" @bind="_allowedUser" />
+</div>
+<div class="mb-2">
+    <label>Expires in hours (&lt;=24)</label>
+    <input class="form-control" type="number" min="1" max="24" @bind="_hours" />
+</div>
+<button class="btn btn-primary" @onclick="Create">Create</button>
+
+@if (!string.IsNullOrWhiteSpace(_link))
+{
+    <div class="alert alert-success mt-3">
+        Invite link: <a href="@_link">@_link</a>
+    </div>
+}
+
+@code {
+    private string _groupId = "devs";
+    private string? _allowedUser;
+    private int _hours = 24;
+    private string? _link;
+
+    private async Task Create()
+    {
+        var req = new GXGroupInviteRequest(_groupId, _allowedUser, _hours);
+        using var msg = new HttpRequestMessage(HttpMethod.Post, "api/invites");
+        // DEMO admin-avain; aseta serverille esim: dotnet user-secrets set "AdminApiKey" "secret"
+        msg.Headers.TryAddWithoutValidation("x-api-key", "secret");
+        msg.Content = JsonContent.Create(req);
+        var resp = await Http.SendAsync(msg);
+        resp.EnsureSuccessStatusCode();
+        var created = await resp.Content.ReadFromJsonAsync<GXGroupInviteResponse>();
+        var baseUri = new Uri(Nav.BaseUri);
+        _link = new Uri(baseUri, $"invite/{created!.Token}").ToString();
+    }
+}
+
+

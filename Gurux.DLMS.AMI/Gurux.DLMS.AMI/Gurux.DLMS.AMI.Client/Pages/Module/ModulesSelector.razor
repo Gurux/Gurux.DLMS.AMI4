@@ -1,0 +1,332 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+
+@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<SelectionContainer TItem="GXModule" @ref="@_selectionContainer">
+    <SelectionList Title="Selected" @ref="_selected"
+                   ShowAllUsers="false"
+                   ItemsProvider="@GetSelectedItems">
+        <DataContent>
+            @if (context != null)
+            {
+                <LinkButton OnClick="@Show"
+                            Target="@context"
+                            Text="@context.Id" />
+            }
+        </DataContent>
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchSelectedByName" />
+        </FilterContent>
+    </SelectionList>
+    <SelectionList Title="Available" @ref="_available"
+                   ItemsProvider="@GetItems">
+        <DataContent>
+            @context.Id
+        </DataContent>
+        <FilterContent>
+            <Search Placeholder="@Properties.Resources.FilterByName"
+                    OnClickAsync="@SearchByName" />
+            <Search Placeholder="@Properties.Resources.FilterByUser"
+                    OnClickAsync="@SearchByUser" />
+        </FilterContent>
+    </SelectionList>
+</SelectionContainer>
+
+@code {
+    [CascadingParameter]
+    private ModuleGroupTab? Parent { get; set; }
+
+    [CascadingParameter]
+    private ScheduleTab? ScheduleParent { get; set; }
+
+    internal GXModule? Active { get; set; }
+
+
+    private void Show(GXModule item)
+    {
+        try
+        {
+            Active = item;
+            ScheduleParent?.Update();
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide module settings dialog.
+    /// </summary>
+    private void OnCancel()
+    {
+        Active = null;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Update()
+    {
+        Active = null;
+        InvokeAsync(StateHasChanged);
+        if (_selected != null)
+        {
+            //_selected.Update();
+            //     await _selected.RefreshDataAsync();
+        }
+        if (_available != null)
+        {
+            //_available.Update();
+            //   await _available.RefreshDataAsync();
+        }
+    }
+
+
+    SelectionList<GXModule>? _selected;
+    SelectionList<GXModule>? _available;
+    SelectionContainer<GXModule>? _selectionContainer;
+    /// <summary>
+    /// Module filter.
+    /// </summary>
+    private GXModule filter = new GXModule("");
+
+    protected async Task SearchSelectedByName(string? name)
+    {
+        try
+        {
+            if (_selected?.Items != null)
+            {
+                _selected.HiddenItems.Clear();
+                if (!string.IsNullOrEmpty(name))
+                {
+                    name = name.ToLower();
+                    foreach (var it in _selected.Items)
+                    {
+                        if (it.Id != null && !it.Id.ToLower().Contains(name))
+                        {
+                            _selected.HiddenItems.Add(it);
+                        }
+                    }
+                }
+                Notifier?.ClearStatus();
+                await _selected.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByName(string? name)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (!string.IsNullOrEmpty(name))
+                {
+                    filter.Id = name;
+                }
+                else
+                {
+                    filter.Id = string.Empty;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected async Task SearchByUser(string? userName)
+    {
+        try
+        {
+            if (_available != null)
+            {
+                if (string.IsNullOrEmpty(userName))
+                {
+                    filter.ModuleGroups = null;
+                }
+                else
+                {
+                    GXUser user;
+                    GXModuleGroup? mg = filter.ModuleGroups?.FirstOrDefault();
+                    if (mg == null)
+                    {
+                        mg = new GXModuleGroup(null);
+                        user = new();
+                        GXUserGroup? ug = new GXUserGroup();
+                        mg.UserGroups = new List<GXUserGroup>(new GXUserGroup[] { ug });
+                        ug.Users = new List<GXUser>(new GXUser[] { user });
+                        filter.ModuleGroups = new List<GXModuleGroup>(new GXModuleGroup[] { mg });
+                    }
+                    else
+                    {
+                        user = mg.UserGroups[0].Users[0];
+                    }
+                    user.UserName = userName;
+                }
+                Notifier?.ClearStatus();
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXModule>> GetSelectedItems(GXItemsProviderRequest request)
+    {
+        if (_selected?.Items == null)
+        {
+            return default;
+        }
+        //ToArray makes a clone from the items. Don't remove it.
+        return new(new ItemsProviderResult<GXModule>(_selected.Items.ToArray(), _selected.Items.Count));
+    }
+
+    private async ValueTask<ItemsProviderResult<GXModule>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListModules req = new ListModules()
+                {
+                    Index = request.StartIndex,
+                    Count = request.Count,
+                    Filter = filter,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Exclude = _selected?.Items?.Select(s => s.Id).ToArray()
+                };
+            var ret = await Http.PostAsJson<ListModulesResponse>("api/Module/List", req, request.CancellationToken);
+            if (ret?.Modules != null && _selected != null)
+            {
+                return new ItemsProviderResult<GXModule>(ret.Modules, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    private List<GXModule> GetModules()
+    {
+        if (Parent?.Active?.Modules != null)
+        {
+            return Parent.Active.Modules;
+        }
+        //Get only scheduled modules.
+        filter.Type = ModuleType.Schedule;
+        return ScheduleParent.Active.Modules;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or selector is null.
+        await Task.Delay(1);
+        try
+        {
+            //Show only the scheduled modules for schedule selector.
+            if (ScheduleParent != null)
+            {
+                filter.Type = ModuleType.Schedule;
+            }
+            List<GXModule> modules = GetModules();
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (_selected != null && modules != null)
+            {
+                _selected.Items = modules;
+            }
+            else
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            //Read available items.
+            if (_available != null)
+            {
+                await _available.RefreshDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

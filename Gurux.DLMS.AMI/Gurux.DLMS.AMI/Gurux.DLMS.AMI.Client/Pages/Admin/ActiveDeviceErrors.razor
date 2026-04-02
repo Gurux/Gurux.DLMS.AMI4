@@ -1,0 +1,266 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/activedeviceerrors"
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+@using System.Text.Json
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IAmiComponent
+@implements IDisposable
+@attribute [Authorize(Roles = "Admin, User, DeviceErrorManager")]
+
+@if (_errors != null)
+{
+    @foreach (var it in _errors)
+    {
+        <StatusTile Title="@GetErrorTitle(@it.Level)" OnClose="@OnClose" Target="@it" Mode="@GetTraceLevel(it)">
+            @it.Message
+        </StatusTile>
+    }
+}
+<CascadingValue Value=this>
+    @ChildContent
+</CascadingValue>
+@code {
+    TraceLevel GetTraceLevel(GXDeviceError item)
+    {
+        return (TraceLevel)item.Level;
+    }
+
+    string GetErrorTitle(int? level)
+    {
+        if (level == null)
+        {
+            return "";
+        }
+        return ((TraceLevel)level).ToString();
+    }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    /// <summary>
+    /// Amount of the errors shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 5;
+
+    GXDeviceError[]? _errors = null;
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.ActiveDeviceErrors;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "DeviceErrorsIcon";
+        }
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            await GetActiveErrors();
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXDevice>?>(this, nameof(IGXHubEvents.ClearDeviceErrors), async (devices) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.AddDeviceErrors), async (errors) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDeviceError>>(this, nameof(IGXHubEvents.CloseDeviceErrors), async (errors) =>
+            {
+                await Updated();
+            });
+            await GetActiveErrors();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Get active errors.
+    /// </summary>
+    private async Task GetActiveErrors()
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            GXDeviceError filter = new GXDeviceError();
+            ListDeviceErrors req = new ListDeviceErrors() { Filter = filter };
+            req.Count = Count;
+            ListDeviceErrorsResponse ret = await Http.PostAsJson<ListDeviceErrorsResponse>("api/DeviceError/List", req);
+            _errors = ret.Errors;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Close the selected error.
+    /// </summary>
+    /// <param name="error"></param>
+    /// <returns></returns>
+    public async Task OnClose(object sender)
+    {
+        try
+        {
+            Notifier?.ProgressStart();
+            Notifier?.ClearStatus();
+            CloseDeviceError arg = new CloseDeviceError();
+            arg.Errors = new Guid[] { (sender as GXDeviceError).Id };
+            await Http.PostAsJson<CloseDeviceErrorResponse>("api/DeviceError/Close", arg);
+            List<GXDeviceError> list = new List<GXDeviceError>();
+            list.AddRange(_errors);
+            list.Remove(sender as GXDeviceError);
+            _errors = list.ToArray();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+
+    /// <summary>
+    /// Clear the error list.
+    /// </summary>
+
+    public async Task OnClearConfirmation(bool confirm)
+    {
+        try
+        {
+            if (confirm)
+            {
+                Notifier?.ProgressStart();
+                await Http.PostAsJson<ClearDeviceErrorsResponse>("api/DeviceError/Clear", new ClearDeviceErrors());
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}

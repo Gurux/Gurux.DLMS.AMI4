@@ -1,0 +1,576 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS
+@using Gurux.DLMS.ManufacturerSettings
+@using Gurux.DLMS.Objects
+@using System.Xml.Linq
+@using System.IO
+@using System.Xml
+@using System.Xml.Serialization
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json
+@using System.Web;
+@using System.Text.Json.Serialization;
+@using System.Text.Encodings.Web;
+
+@attribute [Authorize(Roles = "Admin, TemplateManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ILogger<DeviceTemplate> Logger
+
+@if (Active != null)
+{
+    @if (isLoading)
+    {
+        <p>Loading @fileName...</p>
+    }
+    else if (IsAdding)
+    {
+        @*FileSelector is disabled until user has selected device template.*@
+        <FileSelector Value="@_value"
+                      Style="width:100%"
+                      MaxFileSize="10000000"
+                      OnLoaded="@UpdateDeviceTemplates"
+                      Filter=".gxc" />
+    }
+
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <ValidationSummary />
+        <table>
+            @if (IsAdding && templates != null && templates.Any())
+            {
+                <tr>
+                    <th>Type:</th>
+                    <th>
+                        <InputSelect id="type" @bind-Value="TemplateType" placeholder="Device template type">
+                            @foreach (var it in templates)
+                            {
+                                <option value="@it.Type">@it.Type</option>
+                            }
+                        </InputSelect>
+                    </th>
+                </tr>
+            }
+            <tr>
+                <th>
+                    Name:
+                </th>
+                <th>
+                    <InputText id="name" disabled="@IsDeleting"
+                               @bind-Value="TemplateName"
+                               placeholder="Device template name" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Wait time
+                </th>
+                <th>
+                    <InputNumber id="waitTime" disabled="@IsDeleting"
+                                 @bind-Value="Active.WaitTime" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Resend count
+                </th>
+                <th>
+                    <InputNumber id="resendCount" disabled="@IsDeleting"
+                                 @bind-Value="Active.ResendCount" />
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    @Properties.Resources.Authentication
+                </th>
+                <th>
+                    <InputSelect id="type" class="form-select"
+                                 @bind-Value="Authentication" readonly="true">
+                        @foreach (var it in GetAuthentications())
+                        {
+                            <option value="@Convert.ToInt32(@it)">@it</option>
+                        }
+                    </InputSelect>
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <InputHexAscii @ref="@_password"
+                                   Disabled="@(IsDeleting || IsPasswordTileDisabled())"
+                                   @bind-Value="DevicePassword"
+                                   Title="@Properties.Resources.Password">
+                    </InputHexAscii>
+                    <ValidationMessage For="@(() => _password)" />
+                </th>
+            </tr>
+        </table>
+        <TabControl>
+            <ChildContent>
+                <TabPage Text="Profiles" Icon="Profiles">
+                    <Profiles Parent="this" @ref="_profiles"></Profiles>
+                </TabPage>
+                <TabPage Text="Ciphering" Icon="Ciphering">
+                    <Ciphering Parent="this" @ref="_ciphering"></Ciphering>
+                </TabPage>
+                <TabPage Text="Advanced" Icon="Advanced">
+                    <Advanced Parent="this" @ref="_advanced"></Advanced>
+                </TabPage>
+            </ChildContent>
+        </TabControl>
+        <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                              Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+    </EditForm>
+}
+@code {
+    private InputHexAscii? _password;
+    private GXValidator? _validator;
+    private Ciphering? _ciphering;
+    private Advanced? _advanced;
+    private Profiles? _profiles;
+
+    private string? _value;
+
+    [CascadingParameter]
+    private DeviceTemplateTab? Parent { get; set; }
+    private GXDeviceTemplate? _active;
+
+    internal GXDeviceTemplate? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private bool DeleteTarget;
+    private bool isLoading;
+    List<GXDeviceTemplate> templates = new List<GXDeviceTemplate>();
+    private string? fileName = null;
+
+    public bool IsDeleting
+    {
+        get
+        {
+            return action == CrudAction.Delete;
+        }
+    }
+
+    //User changes name of the Active.
+    string? TemplateName
+    {
+        get
+        {
+            if (Active == null)
+            {
+                return null;
+            }
+            return Active.Name;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Name = value;
+            }
+        }
+    }
+
+    public bool IsAdding
+    {
+        get
+        {
+            return action == CrudAction.Create;
+        }
+    }
+
+    private string? TemplateType
+    {
+        get
+        {
+            return Active?.Type;
+        }
+        set
+        {
+            foreach (GXDeviceTemplate it in templates)
+            {
+                if (Parent != null && it.Type == value)
+                {
+                    _active = it;
+                    break;
+                }
+            }
+        }
+    }
+
+    private Guid SelectedSettings { get; set; }
+
+    private List<Gurux.DLMS.Enums.Authentication> GetAuthentications()
+    {
+        List<Gurux.DLMS.Enums.Authentication> list = new List<Gurux.DLMS.Enums.Authentication>();
+        list.Add(Gurux.DLMS.Enums.Authentication.None);
+        list.Add(Gurux.DLMS.Enums.Authentication.Low);
+        list.Add(Gurux.DLMS.Enums.Authentication.High);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighMD5);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA1);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighGMAC);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighSHA256);
+        list.Add(Gurux.DLMS.Enums.Authentication.HighECDSA);
+        return list;
+    }
+
+    internal Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings? Settings;
+    private byte Authentication
+    {
+        get
+        {
+            if (Settings == null)
+            {
+                return 0;
+            }
+            return Settings.Authentication;
+        }
+        set
+        {
+            if (Settings != null)
+            {
+                if (Settings.Authentication != value)
+                {
+                    Settings.Authentication = value;
+                }
+            }
+        }
+    }
+
+    private bool IsPasswordTileDisabled()
+    {
+        if (Settings != null)
+        {
+            return (Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.HighGMAC ||
+                Settings.Authentication == (byte)Gurux.DLMS.Enums.Authentication.None);
+        }
+        return false;
+    }
+
+    private byte[]? DevicePassword
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Get device templates from the XML.
+    /// </summary>
+    /// <param name="xml"></param>
+    private void UpdateDeviceTemplates(string? xml, string? fileName)
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            isLoading = true;
+            InvokeAsync(StateHasChanged);
+            templates = ClientHelpers.ConvertToTemplates(Logger, xml);
+            if (Parent != null && templates.Any())
+            {
+                _active = templates[0];
+            }
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+            isLoading = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Device template tab asks to update the UI.
+    /// </summary>
+    public void Update()
+    {
+        if (Active?.Settings != null)
+        {
+            Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
+            if (Settings != null)
+            {
+                DevicePassword = GXDLMSTranslator.HexToBytes(Settings?.Password);
+                if (DevicePassword != null)
+                {
+                    DevicePassword = Settings?.HexPassword;
+                }
+                _profiles?.Update(Settings);
+                _ciphering?.Update(Settings);
+                _advanced?.Update(Settings);
+            }
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                Notifier.ProgressStart();
+                try
+                {
+                    //Get device template data.
+                    var tmp = (await Http.GetAsJsonAsync<GetDeviceTemplateResponse>(string.Format("api/DeviceTemplate?id={0}", Id)));
+                    if (tmp?.Item != null)
+                    {
+                        _active = tmp.Item;
+                    }
+                    else
+                    {
+                        NavigationManager.NavigateTo("404");
+                    }
+                }
+                finally
+                {
+                    Notifier?.ProgressEnd();
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            action = ClientHelpers.GetAction(Action);
+            if (action != CrudAction.Create)
+            {
+                templates.Add(Active);
+            }
+
+            if (action == CrudAction.Update && Active.Settings != null)
+            {
+                Settings = JsonSerializer.Deserialize<Gurux.DLMS.AMI.Shared.DTOs.Device.GXDLMSSettings>(Active.Settings);
+                if (Settings != null)
+                {
+                    DevicePassword = Settings.HexPassword;
+                    _ciphering?.Update(Settings);
+                    _advanced?.Update(Settings);
+                }
+            }
+
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "oi oi-trash", OnClick = EventCallback.Factory.Create(this, OnSave) });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+            }
+            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the device content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            if (Active.Objects == null || Active.Objects.Count == 0)
+            {
+                throw new Exception("Device template file is not selected.");
+            }
+            if (Settings != null)
+            {
+                //Check security settings.
+                _ciphering?.Validate(sender, Settings);
+                _profiles?.Validate(sender, Settings);
+                _advanced?.Validate(sender, Settings);
+            }
+        }
+    }
+
+    private void UpdateSettings()
+    {
+        //Update settings
+        if (Active != null && _password != null && Settings != null)
+        {
+            var options = new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault
+            };
+            _ciphering?.UpdateSettings(Settings);
+            _profiles?.UpdateSettings(Settings);
+            _advanced?.UpdateSettings(Settings);
+            Settings.Password = null;
+            Settings.HexPassword = _password?.GetByteArray();
+            //Set empty strings to null.
+            @foreach (var it in Settings.GetType().GetProperties())
+            {
+                object value = it.GetValue(Settings);
+                if (value is string str)
+                {
+                    if (str == string.Empty)
+                    {
+                        it.SetValue(Settings, null);
+                    }
+                }
+                if (value is byte[] ba)
+                {
+                    if (ba.Length == 0)
+                    {
+                        it.SetValue(Settings, null);
+                    }
+                }
+            }
+            Active.Settings = JsonSerializer.Serialize(Settings, options);
+        }
+    }
+
+    /// <summary>
+    /// Save device Active.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveDeviceTemplateResponse>("api/DeviceTemplate/Delete", new RemoveDeviceTemplate()
+                {
+                    Ids = new Guid[] { Active.Id },
+                    Delete = DeleteTarget
+                });
+            }
+            else if (action == CrudAction.Create)
+            {
+                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Add", new UpdateDeviceTemplate()
+                {
+                    Templates = new GXDeviceTemplate[] { Active }
+                });
+            }
+            else if (action == CrudAction.Update)
+            {
+                UpdateSettings();
+                await Http.PostAsJson<UpdateDeviceTemplateResponse>("api/DeviceTemplate/Update", new UpdateDeviceTemplate()
+                {
+                    Templates = new GXDeviceTemplate[] { Active }
+                });
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}

@@ -1,0 +1,188 @@
+﻿@using Gurux.DLMS.AMI.Module
+@using System.Text.Json.Serialization
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Collections.Concurrent
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+@using System.Text.Json
+
+@namespace Gurux.DLMS.AMI.Components.Panel
+
+@implements IAmiComponent
+
+@inject IJSRuntime JSRuntime
+@inject ILogger<Panel> Logger
+
+<CascadingValue Value="this">
+    <div class="d-inline-flex container-fluid" style="height: 90vh">
+        <div id="leftDiv" style="@GetStyle(0)">
+            @if (Items?.Count > 0)
+            {
+                @Items[0].ChildContent
+            }
+        </div>
+        <div id="verticalDivider" style="height: 100%">&nbsp;</div>
+        <div id="rightDiv" style="@GetStyle(1)">
+            @if (Items?.Count > 1)
+            {
+                @Items[1].ChildContent
+            }
+        </div>
+    </div>
+    @ChildContent
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+
+    private string? GetStyle(int index)
+    {
+        string? str = null;
+        if (Items.Count > index)
+        {
+            str = Items[index].Style;
+            if (index == 0)
+            {
+                if (string.IsNullOrEmpty(Items[index].Width))
+                {
+                    str += "flex-basis: 100%;";
+                }
+                else
+                {
+                    str += "flex-basis: " + Items[index].Width + ";";
+                }
+            }
+            if (string.IsNullOrEmpty(Items[index].Height))
+            {
+                str += "height: 100%;";
+            }
+            else
+            {
+                str += "height: " + Items[index].Height + " %;";
+            }
+        }
+        return str;
+    }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return "Panel";
+        }
+    }
+
+    /// <inheritdoc />
+    [JsonIgnore]
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "PanelIcon";
+        }
+    }
+
+    /// <summary>
+    /// Panel ID.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Child panels.
+    /// </summary>
+    private readonly List<PanelItem> Items = new List<PanelItem>();
+
+    [Parameter]
+    public string? CssClass { get; set; }
+
+    [Parameter]
+    public string? Style { get; set; }
+
+    /// <summary>
+    /// Top position.
+    /// </summary>
+    [Parameter]
+    public int Top
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Left position.
+    /// </summary>
+    [Parameter]
+    public int Left
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Width.
+    /// </summary>
+    [Parameter]
+    public string? Width
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Height.
+    /// </summary>
+    [Parameter]
+    public string? Height
+    {
+        get;
+        set;
+    }
+
+    internal async Task AddItem(PanelItem value)
+    {
+        Items.Add(value);
+        try
+        {
+            if (Items != null && Items.Count == 2)
+            {
+                IJSObjectReference window = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./window.js");
+                await window.InvokeVoidAsync("initializeSplitter", DotNetObjectReference.Create(this));
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Panel failed. {ex.Message}", ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Items != null && Items.Any())
+            {
+                IJSObjectReference window = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./window.js");
+                await window.InvokeVoidAsync("initializeSplitter", DotNetObjectReference.Create(this));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("Panel failed. {ex.Message}", ex);
+        }
+        await base.OnInitializedAsync();
+    }
+}

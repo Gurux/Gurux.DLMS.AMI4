@@ -1,0 +1,152 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Accordion
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+
+@typeparam CREATIONTIME
+
+@if (CreationTime != null)
+{
+    <Accordion Id="content-type-authoring">
+        <HeaderTemplate>
+            <div>
+                <h6><b>@Properties.Resources.AuthoringInformation</b></h6>
+                <label>@string.Format(Properties.Resources.AuthoringInformationFormat, Creator, ToString(CreationTime))</label>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            <CreatorSelector Action="@Action" Target="Creator"></CreatorSelector>
+            @if (CreationTime != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.CreationTime</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="creationTime" readonly="readonly" class="form-control"
+                               @bind-Value="CreationTime" />
+                </div>
+            }
+            @if (Updated != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Updated</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="updated" readonly="readonly" class="form-control"
+                               @bind-Value="Updated" />
+                </div>
+            }
+            @if (Removed != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Removed</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="removed" class="form-control"
+                               @bind-Value="Removed" />
+                </div>
+            }
+        </ChildContent>
+    </Accordion>
+}
+@code {
+
+    private string ToString(object value)
+    {
+        if (value is DateTimeOffset dto)
+        {
+            return dto.DateTime.ToString();
+        }
+        return value?.ToString() ?? string.Empty;
+    }
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// The creator.
+    /// </summary>
+    [Parameter]
+    public GXUser? Creator
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected creator is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXUser?> CreatorChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Creation time.
+    /// </summary>
+    [Parameter]
+    public CREATIONTIME? CreationTime
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Remove time.
+    /// </summary>
+    [Parameter]
+    public DateTimeOffset? Removed
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the remove time is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<DateTimeOffset?> RemovedChanged
+    {
+        get;
+        set;
+    }
+
+
+    /// <summary>
+    /// Update time.
+    /// </summary>
+    [Parameter]
+    public DateTimeOffset? Updated
+    {
+        get;
+        set;
+    }
+}

@@ -73,6 +73,7 @@ Gurux.Common_Test/
 
 ## TODO: If you have NuGet Package Restore enabled, uncomment this
 #packages/
+Development/
 
 # Visual C++ cache files
 ipch/
@@ -193,3 +194,4 @@ Gurux.DLMS.AMI/Gurux.DLMS.AMI/Server/Modules/
 Gurux.DLMS.AMI/Gurux.DLMS.AMI/Server/appsettings.Development.json
 Gurux.DLMS.AMI.Tests/
 Kesken/
+Gurux.DLMS.AMI.Agent/Properties/launchSettings.json

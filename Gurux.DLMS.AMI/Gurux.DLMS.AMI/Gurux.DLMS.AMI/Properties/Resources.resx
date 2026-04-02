@@ -1,0 +1,1147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DeviceIdIsZero" xml:space="preserve">
+    <value>Device Id is zero.</value>
+  </data>
+  <data name="ReaderIdIsZero" xml:space="preserve">
+    <value>Reader Id is zero.</value>
+  </data>
+  <data name="InvalidEmailAddress" xml:space="preserve">
+    <value>Invalid email address.</value>
+  </data>
+  <data name="SiteName" xml:space="preserve">
+    <value>Site Name</value>
+  </data>
+  <data name="SiteNameDescription" xml:space="preserve">
+    <value>Site Name</value>
+  </data>
+  <data name="SiteDetails" xml:space="preserve">
+    <value>Site details</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="SiteEmailAddressDescription" xml:space="preserve">
+    <value>Site email address. This address is used when emails are sent.</value>
+  </data>
+  <data name="SiteSlocan" xml:space="preserve">
+    <value>Site slocan</value>
+  </data>
+  <data name="SiteSlocanDescription" xml:space="preserve">
+    <value>Site slogan.</value>
+  </data>
+  <data name="SiteStatus" xml:space="preserve">
+    <value>Site Status</value>
+  </data>
+  <data name="SiteVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SiteVersionDescription" xml:space="preserve">
+    <value>Site version</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="SystemSiteInformation" xml:space="preserve">
+    <value>Site information</value>
+  </data>
+  <data name="SystemConfigurationDescription" xml:space="preserve">
+    <value>Change site name, e-mail address or slogan.</value>
+  </data>
+  <data name="SystemStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="SystemStatusInformation" xml:space="preserve">
+    <value>Status status</value>
+  </data>
+  <data name="SystemStatusDescription" xml:space="preserve">
+    <value>System status information.</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Logout</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Hello</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Register</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="PhoneNumber" xml:space="preserve">
+    <value>Phone number</value>
+  </data>
+  <data name="DateOfBirth" xml:space="preserve">
+    <value>Date of birth</value>
+  </data>
+  <data name="ExternalLogins" xml:space="preserve">
+    <value>External logins</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profile</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="PersonalData" xml:space="preserve">
+    <value>Personal data</value>
+  </data>
+  <data name="TwoFactorAuthentication" xml:space="preserve">
+    <value>Two-factor authentication</value>
+  </data>
+  <data name="SystemSecurityDescription" xml:space="preserve">
+    <value>System security information.</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="SystemSecurity" xml:space="preserve">
+    <value>System security</value>
+  </data>
+  <data name="PasswordOptions" xml:space="preserve">
+    <value>Password options</value>
+  </data>
+  <data name="PasswordLength" xml:space="preserve">
+    <value>Password Length</value>
+  </data>
+  <data name="UniqueCharacters" xml:space="preserve">
+    <value>Unique characters</value>
+  </data>
+  <data name="RequireNonAlphanumeric" xml:space="preserve">
+    <value>Require non alphanumeric</value>
+  </data>
+  <data name="RequireLowercase" xml:space="preserve">
+    <value>Require lowercase</value>
+  </data>
+  <data name="RequireUppercase" xml:space="preserve">
+    <value>Require uppercase</value>
+  </data>
+  <data name="RequireDigit" xml:space="preserve">
+    <value>Require digit</value>
+  </data>
+  <data name="LockoutOptions" xml:space="preserve">
+    <value>Lockout options</value>
+  </data>
+  <data name="MaxFailedAccessAttempts" xml:space="preserve">
+    <value>Max Failed Access Attempts</value>
+  </data>
+  <data name="DefaultLockoutTimeSpan" xml:space="preserve">
+    <value>Default lockout time span</value>
+  </data>
+  <data name="SignInOptions" xml:space="preserve">
+    <value>Sign in options</value>
+  </data>
+  <data name="RequireConfirmedEmail" xml:space="preserve">
+    <value>Require confirmed email</value>
+  </data>
+  <data name="RequireConfirmedAccount" xml:space="preserve">
+    <value>Require confirmed account</value>
+  </data>
+  <data name="SystemSecuritySettings" xml:space="preserve">
+    <value>System security settings.</value>
+  </data>
+  <data name="TheMinimumLengthAPasswordMustBeDefaultsTo6" xml:space="preserve">
+    <value>The minimum length a password must be. Defaults to 6.</value>
+  </data>
+  <data name="TheMinimumNumberOfUniqueCharactersWhichAPasswordMustContain" xml:space="preserve">
+    <value>The minimum number of unique characters which a password must contain</value>
+  </data>
+  <data name="PasswordsMustContainANonAlphanumericCharacter" xml:space="preserve">
+    <value>Passwords must contain a non-alphanumeric character.</value>
+  </data>
+  <data name="PasswordsMustContainALowerCaseASCIICharacter" xml:space="preserve">
+    <value>Passwords must contain a lower case ASCII character.</value>
+  </data>
+  <data name="PasswordsMustContainAUpperCaseASCIICharacter" xml:space="preserve">
+    <value>Passwords must contain a upper case ASCII character.</value>
+  </data>
+  <data name="PasswordsMustContainADigit" xml:space="preserve">
+    <value>Passwords must contain a digit.</value>
+  </data>
+  <data name="TheNumberOfFailedAccessAttemptsAllowedBeforeAUserIsLockedOutIfLockoutIsEnabled" xml:space="preserve">
+    <value>The number of failed access attempts allowed before a user is locked out, if lockout is enabled.</value>
+  </data>
+  <data name="TheLockOutTimeInMinutesIfAUserIsLockedOutForWhenALockoutOccurs" xml:space="preserve">
+    <value>The lock out time in minutes if a user is locked out for when a lockout occurs.</value>
+  </data>
+  <data name="OptionsForConfiguringSignIn" xml:space="preserve">
+    <value>Options for configuring sign in.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedEmailAddressBeforeTheyCanSignIn" xml:space="preserve">
+    <value>A user must have a confirmed email address before they can sign in.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedAccountBeforeTheyCanSignIn" xml:space="preserve">
+    <value>A user must have a confirmed account before they can sign in.</value>
+  </data>
+  <data name="LocalizedResourceIsMissing" xml:space="preserve">
+    <value>Localized resource is missing. </value>
+  </data>
+  <data name="SystemException" xml:space="preserve">
+    <value>System exception:</value>
+  </data>
+  <data name="LocalizedResourceDublicate" xml:space="preserve">
+    <value>Dual value of a localized resource.</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Personal Access Tokens</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Creation Time</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Expiration</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>View</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Warning - Make sure you copy the above token now. It's not stored it and you will not be able to see it again.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>You have successfully added a new personal access token. Copy the token now!</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>Succeeded</value>
+  </data>
+  <data name="YourProfileHasBeenUpdated" xml:space="preserve">
+    <value>Your profile has been updated</value>
+  </data>
+  <data name="ModuleInstallationUnknownService" xml:space="preserve">
+    <value>Module installation failed. Module requires {0} service that is not intalled.</value>
+  </data>
+  <data name="UnknownModule" xml:space="preserve">
+    <value>Unknown module {0}.</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Module</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Given name</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Surname</value>
+  </data>
+  <data name="ArrayIsEmpty" xml:space="preserve">
+    <value>Array is empty.</value>
+  </data>
+  <data name="YouCanRemoveYourself" xml:space="preserve">
+    <value>You can't remove yourself.</value>
+  </data>
+  <data name="ProfilePicture" xml:space="preserve">
+    <value>Profile picture</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Minutely" xml:space="preserve">
+    <value>Minutely</value>
+  </data>
+  <data name="Hourly" xml:space="preserve">
+    <value>Hourly</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+  <data name="ContentEdited" xml:space="preserve">
+    <value>Update failed. Content has been edited by another user.</value>
+  </data>
+  <data name="UsersMustBelongToAtLeastOneUserGroup" xml:space="preserve">
+    <value>Users must belong to at least one user group.</value>
+  </data>
+  <data name="InvalidUserRoleAtLeastOneRoleMustBeSelected" xml:space="preserve">
+    <value>Invalid user role. At least one role must be selected.</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Invalid name.</value>
+  </data>
+  <data name="InvalidStartTime" xml:space="preserve">
+    <value>Invalid start time.</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>Invalid Id.</value>
+  </data>
+  <data name="UnknownTaskTarget" xml:space="preserve">
+    <value>Unknown task target.</value>
+  </data>
+  <data name="Cron" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronDescription" xml:space="preserve">
+    <value>Cron takes care of running periodic tasks like checking for updates.</value>
+  </data>
+  <data name="CronTitle" xml:space="preserve">
+    <value>Manage automatic site maintenance tasks.</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agents</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Workflows</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Triggers</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Blocks</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Component views</value>
+  </data>
+  <data name="Modules" xml:space="preserve">
+    <value>Modules</value>
+  </data>
+  <data name="RegionalAndLanguage" xml:space="preserve">
+    <value>Regional and language</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Scripts</value>
+  </data>
+  <data name="Maintenance" xml:space="preserve">
+    <value>Maintenance</value>
+  </data>
+  <data name="StatisticDescription" xml:space="preserve">
+    <value>Statisics helps to improve the site reaction speed.</value>
+  </data>
+  <data name="Statistic" xml:space="preserve">
+    <value>Statistic</value>
+  </data>
+  <data name="SchedulerServiceIsStarting" xml:space="preserve">
+    <value>Scheduler service is starting.</value>
+  </data>
+  <data name="SchedulerServiceIsWorking" xml:space="preserve">
+    <value>Scheduler service is working.</value>
+  </data>
+  <data name="SchedulerServiceIsStopping" xml:space="preserve">
+    <value>Scheduler service is stopping.</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Roles are used to manage permissions.</value>
+  </data>
+  <data name="TargetMustBelongToOneGroup" xml:space="preserve">
+    <value>Target must belong to at least one group.</value>
+  </data>
+  <data name="UnknownTarget" xml:space="preserve">
+    <value>Unknown target.</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="PerformanceDescription" xml:space="preserve">
+    <value>Enable or disable notification to improve performance for large amounts of meters.</value>
+  </data>
+  <data name="CronStarted" xml:space="preserve">
+    <value>Cron started.</value>
+  </data>
+  <data name="CronCompleted" xml:space="preserve">
+    <value>Cron completed.</value>
+  </data>
+  <data name="ExternalAuthenticationDescription" xml:space="preserve">
+    <value>External authentications allows logging in via external services.</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>Downloading...</value>
+  </data>
+  <data name="Updating" xml:space="preserve">
+    <value>Updating...</value>
+  </data>
+  <data name="Restarting" xml:space="preserve">
+    <value>Restarting...</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Id" xml:space="preserve">
+    <value>Id:</value>
+  </data>
+  <data name="ModuleEnabled" xml:space="preserve">
+    <value>Module enabled.</value>
+  </data>
+  <data name="ModuleDisabled" xml:space="preserve">
+    <value>Module disabled.</value>
+  </data>
+  <data name="ModuleRemoved" xml:space="preserve">
+    <value>Module removed.</value>
+  </data>
+  <data name="ModuleInstalled" xml:space="preserve">
+    <value>Module installed.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Device template</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Device template group</value>
+  </data>
+  <data name="WorkflowInstalled" xml:space="preserve">
+    <value>Workflow installed.</value>
+  </data>
+  <data name="WorkflowRemoved" xml:space="preserve">
+    <value>Workflow removed.</value>
+  </data>
+  <data name="ScriptInstalled" xml:space="preserve">
+    <value>Script installed.</value>
+  </data>
+  <data name="ScriptRemoved" xml:space="preserve">
+    <value>Script removed.</value>
+  </data>
+  <data name="ScheduleCreated" xml:space="preserve">
+    <value>Schedule created.</value>
+  </data>
+  <data name="ScheduleRemoved" xml:space="preserve">
+    <value>Schedule removed.</value>
+  </data>
+  <data name="ScheduleUpdated" xml:space="preserve">
+    <value>Schedule updated.</value>
+  </data>
+  <data name="WorkflowUpdated" xml:space="preserve">
+    <value>Workflow updated.</value>
+  </data>
+  <data name="ScriptUpdated" xml:space="preserve">
+    <value>Script updated.</value>
+  </data>
+  <data name="KeyManagementRemoved" xml:space="preserve">
+    <value>Key management removed.</value>
+  </data>
+  <data name="KeyManagementUpdated" xml:space="preserve">
+    <value>Key management updated.</value>
+  </data>
+  <data name="KeyManagementInstalled" xml:space="preserve">
+    <value>Key management installed.</value>
+  </data>
+  <data name="KeyManagementsDescription" xml:space="preserve">
+    <value>With the key managements, the settings of encrypted connections are processed.</value>
+  </data>
+  <data name="InvalidKeyType" xml:space="preserve">
+    <value>Invalid key type.</value>
+  </data>
+  <data name="InvalidKeyData" xml:space="preserve">
+    <value>Invalid key data.</value>
+  </data>
+  <data name="DatabaseType" xml:space="preserve">
+    <value>Database type: {0}</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Connecting: {0}</value>
+  </data>
+  <data name="DatabaseServiceIsDisabled" xml:space="preserve">
+    <value>Database service is disabled.</value>
+  </data>
+  <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
+    <value>System title {0} is already in use.</value>
+  </data>
+  <data name="WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts" xml:space="preserve">
+    <value>With Scripts enabled, workflows funtionality can be expand with scripts.</value>
+  </data>
+  <data name="MaintenanceDescription" xml:space="preserve">
+    <value>Take the site offline for maintenance or bring it back online.</value>
+  </data>
+  <data name="ManufacturerDescription" xml:space="preserve">
+    <value>Using manufacturers new device templates can be offered for the users.</value>
+  </data>
+  <data name="WorkflowDescription" xml:space="preserve">
+    <value>With Workflows enabled, new custom workflows funtionality can be offered for the users.</value>
+  </data>
+  <data name="TriggerDescription" xml:space="preserve">
+    <value>With triggers enabled, new custom functionality can be offered for the users.</value>
+  </data>
+  <data name="BlockDescription" xml:space="preserve">
+    <value>With blocks enabled, new custom user interfaces can be offered for the users.</value>
+  </data>
+  <data name="ComponentViewDescription" xml:space="preserve">
+    <value>With component views enabled, new custom user interfaces can be offered for the users.</value>
+  </data>
+  <data name="AgentDescription" xml:space="preserve">
+    <value>Installable agent versions.</value>
+  </data>
+  <data name="ModuleDescription" xml:space="preserve">
+    <value>With modules enabled, new custom functionality can be offered for the users.</value>
+  </data>
+  <data name="LanguageDescription" xml:space="preserve">
+    <value>With multiple languages enabled, interface text can be translated and registered users may select their preferred language.</value>
+  </data>
+  <data name="ScriptDescription" xml:space="preserve">
+    <value>With Scripts enabled, workflows funtionality can be expand with scripts.</value>
+  </data>
+  <data name="ScriptRebuild" xml:space="preserve">
+    <value>Rebuild the script.</value>
+  </data>
+  <data name="ScriptRebuildFailed" xml:space="preserve">
+    <value>Rebuild the script failed. {0}</value>
+  </data>
+  <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
+    <value>New groups must be added first.</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="ReportDescription" xml:space="preserve">
+    <value>Reports can be used to improve the creation of reports from a large amount of data.</value>
+  </data>
+  <data name="SubtotalDescription" xml:space="preserve">
+    <value>Subtotals can be used to improve the creation of reports from a large amount of data.</value>
+  </data>
+  <data name="MenuDescription" xml:space="preserve">
+    <value>Manage menus and menu links.</value>
+  </data>
+  <data name="ContentTypeDescription" xml:space="preserve">
+    <value>Manage content types.</value>
+  </data>
+  <data name="ContentDescription" xml:space="preserve">
+    <value>Manage content.</value>
+  </data>
+  <data name="InvalidTitle" xml:space="preserve">
+    <value>Invalid title</value>
+  </data>
+  <data name="InvalidLink" xml:space="preserve">
+    <value>Invalid link.</value>
+  </data>
+  <data name="NotificationDescription" xml:space="preserve">
+    <value>When notification is enabled, users can be notified of additions, deletions, or updates.</value>
+  </data>
+  <data name="PruneStarted" xml:space="preserve">
+    <value>Prune started</value>
+  </data>
+  <data name="PruneCompleted" xml:space="preserve">
+    <value>Prune completed</value>
+  </data>
+  <data name="PruneDescription" xml:space="preserve">
+    <value>Prune removes unused targets based on criteria such as time.</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Manufacturers</value>
+  </data>
+  <data name="Contents" xml:space="preserve">
+    <value>Contents</value>
+  </data>
+  <data name="Menus" xml:space="preserve">
+    <value>Menus</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Subtotals</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Key management</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Reports</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Authentication</value>
+  </data>
+  <data name="Prune" xml:space="preserve">
+    <value>Prune</value>
+  </data>
+  <data name="Components" xml:space="preserve">
+    <value>Components</value>
+  </data>
+  <data name="ContentTypes" xml:space="preserve">
+    <value>Content types</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="fiIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\fi.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="deIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\de.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="eeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\ee.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="frIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\fr.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="svIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\sv.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="enIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\en.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="itIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\it.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="StatusIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Status.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SecurityIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Security.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="PruneIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Prune.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AddIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Add.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="EditIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Edit.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="RemoveIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Remove.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Run" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Run.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Device.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateImageIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Agent.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Gateway.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ConfigurationIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Configuration.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="LogsIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Logs.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ExtensionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Extension.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Content.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentTypeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentType.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DataExchangeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DataExchange.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="IssueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Issue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="MenuIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Menu.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Notification.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ProjectIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Project.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WarningIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Warning.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AgentGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AgentLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AttributeTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AttributeTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="BlockIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Block.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="BlockGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\BlockGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ComponentViewIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ComponentView.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ComponentViewGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ComponentViewGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentTypeGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentTypeGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="CronIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Cron.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceActionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceAction.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplateGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTraceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTrace.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="FavoriteIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Favorite.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\GatewayGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\GatewayLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagement.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementKeyIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementKey.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="LanguageIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Language.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ManufacturerIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Manufacturer.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ManufacturerGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ManufacturerGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="MenuGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\MenuGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModelIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Model.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Module.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ModuleGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ModuleLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\NotificationGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\NotificationLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ObjectTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ObjectTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="PerformanceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Performance.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Report.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportValueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportValue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="RoleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Role.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Schedule.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScheduleGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScheduleLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Script.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScriptGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScriptLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Subtotal.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalValueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalValue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SystemLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SystemLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TaskIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Task.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TokenIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Token.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TriggerIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Trigger.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TriggerGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\TriggerGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UnknownIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Unknown.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\User.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserActionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserAction.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserErrorIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserError.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserStampIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserStamp.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VersionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Version.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Workflow.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\WorkflowGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\WorkflowLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="HomeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Home.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Agent group</value>
+  </data>
+  <data name=" AgentGroupManager" xml:space="preserve">
+    <value> Agent group manager</value>
+  </data>
+  <data name="AgentLog" xml:space="preserve">
+    <value>Agent log</value>
+  </data>
+  <data name="AgentLogManager" xml:space="preserve">
+    <value>Agent log manager</value>
+  </data>
+  <data name="AgentManager" xml:space="preserve">
+    <value>Agent manager.</value>
+  </data>
+  <data name="BlockGroupManager" xml:space="preserve">
+    <value>Block group manager</value>
+  </data>
+  <data name="ContentType" xml:space="preserve">
+    <value>Content type</value>
+  </data>
+  <data name="DataExchange" xml:space="preserve">
+    <value>Data exchange</value>
+  </data>
+  <data name="DataExchangeDescription" xml:space="preserve">
+    <value>With data exchange user can import and export data.</value>
+  </data>
+  <data name="AlreadyExists" xml:space="preserve">
+    <value>{0} {1} already exists.</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Gateway group</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Device group</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Schedule group</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Schedule</value>
+  </data>
+  <data name="ContentGroup" xml:space="preserve">
+    <value>Content group</value>
+  </data>
+  <data name="Content" xml:space="preserve">
+    <value>Content</value>
+  </data>
+  <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Content type group</value>
+  </data>
+  <data name="ScriptGroup" xml:space="preserve">
+    <value>Script group</value>
+  </data>
+  <data name="Script" xml:space="preserve">
+    <value>Script</value>
+  </data>
+  <data name="AppearanceDescription" xml:space="preserve">
+    <value>Appearance can be used to customize the user theme and icons.</value>
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="ProxyDescription" xml:space="preserve">
+    <value>Proxy can be used to route and load-balance incoming requests across multiple backend services.</value>
+  </data>
+  <data name="IpAccessDescription" xml:space="preserve">
+    <value>IP access control  can be used to block specific clients, IP addresses, or request patterns before they reach the application, improving security and reducing unwanted traffic.</value>
+  </data>
+  <data name="IpAccessControl" xml:space="preserve">
+    <value>IP access control</value>
+  </data>
+  <data name="NewLoginTitle" xml:space="preserve">
+    <value>New login</value>
+  </data>
+  <data name="NewLogin" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>NewLogin.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="PATExpiring" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>PAT Expiring.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="PATExpired" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>PAT Expired.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="AccountDescription" xml:space="preserve">
+    <value>Configure default user account settings, including fields, registration requirements, and email messages.</value>
+  </data>
+  <data name="LocalizedResourceDescription" xml:space="preserve">
+    <value>With multiple languages enabled, interface text can be translated and registered users may select their preferred language.</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Devices</value>
+  </data>
+  <data name="Schedules" xml:space="preserve">
+    <value>Schedules</value>
+  </data>
+  <data name="DeviceTemplates" xml:space="preserve">
+    <value>Device templates</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>User management</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Logs</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Favorites</value>
+  </data>
+  <data name="SystemLogs" xml:space="preserve">
+    <value>System logs</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="ScriptLog" xml:space="preserve">
+    <value>Script log</value>
+  </data>
+  <data name="ModuleLogs" xml:space="preserve">
+    <value>Module logs</value>
+  </data>
+  <data name="ScheduleLogs" xml:space="preserve">
+    <value>Schedule logs</value>
+  </data>
+  <data name="WorkflowLog" xml:space="preserve">
+    <value>Workflow log</value>
+  </data>
+  <data name="SchedulerEnded" xml:space="preserve">
+    <value>Scheduler ended.</value>
+  </data>
+  <data name="SchedulerStarted" xml:space="preserve">
+    <value>Scheduler started.</value>
+  </data>
+</root>

@@ -1,0 +1,231 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Globalization
+@using System.Diagnostics
+@inject IGXNotifier2 Notifier
+@inject HttpClient Http
+
+@typeparam TItem
+
+@inject ILogger<EnumTypeSelector<TItem>> Logger
+
+
+@if (Types != null)
+{
+    <GXInputDropdown class="form-select"
+                     Id="Tasks-Type"
+                     @bind-Value="@Selected"
+                     Items="Values"
+                     OnSelected="@((string? e) => Updated(e))">
+    </GXInputDropdown>
+}
+
+@code {
+    /// <summary>
+    /// Selected value.
+    /// </summary>
+    [Parameter]
+    public TItem Value { get; set; } = default!;
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> ValueChanged { get; set; }
+
+    private IEnumerable<string?> Values
+    {
+        get
+        {
+            return Types?.Select(s => s.Name);
+        }
+    }
+
+    /// <summary>
+    /// Enum type.
+    /// </summary>
+    [Parameter]
+    public string? Type { get; set; }
+
+    GXEnumType[]? Types;
+
+    private string? Selected
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<TItem> OnSelected { get; set; }
+
+    /// <summary>
+    /// Used resource storage.
+    /// </summary>
+    [CascadingParameter]
+    public IGXResourceStorage ResourceStorage { get; set; } = default!;
+
+    private string? ToString(GXEnumType value)
+    {
+        return value?.Name;
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated(string? value)
+    {
+        Logger.LogInformation("Selected value changed to {value}", value);
+        try
+        {
+            Type type = Nullable.GetUnderlyingType(typeof(TItem)) ?? typeof(TItem);
+            if (type.IsEnum)
+            {
+                // Special handling for enums.
+                if (string.IsNullOrEmpty(value) || value == "-")
+                {
+                    Value = default!;
+                }
+                else
+                {
+                    Value = (TItem)Enum.Parse(type, value);
+                    Logger.LogInformation("New value changed from {Value} to {value}", Value, value);
+                }
+            }
+            else
+            {
+                GXEnumType? sel = Types?.Where(w => w.Name == value).SingleOrDefault();
+                if (sel != null)
+                {
+                    TItem? result;
+                    if (!BindConverter.TryConvertTo<TItem>(sel.Id, CultureInfo.InvariantCulture, out result))
+                    {
+                        throw new Exception("Invalid enum type.");
+                    }
+                    Value = result;
+                }
+                else
+                {
+                    Value = default!;
+                }
+            }
+            await ValueChanged.InvokeAsync(Value);
+            await OnSelected.InvokeAsync(Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in Selected setter.");
+        }
+    }
+
+    /// <summary>
+    /// Enum type filter.
+    /// </summary>
+    private GXEnumType filter = new GXEnumType();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ResourceStorage.OnEnumTypesChanged = EventCallback.Factory.Create(this, v => Refresh());
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            await Refresh();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Read enumeration types.
+    /// </summary>
+    protected async Task Refresh()
+    {
+        //Don't clear status or error is lost.
+        Notifier.ProgressStart();
+        try
+        {
+            filter.Type = Type;
+            ListEnumTypes req = new ListEnumTypes()
+            {
+                Filter = filter,
+            };
+            var ret = await Http.PostAsJson<ListEnumTypesResponse>("api/EnumType/List", req);
+            var tmp = new List<GXEnumType>();
+            if (ret.Types != null)
+            {
+                //Empty filter.
+                tmp.Add(new GXEnumType() { Name = "-" });
+                tmp.AddRange(ret.Types);
+            }
+            Types = tmp.ToArray();
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (ObjectDisposedException)
+        {
+            //Might happen when the user scrolls the list rapidly.
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine(ex.ToString());
+            Notifier.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

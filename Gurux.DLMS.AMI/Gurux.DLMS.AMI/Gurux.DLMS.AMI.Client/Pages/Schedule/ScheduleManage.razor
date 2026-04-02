@@ -1,0 +1,162 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/Schedule"
+@page "/ScheduleGroup"
+@page "/ScheduleLog/{Id:guid?}"
+@page "/ScheduleLog/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ScheduleManager + "," + GXRoles.ScheduleGroupManager + "," + GXRoles.ScheduleLog + "," + GXRoles.ScheduleLogManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+@*If user adds a new item or modifies the existing one.*@
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "ScheduleGroup", true) == 0)
+    {
+        <ScheduleGroupTab Action="@Action" Id="@Id"></ScheduleGroupTab>
+    }
+    else if (string.Compare(Path, "Schedule", true) == 0)
+    {
+        <ScheduleTab Action="@Action" Id="@Id"></ScheduleTab>
+    }
+    else if (string.Compare(Path, "ScheduleLog", true) == 0)
+    {
+        <ScheduleLog Id="@Id"></ScheduleLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <TabTextTemplate>
+            <Image Id="@context.Icon" />
+            @context.Text
+            <Badge Value="@context.PadgeCount" Label="@context.Padge"
+                   TraceLevel="@context.PadgeType">
+            </Badge>
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleManager)>
+                <TabPage Path="Schedule" Text=@Properties.Resources.SchedulesTitle
+                         Icon="Schedule">
+                    <Schedules Id="@Id"></Schedules>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleGroupManager)>
+                <TabPage Path="ScheduleGroup" Text=@Properties.Resources.ScheduleGroups
+                         Icon="ScheduleGroups">
+                    <ScheduleGroups Id="@Id"></ScheduleGroups>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ScheduleLog, GXRoles.ScheduleLogManager)>
+                <TabPage Path="ScheduleLog"
+                         Text=@Properties.Resources.ScheduleLogs
+                         Padge="New schedule logs"
+                         PadgeCount="@_log.GetCount()"
+                         PadgeType="@_log.GetTraceLevel()"
+                         Icon="ScheduleLogs">
+                    <ScheduleLogs Id="@Id"></ScheduleLogs>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// Stamp.
+    /// </summary>
+    private GXUserStamp _log = new GXUserStamp();
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _log = Notifier.GetUserStamps(TargetType.ScheduleLog);
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        {
+            bool updated = false;
+            foreach (var it in stamps)
+            {
+                if (it.TargetType == TargetType.ScheduleLog)
+                {
+                    updated = true;
+                }
+            }
+            if (updated)
+            {
+                InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

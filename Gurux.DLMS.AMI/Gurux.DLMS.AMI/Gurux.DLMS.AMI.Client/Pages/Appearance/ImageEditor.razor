@@ -1,0 +1,487 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Text.Json
+@using System.Text
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@inject ILogger<ImageEditor> logger
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <CopyLabel Value="@Active.Id">@Properties.Resources.Name</CopyLabel>
+                    <InputText id="description" readonly @bind-Value="Active.Id" class="form-control" />
+                </div>
+                <Image Id="@Active.Id" Value="@Active.Value" Color="@_color"></Image>
+                <GXInputDropdown class="form-select"
+                                 Id="image-imageType"
+                                 LastValue="true"
+                                 ItemsProvider="@GetTypes"
+                                 @bind-Value="ImageType">
+                </GXInputDropdown>
+                @if (ImageType == ImageType.Html)
+                {
+                    <DropdownSearch class="form-control"
+                                    Id="image-html"
+                                    LastValue="true"
+                                    @bind-Value="_htmlSymbol"
+                                    Formatter="@((HtmlSymbol e) => e.Description)"
+                                    ItemsProvider="@GetHtmlItems">
+                        <Template Context="it">
+                            <span>@((MarkupString)it.NumericCode)</span> @it.Description
+                        </Template>
+                    </DropdownSearch>
+                    <GXColorSelector @bind-Value="@_color"></GXColorSelector>
+                }
+                else
+                @if (ImageType == ImageType.IconLigature)
+                {
+                    <GXInputDropdown class="form-select"
+                                     TValue="GXAppearance"
+                                     Id="image-imageType"
+                                     LastValue="true"
+                                     Items="@IconPacks"
+                                     Formatter="@((e) => e?.Id)"
+                                     OnSelected="@UpdateIcons"
+                                     @bind-Value="_iconPack">
+                    </GXInputDropdown>
+                    <DropdownSearch @ref="_icons"
+                                    TValue="(string, string)"
+                                    class="form-control"
+                                    Id="image-icon"
+                                    LastValue="true"
+                                    @bind-Value="_icon"
+                                    Formatter="@((e) => e.Item2)"
+                                    ItemsProvider="@GetIcons">
+                        <Template Context="it">
+                            <Image Value="@it.Item1"></Image> @it.Item2
+                        </Template>
+                    </DropdownSearch>
+                    <GXColorSelector @bind-Value="@_color"></GXColorSelector>
+                }
+                else
+                {
+                    <FileSelector Value="@_value"
+                                  Style="width:100%"
+                                  MaxFileSize="1000000"
+                                  OnLoaded="@UpdateImage"
+                                  Filter="image/*,.png,.jpg,.jpeg,.gif,.bmp,.ico,.svg" />
+                }
+                <AuthoringInformationDateTimeOffset Action="Edit" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                      Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                @if (Action == CrudAction.Delete)
+                {
+                    <hr />
+                    <p>
+                    </p>
+                    <div class="form-group">
+                        <InputRadioGroup @bind-Value="DeleteTarget">
+                            <InputRadio Value="false">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDisableQuestion</label><br>
+                            <InputRadio Value="true">
+                            </InputRadio>
+                            <label>@Properties.Resources.TargetDeleteQuestion</label>
+                        </InputRadioGroup>
+                        <br />
+                    </div>
+                }
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+
+    [Parameter]
+    public GXAppearance? Active { get; set; }
+
+    GXInputDropdown<(string, string)>? _icons;
+    private ImageType ImageType
+    {
+        get;
+        set;
+    }
+
+    private GXAppearance? _iconPack
+    {
+        get;
+        set;
+    }
+
+    private async Task UpdateIcons(GXAppearance e)
+    {
+        _icon = default!;
+        if (Active != null)
+        {
+            Active.Value = null;
+        }
+        if (_icons != null)
+        {
+            await _icons.RefreshDataAsync();
+        }
+    }
+
+    private string _color { get; set; } = "black";
+    /// <summary>
+    /// Available icon packs
+    /// </summary>
+    [Parameter]
+    public IEnumerable<GXAppearance>? IconPacks { get; set; }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public CrudAction Action { get; set; }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+    private bool DeleteTarget;
+    private byte[]? _value;
+
+    private HtmlSymbol _htmlSymbol
+    {
+        get
+        {
+            HtmlSymbol? tmp = null;
+            if (!string.IsNullOrEmpty(Active?.Value))
+            {
+                tmp = Symbols.Where(w => w.NumericCode == Active.Value).SingleOrDefault();
+            }
+            if (tmp == null)
+            {
+                tmp = Symbols[0];
+            }
+            return tmp;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Value = value.NumericCode;
+                StateHasChanged();
+            }
+        }
+    }
+
+
+    private (string, string) _icon
+    {
+        get
+        {
+            (string, string) tmp = default;
+            if (!string.IsNullOrEmpty(Active?.Value))
+            {
+                tmp = Icons.Where(w => w.Item1 == Active.Value).SingleOrDefault();
+            }
+            if (tmp == default)
+            {
+                tmp = Icons.FirstOrDefault();
+            }
+            return tmp;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Value = value.Item1;
+                StateHasChanged();
+            }
+        }
+    }
+
+    public record HtmlSymbol(
+        string Description,
+        string NumericCode
+    );
+
+    private readonly List<HtmlSymbol> Symbols =
+ [
+    new("Registered trademark","&#174;"),
+    new("Trademark","&#8482;"),
+    new("Ampersand","&#38;"),
+    new("Less-than sign","&#60;"),
+    new("Greater-than sign","&#62;"),
+    new("Euro sign","&#8364;"),
+    new("Pound sign","&#163;"),
+    new("Yen sign","&#165;"),
+
+    new("Left arrow","&#8592;"),
+    new("Right arrow","&#8594;"),
+    new("Up arrow",   "&#8593;"),
+    new("Down arrow", "&#8595;"),
+    new("Left-right arrow","&#8596;"),
+    new("Left double arrow", "&#8656;"),
+    new("Right double arrow","&#8658;"),
+
+    new("Black star", "&#9733;"),
+    new("White star",        "&#9734;"),
+    new("Black heart suit",  "&#9829;"),
+    new("White heart",       "&#9825;"),
+    new("Check mark",   "&#10003;"),
+    new("Heavy check mark","&#10004;"),
+    new("Ballot x",        "&#10007;"),
+    new("Heavy ballot x",  "&#10008;"),
+    new("White smiling face",      "&#9786;"),
+    new("House building",         "&#x1F3E0;"),
+    new("Magnifying glass",       "&#x1F50D;"),
+    new("Envelope",               "&#9993;"),
+    new("E-mail symbol",          "&#x1F4E7;"),
+    new("Hamburger menu",         "&#9776;"),
+    new("Gear",                   "&#9881;"),
+    new("Wastebasket",            "&#x1F5D1;"),
+    new("White heavy check mark", "&#x2705;")
+ ];
+
+    /// <summary>
+    /// Get image types.
+    /// </summary>
+    private ValueTask<ItemsProviderResult<ImageType>> GetTypes(GXItemsProviderRequest request)
+    {
+        var list = new List<ImageType>();
+        list.AddRange(Enum.GetValues<ImageType>());
+        if (IconPacks?.Any() != true)
+        {
+            list.Remove(ImageType.IconLigature);
+        }
+        list.Remove(ImageType.Auto);
+        return new(new ItemsProviderResult<ImageType>(list, list.Count));
+    }
+
+    /// <summary>
+    /// Get Html items.
+    /// </summary>
+    private ValueTask<ItemsProviderResult<HtmlSymbol>> GetHtmlItems(GXItemsProviderRequest request)
+    {
+        var list = new List<HtmlSymbol>();
+        int total = list.Count;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            string filter = request.Filter.ToLower();
+            foreach (var it in Symbols)
+            {
+                if (it.ToString().ToLower().Contains(filter))
+                {
+                    list.Add(it);
+                }
+            }
+        }
+        else
+        {
+            list.AddRange(Symbols);
+        }
+        return new(new ItemsProviderResult<HtmlSymbol>(list, Symbols.Count));
+    }
+
+    private readonly List<(string, string)> Icons = new();
+
+    private ValueTask<ItemsProviderResult<(string, string)>> GetIcons(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (!string.IsNullOrEmpty(_iconPack?.Id))
+            {
+                Icons.Clear();
+                Icons.AddRange(ClientHelpers.GetIconPackIcons(_iconPack.Id));
+                IEnumerable<(string, string)> icons = Icons;
+                int total = Icons.Count;
+                if (!string.IsNullOrEmpty(request.Filter))
+                {
+                    icons = icons.Where(w => w.Item2.ToLower().Contains(request.Filter.ToLower()));
+                }
+                if (request.StartIndex != 0)
+                {
+                    icons = icons.Skip(request.StartIndex);
+                }
+                if (request.Count != 0)
+                {
+                    icons = icons.Take(request.Count);
+                }
+                else
+                {
+                    //Show max 10 icons if count is not defined.
+                    icons = icons.Take(10);
+                }
+                if (_icon == default)
+                {
+                    //Select first icon when image pack is changed.
+                    _icon = icons.FirstOrDefault();
+                }
+                return new(new ItemsProviderResult<(string, string)>(icons, total));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrEmpty(Active?.Value))
+        {
+            //Update image type.
+            ImageType = Image.DetectKind(Active?.Value);
+        }
+        base.OnAfterRender(firstRender);
+    }
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            //Update _htmlSymbol.
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+    /// <summary>
+    /// Get image from the file.
+    /// </summary>
+    /// <param name="value"></param>
+    private void UpdateImage(byte[]? value, string fileName)
+    {
+        if (Active != null && value != null)
+        {
+            string ext = Path.GetExtension(fileName);
+            if (ext == ".svg")
+            {
+                Active.Value = ASCIIEncoding.UTF8.GetString(value);
+            }
+            else
+            {
+                Active.Value = Convert.ToBase64String(value);
+            }
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Save resource.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (Action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveAppearanceResponse>("api/Appearance/Delete", new RemoveAppearance()
+                {
+                    Ids = new string[] { Active.Id },
+                    Delete = DeleteTarget
+                });
+            }
+            else
+            {
+                string address;
+                if (Action == CrudAction.Create)
+                {
+                    address = "api/Appearance/Add";
+                }
+                else if (Action == CrudAction.Update)
+                {
+                    address = "api/Appearance/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                var ret = await Http.PostAsJson<UpdateAppearanceResponse>(address, new UpdateAppearance()
+                { Appearances = new List<GXAppearance>() { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
+

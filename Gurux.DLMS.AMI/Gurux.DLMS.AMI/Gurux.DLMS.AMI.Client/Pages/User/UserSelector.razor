@@ -1,0 +1,164 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject HttpClient Http
+<InputSearch Context="item"
+             @bind-Value="Value"
+             Disabled="@Disabled"
+             OnSelected="@((GXUser e) => SelectionChanged(e))"
+             Immediate="true"
+             ItemsProvider="@GetItems">
+    <ItemContent>
+        @(item?.UserName + " " + item?.Id)
+    </ItemContent>
+</InputSearch>
+
+@code {
+
+    /// <summary>
+    /// Selected device template.
+    /// </summary>
+    [Parameter]
+    public GXUser? Value
+    {
+        get;
+        set;
+    }
+
+    private void SelectionChanged(GXUser? value)
+    {
+        ValueChanged.InvokeAsync(value);
+    }
+
+    /// <summary>
+    /// Is the user selector disabled.
+    /// </summary>
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Notified when the selected item is changed.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXUser?> ValueChanged
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Possible static values.
+    /// </summary>
+    /// <remarks>
+    /// If values are added they are not asked from the Gurux.DLMS.AMI.
+    /// </remarks>
+    [Parameter]
+    public IEnumerable<GXUser>? Values
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private async ValueTask<ItemsProviderResult<GXUser?>> GetItems(GXItemsProviderRequest request)
+    {
+        if (Values != null && Values.Any())
+        {
+            IEnumerable<GXUser> values;
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                values = Values.Where(w => string.Compare(w.UserName, request.Filter, true) == 0);
+            }
+            else
+            {
+                values = Values;
+            }
+            return new ItemsProviderResult<GXUser?>(values, values.Count());
+        }
+        GXUser? filter = null;
+        if (!string.IsNullOrEmpty(request.Filter))
+        {
+            //Search device templates by name
+            filter = new GXUser() { UserName = request.Filter };
+        }
+        ListUsers req = new ListUsers()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+        var ret = await Http.PostAsJson<ListUsersResponse>("api/User/List", req, request.CancellationToken);
+        List<GXUser> list = new();
+        if (ret.Users != null)
+        {
+            list.AddRange(ret.Users);
+        }
+        if (!string.IsNullOrEmpty(Value?.Id))
+        {
+            string id = Value.Id;
+            Value = null;
+            foreach (var it in list)
+            {
+                if (it.Id == id)
+                {
+                    Value = it;
+                    break;
+                }
+            }
+            if (Value?.Id != id)
+            {
+                SelectionChanged(Value);
+            }
+        }
+        //If use not found.
+        if (string.IsNullOrEmpty(Value?.Id) && filter != null)
+        {
+            if (Value == null)
+            {
+                Value = filter;
+                SelectionChanged(Value);
+            }
+        }
+        InvokeAsync(StateHasChanged);
+        return new ItemsProviderResult<GXUser?>(list, ret.Count);
+    }
+}

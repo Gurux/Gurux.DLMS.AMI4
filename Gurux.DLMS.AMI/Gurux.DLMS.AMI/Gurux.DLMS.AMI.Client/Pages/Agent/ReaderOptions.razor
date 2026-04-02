@@ -1,0 +1,153 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums;
+@using Gurux.DLMS.AMI.Shared
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Diagnostics
+
+@if (Settings != null)
+{
+    <EditForm Model="@Settings">
+        <DataAnnotationsValidator />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputSwitch Text="@Properties.Resources.Active" @bind-Value="Settings.Active" />
+                    <br />
+                </div>
+                <fieldset disabled="@(!Settings.Active)">
+                    <div class="form-group">
+                        <label>@Properties.Resources.Threads</label>
+                        <InputNumber id="threads" class="form-control"
+                                     @bind-Value="Settings.Threads"
+                                     disabled="@IsDisabled()" />
+                        <ValidationMessage For="@(() => Settings.Threads)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.AliveTime</label>
+                        <InputIntegerTimeSpan id="aliveTime" class="form-control"
+                                              TimeSpanUnit="TimeSpanUnit.Minute"
+                                              @bind-Value="Settings.AliveTime" />
+                        <ValidationMessage For="@(() => Settings.AliveTime)" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.TraceLevel</label>
+                        <select class="form-select" @bind="Settings.TraceLevel">
+                            @foreach (var it in TraceLevels)
+                            {
+                                <option value="@it"> @it </option>
+                            }
+                        </select>
+                    </div>
+                    <ValidationMessage For="@(() => Settings.TraceLevel)" />
+                </fieldset>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    TraceLevel[] TraceLevels = new TraceLevel[] { TraceLevel.Off, TraceLevel.Error, TraceLevel.Warning, TraceLevel.Info, TraceLevel.Verbose };
+
+    [Parameter]
+    public ReaderSettings? Settings { get; set; }
+    private GXValidator? _validator;
+
+    private string? _serialPort;
+
+    /// <summary>
+    /// The serial port of the agent.
+    /// </summary>
+    [Parameter]
+    public string? SerialPort
+    {
+        get => _serialPort;
+        set
+        {
+            if (_serialPort != value)
+            {
+                _serialPort = value;
+                SerialPortChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Amount of the threads is disabled when agent is used for the serial port.
+    /// </summary>
+    /// <returns></returns>
+    private bool IsDisabled()
+    {
+        return !string.IsNullOrEmpty(_serialPort);
+    }
+
+    /// <summary>
+    /// Notified when settings are updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<string?> SerialPortChanged { get; set; }
+
+
+    public void Validate(GXValidator sender)
+    {
+        OnValidate(sender);
+        _validator?.Validate();
+    }
+
+    public void OnValidate(GXValidator sender)
+    {
+        if (Settings != null && Settings.Active)
+        {
+            if (Settings.Threads < 1 || Settings.Threads > 10000)
+            {
+                sender.AddError(() => Settings.Threads, "Invalid threads amount.");
+            }
+            if (Settings.AliveTime < 1)
+            {
+                sender.AddError(() => Settings.AliveTime, "Invalid alive time.");
+            }
+        }
+    }
+    protected override void OnInitialized()
+    {
+    }
+
+}

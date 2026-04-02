@@ -1,0 +1,260 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+
+@using Microsoft.Extensions.Logging
+
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@implements IGXConfigUpdate
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_settings != null)
+{
+    <EditForm Model="@_settings">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Site version</label>
+                    <InputText id="siteVersion" class="form-control" readonly="readonly"
+                               @bind-Value="_settings.SiteVersion" />
+                </div>
+                <div class="form-group">
+                    <label>Start time</label>
+                    <input type="text" id="startTime" class="form-control" readonly="readonly"
+                           Value="@Convert.ToString(_settings.StartTime)" />
+                </div>
+                <div class="form-group">
+                    <label>System Up Time</label>
+                    <input type="text" id="upTime" class="form-control" readonly="readonly"
+                           Value="@Convert.ToString(DateTime.Now - _settings.StartTime)" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+<MenuControl>
+    <ChildContent>
+        <MenuItem Text="@Properties.Resources.Search" Id="Search" OnClick="@(async () => Updated())" />
+    </ChildContent>
+</MenuControl>
+@if (_assemblies != null)
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by name..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by version..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Version = Convert.ToString(__e.Value))" />
+                </th>
+                <th>
+                    <input class="form-control" type="text" placeholder="Filter by location..."
+                           @onchange="@((ChangeEventArgs __e) => filter.Location = Convert.ToString(__e.Value))" />
+                </th>
+            </tr>
+            <tr>
+                <th>@Properties.Resources.Name</th>
+                <th>@Properties.Resources.Version</th>
+                <th>@Properties.Resources.Location</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var assembly in _assemblies)
+            {
+                <tr class=@(GetSelectedClass(assembly)) @onclick="@(()=>RowSelected(assembly))">
+                    <td>@assembly.Name</td>
+                    <td>@assembly.Version</td>
+                    <td>@assembly.Location</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
+
+    StatusSettings? _settings;
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+        {
+            _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Script log filter.
+    /// </summary>
+    private GXAssembly filter = new GXAssembly();
+
+    /// <summary>
+    /// Total numbers of rows in the database.
+    /// </summary>
+    internal int Total
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    private GXAssembly? _selected;
+
+    protected string GetSelectedClass(GXAssembly selected)
+    {
+        return _selected != null && selected.Name == _selected.Name ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(GXAssembly selected)
+    {
+        _selected = selected;
+    }
+
+    GXAssembly[]? _assemblies;
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            _assemblies = null;
+            LoadedAssemblies req = new LoadedAssemblies() { Filter = filter };
+            var ret = await Http.PostAsJson<LoadedAssembliesResponse>("api/Configuration/Assemblies", req);
+            _assemblies = ret.Assemblies;
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Virtualize.
+    /// </summary>
+    protected Virtualize<GXAssembly>? virtualize;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXConfiguration>>(this, nameof(IGXHubEvents.ConfigurationSave), async (configurations) =>
+            {
+                if (configurations != null)
+                {
+                    foreach (var it in configurations)
+                    {
+                        if (it.Name == GXConfigurations.Status && !string.IsNullOrEmpty(it.Settings))
+                        {
+                            _settings = JsonSerializer.Deserialize<StatusSettings>(it.Settings);
+                            InvokeAsync(StateHasChanged);
+                            break;
+                        }
+                    }
+                }
+            });
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Close, Icon = "Cancel", OnClick = EventCallback.Factory.Create(this, OnCancel) });
+            Notifier.UpdateButtons();
+            if (!string.IsNullOrEmpty(Parent?.Active?.Settings))
+            {
+                _settings = JsonSerializer.Deserialize<StatusSettings>(Parent.Active.Settings);
+            }
+            await Updated();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

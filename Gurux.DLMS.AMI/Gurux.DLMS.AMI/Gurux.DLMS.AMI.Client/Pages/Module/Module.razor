@@ -1,0 +1,394 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@rendermode RenderMode.InteractiveWebAssembly
+
+@using Gurux.DLMS.AMI.Client.Module
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using System.IO
+@using Gurux.DLMS.AMI.Module
+@using System.Linq
+@using System.Net.Http.Headers
+@using System.Text.Json
+@using Microsoft.Extensions.Logging
+@using Microsoft.Extensions.Options
+@using Microsoft.AspNetCore.Components
+@using System.Reflection
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@inject ILogger<Module> Logger
+@inject ModuleLoader Registry
+
+@if (Active != null)
+{
+    <EditForm Model="@Active">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        @if (isAdding)
+        {
+            <tr>
+                <th>
+                    <LocalizedText Value="@Properties.Resources.UploadModule" />
+                </th>
+                <th>
+                    <FileSelector @bind-Value="@_value"
+                                  Style="width:100%"
+                                  MaxFileSize="10000000"
+                                  OnLoaded="@UpdateFile"
+                                  Filter=".zip" />
+                </th>
+            </tr>
+        }
+        else
+        {
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <InputNullableSwitch Text="@Properties.Resources.Active"
+                                             @bind-Value="Active.Active" />
+                        <br />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.Name</label>
+                        <InputText id="name" class="form-control" readonly="readonly" @bind-Value="Active.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.TraceLevel</label>
+                        <GXInputDropdown class="form-select"
+                                         Id="Agent.TraceLevel"
+                                         LastValue="@(action == CrudAction.Create)"
+                                         @bind-Value="Active.TraceLevel">
+                        </GXInputDropdown>
+                        <ValidationMessage For="@(() => Active.TraceLevel)" />
+                    </div>
+                    @if (_configurationUI != null)
+                    {
+                        <ModuleWrapper @ref="_module"
+                                       ComponentType="_configurationUI"
+                                       @bind-Settings="Active.Settings" />
+                    }
+                    <div class="form-group">
+                        <label>@Properties.Resources.Version</label>
+                        <InputText id="version" class="form-control" readonly="readonly" @bind-Value="Active.Version" />
+                    </div>
+                    <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                        Updated="@Active.Updated" />
+                </div>
+            </div>
+        }
+    </EditForm>
+
+    <Confirm @ref="RestartConfirmation"
+             ConfirmationChanged="OnRestartConfirmation"
+             ConfirmationTitle="Confirm restart"
+             AllowDelete="false"
+             OkTitle="@Properties.Resources.Restart"
+             ConfirmationMessage="Server needs restart to apply the module changes. Do you want to restart the server now?">
+    </Confirm>
+}
+
+@code {
+    [CascadingParameter]
+    private ModuleTab? Parent { get; set; }
+
+    private GXModule? _active;
+    private byte[]? _value;
+
+    private GXModule? Active
+    {
+        get
+        {
+            if (_active != null)
+            {
+                return _active;
+            }
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// User is verified before server is restart.
+    /// </summary>
+    protected ConfirmBase? RestartConfirmation;
+
+    ModuleWrapper? _module;
+    Type? _configurationUI;
+
+    private string? fileName = null;
+    private bool isAdding = false;
+
+    /// <summary>
+    /// Update custom module.
+    /// </summary>
+    /// <param name="xml"></param>
+    private void UpdateFile(byte[]? value, string? fileName)
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            Notifier.ProgressStart();
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            fileName = null;
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier.ProgressEnd();
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    /// <summary>
+    /// Show module settings.
+    /// </summary>
+    /// <returns></returns>
+    internal async Task ShowModuleSettings()
+    {
+        if (Active != null && _configurationUI == null)
+        {
+            if (!Registry.AddIns.Any())
+            {
+                await Registry.RefreshAsync();
+            }
+            var type = await Registry.GetComponentTypeAsync(Active.Id);
+            if (typeof(IAmiModule).IsAssignableFrom(type))
+            {
+                IAmiModule? obj = (IAmiModule?)Activator.CreateInstance(type)!;
+                _configurationUI = obj.Configuration;
+            }
+        }
+        if (_module != null)
+        {
+            await _module.NotifyInitializedAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_module != null)
+        {
+            await ShowModuleSettings();
+        }
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            action = ClientHelpers.GetAction(Action);
+            if (action != CrudAction.Create && (Active?.Id == null && Id != null))
+            {
+                //Get module data.
+                var tmp = (await Http.GetAsJsonAsync<GetModuleResponse>(string.Format("api/Module?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    _active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            await ShowModuleSettings();
+            action = ClientHelpers.GetAction(Action);
+            isAdding = action == CrudAction.Create;
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem() { Text = Properties.Resources.Remove, Icon = "Remove", OnClick = EventCallback.Factory.Create(this, OnSave) });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Save, "Save", EventCallback.Factory.Create(this, OnSave)));
+            }
+            Notifier.AddMenuItem(new GXMenuItem(Properties.Resources.Cancel, "Cancel", EventCallback.Factory.Create(this, OnCancel)));
+            Notifier.UpdateButtons();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save module.
+    ///</summary>
+    public async void OnSave()
+    {
+        HttpResponseMessage response;
+        try
+        {
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Create)
+            {
+                if (_value == null)
+                {
+                    throw new Exception("Module file is not selected.");
+                }
+                var content = new ByteArrayContent(_value);
+                content.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+                response = await Http.PostAsync("api/Module/Add", content);
+                await AMI.Shared.Helpers.ValidateStatusCode(response, default);
+                AddModuleResponse? ret = await response.Content.ReadFromJsonAsync<AddModuleResponse>();
+                if (ret != null && ret.Modules != null && ret.Modules.Any())
+                {
+                    _active = ret.Modules[0];
+                    if (Active != null)
+                    {
+                        isAdding = false;
+                        Notifier.UpdateData(GXPages.Modules, Active);
+                        Active.Modified = true;
+                        await ShowModuleSettings();
+                        Notifier.Action = CrudAction.Update;
+                        StateHasChanged();
+                    }
+                    if (ret.Restart)
+                    {
+                        RestartConfirmation?.Show();
+                    }
+                }
+            }
+            else if (action == CrudAction.Delete)
+            {
+                var ret = await Http.PostAsJson<RemoveModuleResponse>
+                    ("api/Module/Delete", new RemoveModule() { Modules = new string[] { Active.Id } });
+                if (ret.Restart)
+                {
+                    RestartConfirmation?.Show();
+                }
+            }
+            else if (action == CrudAction.Update)
+            {
+                if (_module != null)
+                {
+                    //Module is null when it's set from inactive to active.
+                    await _module.NotifySavedAsync();
+                }
+                UpdateModule req = new UpdateModule() { Module = Active };
+                await Http.PostAsJson<UpdateModuleResponse>
+                    ("api/Module/Update", req);
+                Notifier.ShowInformation("Settings saved.", true);
+            }
+            else
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel.
+    ///</summary>
+    private async Task OnCancel()
+    {
+        if (_module != null)
+        {
+            await _module.NotifyCancelAsync();
+        }
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    /// <summary>
+    /// Clear the workflow log list.
+    ///</summary>
+    public async Task OnRestartConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                StopApplicationRequest req = new StopApplicationRequest();
+                await Http.PostAsJson("api/Configuration/Restart", req);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

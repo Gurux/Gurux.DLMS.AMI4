@@ -1,0 +1,422 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/useractions"
+
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Enums
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Module
+@using Gurux.DLMS.AMI.Client.Helpers
+
+@attribute [Authorize(Roles = "Admin, UserManager, User")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@inject ConfirmBase Confirm
+@inject IGXResourceStorage ResourceStorage
+@implements IDisposable
+@implements IAmiComponent
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.Actions</PageTitle>
+}
+
+<AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserManager, GXRoles.User)>
+    <MenuControl RightCorner="true">
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear" />
+        </ChildContent>
+    </MenuControl>
+</AuthorizeView>
+
+<GXTable @ref="table"
+         @bind-Active="Active"
+         Context="action"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.None"
+         ShowRemoved="false"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="UserActions-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <th>
+            <input class="form-control" type="text" placeholder="Filter by user name..."
+                   @onchange="@((ChangeEventArgs __e) => filter.User.UserName = Convert.ToString(__e.Value))" />
+        </th>
+        <th>
+            @*Target*@
+        </th>
+        <th>
+            @*Action*@
+            <Fh Id="Type" Visibility="Visibility.Medium">
+                <EnumTypeSelector Type="@TargetType.UserAction"
+                                  @bind-Value="@Action"
+                                  OnSelected="@((int e) => Updated())">
+                </EnumTypeSelector>
+            </Fh>
+        </th>
+        <th>
+            @*Status*@
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <ContextMenuItem Text="@Properties.Resources.Show" Id="Show" OnClick="@OnShow"></ContextMenuItem>
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="CreationTime" Target="@action" SortMode="SortMode.Descending">@Properties.Resources.CreationTime</Th>
+        <Th Target="@action">@Properties.Resources.User</Th>
+        <Th Name="Target" Target="@action">@Properties.Resources.Target</Th>
+        <Th Name="Action" Target="@action">@Properties.Resources.Action</Th>
+        <Th Name="Status" Target="@action">@Properties.Resources.Status</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td>@action.CreationTime</td>
+        <td>@action.User?.UserName</td>
+        <td>@action.TargetType</td>
+        <td>@(ResourceStorage.GetEnumType(TargetType.UserAction, (int)action.Action))</td>
+        <td>@action.Status</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         ConfirmationTitle=@Properties.Resources.ConfirmDataClear
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="@Properties.Resources.AreYouSureYouWantToClearLog">
+</Confirm>
+
+@code {
+    /// <summary>
+    /// Selected user action ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private GXUserAction? Active { get; set; }
+
+
+    private int Action
+    {
+        get
+        {
+            return (int)filter.Action;
+        }
+        set
+        {
+            filter.Action = (CrudAction)value;
+        }
+    }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.UserActions;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-info";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the user actions shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// User action log filter.
+    /// </summary>
+    private GXUserAction filter = new GXUserAction()
+    {
+        User = new GXUser()
+        {
+            EmailConfirmed = null,
+            PhoneNumberConfirmed = null,
+            TwoFactorEnabled = null,
+            LockoutEnabled = null
+        }
+    };
+
+    /// <summary>
+    /// User is verified before system errors are cleared.
+    /// </summary>
+    protected ConfirmBase? ClearConfirmation;
+
+    public string? SelectedUser
+    {
+        get;
+        private set;
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXUserAction>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXUserAction>>(this, nameof(IGXHubEvents.UserActionAdd), async (actions) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXUserAction>>(this, nameof(IGXHubEvents.UserActionDelete), async (actions) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXUser>?>(this, nameof(IGXHubEvents.UserActionClear), async (actions) =>
+            {
+                ResourceStorage.ClearEnumTypes(TargetType.UserAction);
+                await Updated();
+            });
+            Notifier.Clear();
+            Notifier.UpdateButtons();
+            if (Id != null)
+            {
+                //Get last selected item.
+                Active = new GXUserAction() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXUserAction>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            ListUserAction req = new ListUserAction()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData
+            };
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            //Get enum types.
+            await ResourceStorage.RefreshEnumTypesAsync(TargetType.UserAction);
+            var ret = await Http.PostAsJson<ListUserActionResponse>("api/UserAction/List", req, request.CancellationToken);
+            if (ret.Actions != null)
+            {
+                return new ItemsProviderResult<GXUserAction>(ret.Actions, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+
+    /// <summary>
+    /// Show user action.
+    /// </summary>
+    public void OnShow()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/UserAction/Edit/" + table.Active.Id);
+
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Clear the user actions.
+    /// </summary>
+    public void OnClear()
+    {
+        ClearConfirmation?.Show();
+    }
+
+    /// <summary>
+    /// Clear the system error list.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm)
+            {
+                Notifier.ProgressStart();
+                try
+                {
+                    await Http.PostAsJson<ClearUserActionResponse>("api/UserAction/Clear", new ClearUserAction());
+                }
+                finally
+                {
+                    Notifier.ProgressEnd();
+                }
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+
+    }
+}

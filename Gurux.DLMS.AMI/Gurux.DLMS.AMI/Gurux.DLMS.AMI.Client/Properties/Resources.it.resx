@@ -1,0 +1,1534 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About" xml:space="preserve">
+    <value>Circa</value>
+  </data>
+  <data name="AboutInfo" xml:space="preserve">
+    <value>Per informazioni sui prodotti Gurux, vedere:</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>Informazioni su Gurux.DLMS.AMI</value>
+  </data>
+  <data name="AccessFailed" xml:space="preserve">
+    <value>Accesso non riuscito</value>
+  </data>
+  <data name="Action" xml:space="preserve">
+    <value>Azione</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Azioni</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Attivo</value>
+  </data>
+  <data name="ActiveDeviceErrors" xml:space="preserve">
+    <value>Errori del dispositivo attivo</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Aggiungere</value>
+  </data>
+  <data name="AdministratorSettings" xml:space="preserve">
+    <value>Impostazioni dell'amministratore</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agente</value>
+  </data>
+  <data name="AgentLogs" xml:space="preserve">
+    <value>Registri dell'agente</value>
+  </data>
+  <data name="AgentGroups" xml:space="preserve">
+    <value>Gruppi di agenti</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agenti</value>
+  </data>
+  <data name="AmiForum" xml:space="preserve">
+    <value>Gurux.DLMS.AMI forum.</value>
+  </data>
+  <data name="AMiQuestions" xml:space="preserve">
+    <value>Se hai domande o problemi puoi farli in</value>
+  </data>
+  <data name="AreYouSureYouWantToClearErrors" xml:space="preserve">
+    <value>Sei sicuro di voler eliminare gli errori?</value>
+  </data>
+  <data name="AreYouSureYouWantToDeleteSelectedItems" xml:space="preserve">
+    <value>Sei sicuro di voler eliminare gli elementi selezionati?</value>
+  </data>
+  <data name="BlockGroups" xml:space="preserve">
+    <value>Gruppi di blocchi</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Blocchi</value>
+  </data>
+  <data name="Body" xml:space="preserve">
+    <value>Corpo</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Annulla</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Chiaro</value>
+  </data>
+  <data name="Closable" xml:space="preserve">
+    <value>Chiudibile</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Chiudere</value>
+  </data>
+  <data name="Closed" xml:space="preserve">
+    <value>Chiuso</value>
+  </data>
+  <data name="CloseTime" xml:space="preserve">
+    <value>Chiuso</value>
+  </data>
+  <data name="CompletedTime" xml:space="preserve">
+    <value>Finito</value>
+  </data>
+  <data name="Component" xml:space="preserve">
+    <value>Componente</value>
+  </data>
+  <data name="ComponentView" xml:space="preserve">
+    <value>Componente</value>
+  </data>
+  <data name="ComponentViewGroup" xml:space="preserve">
+    <value>Gruppo di componenti</value>
+  </data>
+  <data name="ComponentViewGroups" xml:space="preserve">
+    <value>Gruppi di componenti</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Componenti</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Configurazione</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copiare</value>
+  </data>
+  <data name="Copyright" xml:space="preserve">
+    <value>Diritto d’autore</value>
+  </data>
+  <data name="CopyrightAllRightsReserved" xml:space="preserve">
+    <value>Tutti i diritti riservati.</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Tempo di creazione</value>
+  </data>
+  <data name="Data" xml:space="preserve">
+    <value>Dati</value>
+  </data>
+  <data name="DefaultGroup" xml:space="preserve">
+    <value>Gruppo predefinito</value>
+  </data>
+  <data name="Description" xml:space="preserve">
+    <value>Descrizione</value>
+  </data>
+  <data name="Detected" xml:space="preserve">
+    <value>Rilevato</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Dispositivo</value>
+  </data>
+  <data name="DeviceActions" xml:space="preserve">
+    <value>Azioni del dispositivo</value>
+  </data>
+  <data name="DeviceErrors" xml:space="preserve">
+    <value>Errori del dispositivo</value>
+  </data>
+  <data name="DeviceGroups" xml:space="preserve">
+    <value>Gruppi di dispositivi</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Dispositivi</value>
+  </data>
+  <data name="DevicesTitle" xml:space="preserve">
+    <value>Dispositivi</value>
+  </data>
+  <data name="DeviceTemplateGroups" xml:space="preserve">
+    <value>Gruppi di modelli di dispositivo</value>
+  </data>
+  <data name="DeviceTemplates" xml:space="preserve">
+    <value>Modelli di dispositivo</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Redigere</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-mail</value>
+  </data>
+  <data name="EmailConfirmed" xml:space="preserve">
+    <value>Email confermata</value>
+  </data>
+  <data name="EndTime" xml:space="preserve">
+    <value>Ora di fine</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Errore</value>
+  </data>
+  <data name="Errors" xml:space="preserve">
+    <value>Errori</value>
+  </data>
+  <data name="ErrorSeverityLevel" xml:space="preserve">
+    <value>Livello di gravità dell'errore</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Scadenza</value>
+  </data>
+  <data name="GeneralInformation" xml:space="preserve">
+    <value>Generalità</value>
+  </data>
+  <data name="Generation" xml:space="preserve">
+    <value>Generazione</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Ciao</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Casa</value>
+  </data>
+  <data name="HostName" xml:space="preserve">
+    <value>Nome host</value>
+  </data>
+  <data name="Installed" xml:space="preserve">
+    <value>Installato</value>
+  </data>
+  <data name="InvalidHttpAddress" xml:space="preserve">
+    <value>Spiacenti, non c'è nulla a questo indirizzo.</value>
+  </data>
+  <data name="LastExecutionTime" xml:space="preserve">
+    <value>Ora dell'ultima esecuzione</value>
+  </data>
+  <data name="LastLogin" xml:space="preserve">
+    <value>Ultimo accesso</value>
+  </data>
+  <data name="Level" xml:space="preserve">
+    <value>Livello</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Caricamento</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Ubicazione</value>
+  </data>
+  <data name="LocationOrder" xml:space="preserve">
+    <value>Ordine di ubicazione</value>
+  </data>
+  <data name="Logging" xml:space="preserve">
+    <value>Registrazione</value>
+  </data>
+  <data name="LogicalName" xml:space="preserve">
+    <value>Nome logico</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Accedi</value>
+  </data>
+  <data name="LogOut" xml:space="preserve">
+    <value>Disconnettersi</value>
+  </data>
+  <data name="Method" xml:space="preserve">
+    <value>Metodo</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Modulo</value>
+  </data>
+  <data name="ModuleLogs" xml:space="preserve">
+    <value>Registri dei moduli</value>
+  </data>
+  <data name="ModuleGroups" xml:space="preserve">
+    <value>Gruppi di moduli</value>
+  </data>
+  <data name="ModulesTitle" xml:space="preserve">
+    <value>Moduli</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Nome</value>
+  </data>
+  <data name="NoItemIsSelected" xml:space="preserve">
+    <value>Non è stato selezionato alcun elemento.</value>
+  </data>
+  <data name="NotAuthorized" xml:space="preserve">
+    <value>Non si è autorizzati ad accedere a questa risorsa.</value>
+  </data>
+  <data name="Objects" xml:space="preserve">
+    <value>Oggetti</value>
+  </data>
+  <data name="ObjectTemplates" xml:space="preserve">
+    <value>Modelli di oggetto</value>
+  </data>
+  <data name="ObjectType" xml:space="preserve">
+    <value>Tipo di oggetto</value>
+  </data>
+  <data name="Options" xml:space="preserve">
+    <value>Opzioni</value>
+  </data>
+  <data name="PageSelectionPath" xml:space="preserve">
+    <value>Percorso di selezione della pagina</value>
+  </data>
+  <data name="Parameters" xml:space="preserve">
+    <value>Parametri</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Token di accesso personali</value>
+  </data>
+  <data name="Port" xml:space="preserve">
+    <value>Porto</value>
+  </data>
+  <data name="Protocol" xml:space="preserve">
+    <value>Protocollo</value>
+  </data>
+  <data name="Publish" xml:space="preserve">
+    <value>Pubblicare</value>
+  </data>
+  <data name="Read" xml:space="preserve">
+    <value>Leggere</value>
+  </data>
+  <data name="Ready" xml:space="preserve">
+    <value>Pronto</value>
+  </data>
+  <data name="Refresh" xml:space="preserve">
+    <value>Aggiornare</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registro</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Togliere</value>
+  </data>
+  <data name="Reply" xml:space="preserve">
+    <value>Risposta</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Resettare</value>
+  </data>
+  <data name="Result" xml:space="preserve">
+    <value>Risultato</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Ruoli</value>
+  </data>
+  <data name="Run" xml:space="preserve">
+    <value>Correre</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Salvare</value>
+  </data>
+  <data name="SaveConfigurationText" xml:space="preserve">
+    <value>Salva configurazione</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Programma</value>
+  </data>
+  <data name="ScheduleLogs" xml:space="preserve">
+    <value>Registro di pianificazione</value>
+  </data>
+  <data name="ScheduleExecutionTime" xml:space="preserve">
+    <value>Pianificare il tempo di esecuzione</value>
+  </data>
+  <data name="ScheduleGroups" xml:space="preserve">
+    <value>Pianificare i gruppi</value>
+  </data>
+  <data name="ScheduleName" xml:space="preserve">
+    <value>Nome pianificazione</value>
+  </data>
+  <data name="SchedulesTitle" xml:space="preserve">
+    <value>Orari</value>
+  </data>
+  <data name="Script" xml:space="preserve">
+    <value>Copione</value>
+  </data>
+  <data name="ScriptLogs" xml:space="preserve">
+    <value>Log degli script</value>
+  </data>
+  <data name="ScriptGroups" xml:space="preserve">
+    <value>Gruppi di script</value>
+  </data>
+  <data name="ScriptMethods" xml:space="preserve">
+    <value>Metodi di script</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Script</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Ricerca</value>
+  </data>
+  <data name="ServerSide" xml:space="preserve">
+    <value>Esegui sul server</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Configurazione</value>
+  </data>
+  <data name="Show" xml:space="preserve">
+    <value>Mostrare</value>
+  </data>
+  <data name="SiteInformation" xml:space="preserve">
+    <value>Informazioni sul sito</value>
+  </data>
+  <data name="StartTime" xml:space="preserve">
+    <value>Ora di inizio</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Stato</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Cognome</value>
+  </data>
+  <data name="SystemLogs" xml:space="preserve">
+    <value>Registro di sistema</value>
+  </data>
+  <data name="SystemSettings" xml:space="preserve">
+    <value>Impostazioni di sistema</value>
+  </data>
+  <data name="Target" xml:space="preserve">
+    <value>Bersaglio</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Attività</value>
+  </data>
+  <data name="TaskType" xml:space="preserve">
+    <value>Tipo di attività</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Titolo</value>
+  </data>
+  <data name="TokensTitle" xml:space="preserve">
+    <value>Token</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Totale</value>
+  </data>
+  <data name="Trigger" xml:space="preserve">
+    <value>Grilletto</value>
+  </data>
+  <data name="TriggerGroups" xml:space="preserve">
+    <value>Gruppi di attivazione</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Trigger</value>
+  </data>
+  <data name="Type" xml:space="preserve">
+    <value>Digitare</value>
+  </data>
+  <data name="Updated" xml:space="preserve">
+    <value>Aggiornato</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Utente</value>
+  </data>
+  <data name="UserActions" xml:space="preserve">
+    <value>Azioni dell'utente</value>
+  </data>
+  <data name="UserErrors" xml:space="preserve">
+    <value>Errori dell'utente</value>
+  </data>
+  <data name="UserGroupsTitle" xml:space="preserve">
+    <value>Gruppi di utenti</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Gestione utenti</value>
+  </data>
+  <data name="UsersTitle" xml:space="preserve">
+    <value>Gli utenti</value>
+  </data>
+  <data name="Variables" xml:space="preserve">
+    <value>Variabili</value>
+  </data>
+  <data name="Version" xml:space="preserve">
+    <value>Versione</value>
+  </data>
+  <data name="WelcomeText" xml:space="preserve">
+    <value>Benvenuti a utilizzare Gurux.DLMS.AMI.</value>
+  </data>
+  <data name="Workflow" xml:space="preserve">
+    <value>Flusso di lavoro</value>
+  </data>
+  <data name="WorkflowLogs" xml:space="preserve">
+    <value>Registri del flusso di lavoro</value>
+  </data>
+  <data name="WorkflowGroups" xml:space="preserve">
+    <value>Gruppi di flussi di lavoro</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Flussi di lavoro</value>
+  </data>
+  <data name="Write" xml:space="preserve">
+    <value>Scrivere</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>ID non valido.</value>
+  </data>
+  <data name="Threads" xml:space="preserve">
+    <value>Discussioni</value>
+  </data>
+  <data name="ListenerPort" xml:space="preserve">
+    <value>Porta listener</value>
+  </data>
+  <data name="NotificationPort" xml:space="preserve">
+    <value>Porta di notifica</value>
+  </data>
+  <data name="CustomBuild" xml:space="preserve">
+    <value>Costruzione personalizzata</value>
+  </data>
+  <data name="Network" xml:space="preserve">
+    <value>Rete</value>
+  </data>
+  <data name="RESTStatistic" xml:space="preserve">
+    <value>Statistica REST</value>
+  </data>
+  <data name="ExecutionTime" xml:space="preserve">
+    <value>Tempo di esecuzione</value>
+  </data>
+  <data name="Install" xml:space="preserve">
+    <value>Installare</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Aggiornare</value>
+  </data>
+  <data name="AvailableVersion" xml:space="preserve">
+    <value>Versione disponibile</value>
+  </data>
+  <data name="ConfirmUpdate" xml:space="preserve">
+    <value>Conferma aggiornamento</value>
+  </data>
+  <data name="Manage" xml:space="preserve">
+    <value>Amministrare</value>
+  </data>
+  <data name="UpdateVersion" xml:space="preserve">
+    <value>Updatating</value>
+  </data>
+  <data name="TaskWaitTime" xml:space="preserve">
+    <value>Tempo di attesa dell'attività</value>
+  </data>
+  <data name="Start" xml:space="preserve">
+    <value>Inizio</value>
+  </data>
+  <data name="Readers" xml:space="preserve">
+    <value>Lettori</value>
+  </data>
+  <data name="ReadersTitle" xml:space="preserve">
+    <value>Lettori</value>
+  </data>
+  <data name="AliveTime" xml:space="preserve">
+    <value>Tempo vivo</value>
+  </data>
+  <data name="TraceLevels" xml:space="preserve">
+    <value>Livelli di tracce</value>
+  </data>
+  <data name="ClientAddress" xml:space="preserve">
+    <value>Indirizzo del cliente</value>
+  </data>
+  <data name="ServerAddress" xml:space="preserve">
+    <value>Indirizzo del server</value>
+  </data>
+  <data name="UseLogicalNameReferencing" xml:space="preserve">
+    <value>Utilizzare il riferimento logico al nome</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Parola d’ordine</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Sicurezza</value>
+  </data>
+  <data name="InvocationCounter" xml:space="preserve">
+    <value>Contatore di chiamate</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>Titolo del sistema</value>
+  </data>
+  <data name="BlockCipherKey" xml:space="preserve">
+    <value>Chiave di cifratura a blocchi</value>
+  </data>
+  <data name="AuthenticationKey" xml:space="preserve">
+    <value>Chiave di autenticazione</value>
+  </data>
+  <data name="ExpirationTime" xml:space="preserve">
+    <value>Tempo di scadenza</value>
+  </data>
+  <data name="Traces" xml:space="preserve">
+    <value>Tracce</value>
+  </data>
+  <data name="DeviceTraces" xml:space="preserve">
+    <value>Tracce del dispositivo</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Registri</value>
+  </data>
+  <data name="DownloadAgent" xml:space="preserve">
+    <value>Scarica l'agente</value>
+  </data>
+  <data name="GenerateAccessToken" xml:space="preserve">
+    <value>Generare token di accesso</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Attenzione: assicurati di copiare il token sopra ora. Non è memorizzato e non sarai in grado di vederlo di nuovo.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>È stato aggiunto un nuovo token di accesso personale. Copia subito il token!</value>
+  </data>
+  <data name="ShowRemoved" xml:space="preserve">
+    <value>Mostra le destinazioni rimosse</value>
+  </data>
+  <data name="FilterByName" xml:space="preserve">
+    <value>Filtra per nome...</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Lingua</value>
+  </data>
+  <data name="Refreshed" xml:space="preserve">
+    <value>Aggiornata</value>
+  </data>
+  <data name="Saved" xml:space="preserve">
+    <value>Salvato</value>
+  </data>
+  <data name="Path" xml:space="preserve">
+    <value>Sentiero</value>
+  </data>
+  <data name="MaintenanceModeEnds" xml:space="preserve">
+    <value>La modalità di manutenzione dovrebbe terminare alle</value>
+  </data>
+  <data name="Removed" xml:space="preserve">
+    <value>Lontano</value>
+  </data>
+  <data name="Never" xml:space="preserve">
+    <value>Mai</value>
+  </data>
+  <data name="InvalidNotifier" xml:space="preserve">
+    <value>Il notificatore non è valido.</value>
+  </data>
+  <data name="InvalidTarget" xml:space="preserve">
+    <value>Destinazione non valida.</value>
+  </data>
+  <data name="DefaultRole" xml:space="preserve">
+    <value>Ruolo predefinito</value>
+  </data>
+  <data name="ShowClosedErrors" xml:space="preserve">
+    <value>Mostra errori chiusi</value>
+  </data>
+  <data name="Task" xml:space="preserve">
+    <value>Compito</value>
+  </data>
+  <data name="Attributes" xml:space="preserve">
+    <value>Attributi</value>
+  </data>
+  <data name="Values" xml:space="preserve">
+    <value>Valori</value>
+  </data>
+  <data name="EnableSwagger" xml:space="preserve">
+    <value>Abilita Swagger</value>
+  </data>
+  <data name="Restart" xml:space="preserve">
+    <value>Riavviare</value>
+  </data>
+  <data name="Message" xml:space="preserve">
+    <value>Messaggio</value>
+  </data>
+  <data name="StackTrace" xml:space="preserve">
+    <value>Traccia dello stack</value>
+  </data>
+  <data name="Capture" xml:space="preserve">
+    <value>Cattura</value>
+  </data>
+  <data name="UpgradeableModules" xml:space="preserve">
+    <value>Moduli aggiornabili</value>
+  </data>
+  <data name="AgentTokenCreateSucceeded" xml:space="preserve">
+    <value>È stato aggiunto un nuovo token di accesso all'agente. Copia subito il token!</value>
+  </data>
+  <data name="LastRead" xml:space="preserve">
+    <value>Ultima lettura</value>
+  </data>
+  <data name="LastWrite" xml:space="preserve">
+    <value>Ultima scrittura</value>
+  </data>
+  <data name="LastAction" xml:space="preserve">
+    <value>Ultima azione</value>
+  </data>
+  <data name="LastError" xml:space="preserve">
+    <value>Ultimo errore</value>
+  </data>
+  <data name="FilterByObjectType" xml:space="preserve">
+    <value>Filtra per tipo di oggetto...</value>
+  </data>
+  <data name="FilterByLogicalName" xml:space="preserve">
+    <value>Filtra per nome logico...</value>
+  </data>
+  <data name="TargetDisableQuestion" xml:space="preserve">
+    <value>Disabilita la destinazione e annulla la pubblicazione del suo contenuto.</value>
+  </data>
+  <data name="TargetDeleteQuestion" xml:space="preserve">
+    <value>Elimina la destinazione e il relativo contenuto.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearTasks" xml:space="preserve">
+    <value>Sei sicuro di voler completare le attività?</value>
+  </data>
+  <data name="ConfirmDataClear" xml:space="preserve">
+    <value>Conferma cancellazione dati</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseErrors" xml:space="preserve">
+    <value>Sei sicuro di voler chiudere gli errori?</value>
+  </data>
+  <data name="AreYouSureYouWantToCloseSelectedItems" xml:space="preserve">
+    <value>Sei sicuro di voler chiudere gli elementi selezionati?</value>
+  </data>
+  <data name="AgentUpdates" xml:space="preserve">
+    <value>Si è certi di voler aggiornare gli agenti?\r\nTutti i processi in esecuzione verranno completati prima dell'inizio di questa azione. Tutti i processi in coda verranno ritardati fino al completamento dell'aggiornamento.</value>
+  </data>
+  <data name="AreYouSureYouWantToClearLog" xml:space="preserve">
+    <value>Sei sicuro di voler cancellare il registro?</value>
+  </data>
+  <data name="ShowDataForAllUsers" xml:space="preserve">
+    <value>Mostra i dati per tutti gli utenti.</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Pianifica gruppo</value>
+  </data>
+  <data name="WorkflowGroup" xml:space="preserve">
+    <value>Gruppo di flussi di lavoro</value>
+  </data>
+  <data name="UserGroup" xml:space="preserve">
+    <value>Gruppo di utenti</value>
+  </data>
+  <data name="ModuleGroup" xml:space="preserve">
+    <value>Gruppo di moduli</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Gruppo di modelli di dispositivo</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Gruppo di dispositivi</value>
+  </data>
+  <data name="BlockGroup" xml:space="preserve">
+    <value>Gruppi di blocchi</value>
+  </data>
+  <data name="Block" xml:space="preserve">
+    <value>Blocco</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Gruppo di agenti</value>
+  </data>
+  <data name="TriggerGroup" xml:space="preserve">
+    <value>Gruppo di attivazione</value>
+  </data>
+  <data name="ThisActionCannotBeUndone" xml:space="preserve">
+    <value>Questa azione non può essere annullata.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Modello di dispositivo</value>
+  </data>
+  <data name="AmountOfTheRowsShownOnTheView" xml:space="preserve">
+    <value>Quantità di righe visualizzate nella vista</value>
+  </data>
+  <data name="ShowFilter" xml:space="preserve">
+    <value>Mostra filtro</value>
+  </data>
+  <data name="ShowTotal" xml:space="preserve">
+    <value>Mostra il conteggio totale</value>
+  </data>
+  <data name="ShowMenu" xml:space="preserve">
+    <value>Mostra menu</value>
+  </data>
+  <data name="SerialPort" xml:space="preserve">
+    <value>Porta seriale</value>
+  </data>
+  <data name="ManufacturerGroups" xml:space="preserve">
+    <value>Gruppi di produttori</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Produttori</value>
+  </data>
+  <data name="Manufacturer" xml:space="preserve">
+    <value>Fabbricante</value>
+  </data>
+  <data name="ManufacturerGroup" xml:space="preserve">
+    <value>Gruppo di produttori</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Preferiti</value>
+  </data>
+  <data name="Favorite" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="Versions" xml:space="preserve">
+    <value>Versioni</value>
+  </data>
+  <data name="Models" xml:space="preserve">
+    <value>Modelli</value>
+  </data>
+  <data name="Model" xml:space="preserve">
+    <value>Modello</value>
+  </data>
+  <data name="Unknown" xml:space="preserve">
+    <value>Sconosciuto</value>
+  </data>
+  <data name="InterfaceType" xml:space="preserve">
+    <value>Tipo di interfaccia</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Autenticazione</value>
+  </data>
+  <data name="LastChecked" xml:space="preserve">
+    <value>Ultimo controllo: {0} fa.</value>
+  </data>
+  <data name="CheckManually" xml:space="preserve">
+    <value>Controllo manuale</value>
+  </data>
+  <data name="Days" xml:space="preserve">
+    <value>Giorni</value>
+  </data>
+  <data name="Hours" xml:space="preserve">
+    <value>orario</value>
+  </data>
+  <data name="Minutes" xml:space="preserve">
+    <value>verbale</value>
+  </data>
+  <data name="Seconds" xml:space="preserve">
+    <value>Secondi</value>
+  </data>
+  <data name="AreYouSureYouWantToInstallSelectedItems" xml:space="preserve">
+    <value>Sei sicuro di voler installare gli elementi selezionati?</value>
+  </data>
+  <data name="Media" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="WaitTime" xml:space="preserve">
+    <value>Tempo di attesa</value>
+  </data>
+  <data name="Generic" xml:space="preserve">
+    <value>Generico</value>
+  </data>
+  <data name="Custom" xml:space="preserve">
+    <value>Costume</value>
+  </data>
+  <data name="Baudrate" xml:space="preserve">
+    <value>Baud rate</value>
+  </data>
+  <data name="DataBits" xml:space="preserve">
+    <value>Bit di dati</value>
+  </data>
+  <data name="Parity" xml:space="preserve">
+    <value>Parità</value>
+  </data>
+  <data name="StopBits" xml:space="preserve">
+    <value>StopBit</value>
+  </data>
+  <data name="SerialNumber" xml:space="preserve">
+    <value>Numero di serie</value>
+  </data>
+  <data name="InstallMetersVerify" xml:space="preserve">
+    <value>Sei sicuro di voler installare il supporto per i seguenti contatori?</value>
+  </data>
+  <data name="InstallVersions" xml:space="preserve">
+    <value>Tutte le versioni {0}.</value>
+  </data>
+  <data name="InstallAllSettings" xml:space="preserve">
+    <value>Tutte le impostazioni {0} {1}.</value>
+  </data>
+  <data name="DeviceTemplatesNotInstalled" xml:space="preserve">
+    <value>{0}Prima di poter aggiungere i dispositivi, è necessario aggiungere {1} o {2}modelli di dispositivo{3} produttori.</value>
+  </data>
+  <data name="ModuleNeedsRestart" xml:space="preserve">
+    <value>Il server deve essere riavviato per applicare le modifiche al modulo. Vuoi riavviare il server ora?</value>
+  </data>
+  <data name="ConfirmRestart" xml:space="preserve">
+    <value>Conferma il riavvio</value>
+  </data>
+  <data name="FilterByUser" xml:space="preserve">
+    <value>Filtra per utente...</value>
+  </data>
+  <data name="KeyManagementGroups" xml:space="preserve">
+    <value>Gruppi di gestione delle chiavi</value>
+  </data>
+  <data name="KeyManagements" xml:space="preserve">
+    <value>Gestioni chiave</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Gestione delle chiavi</value>
+  </data>
+  <data name="KeyManagementGroup" xml:space="preserve">
+    <value>Gruppo di gestione delle chiavi</value>
+  </data>
+  <data name="KeyManagementLogs" xml:space="preserve">
+    <value>Log di gestione delle chiavi</value>
+  </data>
+  <data name="SystemTitle" xml:space="preserve">
+    <value>Titolo del sistema</value>
+  </data>
+  <data name="KeyManagementKeys" xml:space="preserve">
+    <value>Chiavi</value>
+  </data>
+  <data name="KeyManagementKey" xml:space="preserve">
+    <value>Chiave</value>
+  </data>
+  <data name="KeyManagementLLSPassword" xml:space="preserve">
+    <value>Password di sicurezza di basso livello</value>
+  </data>
+  <data name="KeyManagementPublicKey" xml:space="preserve">
+    <value>Chiave pubblica</value>
+  </data>
+  <data name="KeyManagementPrivateKey" xml:space="preserve">
+    <value>Chiave privata</value>
+  </data>
+  <data name="KeyManagementHLSPassword" xml:space="preserve">
+    <value>Password di sicurezza di alto livello</value>
+  </data>
+  <data name="KeyManagementAuthenticationKey" xml:space="preserve">
+    <value>Chiave di autenticazione</value>
+  </data>
+  <data name="KeyManagementBroadcast" xml:space="preserve">
+    <value>Tasto di trasmissione</value>
+  </data>
+  <data name="KeyManagementUnicastKey" xml:space="preserve">
+    <value>Chiave unicast</value>
+  </data>
+  <data name="KeyManagementKeyType" xml:space="preserve">
+    <value>Tipo di chiave</value>
+  </data>
+  <data name="InvalidKey" xml:space="preserve">
+    <value>Password o chiave non valida.</value>
+  </data>
+  <data name="Hex" xml:space="preserve">
+    <value>Malocchio</value>
+  </data>
+  <data name="KeyManagementMasterKey" xml:space="preserve">
+    <value>Passe-partout</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="DeviceSystemTitle" xml:space="preserve">
+    <value>Titolo del sistema del dispositivo</value>
+  </data>
+  <data name="ClientSystemTitle" xml:space="preserve">
+    <value>Titolo del sistema client</value>
+  </data>
+  <data name="InvalidSystemTitle" xml:space="preserve">
+    <value>Titolo di sistema non valido.</value>
+  </data>
+  <data name="InvalidBlockCipherKey" xml:space="preserve">
+    <value>Chiave di cifratura a blocchi non valida.</value>
+  </data>
+  <data name="InvalidAuthenticationKey" xml:space="preserve">
+    <value>Chiave di autenticazione non valida.</value>
+  </data>
+  <data name="PreEstablishedConnection" xml:space="preserve">
+    <value>Connessione prestabilita</value>
+  </data>
+  <data name="RowsPerPage" xml:space="preserve">
+    <value>Righe per pagina</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>Indirizzo email del sito</value>
+  </data>
+  <data name="RegenerateAgentTokens" xml:space="preserve">
+    <value>Sei sicuro di voler aggiornare i token degli agenti?</value>
+  </data>
+  <data name="Regenerate" xml:space="preserve">
+    <value>Rigenerare</value>
+  </data>
+  <data name="Rebuild" xml:space="preserve">
+    <value>Ricostruire</value>
+  </data>
+  <data name="ScriptRebuildWarning" xml:space="preserve">
+    <value>Gli script devono essere ricompilati prima di poter essere utilizzati. Questo potrebbe richiedere molto tempo.</value>
+  </data>
+  <data name="Disconnect" xml:space="preserve">
+    <value>Disconnettere</value>
+  </data>
+  <data name="Reconnect" xml:space="preserve">
+    <value>Ricollegare</value>
+  </data>
+  <data name="Dynamic" xml:space="preserve">
+    <value>Il contatore stabilisce la connessione</value>
+  </data>
+  <data name="IdentifyWaitTime" xml:space="preserve">
+    <value>Identificare il tempo di attesa</value>
+  </data>
+  <data name="LogicalDeviceName" xml:space="preserve">
+    <value>Nome del dispositivo logico</value>
+  </data>
+  <data name="LogicalAddress" xml:space="preserve">
+    <value>Indirizzo logico</value>
+  </data>
+  <data name="PhysicalAddress" xml:space="preserve">
+    <value>Indirizzo fisico</value>
+  </data>
+  <data name="ConnectionUpTime" xml:space="preserve">
+    <value>Tempo di connessione</value>
+  </data>
+  <data name="Value" xml:space="preserve">
+    <value>Valore</value>
+  </data>
+  <data name="FilterByDevice" xml:space="preserve">
+    <value>Filtra per nome del dispositivo...</value>
+  </data>
+  <data name="FilterByDeviceType" xml:space="preserve">
+    <value>Filtra per tipo di dispositivo...</value>
+  </data>
+  <data name="FilterByObject" xml:space="preserve">
+    <value>Filtra per oggetto...</value>
+  </data>
+  <data name="RemoveAll" xml:space="preserve">
+    <value>Rimuovi tutto</value>
+  </data>
+  <data name="AddAll" xml:space="preserve">
+    <value>Aggiungi tutto</value>
+  </data>
+  <data name="FilterByAttributeIndex" xml:space="preserve">
+    <value>Filtra per indice di attributo...</value>
+  </data>
+  <data name="Gateways" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="GatewayGroups" xml:space="preserve">
+    <value>Gruppi di gateway</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Gruppo gateway</value>
+  </data>
+  <data name="GatewayLogs" xml:space="preserve">
+    <value>Registri del gateway</value>
+  </data>
+  <data name="Identifier" xml:space="preserve">
+    <value>Identificatore</value>
+  </data>
+  <data name="GatewayIdentificationScript" xml:space="preserve">
+    <value>Script di identificazione del gateway</value>
+  </data>
+  <data name="AutoConnectIdentificationScript" xml:space="preserve">
+    <value>Script di identificazione per la connessione automatica.</value>
+  </data>
+  <data name="DefaultDeviceTemplate" xml:space="preserve">
+    <value>Modello di dispositivo predefinito</value>
+  </data>
+  <data name="Nothing" xml:space="preserve">
+    <value>Niente</value>
+  </data>
+  <data name="Verify" xml:space="preserve">
+    <value>Verificare</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Attivare</value>
+  </data>
+  <data name="Transfer" xml:space="preserve">
+    <value>Trasferimento</value>
+  </data>
+  <data name="FirmwareFile" xml:space="preserve">
+    <value>File del firmware</value>
+  </data>
+  <data name="Identification" xml:space="preserve">
+    <value>Identificazione:</value>
+  </data>
+  <data name="InvalidIdentification" xml:space="preserve">
+    <value>Identificazione non valida.</value>
+  </data>
+  <data name="InvalidFirmware" xml:space="preserve">
+    <value>Firmware non valido.</value>
+  </data>
+  <data name="Scaler" xml:space="preserve">
+    <value>Scaler</value>
+  </data>
+  <data name="Unit" xml:space="preserve">
+    <value>Unità</value>
+  </data>
+  <data name="DataType" xml:space="preserve">
+    <value>Tipo di dati</value>
+  </data>
+  <data name="UIDataType" xml:space="preserve">
+    <value>Tipo di dati dell'interfaccia utente</value>
+  </data>
+  <data name="Index" xml:space="preserve">
+    <value>Indice</value>
+  </data>
+  <data name="ToolTipReadValue" xml:space="preserve">
+    <value>Lettura del valore</value>
+  </data>
+  <data name="ToolTipReadValues" xml:space="preserve">
+    <value>Lettura dei valori</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Prestazione</value>
+  </data>
+  <data name="AreYouSureYouWantToClearPerformance" xml:space="preserve">
+    <value>Si è certi di voler cancellare i contatori delle prestazioni?</value>
+  </data>
+  <data name="Extension" xml:space="preserve">
+    <value>Estensione</value>
+  </data>
+  <data name="Extensions" xml:space="preserve">
+    <value>Estensioni</value>
+  </data>
+  <data name="Import" xml:space="preserve">
+    <value>Importazione</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Rapporti</value>
+  </data>
+  <data name="Report" xml:space="preserve">
+    <value>Rapporto</value>
+  </data>
+  <data name="ReportGroups" xml:space="preserve">
+    <value>Gruppi di report</value>
+  </data>
+  <data name="ReportGroup" xml:space="preserve">
+    <value>Gruppo di rapporti</value>
+  </data>
+  <data name="Interval" xml:space="preserve">
+    <value>Intervallo</value>
+  </data>
+  <data name="Calculated" xml:space="preserve">
+    <value>Calcolato</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>Tutto</value>
+  </data>
+  <data name="Calculate" xml:space="preserve">
+    <value>Calcolare</value>
+  </data>
+  <data name="Operation" xml:space="preserve">
+    <value>Operazione</value>
+  </data>
+  <data name="ReportLogs" xml:space="preserve">
+    <value>Rapporti di registro</value>
+  </data>
+  <data name="Fill" xml:space="preserve">
+    <value>Riempi il valore vuoto con il valore zero</value>
+  </data>
+  <data name="Push" xml:space="preserve">
+    <value>Spingere</value>
+  </data>
+  <data name="AttributeIndex" xml:space="preserve">
+    <value>Indice degli attributi</value>
+  </data>
+  <data name="DataIndex" xml:space="preserve">
+    <value>Indice dei dati</value>
+  </data>
+  <data name="FilterByCreationTime" xml:space="preserve">
+    <value>Filtra per ora di creazione...</value>
+  </data>
+  <data name="TraceLevel" xml:space="preserve">
+    <value>Livello di traccia</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Cancellare</value>
+  </data>
+  <data name="Clone" xml:space="preserve">
+    <value>Clone</value>
+  </data>
+  <data name="Delta" xml:space="preserve">
+    <value>Delta</value>
+  </data>
+  <data name="Destination" xml:space="preserve">
+    <value>Destinazione</value>
+  </data>
+  <data name="Subtotal" xml:space="preserve">
+    <value>Subtotale</value>
+  </data>
+  <data name="SubtotalGroups" xml:space="preserve">
+    <value>Totale parziale gruppi</value>
+  </data>
+  <data name="SubtotalLogs" xml:space="preserve">
+    <value>Registri subtotali</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Subtotali</value>
+  </data>
+  <data name="SubtotalGroup" xml:space="preserve">
+    <value>Gruppo Subtotale</value>
+  </data>
+  <data name="LastDevelivery" xml:space="preserve">
+    <value>Ultimo sviluppo</value>
+  </data>
+  <data name="NextDevelivery" xml:space="preserve">
+    <value>Prossimo sviluppo</value>
+  </data>
+  <data name="Send" xml:space="preserve">
+    <value>Invia</value>
+  </data>
+  <data name="Compression" xml:space="preserve">
+    <value>Compressione</value>
+  </data>
+  <data name="Delivery" xml:space="preserve">
+    <value>Consegna</value>
+  </data>
+  <data name="ContentGroup" xml:space="preserve">
+    <value>Gruppo di contenuti</value>
+  </data>
+  <data name="ContentGroups" xml:space="preserve">
+    <value>Gruppi di contenuti</value>
+  </data>
+  <data name="Content" xml:space="preserve">
+    <value>Contenuto</value>
+  </data>
+  <data name="Contents" xml:space="preserve">
+    <value>Contenuto</value>
+  </data>
+  <data name="MenuGroups" xml:space="preserve">
+    <value>Gruppi di menu</value>
+  </data>
+  <data name="MenuDescription" xml:space="preserve">
+    <value>Gestisci i menu e i link dei menu.</value>
+  </data>
+  <data name="Menu" xml:space="preserve">
+    <value>Menù</value>
+  </data>
+  <data name="Menus" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="MenuGroup" xml:space="preserve">
+    <value>Gruppo di menu</value>
+  </data>
+  <data name="Links" xml:space="preserve">
+    <value>Campo da golf</value>
+  </data>
+  <data name="Link" xml:space="preserve">
+    <value>Collegamento</value>
+  </data>
+  <data name="ContentTypeGroups" xml:space="preserve">
+    <value>Gruppi di tipi di contenuto</value>
+  </data>
+  <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Gruppi di tipi di contenuto</value>
+  </data>
+  <data name="ContentType" xml:space="preserve">
+    <value>Tipo di contenuto</value>
+  </data>
+  <data name="ContentTypes" xml:space="preserve">
+    <value>Tipi di contenuto</value>
+  </data>
+  <data name="Fields" xml:space="preserve">
+    <value>Campi</value>
+  </data>
+  <data name="NotificationGroups" xml:space="preserve">
+    <value>Gruppi di notifica</value>
+  </data>
+  <data name="Notification" xml:space="preserve">
+    <value>Notifica</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifiche</value>
+  </data>
+  <data name="NotificationLogs" xml:space="preserve">
+    <value>Registro delle notifiche</value>
+  </data>
+  <data name="NotificationGroup" xml:space="preserve">
+    <value>Gruppo di notifica</value>
+  </data>
+  <data name="Required" xml:space="preserve">
+    <value>Obbligatorio</value>
+  </data>
+  <data name="Enumeration" xml:space="preserve">
+    <value>Enumerazione</value>
+  </data>
+  <data name="PruneDescription" xml:space="preserve">
+    <value>Prune rimuove i target inutilizzati in base a criteri quali il tempo.</value>
+  </data>
+  <data name="Creator" xml:space="preserve">
+    <value>Creatore</value>
+  </data>
+  <data name="Visibility" xml:space="preserve">
+    <value>Visibilità</value>
+  </data>
+  <data name="AvailableLanguages" xml:space="preserve">
+    <value>Lingue disponibili</value>
+  </data>
+  <data name="SupportedLanguages" xml:space="preserve">
+    <value>Lingue supportate</value>
+  </data>
+  <data name="Minimum" xml:space="preserve">
+    <value>Minimo</value>
+  </data>
+  <data name="Maximum" xml:space="preserve">
+    <value>Massimo</value>
+  </data>
+  <data name="Ok" xml:space="preserve">
+    <value>Ok</value>
+  </data>
+  <data name="Export" xml:space="preserve">
+    <value>Esportazione</value>
+  </data>
+  <data name="Execute" xml:space="preserve">
+    <value>Eseguire</value>
+  </data>
+  <data name="AuthoringInformation" xml:space="preserve">
+    <value>Creazione di informazioni</value>
+  </data>
+  <data name="Immediately" xml:space="preserve">
+    <value>Immediatamente pubblico</value>
+  </data>
+  <data name="Unique" xml:space="preserve">
+    <value>Unico</value>
+  </data>
+  <data name="AuthoringInformationFormat" xml:space="preserve">
+    <value>Di {0} il {1}</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Amministratore</value>
+  </data>
+  <data name="UserAction" xml:space="preserve">
+    <value>Azioni dell'utente</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Icons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Theme" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Icon" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Color" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Text" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="IconPack" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="IpAddress" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="FilterByIpAddress" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Invite" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Blocked" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="ConnectionInformationFormat" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Localize" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="EnglishName" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="NativeName" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="SiteIsInMaintenanceMode" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="MaintenanceModeDescription" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="BootstrapIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="MaterialIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="FontawesomeIcons" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Announcements" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Announcement" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="UploadFile" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="UploadModule" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Settings" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Aspetto</value>
+  </data>
+  <data name="Appearances" xml:space="preserve">
+    <value>Apparenze</value>
+  </data>
+  <data name="Icons" xml:space="preserve">
+    <value>Icone</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="Icon" xml:space="preserve">
+    <value>Icona</value>
+  </data>
+  <data name="Color" xml:space="preserve">
+    <value>Colore</value>
+  </data>
+  <data name="Text" xml:space="preserve">
+    <value>Testo</value>
+  </data>
+  <data name="IconPack" xml:space="preserve">
+    <value>Pacchetti di icone</value>
+  </data>
+  <data name="IpAddress" xml:space="preserve">
+    <value>Indirizzo IP</value>
+  </data>
+  <data name="FilterByIpAddress" xml:space="preserve">
+    <value>Filtra per indirizzo IP...</value>
+  </data>
+  <data name="Invite" xml:space="preserve">
+    <value>Invitare</value>
+  </data>
+  <data name="Blocked" xml:space="preserve">
+    <value>Bloccato</value>
+  </data>
+  <data name="ConnectionInformationFormat" xml:space="preserve">
+    <value>{0} da {1}</value>
+  </data>
+  <data name="Localize" xml:space="preserve">
+    <value>Localizzare</value>
+  </data>
+  <data name="EnglishName" xml:space="preserve">
+    <value>Nome inglese</value>
+  </data>
+  <data name="NativeName" xml:space="preserve">
+    <value>Nome nativo</value>
+  </data>
+  <data name="SiteIsInMaintenanceMode" xml:space="preserve">
+    <value>Il sito è in modalità manutenzione</value>
+  </data>
+  <data name="MaintenanceModeDescription" xml:space="preserve">
+    <value>Se abilitato, solo gli utenti amministratori possono accedere al sito per eseguire la manutenzione;;\rtutti gli altri visitatori vedranno il messaggio sulla modalità di manutenzione configurato di seguito.\rGli utenti autorizzati possono accedere direttamente tramite la pagina di accesso utente.</value>
+  </data>
+  <data name="Announcements" xml:space="preserve">
+    <value>Annunci</value>
+  </data>
+  <data name="Announcement" xml:space="preserve">
+    <value>Annuncio</value>
+  </data>
+  <data name="UploadFile" xml:space="preserve">
+    <value>Carica file</value>
+  </data>
+  <data name="UploadModule" xml:space="preserve">
+    <value>Carica modulo</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Impostazioni</value>
+  </data>
+</root>

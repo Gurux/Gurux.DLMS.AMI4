@@ -1,0 +1,319 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject IGXNotifier2 Notifier
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+<h1>@Properties.Resources.Links</h1>
+
+@if (Active != null)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle="@Properties.Resources.Save"
+            OnOk="Save">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <InputNullableSwitch Text="@Properties.Resources.Active"
+                                             @bind-Value="Active.Active" />
+                    </div>
+                    <div class="form-group">
+                                            <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
+                        <InputText id="name" class="form-control"
+                                   @bind-Value="Active.Name" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.Link</label>
+                        <InputText id="url" class="form-control"
+                                   @bind-Value="Active.Url" />
+                    </div>
+                    <div class="form-group">
+                        <label>@Properties.Resources.Description</label>
+                        <InputText id="description" class="form-control"
+                                   @bind-Value="Active.Description" />
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+<p>
+    <MenuControl RightCorner=true>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+            <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
+        </ChildContent>
+    </MenuControl>
+</p>
+<GXTable @ref="table"
+         Context="link"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         Total="false"
+         ShowAllData="true"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <HeaderContent>
+        <Th Name="Name" Target="@link">@Properties.Resources.Name</Th>
+        <Th Name="Name" Target="@link">@Properties.Resources.Description</Th>
+        <Th Name="Name" Target="@link">@Properties.Resources.Link</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td><LinkButton Target="@link" OnClick="@Edit" Text="@link.Name" /></td>
+        <td>@link.Description</td>
+        <td>@link.Url</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+@code {
+    private GXValidator? _validator;
+    CrudAction Action;
+    GXMenuLink? Active;
+
+    [CascadingParameter]
+    private Menu? Parent { get; set; }
+
+    private GXMenu? Menu
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// Menu filter.
+    /// </summary>
+    private GXMenu filter = new GXMenu();
+    /// <summary>
+    /// User is verified before link is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXMenuLink>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Add new link .
+    /// </summary>
+    public void OnAdd()
+    {
+        Active = new GXMenuLink(null);
+        Action = CrudAction.Create;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Remove selected links.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected menus.
+    /// </summary>
+    public void OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (Menu?.Links != null && table != null && args.Confirm)
+            {
+                foreach (var it in table.SingleOrDefault())
+                {
+                    Menu.Links.Remove(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            if (string.IsNullOrEmpty(Active.Url))
+            {
+                sender.AddError(() => Active.Url, "Invalid link.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Edit menu link.
+    /// </summary>
+
+    private void Edit(GXMenuLink link)
+    {
+        Action = CrudAction.Update;
+        Active = link;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private ValueTask<ItemsProviderResult<GXMenuLink>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (Menu?.Links != null)
+            {
+                return new(new ItemsProviderResult<GXMenuLink>(Menu.Links, Menu.Links.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Save link objects.
+    ///</summary>
+    public void Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            if (Active != null && Menu != null)
+            {
+                if (Action == CrudAction.Create)
+                {
+                    Menu.Links?.Add(Active);
+                }
+            }
+            Active = null;
+            InvokeAsync(StateHasChanged);
+            //   Parent.Updated();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide link dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        InvokeAsync(StateHasChanged);
+    }
+}
+

@@ -1,0 +1,157 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/logs"
+@page "/logs/{Action}"
+
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Pages.Module
+@using Gurux.DLMS.AMI.Client.Pages.Schedule
+@using Gurux.DLMS.AMI.Client.Pages.Script
+@using Gurux.DLMS.AMI.Client.Pages.User
+@using Gurux.DLMS.AMI.Client.Pages.Workflow
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.AgentManager)]
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@implements IDisposable
+
+<TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+    <TabTextTemplate>
+        <Image Id="@context.Icon" />
+        @context.Text
+        <Badge Value="@context.PadgeCount" Label="@context.Padge"
+               TraceLevel="@context.PadgeType">
+        </Badge>
+    </TabTextTemplate>
+    <ChildContent>
+        @if (_menu?.Links != null)
+        {
+            @foreach (GXMenuLink link in _menu.Links)
+            {
+                if (link.Active == true)
+                {
+                    <TabPage Path="@link.Url"
+                             Text=@link.Name
+                             Padge="@link.PadgeTitle"
+                             PadgeCount="@ClientHelpers.GetBadgeCount(_updateStamps, link.Padges)"
+                             PadgeType="@ClientHelpers.GetBadgeTraceLevel(_updateStamps, link.Padges)"
+                             Icon="@link.Icon">
+                        @if (!string.IsNullOrEmpty(link.TargetType))
+                        {
+                            <DynamicComponent Type="Type.GetType(link.TargetType)"></DynamicComponent>
+                        }
+                    </TabPage>
+                }
+            }
+        }
+    </ChildContent>
+</TabControl>
+<br />
+@code {
+    private GXMenu? _menu;
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    /// <summary>
+    /// User stamps.
+    /// </summary>
+    private List<GXUserStamp> _updateStamps = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        _menu = (await Http.GetAsJsonAsync<GetMenuResponse>(string.Format("api/Menu/name?name={0}", GXMenus.LogTab)))?.Item;
+        _updateStamps.AddRange(Notifier.GetUserStamps(ClientHelpers.GetBadges(_menu)));
+        ClientHelpers.GetUserStamps(_menu, _updateStamps);
+        //Try to create log pages to see that they are available.
+        if (_menu?.Links != null)
+        {
+            foreach (GXMenuLink link in _menu.Links)
+            {
+                if (!string.IsNullOrEmpty(link.TargetType))
+                {
+                    try
+                    {
+                        Type.GetType(link.TargetType);
+                    }
+                    catch (Exception ex)
+                    {
+                        link.Active = false;
+                        Debug.WriteLine($"Failed to load log page {link.TargetType}. {ex.Message}");
+                    }
+                }
+            }
+        }
+        Notifier.On<IEnumerable<GXUserStamp>>(this, nameof(IGXHubEvents.StampUpdate), (stamps) =>
+        {
+            bool updated = ClientHelpers.UpdateUserStamps(stamps, _updateStamps);
+            if (updated)
+            {
+                InvokeAsync(StateHasChanged);
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

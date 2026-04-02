@@ -1,0 +1,268 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Accordion
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+
+<Accordion Id="content-type-authoring">
+    <HeaderTemplate>
+        <div>
+            <h6><b>Roles</b></h6>
+            <label>@_availableRoles</label>
+        </div>
+    </HeaderTemplate>
+    <ChildContent>
+        <Search Placeholder="@Properties.Resources.FilterByName"
+                Id="Roles.Filter"
+                Immediate="true"
+                @bind-Value="@Filter"
+                OnClickAsync="@(async (e) => await Update())" />
+        <hr />
+        <GXTable @ref="table"
+                 Context="it"
+                 ItemsProvider="@GetItems"
+                 OnSearch="@Update"
+                 ShowAllUsers="false"
+                 ShowRemoved="false"
+                 ShowAllData="true">
+            <MenuContent>
+            </MenuContent>
+            <HeaderContent>
+                <th>
+                    @Properties.Resources.DefaultRole
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="roles_all"
+                               @onchange="@((ChangeEventArgs __e) => @CheckAll(Convert.ToBoolean(__e.Value)))" />
+                        <label>@Properties.Resources.Roles</label>
+                    </div>
+                </th>
+                <th>@Properties.Resources.Name</th>
+                <th>Scopes</th>
+            </HeaderContent>
+            <ItemContent>
+                <td>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox"
+                               checked="@it.Default"
+                               @onchange="@((e) => it.Default = Convert.ToBoolean(e.Value))" />
+                    </div>
+                </td>
+                <td>
+                    @(string.IsNullOrEmpty(it.LocalizedName) ? it.Name : it.LocalizedName)
+                </td>
+                <td>
+                    @if (it.Scopes != null)
+                    {
+                        @if (it.Default != true)
+                        {
+                            <Accordion Id="content-type-authoring">
+                                <HeaderTemplate>
+                                    @GetScopesAsString(it)
+                                </HeaderTemplate>
+                                <ChildContent>
+                                    @foreach (var scope in it.Scopes)
+                                    {
+                                        @(string.IsNullOrEmpty(scope.LocalizedName) ? scope.Name : scope.LocalizedName)
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox"
+                                                   checked="@scope.Default"
+                                                   @onchange="@((e) => CheckScope(scope, Convert.ToBoolean(e.Value)))" />
+                                        </div>
+                                    }
+                                </ChildContent>
+                            </Accordion>
+                        }
+                    }
+                </td>
+            </ItemContent>
+        </GXTable>
+    </ChildContent>
+</Accordion>
+
+
+
+@code {
+    /// <summary>
+    /// Filter.
+    /// </summary>
+    public string? Filter
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXRole>? table;
+    private string? _availableRoles;
+
+    [Parameter]
+    public List<GXRole>? Roles { get; set; }
+
+    private GXRole? _active = null;
+    //If role is not active it can't be the default role.
+    private string? IsDefault(GXRole selected)
+    {
+        return selected.Default.HasValue && selected.Default.Value ? null : "disabled";
+    }
+
+    private string GetSelectedClass(GXRole selected)
+    {
+        return _active != null && selected.Id == _active.Id ? "table-info" : "table-striped";
+    }
+
+    private void RowSelected(GXRole selected)
+    {
+        _active = selected;
+        Notifier.UpdateData(GXPages.Modules, _active);
+    }
+
+    /// <summary>
+    /// Set or unset all roles to default.
+    /// </summary>
+    /// <param name="check"></param>
+    private void CheckAll(bool check)
+    {
+        if (Roles != null)
+        {
+            foreach (var it in Roles)
+            {
+                if (it.Name != GXRoles.Admin)
+                {
+                    it.Default = check;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Check the scope.
+    /// </summary>
+    /// <param name="scope"></param>
+    private void CheckScope(GXScope scope, bool value)
+    {
+        scope.Default = value;
+        if (value == true && Roles != null)
+        {
+            foreach (var role in Roles)
+            {
+                if (role.Scopes?.Contains(scope) == true)
+                {
+                    role.Default = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Convert role scopes to string.
+    /// </summary>
+    private static string? GetScopesAsString(GXRole role)
+    {
+        string? str = null;
+        if (role.Default == true)
+        {
+            str = Properties.Resources.All;
+        }
+        else
+        {
+            if (role.Scopes != null)
+            {
+                foreach (var scope in role.Scopes)
+                {
+                    if (scope.Default == true)
+                    {
+                        if (str != null)
+                        {
+                            str += ",";
+                        }
+                        str += string.IsNullOrEmpty(scope.LocalizedName) ? scope.Name : scope.LocalizedName;
+                    }
+                }
+            }
+        }
+        return str;
+    }
+
+    private ValueTask<ItemsProviderResult<GXRole>> GetItems(GXItemsProviderRequest request)
+    {
+        List<GXRole>? list;
+        if (string.IsNullOrEmpty(Filter))
+        {
+            list = Roles;
+        }
+        else
+        {
+            list = Roles?.Where(w => w.Name?.ToLower().Contains(Filter.ToLower()) == true).ToList();
+        }
+        if (list != null)
+        {
+            _availableRoles = string.Join(",", list.Where(w => w.Default == true).Select(s => s.Name).ToArray());
+            //Update availableRoles.
+            StateHasChanged();
+            return new(new ItemsProviderResult<GXRole>(list, list.Count));
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Update virtualized items.
+    /// </summary>
+    public async Task Update()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

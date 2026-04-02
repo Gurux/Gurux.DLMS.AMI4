@@ -1,0 +1,183 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/config/contenttype/{Id:guid?}"
+@page "/config/contenttype/{Action}/{Id:guid?}"
+@page "/config/enumeration/{Action}/{Id:guid?}"
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs;
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.ContentType + "," + GXRoles.ContentTypeGroup)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+<h1>
+    @Title
+</h1>
+<CascadingValue Value="this">
+    <TabControl>
+        <TabTextTemplate>
+            <Image Id="@context.Icon" />
+            @context.Text
+        </TabTextTemplate>
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ContentType)
+                           Policy="@GXContentTypePolicies.View">
+                <TabPage Text=@Properties.Resources.GeneralInformation Icon="ContentType">
+                    <ContentType Action="@Action"></ContentType>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.UserGroupManager)
+                           Policy="@GXContentTypeGroupPolicies.View">
+                <TabPage Text=@Properties.Resources.ContentTypeGroups Icon="ContentTypeGroups">
+                    <ContentTypeGroupsSelector></ContentTypeGroupsSelector>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+</CascadingValue>
+<br />
+@code {
+    /// <summary>
+    /// Action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    /// <summary>
+    /// Active page.
+    /// </summary>
+    [Parameter]
+    public string? Page { get; set; }
+
+    /// <summary>
+    /// Target ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    /// Page title.
+    /// </summary>
+    private string? Title;
+
+    /// <summary>
+    /// Active item.
+    /// </summary>
+    public GXContentType Active = new GXContentType(null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Active.Enumeration = string.Compare("config/enumeration/add", NavigationManager.ToBaseRelativePath(NavigationManager.Uri), true) == 0;
+            var action = ClientHelpers.GetAction(Action);
+            switch (action)
+            {
+                case CrudAction.Create:
+                case CrudAction.Clone:
+                    Title = Properties.Resources.Add;
+                    Action = "Add";
+                    break;
+                case CrudAction.Update:
+                    Title = Properties.Resources.Edit;
+                    break;
+                case CrudAction.Delete:
+                    Title = Properties.Resources.Remove;
+                    break;
+                default:
+                    ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+                    return;
+            }
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action != CrudAction.Create)
+            {
+                //Get content type data.
+                var tmp = (await Http.GetAsJsonAsync<GetContentTypeResponse>(string.Format("api/ContentType?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                    if (Active.Fields == null)
+                    {
+                        Active.Fields = new List<GXContentTypeField>();
+                    }
+                    if (action == CrudAction.Clone)
+                    {
+                        Active.Id = Guid.Empty;
+                        Active.Updated = null;
+                        Active.CreationTime = null;
+                        Active.Creator = null;
+                        Active.Name += "-" + Properties.Resources.Clone;
+                    }
+                    InvokeAsync(StateHasChanged);
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active.Enumeration == true)
+            {
+                Title += " " + Properties.Resources.Enumeration;
+            }
+            else
+            {
+                Title += " " + Properties.Resources.ContentType;
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+}
+

@@ -1,0 +1,795 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+
+@inject IGXNotifier2 Notifier
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+
+<h1>@Properties.Resources.Fields</h1>
+
+@if (Active != null)
+{
+    <Dialog OnCancel="Cancel"
+            CancelButtonTitle="@Properties.Resources.Close"
+            OkButtonTitle="@Properties.Resources.Ok"
+            OnOk="Save">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <GXValidator @ref="_validator"
+                         OnValidate="OnValidate" />
+            <div class="row">
+                <div style="width:100%">
+                    <div class="form-group">
+                        <InputNullableSwitch Text="@Properties.Resources.Active"
+                                             @bind-Value="Active.Active" />
+                    </div>
+                    <div class="form-group">
+                        <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
+                        <InputText id="name" class="form-control"
+                                   @bind-Value="Active.Name" />
+                    </div>
+                    <div class="form-group">
+                        <CopyLabel Value="@Active.Description">@Properties.Resources.Description</CopyLabel>
+                        <InputText id="description" class="form-control"
+                                   @bind-Value="Active.Description" />
+                    </div>
+                    @if (Enumeration == false)
+                    {
+                        <GXInputDropdown class="form-select"
+                                         Id="field-FieldType"
+                                         LastValue="@(Action == CrudAction.Create)"
+                                         @bind-Value="Active.FieldType">
+                        </GXInputDropdown>
+                        @if (Active.FieldType == FieldType.SelectionList ||
+                                        Active.FieldType == FieldType.MultipleSelectionList ||
+                                        Active.FieldType == FieldType.DropdownList ||
+                                        Active.FieldType == FieldType.MultipleDropdownList ||
+                                        Active.FieldType == FieldType.Search)
+                        {
+                            @*Show sources.*@
+                            <label>Source</label>
+                            <DropdownSearch class="form-control"
+                                            Id="Fields"
+                                            Formatter="@((GXContentType? e) => e?.Name)"
+                                            LastValue="true"
+                                            @bind-Value="Active.Source"
+                                            ItemsProvider="@GetContentTypes">
+                            </DropdownSearch>
+                        }
+                        else if (Active.FieldType == FieldType.AutoIncrement)
+                        {
+                            <div class="form-group">
+                                <label>@Properties.Resources.Default</label>
+                                <GXInputNumber Id="field.Default" @bind-Value="Default" class="form-control" />
+                                <ValidationMessage For="@(() => Default)" />
+                            </div>
+                        }
+
+                        else if (Active.FieldType == FieldType.Number ||
+                        Active.FieldType == FieldType.Slider)
+                        {
+                            <div class="form-group">
+                                <label>@Properties.Resources.Default</label>
+                                <GXInputNumber Id="field.Default" @bind-Value="Default" class="form-control" />
+                                <ValidationMessage For="@(() => Default)" />
+                                <label>@Properties.Resources.Minimum</label>
+                                <GXInputNumber Id="field.Minimum" @bind-Value="Minimum" class="form-control" />
+                                <ValidationMessage For="@(() => Minimum)" />
+                                <label>@Properties.Resources.Maximum</label>
+                                <GXInputNumber Id="field.Maximum" @bind-Value="Maximum" class="form-control" />
+                                <ValidationMessage For="@(() => Maximum)" />
+                            </div>
+                        }
+                        else if (Active.FieldType == FieldType.Text)
+                        {
+                            <div class="form-group">
+                                <label>The minimum length of a string.</label>
+                                <GXInputNumber Id="field.Minimum" @bind-Value="Minimum" class="form-control" />
+                                <ValidationMessage For="@(() => Minimum)" />
+                                <label>The maximum length of a string.</label>
+                                <GXInputNumber Id="field.Maximum" @bind-Value="Maximum" class="form-control" />
+                                <ValidationMessage For="@(() => Maximum)" />
+                            </div>
+                        }
+                        else if (Active.FieldType == FieldType.Boolean)
+                        {
+                            <div class="form-group">
+                                <InputSwitch Text="@Properties.Resources.Default"
+                                             @bind-Value="@ValueAsBoolean" />
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label>@Properties.Resources.Default</label>
+                                <InputText id="name" class="form-control"
+                                           @bind-Value="Active.Default" />
+                            </div>
+                        }
+                        @if (Active.FieldType != FieldType.AutoIncrement)
+                        {
+                            <div class="form-group">
+                                <InputNullableSwitch Text="@Properties.Resources.Required" @bind-Value="Active.Required" />
+                            </div>
+                            <div class="form-group">
+                                <InputNullableSwitch Text="@Properties.Resources.Unique" @bind-Value="Active.Unique" />
+                            </div>
+                        }
+                        <div class="form-group">
+                            <label>@Properties.Resources.Visibility</label>
+                            <GXInputDropdown TValue="Visibility" class="form-select"
+                                             Id="Fields.Visibility"
+                                             @bind-Value="Visibility">
+                            </GXInputDropdown>
+                        </div>
+                    }
+                </div>
+            </div>
+        </EditForm>
+    </Dialog>
+}
+<p>
+    <MenuControl RightCorner=true>
+        <ChildContent>
+            <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+        </ChildContent>
+    </MenuControl>
+</p>
+<GXTable @ref="table"
+         RearrangeRows="true"
+         Context="link"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.None"
+         ShowRemoved="false"
+         ShowAllUsers="false"
+         Filter="false"
+         Total="false"
+         ShowAllData="true"
+         OnItemMoved="@OnItemMoved"
+         OnSearch="@Updated">
+    <FilterContent>
+        <th>
+            <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                   @onchange="@((ChangeEventArgs __e) => filter.Name = Convert.ToString(__e.Value))" />
+        </th>
+    </FilterContent>
+    <MenuContent>
+        <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.ContentType) Policy="@GXContentTypePolicies.Edit">
+            <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
+            <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+        </AuthorizeView>
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="Name" Target="@link">@Properties.Resources.Name</Th>
+        <Th Name="Description" Target="@link">@Properties.Resources.Description</Th>
+        @if (Enumeration == false)
+        {
+            <Th Name="Name" Target="@link">@Properties.Resources.Type</Th>
+        }
+        <Th Name="Name" Target="@link">@Properties.Resources.Visibility</Th>
+    </HeaderContent>
+    <ItemContent>
+        <td><LinkButton Target="@link" OnClick="@Edit" Text="@GetName(link)" /></td>
+        <td>@link.Description</td>
+        @if (Enumeration == false)
+        {
+            <td>@GetType(link)</td>
+        }
+        <td>@((Visibility?)link?.Visibility)</td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="DeleteConfirmation" ConfirmationChanged="OnDeleteConfirmation"
+         AllowDelete="false"
+         OkTitle="@Properties.Resources.Remove" ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+@code {
+    private GXValidator? _validator;
+    CrudAction Action;
+    GXContentTypeField? Active;
+
+    [CascadingParameter]
+    private ContentType? Parent { get; set; }
+
+    [Parameter]
+    public bool? Enumeration { get; set; }
+
+    private long? Minimum
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Active?.Minimum))
+            {
+                return null;
+            }
+            return long.Parse(Active.Minimum);
+        }
+        set
+        {
+            if (Active != null)
+            {
+                if (value == null)
+                {
+                    Active.Minimum = null;
+                }
+                else
+                {
+                    Active.Minimum = value.ToString();
+                }
+            }
+        }
+    }
+
+    private long? Default
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Active?.Default))
+            {
+                return null;
+            }
+            return long.Parse(Active.Default);
+        }
+        set
+        {
+            if (Active != null)
+            {
+                if (value == null)
+                {
+                    Active.Default = null;
+                }
+                else
+                {
+                    Active.Default = value.ToString();
+                }
+            }
+        }
+    }
+
+    private bool ValueAsBoolean
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Active?.Default))
+            {
+                return false;
+            }
+            return int.Parse(Active.Default) != 0;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Default = value ? "1" : "0";
+            }
+        }
+    }
+
+    private UInt64? Maximum
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Active?.Maximum))
+            {
+                return null;
+            }
+            return UInt64.Parse(Active.Maximum);
+        }
+        set
+        {
+            if (Active != null)
+            {
+                if (value == null)
+                {
+                    Active.Maximum = null;
+                }
+                else
+                {
+                    Active.Maximum = value.ToString();
+                }
+            }
+        }
+    }
+    private string? GetName(GXContentTypeField value)
+    {
+        string? name = value.Name;
+        if (value.Required == true)
+        {
+            name += "*";
+        }
+        return name;
+    }
+
+    private string? GetType(GXContentTypeField value)
+    {
+        if (value.FieldType == FieldType.SelectionList ||
+                         value.FieldType == FieldType.MultipleSelectionList ||
+                         value.FieldType == FieldType.DropdownList ||
+                         value.FieldType == FieldType.MultipleDropdownList ||
+                         value.FieldType == FieldType.Search)
+        {
+            return value?.FieldType.ToString() + " [" + value?.Source?.Name + "]";
+        }
+        return value?.FieldType.ToString();
+    }
+
+    private Visibility Visibility
+    {
+        get
+        {
+            if (Active?.Visibility == null)
+            {
+                return Visibility.All;
+            }
+            return (Visibility)Active.Visibility;
+        }
+        set
+        {
+            if (Active?.Visibility != null)
+            {
+                Active.Visibility = (int)value;
+            }
+        }
+    }
+
+    private GXContentType? ContentType
+    {
+        get
+        {
+            return Parent?.Active;
+        }
+    }
+
+    /// <summary>
+    /// ContentType filter.
+    /// </summary>
+    private GXContentType filter = new GXContentType();
+    /// <summary>
+    /// User is verified before field is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXContentTypeField>? table;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Add new content type field.
+    /// </summary>
+    public void OnAdd()
+    {
+        Active = new GXContentTypeField(null)
+        {
+            FieldType = FieldType.Text
+        };
+        Action = CrudAction.Create;
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Edit content type field.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            Edit(table.Active);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Remove selected fields.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            DeleteConfirmation?.Show(table.SingleOrDefault().Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    void OnItemMoved(GXContentTypeField item, int index)
+    {
+        if (ContentType?.Fields != null)
+        {
+            ContentType.Fields.Remove(item);
+            ContentType.Fields.Insert(index, item);
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private List<GXContentType> _contentTypes = new List<GXContentType>();
+
+    /// <summary>
+    /// Filter is done when SearchSelectedByName is called.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private ValueTask<ItemsProviderResult<GXContentType?>> GetContentTypes(GXItemsProviderRequest request)
+    {
+        try
+        {
+            List<GXContentType> list = new();
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                string filter = request.Filter.ToLower();
+                //Search content types by name
+                list = _contentTypes.Where(w => w.Name != null && w.Name.ToLower().Contains(filter)).ToList();
+            }
+            else
+            {
+                list.AddRange(_contentTypes);
+            }
+            return new(new ItemsProviderResult<GXContentType?>(list, list.Count));
+        }
+        catch (Exception ex)
+        {
+            Notifier.ProcessError(ex);
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Get all contentTypes and save them.
+    /// </summary>
+    /// <returns></returns>
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            ListContentTypes req = new ListContentTypes()
+            {
+                Filter = filter,
+            };
+            var ret = await Http.PostAsJson<ListContentTypesResponse>("api/ContentType/List", req);
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.All,
+                Type = null
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Device,
+                Type = TargetType.Device
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.DeviceGroup,
+                Type = TargetType.DeviceGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Agent,
+                Type = TargetType.Agent
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.AgentGroup,
+                Type = TargetType.AgentGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Gateway,
+                Type = TargetType.Gateway
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.GatewayGroup,
+                Type = TargetType.GatewayGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.User,
+                Type = TargetType.User
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.UserGroup,
+                Type = TargetType.UserGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Manufacturer,
+                Type = TargetType.Manufacturer
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.ManufacturerGroup,
+                Type = TargetType.ManufacturerGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Module,
+                Type = TargetType.Module
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.ModuleGroup,
+                Type = TargetType.ModuleGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Report,
+                Type = TargetType.Report
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.ReportGroup,
+                Type = TargetType.ReportGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Schedule,
+                Type = TargetType.Schedule
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.ScheduleGroup,
+                Type = TargetType.ScheduleGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Script,
+                Type = TargetType.Script
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.ScriptGroups,
+                Type = TargetType.ScriptGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Subtotal,
+                Type = TargetType.Subtotal
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.SubtotalGroup,
+                Type = TargetType.SubtotalGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Trigger,
+                Type = TargetType.Trigger
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.TriggerGroup,
+                Type = TargetType.TriggerGroup
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.Workflow,
+                Type = TargetType.Workflow
+            });
+            _contentTypes.Add(new GXContentType()
+            {
+                Name = Properties.Resources.WorkflowGroup,
+                Type = TargetType.WorkflowGroup
+            });
+            if (ret.ContentTypes != null)
+            {
+                _contentTypes.AddRange(ret.ContentTypes);
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected content types.
+    /// </summary>
+    public void OnDeleteConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (ContentType?.Fields != null && table != null && args.Confirm)
+            {
+                foreach (var it in table.SingleOrDefault())
+                {
+                    ContentType.Fields.Remove(it);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            if (Active.FieldType == FieldType.Slider)
+            {
+                if (Minimum == null)
+                {
+                    sender.AddError(() => Minimum, "The specified minimum value is invalid.");
+                }
+                if (Default == null)
+                {
+                    sender.AddError(() => Minimum, "The specified default value is invalid");
+                }
+                if (Maximum == null)
+                {
+                    sender.AddError(() => Maximum, "The specified maximum value is invalid.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Edit content type field.
+    /// </summary>
+
+    private void Edit(GXContentTypeField field)
+    {
+        Action = CrudAction.Update;
+        Active = field;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private ValueTask<ItemsProviderResult<GXContentTypeField>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (ContentType?.Fields != null)
+            {
+                return new(new ItemsProviderResult<GXContentTypeField>(ContentType.Fields, ContentType.Fields.Count));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Save field objects.
+    ///</summary>
+    public void Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            if (Active != null && ContentType != null)
+            {
+                if (Action == CrudAction.Create)
+                {
+                    ContentType.Fields?.Add(Active);
+                }
+            }
+            Active = null;
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Hide field dialog.
+    /// </summary>
+    public void Cancel()
+    {
+        Active = null;
+        InvokeAsync(StateHasChanged);
+    }
+}

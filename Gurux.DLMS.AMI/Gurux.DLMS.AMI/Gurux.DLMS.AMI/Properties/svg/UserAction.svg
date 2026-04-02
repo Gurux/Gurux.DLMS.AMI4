@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     width="24" height="24" role="img" aria-label="User info">
+  <!-- user -->
+  <path fill="currentColor"
+        d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 12c-4.42 0-8 2.24-8 5v3h16v-3c0-2.76-3.58-5-8-5z"/>
+  <!-- info badge -->
+  <circle cx="17.5" cy="17.5" r="5" fill="var(--win-info, #115EA3)"/>
+  <!-- i: dot + stem -->
+  <circle cx="17.5" cy="15" r="1.1" fill="#fff"/>
+  <path d="M17.5 17.8v3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>

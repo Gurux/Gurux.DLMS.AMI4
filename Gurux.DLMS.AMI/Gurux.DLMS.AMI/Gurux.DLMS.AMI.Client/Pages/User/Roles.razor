@@ -1,0 +1,84 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Accordion
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+
+@typeparam TDetected
+
+@if (Detected != null)
+{
+    <Accordion Id="content-type-authoring">
+        <HeaderTemplate>
+            <div>
+                <h6><b>Detection information</b></h6>
+                <label>@string.Format(Properties.Resources.ConnectionInformationFormat, Detected, ConnectionInfo)</label>
+            </div>
+        </HeaderTemplate>
+        <ChildContent>
+            @if (Detected != null)
+            {
+                <div class="form-group">
+                    <label>@Properties.Resources.Detected</label>
+                    <InputDate Type="@InputDateType.DateTimeLocal" id="connection-detected" readonly="readonly" class="form-control"
+                               @bind-Value="Detected" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.IpAddress</label>
+                    <GXInputIpAddress id="connection-info" readonly="true" class="form-control"
+                                      Value="@ConnectionInfo" />
+                </div>
+            }
+        </ChildContent>
+    </Accordion>
+}
+@code {
+    /// <summary>
+    /// Detection time.
+    /// </summary>
+    [Parameter]
+    public TDetected? Detected
+    {
+        get;
+        set;
+    }
+
+    /// <summary>
+    /// Connection information e.g. IP address.
+    /// </summary>
+    [Parameter]
+    public string? ConnectionInfo
+    {
+        get;
+        set;
+    }
+}

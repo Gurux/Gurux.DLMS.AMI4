@@ -1,0 +1,183 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Shared.DTOs;
+@using Gurux.DLMS.AMI.Shared.Enums;
+@using Gurux.DLMS.AMI.Shared.Rest;
+@using Gurux.DLMS.Enums;
+
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+<DropdownSearch class="form-control" disabled="@Disabled"
+                Id="ContentTypeDropdownSelector"
+                Formatter="@((GXContentType? e) => e?.Name)"
+                LastValue="true"
+                @bind-Value="Value"
+                OnSelected="@((GXContentType e) => OnValueChanged(e))"
+                ItemsProvider="@GetContents">
+</DropdownSearch>
+
+@code {
+    private GXContentType? _value;
+
+    /// <summary>
+    /// Target content.
+    /// </summary>
+    [Parameter]
+    public GXContentType? Value
+    {
+        get
+        {
+            return _value;
+        }
+        set
+        {
+            if (value?.Id != _value?.Id)
+            {
+                _value = value;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Notified when value is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXContentType?> ValueChanged { get; set; }
+
+    /// <summary>
+    /// Target content filter.
+    /// </summary>
+    [Parameter]
+    public GXContentType? Filter { get; set; }
+
+    /// <summary>
+    /// Notified when content filter is updated.
+    /// </summary>
+    [Parameter]
+    public EventCallback<GXContentType?> FilterChanged { get; set; }
+
+
+    /// <summary>
+    /// Is the content selector read-only.
+    /// </summary>
+    [Parameter]
+    public bool Disabled
+    {
+        get;
+        set;
+    }
+
+    [Parameter]
+    public GXContentType? ContentType { get; set; }
+
+    /// <summary>
+    /// User has selected the new content type and UI needs to update.
+    /// </summary>
+    protected void OnValueChanged(GXContentType? value)
+    {
+        if (ValueChanged.HasDelegate)
+        {
+            ValueChanged.InvokeAsync(value);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXContentType?>> GetContents(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (Filter == null)
+            {
+                Filter = new GXContentType();
+            }
+            if (ContentType?.Id is Guid id)
+            {
+                //Get contents with type.
+                Filter.Id = id;
+            }
+            if (!string.IsNullOrEmpty(request.Filter))
+            {
+                Filter.Name = request.Filter;
+            }
+            else
+            {
+                //Reset filter.
+                Filter.Name = null;
+            }
+            ListContentTypes req = new ListContentTypes()
+                {
+                    Index = (int)request.StartIndex,
+                    Count = (int)request.Count,
+                    Filter = Filter,
+                    OrderBy = request.OrderBy,
+                    Descending = request.Descending,
+                    AllUsers = request.ShowAllUserData,
+                    Select = [TargetType.ContentType]
+                };
+            var ret = await Http.PostAsJson<ListContentTypesResponse>("api/ContentType/List", req, request.CancellationToken);
+            if (ret.ContentTypes != null)
+            {
+                if (Value == null && ret.ContentTypes.Any())
+                {
+                    Value = ret.ContentTypes[0];
+                    OnValueChanged(Value);
+                }
+                else
+                    return new ItemsProviderResult<GXContentType?>(ret.ContentTypes, ret.Count);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Filter == null)
+        {
+            Filter = new GXContentType();
+        }
+    }
+}

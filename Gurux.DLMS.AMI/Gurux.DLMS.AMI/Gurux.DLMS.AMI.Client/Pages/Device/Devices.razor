@@ -1,0 +1,594 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/Devices"
+
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Client.Helpers
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Text.Json;
+
+@attribute [Authorize(Roles = "Admin, DeviceManager")]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IDisposable
+@implements IAmiComponent
+@if (Title)
+{
+    <PageTitle>@Properties.Resources.DevicesTitle</PageTitle>
+}
+@if (Header)
+{
+    <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+        <MenuControl RightCorner="true">
+            <ChildContent>
+                <MenuItem Text="@Properties.Resources.Add" Id="Add" OnClick="@OnAdd" />
+                <MenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove" />
+            </ChildContent>
+        </MenuControl>
+    </AuthorizeView>
+}
+
+<GXTable @ref="table"
+         Context="device"
+         ItemsProvider="@GetItems"
+         SelectionMode="SelectionMode.Multiple"
+         Filter="@Filter"
+         ShowAllUsers="@Header"
+         ShowRemoved="@Header"
+         Columns="@Columns"
+         CanEdit="@CanEdit"
+         OnSearch="@Updated">
+    <FilterContent>
+        <Fh Id="Name">
+            <GXInputText Id="Devices-Name"
+                         @bind-Value="@filter.Name"
+                         Placeholder="@Properties.Resources.FilterByName">
+            </GXInputText>
+        </Fh>
+        <Fh Id="Template.Type">
+            <input class="form-control" placeholder="@Properties.Resources.Type"
+                   type="text"
+                   @onchange="@((ChangeEventArgs __e) => filter.Template.Name = Convert.ToString(__e.Value))" />
+        </Fh>
+        <Fh Id="Detected" Visibility="Visibility.Small">
+            <input class="form-control" placeholder="Filter by detection time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Detected = StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+        <Fh Id="CreationTime" Visibility="Visibility.Medium">
+            <GXDateTimeSelector Id="Devices-CreationTime"
+                                @bind-Value="@filter.CreationTime"
+                                Placeholder="@Properties.Resources.FilterByCreationTime">
+            </GXDateTimeSelector>
+        </Fh>
+        <Fh Id="Updated" Visibility="Visibility.Large">
+            <input class="form-control" placeholder="Filter by updated time..."
+                   type="datetime-local"
+                   @onchange="@((ChangeEventArgs __e) => filter.Updated = StatusTile.ToDateTime(__e.Value))" />
+        </Fh>
+    </FilterContent>
+    <MenuContent>
+        @if (Menu)
+        {
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.DeviceManager)>
+                <ContextMenuItem Text="@Properties.Resources.Edit" Id="Edit" OnClick="@OnEdit"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Remove" Id="Remove" OnClick="@OnRemove"></ContextMenuItem>
+                <ContextMenuItem Text="@Properties.Resources.Clear" Id="Clear" OnClick="@OnClear"></ContextMenuItem>
+            </AuthorizeView>
+        }
+    </MenuContent>
+    <HeaderContent>
+        <Th Name="Name" Target="@device">
+            @Properties.Resources.Name
+        </Th>
+        <Th Name="Template.Type" Target="@device">
+            @Properties.Resources.Type
+        </Th>
+        <Th Name="Detected" Target="@device" Visibility="Visibility.Small" SortMode="SortMode.Descending">
+            @Properties.Resources.Detected
+        </Th>
+        <Th Name="CreationTime" Visibility="Visibility.Medium" Target="@device"
+            SortMode="SortMode.Descending">
+            @Properties.Resources.CreationTime
+        </Th>
+        <Th Name="Updated" Visibility="Visibility.Large" Target="@device">
+            @Properties.Resources.Updated
+        </Th>
+        <Th Name="LastRead" Visibility="Visibility.ExtraLarge" Target="@device">
+            @Properties.Resources.LastRead
+        </Th>
+        <Th Name="LastWrite" Visibility="Visibility.ExtraLarge" Target="@device">
+            @Properties.Resources.LastWrite
+        </Th>
+    </HeaderContent>
+    <ItemContent>
+        <Td Link=@("Objects/" + device.Id)><span class=@(ClientHelpers.GetActiveDot(device.Active))></span>@device.Name</Td>
+        <Td Id="Template.Type">@device.Template?.Name</Td>
+        <Td Id="Detected" Visibility="Visibility.Small">@device.Detected</Td>
+        <Td Id="CreationTime" Visibility="Visibility.Medium">@device.CreationTime</Td>
+        <Td Id="Updated" Visibility="Visibility.Large">@device.Updated</Td>
+        <Td Id="LastWrite" Visibility="Visibility.ExtraLarge">@device.LastRead</Td>
+        <Td Visibility="Visibility.ExtraLarge">@device.LastWrite</Td>
+    </ItemContent>
+</GXTable>
+<br />
+<Confirm @ref="ClearConfirmation"
+         ConfirmationChanged="OnClearConfirmation"
+         OkTitle="@Properties.Resources.Clear"
+         ConfirmationMessage="">
+</Confirm>
+<Confirm @ref="RemoveConfirmation"
+         ConfirmationChanged="OnDeleteConfirmation"
+         OkTitle="@Properties.Resources.Remove"
+         ConfirmationMessage=""
+         ConfirmationTitle="@Properties.Resources.AreYouSureYouWantToDeleteSelectedItems">
+</Confirm>
+
+@code {
+
+    /// <summary>
+    /// Selected device ID.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <inheritdoc />
+    public string Name
+    {
+        get
+        {
+            return Gurux.DLMS.AMI.Client.Properties.Resources.Devices;
+        }
+    }
+
+    /// <inheritdoc />
+    public Type? ConfigurationUI
+    {
+        get
+        {
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public string? Icon
+    {
+        get
+        {
+            return "oi oi-tablet";
+        }
+    }
+
+    /// <summary>
+    /// Amount of the devices shown on the view.
+    /// </summary>
+    [Parameter]
+    public int Count { get; set; } = 0;
+
+    /// <summary>
+    /// Is filter shown.
+    /// </summary>
+    [Parameter]
+    public bool Filter { get; set; } = true;
+
+    /// <summary>
+    /// Is header shown.
+    /// </summary>
+    [Parameter]
+    public bool Header { get; set; } = true;
+
+    /// <summary>
+    /// Is menu shown.
+    /// </summary>
+    [Parameter]
+    public bool Menu { get; set; } = true;
+
+    /// <summary>
+    /// Is edit allowed.
+    /// </summary>
+    [Parameter]
+    public bool CanEdit { get; set; } = true;
+
+    /// <summary>
+    /// Available columns.
+    /// </summary>
+    [Parameter]
+    public string[]? Columns { get; set; }
+
+    /// <summary>
+    /// Is title shown.
+    /// </summary>
+    [Parameter]
+    public bool Title { get; set; } = true;
+
+    /// <summary>
+    /// List of available devices.
+    /// </summary>
+    [Parameter]
+    public IEnumerable<GXDevice>? AvailableDevice { get; set; }
+
+    //Verify that history is clear.
+    protected ConfirmBase? ClearConfirmation;
+
+    /// <summary>
+    /// Device filter.
+    /// </summary>
+    private GXDevice filter = new GXDevice() { Template = new GXDeviceTemplate() };
+    /// <summary>
+    /// User is verified before schedule is removed.
+    /// </summary>
+    protected ConfirmBase? DeleteConfirmation;
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXDevice>? table;
+
+    /// <summary>
+    /// User is verified before devices are removed.
+    ///</summary>
+    protected ConfirmBase? RemoveConfirmation;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        //Wait until table is loaded. Don't remove this or table is null and last settings are not available.
+        await Task.Delay(1);
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ClearStatus();
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceUpdate), async (devices) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceDelete), async (devices) =>
+            {
+                await Updated();
+            });
+            Notifier.On<IEnumerable<GXDevice>>(this, nameof(IGXHubEvents.DeviceStatusChange), (devices) =>
+            {
+                bool updated = false;
+                foreach (var it in devices)
+                {
+                    var dev = table?.Items?.Where(w => w.Id == it.Id).SingleOrDefault();
+                    if (dev != null)
+                    {
+                        dev.Detected = it.Detected;
+                        dev.Status = it.Status;
+                        updated = true;
+                    }
+                }
+                if (updated)
+                {
+                    InvokeAsync(StateHasChanged);
+                }
+            });
+            if (Header)
+            {
+                Notifier.Clear();
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = "Read",
+                    Icon = "Read",
+                    OnClick = EventCallback.Factory.Create(this, OnReadSelected)
+                });
+                Notifier.UpdateButtons();
+            }
+            if (table != null && Id != null)
+            {
+                //Get last selected item.
+                table.Active = new GXDevice() { Id = Id.Value };
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    private async ValueTask<ItemsProviderResult<GXDevice>> GetItems(GXItemsProviderRequest request)
+    {
+        //Don't clear status or error is lost.
+        Notifier?.ProgressStart();
+        try
+        {
+            if (request.Removed)
+            {
+                filter.Removed = DateTimeOffset.MaxValue;
+            }
+            else
+            {
+                filter.Removed = null;
+            }
+            ListDevices req = new ListDevices()
+            {
+                Index = request.StartIndex,
+                Count = request.Count,
+                Filter = filter,
+                OrderBy = request.OrderBy,
+                Descending = request.Descending,
+                AllUsers = request.ShowAllUserData,
+            };
+            if (AvailableDevice != null && AvailableDevice.Any())
+            {
+                req.Included = AvailableDevice.Select(s => s.Id).ToArray();
+            }
+            if (Count != 0)
+            {
+                req.Count = Count;
+            }
+            var ret = await Http.PostAsJson<ListDevicesResponse>("api/Device/List", req, request.CancellationToken);
+            return new ItemsProviderResult<GXDevice>(ret.Devices, ret.Count);
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Add new device.
+    /// </summary>
+    public void OnAdd()
+    {
+        try
+        {
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Device/Add");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Edit device.
+    /// </summary>
+    public void OnEdit()
+    {
+        try
+        {
+            Notifier.ClearStatus();
+            if (table?.Active == null)
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            ClientHelpers.NavigateTo(NavigationManager, Notifier, "/Device/Edit/" + table?.Active.Id);
+
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+
+    /// <summary>
+    /// Remove selected device.
+    /// </summary>
+    public void OnRemove()
+    {
+        try
+        {
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            RemoveConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray());
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Delete the selected devices.
+    /// </summary>
+    public async Task OnDeleteConfirmation(ConfirmArgs args)
+    {
+        if (table != null && args.Confirm)
+        {
+            try
+            {
+                Notifier?.ProgressStart();
+                RemoveDevice req = new RemoveDevice()
+                {
+                    Delete = args.Delete,
+                    Ids = table.SingleOrDefault().Select(w => w.Id).ToArray()
+                };
+                await Http.PostAsJson<RemoveDeviceResponse>("api/Device/Delete", req);
+            }
+            catch (AccessTokenNotAvailableException exception)
+            {
+                exception.Redirect();
+            }
+            catch (Exception ex)
+            {
+                Notifier?.ProcessError(ex);
+            }
+            finally
+            {
+                Notifier?.ProgressEnd();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public void OnClear()
+    {
+        try
+        {
+            ClearConfirmation?.Show(table?.SingleOrDefault()?.Select(s => s.Name).ToArray(),
+            "Are you sure you want to clear device history? This action cannot be undone.");
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+    }
+
+    /// <summary>
+    /// Clear history.
+    /// </summary>
+    public async Task OnClearConfirmation(ConfirmArgs args)
+    {
+        try
+        {
+            if (args.Confirm && table != null)
+            {
+                List<GXDevice> devices = new List<GXDevice>();
+                foreach (var it in table.SingleOrDefault())
+                {
+                    devices.Add(new GXDevice() { Id = it.Id });
+                }
+                await Http.PostAsJson<ClearValueResponse>("api/Value/Clear", new ClearValue()
+                {
+                    Devices = devices.ToArray()
+                });
+            }
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Read all selected objects.
+    /// </summary>
+    public async void OnReadSelected()
+    {
+        try
+        {
+            Notifier?.ClearStatus();
+            Notifier?.ProgressStart();
+            if (table == null || !table.SingleOrDefault().Any())
+            {
+                throw new Exception(Gurux.DLMS.AMI.Client.Properties.Resources.NoItemIsSelected);
+            }
+            List<GXTask> tasks = new List<GXTask>();
+            foreach (var it in table.SingleOrDefault())
+            {
+                GXTask task = new GXTask();
+                task.TaskType = TaskType.Read;
+                task.Device = new GXDevice() { Id = it.Id };
+                tasks.Add(task);
+            }
+            AddTask req = new AddTask();
+            req.Tasks = tasks.ToArray();
+            await Http.PostAsJson<AddTaskResponse>("api/Task/Add", req);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}
+

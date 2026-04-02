@@ -1,0 +1,130 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@page "/config/notificationmanage"
+@page "/config/notification"
+@page "/config/notificationGroup"
+@page "/config/notification/deviceGroup"
+@page "/config/notification/device"
+@page "/config/notification/agent"
+@page "/config/notification/agentGroup"
+@page "/config/notification/gateway"
+@page "/config/notification/gatewayGroup"
+@page "/config/notification/log/{Id:guid?}"
+@page "/config/notification/log/{Action}/{Id:guid?}"
+
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs.Authentication
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.NotificationManager + "," + GXRoles.NotificationGroupManager)]
+@inject NavigationManager NavigationManager
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+
+@*If user adds a new item or modifies the existing one.*@
+@if (string.Compare(Action, "Add", true) == 0 || (Id != null && Path != null && string.Compare(Action, "Edit", true) == 0))
+{
+    @if (string.Compare(Path, "Notification", true) == 0)
+    {
+        <NotificationTab Action="@Action" Id="@Id"></NotificationTab>
+    }
+    else if (string.Compare(Path, "NotificationGroup", true) == 0)
+    {
+        <NotificationGroupTab Action="@Action" Id="@Id"></NotificationGroupTab>
+    }
+    else if (string.Compare(Path, "Log", true) == 0)
+    {
+        <NotificationLog Id="@Id"></NotificationLog>
+    }
+}
+else
+{
+    <TabControl Active="@Path" SelectionChanged="@SelectionChanged">
+        <ChildContent>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.NotificationManager)>
+                <TabPage Path="config/notification" Text=@Properties.Resources.Notifications Icon="Notifications">
+                    <div style="position: relative; width: 100%; ">
+                        <Notifications Id="@Id"></Notifications>
+                    </div>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.NotificationGroupManager)>
+                <TabPage Path="config/notificationGroup" Text=@Properties.Resources.NotificationGroups Icon="NotificationGroups">
+                    <NotificationGroups Id="@Id"></NotificationGroups>
+                </TabPage>
+            </AuthorizeView>
+            <AuthorizeView Roles=@GXRoles.ToString(GXRoles.Admin, GXRoles.NotificationLog)>
+                <TabPage Path="config/notification/log" Text=@Properties.Resources.NotificationLogs Icon="NotificationLogs">
+                    <NotificationLogs Id="@Id"></NotificationLogs>
+                </TabPage>
+            </AuthorizeView>
+        </ChildContent>
+    </TabControl>
+}
+<br />
+@code {
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    private string? Path { get; set; }
+
+    /// <summary>
+    /// User has selected a new tab.
+    /// </summary>
+    /// <param name="page">Tab page.</param>
+    void SelectionChanged(TabPage page)
+    {
+        Path = page.Path;
+    }
+
+    protected override void OnInitialized()
+    {
+        //Get selected tab from the url.
+        Path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+}
+

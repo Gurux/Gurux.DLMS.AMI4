@@ -1,0 +1,87 @@
+@inject NavigationManager Nav
+
+<nav aria-label="breadcrumb" class="mb-3" @attributes="AdditionalAttributes">
+    <ol class="breadcrumb mb-0">
+        @for (var i = 0; i < ItemsToRender.Count; i++)
+        {
+            var item = ItemsToRender[i];
+            var isFirst = i == 0;
+            if (item.Active)
+            {
+                <li class="breadcrumb-item active" aria-current="page">
+                    @item.Text
+                </li>
+            }
+            else
+            {
+                <li class="breadcrumb-item">
+                    <a href="@item.Href">
+                        @item.Text
+                    </a>
+                </li>
+            }
+        }
+    </ol>
+</nav>
+
+@code {
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    /// <summary>
+    /// Optional: Provide items manually. If not set, items are generated from the current URL.
+    /// </summary>
+    [Parameter] public IEnumerable<BreadcrumbItem>? Items { get; set; }
+
+    /// <summary>
+    /// Optional: Map URL segment -> human readable label (e.g. "ip" -> "IP Addresses").
+    /// </summary>
+    [Parameter] public Dictionary<string, string>? SegmentLabelMap { get; set; }
+
+    private IReadOnlyList<BreadcrumbItem> ItemsToRender => Items is not null && Items.Any()
+        ? Items.ToList()
+        : BuildFromUri();
+
+    private List<BreadcrumbItem> BuildFromUri()
+    {
+        var list = new List<BreadcrumbItem>();
+
+        // Base (Home)
+        list.Add(new BreadcrumbItem("Home", Nav.BaseUri, false));
+
+        // Extract relative path without query/fragment
+        var baseUri = Nav.BaseUri.TrimEnd('/');
+        var current = Nav.Uri;
+        var relative = current.StartsWith(baseUri, StringComparison.OrdinalIgnoreCase)
+            ? current[baseUri.Length..]
+            : current;
+
+        var cut = relative.IndexOfAny(new[] { '?', '#' });
+        if (cut >= 0) relative = relative[..cut];
+
+        var segments = relative.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var acc = "";
+        for (int i = 0; i < segments.Length; i++)
+        {
+            var seg = segments[i];
+            acc += "/" + seg;
+            var isLast = i == segments.Length - 1;
+            var href = isLast ? null : (Nav.BaseUri.TrimEnd('/') + acc);
+            list.Add(new BreadcrumbItem(LabelFor(seg), href, isLast));
+        }
+
+        return list;
+    }
+
+    private string LabelFor(string segment)
+    {
+        if (SegmentLabelMap is not null && SegmentLabelMap.TryGetValue(segment, out var label))
+            return label;
+
+        var decoded = Uri.UnescapeDataString(segment);
+        decoded = decoded.Replace("-", " ").Replace("_", " ");
+        return decoded.Length == 0 ? decoded : char.ToUpper(decoded[0]) + (decoded.Length > 1 ? decoded[1..] : "");
+    }
+    public record BreadcrumbItem(string Text, string? Href, bool Active);
+}

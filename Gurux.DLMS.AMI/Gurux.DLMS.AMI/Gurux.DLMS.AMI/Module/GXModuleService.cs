@@ -126,9 +126,8 @@ namespace Gurux.DLMS.AMI.Module
         /// <inheritdoc/>
         public Task UpdateModuleSettingsAsync(GXModule module)
         {
-            //MIKKO
-            // throw new NotImplementedException();
-            return Task.CompletedTask;
+            //TODO: Implement module settings update.
+            throw new NotImplementedException();
         }
 
         /// <inheritdoc/>
@@ -194,7 +193,6 @@ namespace Gurux.DLMS.AMI.Module
                         _change.NotifyChanges();
                     }
                     var types = asm.GetTypes();
-                    var allDefs = new List<AmiEndpointDefinition>();
                     foreach (var type in asm.GetTypes()
                                  .Where(t => typeof(IAmiModule).IsAssignableFrom(t)))
                     {
@@ -275,7 +273,6 @@ namespace Gurux.DLMS.AMI.Module
                                     Filter = new GXModuleGroup() { Default = true }
                                 };
                                 var moduleGroupRepository = sp.GetRequiredService<IModuleGroupRepository>();
-                                //MIKKO mod.ModuleGroups?.AddRange(await moduleGroupRepository.ListAsync(request, null));
                                 //Copy module file to modules folder.
                                 string installPath = Path.Combine(_contentRootPath, "Modules", mod.Id, mod.Version);
                                 if (!Directory.Exists(installPath))
@@ -325,26 +322,9 @@ namespace Gurux.DLMS.AMI.Module
                             sc.AddSingleton(http2);
                             var cf = sp.GetRequiredService<IHttpClientFactory>();
                             sc.AddSingleton(cf);
-
                             //Add AMI services.
-                            //Mikko  ServerSettings.AddRepositories(sc);
                             module.ConfigureModuleServices(sc, configuration);
-                            //MIKKO descriptor.ServiceProvider = sc.BuildServiceProvider();
-                            //MIKKO var defs = module.GetEndpoints(descriptor.ServiceProvider);
-                            //MIKKO if (defs != null)
-                            //MIKKO {
-                            //MIKKO allDefs.AddRange(defs);
-                            //MIKKO }
-                            if (user != null)
-                            {
-                                //MIKKO module.Install(descriptor.ServiceProvider, module);
-                            }
-                            //Add custom EndpointDataSource.
-                            //MIKKO  endpointRegistry.AddOrUpdate(module.Id, allDefs);
-                            //MIKKO module.Start(descriptor.ServiceProvider);
-                            //MIKKO await module.StartAsync(descriptor.ServiceProvider);
                             modules.Add(mod);
-                            //MIKKO _modules[module.Id] = descriptor;
                         }
                     }
                 }

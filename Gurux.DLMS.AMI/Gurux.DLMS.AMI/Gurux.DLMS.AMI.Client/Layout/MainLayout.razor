@@ -1,0 +1,280 @@
+﻿@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Client.Helpers.Toaster
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest;
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using System.Security.Claims
+@using System.Globalization
+@using System.Diagnostics
+
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+@inherits LayoutComponentBase
+@inject ILogger<MainLayout> Logger
+@inject HttpClient Http
+@inject IServiceProvider Services
+@inject IGXResourceStorage ResourceStorage
+@inject GXNotifierService Notifier
+
+<HeadContent>
+    @if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
+    {
+        <link rel="stylesheet" href="@CurrentTheme.CssFile" />
+    }
+    @if (IconPacks?.Any() == true)
+    {
+        @foreach (var it in IconPacks)
+        {
+            <link rel="stylesheet" href=@GetIconPack(it) integrity=""
+                  crossorigin="anonymous" />
+        }
+    }
+    @if (CurrentTheme?.Styles.Any() == true)
+    {
+        <style>
+            :root {
+                @foreach (var style
+                            in CurrentTheme.Styles)
+                {
+                    @GetStyle(style)
+                }
+            }
+        </style>
+    }
+</HeadContent>
+
+<CascadingValue Value="ResourceStorage">
+    <div class="page">
+        <Spinner Visible="@(_onProgress != 0)" />
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+        <main>
+            <div class="top-row px-4 auth">
+                <Breadcrumb SegmentLabelMap="@_maps" class="me-auto" />
+                <TopMenu />
+                <LoginDisplay @ref="LoginDisplay" />
+                <AuthorizeView>
+                    <Authorized>
+                        <FavoriteTile />
+                        <a href="Account/Manage">
+                            <Image Id="User"></Image>
+                        </a>
+                        <a href="@("/about/" + Guid.NewGuid())">
+                            <LocalizedText Value="@Properties.Resources.About" />
+                        </a>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+            <StatusTile @ref=Status Closable=false />
+            <AuthorizeView>
+                <Authorized>
+                    <BlockTile Location="BlockLocation.Header"></BlockTile>
+                </Authorized>
+            </AuthorizeView>
+            <Toaster />
+            @if (Status == null || !Status.MaintenanceMode || Status.IsAdmin)
+            {
+                <div class="content px-4">
+                    <GXErrorBoundary>
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                    </GXErrorBoundary>
+                </div>
+            }
+            <AuthorizeView>
+                <Authorized>
+                    <BlockTile Location="BlockLocation.Footer"></BlockTile>
+                </Authorized>
+            </AuthorizeView>
+        </main>
+    </div>
+    <div id="blazor-error-ui" data-nosnippet>
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+</CascadingValue>
+@code {
+
+    private string GetIconPack(string path)
+    {
+        // Convert quotes to single.
+        string clean = path.Replace("\\\"", "\"");
+        return clean.Replace("\"", "'");
+    }
+
+    private string GetStyle(GXThemeStyle style)
+    {
+        string tmp;
+        if (style.Type == (byte)ThemeType.Color)
+        {
+            if (style.Name == "--bs-body-bg")
+            {
+                tmp = style.Name + ": " + style.Value + ";";
+            }
+            else
+            {
+                //Return color as RGB.
+                tmp = style.Name + "-rgb: " + ClientHelpers.HexToRgb(style.Value) + ";";
+            }
+        }
+        else
+        {
+            tmp = style.Name + ": " + style.Value + "";
+        }
+        return tmp;
+    }
+
+    Dictionary<string, string> _maps = new Dictionary<string, string>();
+    private LoginDisplay? LoginDisplay;
+    private NavMenu? NavMenu;
+
+    //Save or load is on progress.
+    private int _onProgress;
+    private GXThemeInfo? CurrentTheme;
+
+    private IEnumerable<string>? IconPacks;
+
+    [CascadingParameter]
+    public Task<AuthenticationState> AuthState { get; set; }
+
+    /// <summary>
+    /// Status is shown here.
+    /// </summary>
+    public StatusTile? Status { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            //Wait until user has authenticated.
+            var t = await AuthState;
+            if (t.User.Identity?.IsAuthenticated == true)
+            {
+                try
+                {
+                    using (IServiceScope scope = Services.CreateScope())
+                    {
+                        await Notifier.StartAsync(t.User, scope, Http, NavigationManager);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex.Message);
+                    //It's OK if this fails.
+                }
+                Notifier.OnPageChanged += () =>
+                {
+                    _onProgress = 0;
+                    //This must be in InvokeAsync, because event is called outside Blazor context.
+                    InvokeAsync(StateHasChanged);
+                };
+
+                Notifier.OnProgressStart += () =>
+                {
+                    ++_onProgress;
+                    //This must be in InvokeAsync, because event is called outside Blazor context.
+                    InvokeAsync(StateHasChanged);
+                };
+                Notifier.OnProgressEnd += () =>
+                {
+                    if (--_onProgress < 1)
+                    {
+                        _onProgress = 0;
+                        //This must be in InvokeAsync, because event is called outside Blazor context.
+                        InvokeAsync(StateHasChanged);
+                    }
+                };
+                Notifier.OnClearStatus += () =>
+                {
+                    Status?.Clear();
+                };
+                Notifier.OnProcessError += (ex) =>
+                {
+                    Status?.ProcessError(ex);
+                };
+                Notifier.OnProcessErrors += (errors) =>
+                {
+                    Status?.ProcessErrors(errors);
+                };
+                Notifier.OnShowInformation += (info, closable) =>
+                {
+                    Status?.ShowInformation(info, closable);
+                };
+                await ResourceStorage.UpdateLocalizationAsync();
+                CurrentTheme = await ResourceStorage.GetCurrentThemeAsync();
+                ResourceStorage.OnThemeChanged += (sender, theme) =>
+                {
+                    CurrentTheme = theme;
+                    StateHasChanged();
+                };
+                if (!string.IsNullOrEmpty(CurrentTheme?.CssFile))
+                {
+                    Logger.LogDebug("Current theme:{0}", CurrentTheme.CssFile);
+                }
+                if (CurrentTheme?.Styles != null)
+                {
+                    foreach (var style in CurrentTheme.Styles)
+                    {
+                        Logger.LogDebug("Style: {0}", GetStyle(style));
+                    }
+                }
+                IconPacks = await ResourceStorage.GetCurrentIconPacksAsync();
+                if (IconPacks != null)
+                {
+                    foreach (var ip in IconPacks)
+                    {
+                        Logger.LogDebug("Iconpack: {0}", ip);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex.Message);
+        }
+        Logger.LogError($"MainLayout  init END {DateTime.Now:O}");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await Notifier.StopAsync();
+    }
+}

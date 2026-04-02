@@ -1,0 +1,295 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Components.Panel
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+
+@using Microsoft.Extensions.Logging
+@using System.Diagnostics
+
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
+@attribute [Authorize(Roles = GXRoles.User)]
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+@implements IGXConfigUpdate
+
+<Panel>
+    <PanelItem Width="20%">
+        <GXTable @ref="table"
+                 Context="it"
+                 ItemsProvider="@GetItems"
+                 SelectionMode="SelectionMode.Multiple"
+                 ShowRemoved="false"
+                 ShowAllUsers="false"
+                 Filter="false"
+                 Total="false"
+                 ShowAllData="true"
+                 OnSearch="@Updated">
+            <FilterContent>
+                <th>
+                    <input class="form-control" type="text" placeholder="@Properties.Resources.FilterByName"
+                           @onchange="@((ChangeEventArgs __e) => filter = Convert.ToString(__e.Value))" />
+                </th>
+            </FilterContent>
+            <HeaderContent>
+                <Th Name="Name" Target="@it" SortMode="SortMode.Ascending">@Properties.Resources.Name</Th>
+            </HeaderContent>
+            <ItemContent>
+                <td>@(string.IsNullOrEmpty(it.LocalizedName) ? it.Id : it.LocalizedName)</td>
+            </ItemContent>
+        </GXTable>
+    </PanelItem>
+    <PanelItem>
+        <textarea id="data" value="@Value" style="width:100%; height:100%;border: none; outline: none; resize: none;"
+                  onchange="@((ChangeEventArgs __e) => Value = (Convert.ToString(__e.Value)))"
+                  class="form-control" />
+    </PanelItem>
+</Panel>
+@code {
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.AMI.Client.Pages.Config.Configurations? Parent { get; set; }
+
+    /// <inheritdoc/>
+    public void Update()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Imported or exported value.
+    /// </summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    private string? filter;
+
+    /// <summary>
+    /// Table reference.
+    /// </summary>
+    protected GXTable<GXTargetType>? table;
+
+    private GXTargetType[]? _types;
+
+    /// <summary>
+    /// Update table.
+    /// </summary>
+    protected async Task Updated()
+    {
+        try
+        {
+            if (table != null)
+            {
+                Notifier?.ClearStatus();
+                await table.RefreshDataAsync(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Notifier == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidNotifier);
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            GXDataExchangeTypeResponse? ret = await Http.GetAsJsonAsync<GXDataExchangeTypeResponse>("api/DataExchange/");
+            _types = ret.Types;
+            if (table != null)
+            {
+                await table.RefreshDataAsync(true);
+            }
+            Notifier.Clear();
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Icon = "Import",
+                Text = Properties.Resources.Import,
+                OnClick = EventCallback.Factory.Create(this, OnImport)
+            });
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Icon = "Export",
+                Text = Properties.Resources.Export,
+                OnClick = EventCallback.Factory.Create(this, OnExport)
+            });
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Text = Properties.Resources.Cancel,
+                Icon = "Cancel",
+                OnClick = EventCallback.Factory.Create(this, OnCancel)
+            });
+            Notifier.UpdateButtons();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    private ValueTask<ItemsProviderResult<GXTargetType>> GetItems(GXItemsProviderRequest request)
+    {
+        try
+        {
+            if (_types != null)
+            {
+                return new(new ItemsProviderResult<GXTargetType>(_types, _types.Length));
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            //Let the table component handle this.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+        return default;
+    }
+
+    /// <summary>
+    /// Import values.
+    /// </summary>
+    private async void OnImport()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            GXImportData arg = new GXImportData();
+            arg.Data = Value;
+            await Http.PostAsJson("api/DataExchange/Import", arg);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Export values.
+    /// </summary>
+    private async void OnExport()
+    {
+        Notifier?.ProgressStart();
+        Notifier?.ClearStatus();
+        try
+        {
+            if (table == null || Parent?.Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            GXExportData arg = new GXExportData();
+            List<GXExportDataItem> list = new List<GXExportDataItem>();
+            foreach (var it in table.SelectedItems)
+            {
+                list.Add(new GXExportDataItem()
+                {
+                    TargetType = it.Id
+                });
+            }
+            if (list.Any())
+            {
+                arg.Targets = list.ToArray();
+            }
+            var ret = await Http.PostAsJson<GXExportDataResponse>("api/DataExchange/Export", arg);
+            Value = ret.Data;
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    public void Dispose()
+    {
+        Notifier.RemoveListener(this);
+    }
+}

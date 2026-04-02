@@ -1,0 +1,251 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.Rest
+
+@inject IGXNotifier2 Notifier
+@inject ILogger<FieldsEditor> Logger
+
+@if (Active?.Fields != null)
+{
+    @foreach (var it in Active.Fields)
+    {
+        <div class="form-group">
+            @if (string.IsNullOrEmpty(@it.Type?.Description))
+            {
+                <div class="form-group">
+                    <Label Required="@(it.Type?.Required == true)">@it.Type?.Name</Label>
+                </div>
+            }
+            else
+            {
+                <Tooltip Title="@it.Type.Description">
+                    <Label Required="@(it.Type?.Required == true)">@it.Type?.Name</Label>
+                </Tooltip>
+            }
+        </div>
+        <div class="form-group">
+            @switch (it.Type?.FieldType)
+            {
+                case FieldType.Text:
+                    <GXInputText @bind-Value="@it.Value"
+                                 Placeholder="@it.Type.Description">
+                    </GXInputText>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.TextArea:
+                    <textarea id="devices" @bind="it.Value"
+                              placeholder="@it.Type.Description"
+                              class="textarea fill" />
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Html:
+                    break;
+                case FieldType.Number:
+                    <GXInputNumber Id="@it.Type.Name" @bind-Value="it.Value" Min="@it.Type.Minimum" Max="@it.Type.Maximum" />
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.AutoIncrement:
+                    <label>@it.Value</label>
+                    break;
+                case FieldType.File:
+                    break;
+                case FieldType.SelectionList:
+                    <label>Not implemented.</label>
+                    break;
+                case FieldType.MultipleSelectionList:
+                    break;
+                case FieldType.DropdownList:
+                    @if (Active.Type?.Type == TargetType.Device)
+                    {
+                        <DeviceDropdownSelector @bind-Value="new TargetConverter<GXDevice>(it).Value"></DeviceDropdownSelector>
+                    }
+                    else if (string.IsNullOrEmpty(Active.Type?.Type))
+                    {
+                        @if (it.Type.Source?.Enumeration == true)
+                        {
+                            <ContentTypeDropdownSelector ContentType="@it.Type.Source" @bind-Value="new TargetConverter<GXContentType>(it).Value"></ContentTypeDropdownSelector>
+                        }
+                        else
+                        {
+                            <ContentDropdownSelector ContentType="@it.Type.Source" @bind-Value="new TargetConverter<GXContent>(it).Value"></ContentDropdownSelector>
+                        }
+                    }
+                    break;
+                case FieldType.MultipleDropdownList:
+                    break;
+                case FieldType.Search:
+                    <label>Not implemented.</label>
+                    break;
+                case FieldType.DateTime:
+                    <GXDateTimeSelector Id="@it.Type.Name"
+                                        @bind-Value="@(new TargetConverter<DateTime>(it).Value)"
+                                        Placeholder="@it.Type.Description">
+                    </GXDateTimeSelector>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Date:
+                    <GXDateTimeSelector Id="@it.Type.Name"
+                                        @bind-Value="@(new TargetConverter<DateOnly>(it).Value)"
+                                        Placeholder="@it.Type.Description">
+                    </GXDateTimeSelector>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Time:
+                    <GXDateTimeSelector Id="@it.Type.Name"
+                                        @bind-Value="@(new TargetConverter<TimeOnly>(it).Value)"
+                                        Placeholder="@it.Type.Description">
+                    </GXDateTimeSelector>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.TimeSpan:
+                    <GXInputTimeSpan Id="@it.Type.Name"
+                                     @bind-Value="@(new TargetConverter<TimeSpan>(it).Value)">
+                    </GXInputTimeSpan>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Boolean:
+                    <InputSwitch Id="@(string.IsNullOrEmpty(it.Type.Description) ? it.Type.Name : it.Type.Description)"
+                                 @bind-Value="new TargetConverter<bool>(it).Value">
+                    </InputSwitch>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Comment:
+                    <label>@it.Value</label>
+                    break;
+                case FieldType.Email:
+                    <InputEmail Id="@it.Type.Name"
+                                @bind-Value="@it.Value">
+                    </InputEmail>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Phone:
+                    <InputPhone Id="@it.Type.Name"
+                                @bind-Value="@it.Value">
+                    </InputPhone>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Link:
+                    <a href="@it.Value" target="_blank">@it.Type.Name</a>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.LinkButton:
+                    <LinkButton Target="@it.Value" Text="@it.Type.Name" />
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                case FieldType.Hex:
+                    <InputHexAscii Id="@it.Type.Name"
+                                   @bind-Value="@(new TargetConverter<byte[]>(it).Value)">
+                    </InputHexAscii>
+                    <ValidationMessage For="@(() => it.Value)" />
+                    break;
+                default:
+                    Logger.LogError("Handled for field type " + it.Type?.FieldType + " is missing.");
+                    break;
+            }
+        </div>
+    }
+}
+@code {
+    private GXValidator? _validator;
+
+    [CascadingParameter]
+    private ContentTab? Parent { get; set; }
+
+    private GXContent? _active;
+
+    private GXContent? Active
+    {
+        get
+        {
+            if (Parent?.Active != null)
+            {
+                return Parent.Active;
+            }
+            return _active;
+        }
+    }
+
+    internal void Update()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Validate the object content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        foreach (var it in Active.Type.Fields)
+        {
+            if (it.FieldType != null)
+            {
+                switch (it.FieldType)
+                {
+
+                }
+            }
+        }
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Save field objects.
+    ///</summary>
+    public void Save()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (_validator != null &&
+                !_validator.Validate())
+            {
+                return;
+            }
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+}

@@ -1,0 +1,274 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Script
+@using Gurux.DLMS.AMI.Shared
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text
+@using System.Text.Json
+@using Gurux.DLMS.AMI.Script.Pages
+
+@using Microsoft.Extensions.Logging
+
+@namespace Gurux.DLMS.AMI.Client.Pages.Config
+
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@inject HttpClient Http
+@inject IGXNotifier Notifier
+
+@if (_active != null)
+{
+    <EditForm Model="@_active">
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <label>Authentication service</label>
+                    <select class="form-select"
+                            disabled="@IsCreating"
+                            @bind="@_active.Name">
+                        @foreach (var it in _services)
+                        {
+                            <option value="@it">@it</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Client ID</label>
+                    <InputText id="name" class="form-control"
+                               disabled="@IsDeleting"
+                               @bind-Value="_active.ClientId" />
+                </div>
+                <div class="form-group">
+                    <label>Client Secret</label>
+                    <InputText id="name" class="form-control"
+                               disabled="@IsDeleting"
+                               @bind-Value="_active.ClientSecret" />
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private AuthenticationSettings? _active;
+
+    /// <summary>
+    /// Parent component.
+    /// </summary>
+    [Parameter]
+    public Gurux.DLMS.AMI.Client.Pages.Config.Authentications? Parent { get; set; }
+
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// Return disabled if user is not creating a new item.
+    /// </summary>
+    public string? IsCreating
+    {
+        get
+        {
+            if (action == CrudAction.Create)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    /// <summary>
+    /// Return disabled when user is deleting the item.
+    /// </summary>
+    public string? IsDeleting
+    {
+        get
+        {
+            if (action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    private List<string> _services = new();
+
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+
+    protected override void OnInitialized()
+    {
+        try
+        {
+            _services.Add("GitHub");
+            Notifier.ClearStatus();
+            action = ClientHelpers.GetAction(Action);
+            if (Parent?.GetAuthentications() == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+            if (action == CrudAction.Create)
+            {
+                _active = new AuthenticationSettings();
+            }
+            else
+            {
+                foreach (var it in Parent.GetAuthentications())
+                {
+                    if (string.Compare(it.Name, Id) == 0)
+                    {
+                        _active = it;
+                        break;
+                    }
+                }
+                if (_active == null)
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+            }
+            Notifier.Clear();
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Remove,
+                    Icon = "Remove",
+                    OnClick = EventCallback.Factory.Create(this, OnSave)
+                });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Save,
+                    Icon = "Save",
+                    OnClick = EventCallback.Factory.Create(this, OnSave)
+                });
+            }
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Text = Properties.Resources.Cancel,
+                Icon = "Cancel",
+                OnClick = EventCallback.Factory.Create(this, OnCancel)
+            });
+            Notifier.UpdateButtons();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+    }
+
+    /// <summary>
+    /// Save values.
+    /// </summary>
+    private async void OnSave()
+    {
+        Notifier.ProgressStart();
+        Notifier.ClearStatus();
+        try
+        {
+            if (Parent?.GetAuthentications() != null && _active != null)
+            {
+                switch (action)
+                {
+                    case CrudAction.Create:
+                        foreach (var it in Parent.GetAuthentications())
+                        {
+                            if (it.Name == _active.Name)
+                            {
+                                throw new ArgumentException("The external authentication service has already been added.");
+                            }
+                        }
+                        Parent.GetAuthentications().Add(_active);
+                        break;
+                    case CrudAction.Delete:
+                        Parent.GetAuthentications().Remove(_active);
+                        break;
+                    case CrudAction.Update:
+                        //Do nothing.
+                        break;
+                    default:
+                        ClientHelpers.NavigateTo(NavigationManager, Notifier, "/configurations");
+                        return;
+                }
+            }
+            //Get selected item.
+            GXConfiguration? conf = Parent.Parent?.Active;
+            conf.Settings = JsonSerializer.Serialize(Parent.GetAuthentications());
+            ConfigurationUpdate arg = new ConfigurationUpdate();
+            arg.Configurations = new GXConfiguration[] { conf };
+            await Http.PostAsJson("api/Configuration/Update", arg);
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    ///</summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+
+    public void Dispose()
+    {
+        Notifier.Clear();
+        Notifier.UpdateButtons();
+        Notifier.RemoveListener(this);
+    }
+}

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+     width="24" height="24" role="img" aria-label="User error">
+  <!-- user -->
+  <path fill="currentColor"
+        d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 12c-4.42 0-8 2.24-8 5v3h16v-3c0-2.76-3.58-5-8-5z"/>
+  <!-- error badge -->
+  <circle cx="17.5" cy="17.5" r="5" fill="var(--win-error, #D13438)"/>
+  <path d="M15.5 15.5l4 4M19.5 15.5l-4 4"
+        stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+</svg>

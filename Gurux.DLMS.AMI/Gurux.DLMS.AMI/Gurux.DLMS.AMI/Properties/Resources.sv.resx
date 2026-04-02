@@ -1,0 +1,1141 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="DeviceIdIsZero" xml:space="preserve">
+    <value>Enhets-ID är noll.</value>
+  </data>
+  <data name="ReaderIdIsZero" xml:space="preserve">
+    <value>Läsar-ID är noll.</value>
+  </data>
+  <data name="InvalidEmailAddress" xml:space="preserve">
+    <value>Ogiltig e-postadress.</value>
+  </data>
+  <data name="SiteName" xml:space="preserve">
+    <value>Platsnamn</value>
+  </data>
+  <data name="SiteNameDescription" xml:space="preserve">
+    <value>Platsnamn</value>
+  </data>
+  <data name="SiteDetails" xml:space="preserve">
+    <value>Platsdetaljer</value>
+  </data>
+  <data name="SiteEmailAddress" xml:space="preserve">
+    <value>E-post</value>
+  </data>
+  <data name="SiteEmailAddressDescription" xml:space="preserve">
+    <value>Webbplatsens e-postadress. Denna adress används när e-post skickas.</value>
+  </data>
+  <data name="SiteSlocan" xml:space="preserve">
+    <value>Site Slocan</value>
+  </data>
+  <data name="SiteSlocanDescription" xml:space="preserve">
+    <value>Webbplatsens slogan.</value>
+  </data>
+  <data name="SiteStatus" xml:space="preserve">
+    <value>Platsstatus</value>
+  </data>
+  <data name="SiteVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SiteVersionDescription" xml:space="preserve">
+    <value>Webbplatsversion</value>
+  </data>
+  <data name="System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="SystemSiteInformation" xml:space="preserve">
+    <value>Platsinformation</value>
+  </data>
+  <data name="SystemConfigurationDescription" xml:space="preserve">
+    <value>Byt webbplatsnamn, e-postadress eller slogan.</value>
+  </data>
+  <data name="SystemStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="SystemStatusInformation" xml:space="preserve">
+    <value>Statusstatus</value>
+  </data>
+  <data name="SystemStatusDescription" xml:space="preserve">
+    <value>Systemstatusinformation.</value>
+  </data>
+  <data name="Logout" xml:space="preserve">
+    <value>Utloggning</value>
+  </data>
+  <data name="Hello" xml:space="preserve">
+    <value>Hej</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Logga in</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Registrera dig</value>
+  </data>
+  <data name="Name" xml:space="preserve">
+    <value>Namn</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>E-post</value>
+  </data>
+  <data name="PhoneNumber" xml:space="preserve">
+    <value>Telefonnummer</value>
+  </data>
+  <data name="DateOfBirth" xml:space="preserve">
+    <value>Födelsedatum</value>
+  </data>
+  <data name="ExternalLogins" xml:space="preserve">
+    <value>Externa inloggningar</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Profil</value>
+  </data>
+  <data name="Roles" xml:space="preserve">
+    <value>Roller</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Lösenord</value>
+  </data>
+  <data name="PersonalData" xml:space="preserve">
+    <value>Personuppgifter</value>
+  </data>
+  <data name="TwoFactorAuthentication" xml:space="preserve">
+    <value>Tvåfaktorsautentisering</value>
+  </data>
+  <data name="SystemSecurityDescription" xml:space="preserve">
+    <value>Systemsäkerhetsinformation.</value>
+  </data>
+  <data name="Security" xml:space="preserve">
+    <value>Säkerhet</value>
+  </data>
+  <data name="SystemSecurity" xml:space="preserve">
+    <value>Systemsäkerhet</value>
+  </data>
+  <data name="PasswordOptions" xml:space="preserve">
+    <value>Lösenordsalternativ</value>
+  </data>
+  <data name="PasswordLength" xml:space="preserve">
+    <value>Lösenordslängd</value>
+  </data>
+  <data name="UniqueCharacters" xml:space="preserve">
+    <value>Unika karaktärer</value>
+  </data>
+  <data name="RequireNonAlphanumeric" xml:space="preserve">
+    <value>Kräver icke-alfanumeriskt</value>
+  </data>
+  <data name="RequireLowercase" xml:space="preserve">
+    <value>Kräver gemener</value>
+  </data>
+  <data name="RequireUppercase" xml:space="preserve">
+    <value>Kräv versaler</value>
+  </data>
+  <data name="RequireDigit" xml:space="preserve">
+    <value>Kräv siffra</value>
+  </data>
+  <data name="LockoutOptions" xml:space="preserve">
+    <value>Lockout-alternativ</value>
+  </data>
+  <data name="MaxFailedAccessAttempts" xml:space="preserve">
+    <value>Max misslyckade åtkomstförsök</value>
+  </data>
+  <data name="DefaultLockoutTimeSpan" xml:space="preserve">
+    <value>Standardtidsgräns för lockout</value>
+  </data>
+  <data name="SignInOptions" xml:space="preserve">
+    <value>Inloggningsalternativ</value>
+  </data>
+  <data name="RequireConfirmedEmail" xml:space="preserve">
+    <value>Kräver bekräftat e-post</value>
+  </data>
+  <data name="RequireConfirmedAccount" xml:space="preserve">
+    <value>Kräver bekräftat konto</value>
+  </data>
+  <data name="SystemSecuritySettings" xml:space="preserve">
+    <value>Systemsäkerhetsinställningar.</value>
+  </data>
+  <data name="TheMinimumLengthAPasswordMustBeDefaultsTo6" xml:space="preserve">
+    <value>Den minsta längden ett lösenord måste vara. Standardinställningen är 6.</value>
+  </data>
+  <data name="TheMinimumNumberOfUniqueCharactersWhichAPasswordMustContain" xml:space="preserve">
+    <value>Det minsta antalet unika tecken som ett lösenord måste innehålla</value>
+  </data>
+  <data name="PasswordsMustContainANonAlphanumericCharacter" xml:space="preserve">
+    <value>Lösenord måste innehålla ett icke-alfanumeriskt tecken.</value>
+  </data>
+  <data name="PasswordsMustContainALowerCaseASCIICharacter" xml:space="preserve">
+    <value>Lösenord måste innehålla ett litet ASCII-tecken.</value>
+  </data>
+  <data name="PasswordsMustContainAUpperCaseASCIICharacter" xml:space="preserve">
+    <value>Lösenord måste innehålla ett stort ASCII-tecken.</value>
+  </data>
+  <data name="PasswordsMustContainADigit" xml:space="preserve">
+    <value>Lösenord måste innehålla en siffra.</value>
+  </data>
+  <data name="TheNumberOfFailedAccessAttemptsAllowedBeforeAUserIsLockedOutIfLockoutIsEnabled" xml:space="preserve">
+    <value>Antalet misslyckade åtkomstförsök som tillåts innan en användare är utelåst, om låsning är aktiverad.</value>
+  </data>
+  <data name="TheLockOutTimeInMinutesIfAUserIsLockedOutForWhenALockoutOccurs" xml:space="preserve">
+    <value>Låstiden är i minuter om en användare är utelåst för när en låsning sker.</value>
+  </data>
+  <data name="OptionsForConfiguringSignIn" xml:space="preserve">
+    <value>Alternativ för att konfigurera inloggning.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedEmailAddressBeforeTheyCanSignIn" xml:space="preserve">
+    <value>En användare måste ha en bekräftad e-postadress innan de kan logga in.</value>
+  </data>
+  <data name="AUserMustHaveAConfirmedAccountBeforeTheyCanSignIn" xml:space="preserve">
+    <value>En användare måste ha ett bekräftat konto innan de kan logga in.</value>
+  </data>
+  <data name="LocalizedResourceIsMissing" xml:space="preserve">
+    <value>Lokaliserad resurs saknas.</value>
+  </data>
+  <data name="SystemException" xml:space="preserve">
+    <value>Systemundantag:</value>
+  </data>
+  <data name="LocalizedResourceDublicate" xml:space="preserve">
+    <value>Dubbelt värde av en lokaliserad resurs.</value>
+  </data>
+  <data name="PersonalAccessTokens" xml:space="preserve">
+    <value>Personliga åtkomsttokens</value>
+  </data>
+  <data name="CreationTime" xml:space="preserve">
+    <value>Skapelsetid</value>
+  </data>
+  <data name="Expiration" xml:space="preserve">
+    <value>Utgångsdatum</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Lägg till</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Radera</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Spara</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Avbryt</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Skapa</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Klart</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Stäng</value>
+  </data>
+  <data name="View" xml:space="preserve">
+    <value>Vy</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Redigering</value>
+  </data>
+  <data name="TokenCreateInfo" xml:space="preserve">
+    <value>Varning – Se till att kopiera tokenen ovan nu. Den har inte lagrats och du kommer inte kunna se den igen.</value>
+  </data>
+  <data name="TokenCreateSucceeded" xml:space="preserve">
+    <value>Du har framgångsrikt lagt till en ny personlig åtkomsttoken. Kopiera tokenen nu!</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Kopiera</value>
+  </data>
+  <data name="Succeeded" xml:space="preserve">
+    <value>Lyckades</value>
+  </data>
+  <data name="YourProfileHasBeenUpdated" xml:space="preserve">
+    <value>Din profil har uppdaterats</value>
+  </data>
+  <data name="ModuleInstallationUnknownService" xml:space="preserve">
+    <value>Modulinstallationen misslyckades. Modulen kräver {0} tjänst som inte är inräknad.</value>
+  </data>
+  <data name="UnknownModule" xml:space="preserve">
+    <value>Okänd modul {0}.</value>
+  </data>
+  <data name="Configuration" xml:space="preserve">
+    <value>Konfiguration</value>
+  </data>
+  <data name="Module" xml:space="preserve">
+    <value>Modul</value>
+  </data>
+  <data name="GivenName" xml:space="preserve">
+    <value>Förnamn</value>
+  </data>
+  <data name="Surname" xml:space="preserve">
+    <value>Efternamn</value>
+  </data>
+  <data name="ArrayIsEmpty" xml:space="preserve">
+    <value>Arrayen är tom.</value>
+  </data>
+  <data name="YouCanRemoveYourself" xml:space="preserve">
+    <value>Du kan inte ta bort dig själv.</value>
+  </data>
+  <data name="ProfilePicture" xml:space="preserve">
+    <value>Profilbild</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Minutely" xml:space="preserve">
+    <value>Mycket minutiöst</value>
+  </data>
+  <data name="Hourly" xml:space="preserve">
+    <value>Timvis</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Dagligen</value>
+  </data>
+  <data name="ContentEdited" xml:space="preserve">
+    <value>Uppdateringen misslyckades. Innehållet har redigerats av en annan användare.</value>
+  </data>
+  <data name="UsersMustBelongToAtLeastOneUserGroup" xml:space="preserve">
+    <value>Användare måste tillhöra minst en användargrupp.</value>
+  </data>
+  <data name="InvalidUserRoleAtLeastOneRoleMustBeSelected" xml:space="preserve">
+    <value>Ogiltig användarroll. Minst en roll måste väljas.</value>
+  </data>
+  <data name="InvalidName" xml:space="preserve">
+    <value>Ogiltigt namn.</value>
+  </data>
+  <data name="InvalidStartTime" xml:space="preserve">
+    <value>Ogiltig starttid.</value>
+  </data>
+  <data name="InvalidId" xml:space="preserve">
+    <value>Ogiltigt ID.</value>
+  </data>
+  <data name="UnknownTaskTarget" xml:space="preserve">
+    <value>Okänt uppgiftsmål.</value>
+  </data>
+  <data name="Cron" xml:space="preserve">
+    <value>Cron</value>
+  </data>
+  <data name="CronDescription" xml:space="preserve">
+    <value>Cron sköter periodiska uppgifter som att kontrollera uppdateringar.</value>
+  </data>
+  <data name="CronTitle" xml:space="preserve">
+    <value>Hantera automatiska underhållsuppgifter på platsen.</value>
+  </data>
+  <data name="Agents" xml:space="preserve">
+    <value>Agenter</value>
+  </data>
+  <data name="Workflows" xml:space="preserve">
+    <value>Arbetsflöden</value>
+  </data>
+  <data name="Triggers" xml:space="preserve">
+    <value>Utlösare</value>
+  </data>
+  <data name="Blocks" xml:space="preserve">
+    <value>Block</value>
+  </data>
+  <data name="ComponentViews" xml:space="preserve">
+    <value>Komponentvyer</value>
+  </data>
+  <data name="Modules" xml:space="preserve">
+    <value>Moduler</value>
+  </data>
+  <data name="RegionalAndLanguage" xml:space="preserve">
+    <value>Regionalt och språk</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Scripts" xml:space="preserve">
+    <value>Manus</value>
+  </data>
+  <data name="Maintenance" xml:space="preserve">
+    <value>Underhåll</value>
+  </data>
+  <data name="StatisticDescription" xml:space="preserve">
+    <value>Statisics hjälper till att förbättra platsens reaktionshastighet.</value>
+  </data>
+  <data name="Statistic" xml:space="preserve">
+    <value>Statistik</value>
+  </data>
+  <data name="SchedulerServiceIsStarting" xml:space="preserve">
+    <value>Schemaläggartjänsten startar.</value>
+  </data>
+  <data name="SchedulerServiceIsWorking" xml:space="preserve">
+    <value>Schemaläggartjänsten fungerar.</value>
+  </data>
+  <data name="SchedulerServiceIsStopping" xml:space="preserve">
+    <value>Schemaläggartjänsten upphör.</value>
+  </data>
+  <data name="RolesDescription" xml:space="preserve">
+    <value>Roller används för att hantera behörigheter.</value>
+  </data>
+  <data name="TargetMustBelongToOneGroup" xml:space="preserve">
+    <value>Målet måste tillhöra minst en grupp.</value>
+  </data>
+  <data name="UnknownTarget" xml:space="preserve">
+    <value>Okänt mål.</value>
+  </data>
+  <data name="Connected" xml:space="preserve">
+    <value>Ansluten</value>
+  </data>
+  <data name="Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Performance" xml:space="preserve">
+    <value>Prestanda</value>
+  </data>
+  <data name="PerformanceDescription" xml:space="preserve">
+    <value>Aktivera eller inaktivera notifikation för att förbättra prestandan för stora mängder mätare.</value>
+  </data>
+  <data name="CronStarted" xml:space="preserve">
+    <value>började Cron.</value>
+  </data>
+  <data name="CronCompleted" xml:space="preserve">
+    <value>fullbordade Cron.</value>
+  </data>
+  <data name="ExternalAuthenticationDescription" xml:space="preserve">
+    <value>Extern autentisering möjliggör inloggning via externa tjänster.</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Fel</value>
+  </data>
+  <data name="Downloading" xml:space="preserve">
+    <value>Laddar ner...</value>
+  </data>
+  <data name="Updating" xml:space="preserve">
+    <value>Uppdaterar...</value>
+  </data>
+  <data name="Restarting" xml:space="preserve">
+    <value>Startar om...</value>
+  </data>
+  <data name="Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="Id" xml:space="preserve">
+    <value>Id:</value>
+  </data>
+  <data name="ModuleEnabled" xml:space="preserve">
+    <value>Modulen aktiverad.</value>
+  </data>
+  <data name="ModuleDisabled" xml:space="preserve">
+    <value>Modulen inaktiverad.</value>
+  </data>
+  <data name="ModuleRemoved" xml:space="preserve">
+    <value>Modulen togs bort.</value>
+  </data>
+  <data name="ModuleInstalled" xml:space="preserve">
+    <value>Modul installerad.</value>
+  </data>
+  <data name="DeviceTemplate" xml:space="preserve">
+    <value>Enhetsmall</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Enhet</value>
+  </data>
+  <data name="DeviceTemplateGroup" xml:space="preserve">
+    <value>Enhetsmallgrupp</value>
+  </data>
+  <data name="WorkflowInstalled" xml:space="preserve">
+    <value>Arbetsflödet installerat.</value>
+  </data>
+  <data name="WorkflowRemoved" xml:space="preserve">
+    <value>Arbetsflödet tagits bort.</value>
+  </data>
+  <data name="ScriptInstalled" xml:space="preserve">
+    <value>Skript installerat.</value>
+  </data>
+  <data name="ScriptRemoved" xml:space="preserve">
+    <value>Manus borttaget.</value>
+  </data>
+  <data name="ScheduleCreated" xml:space="preserve">
+    <value>Schema skapat.</value>
+  </data>
+  <data name="ScheduleRemoved" xml:space="preserve">
+    <value>Schemat borttaget.</value>
+  </data>
+  <data name="ScheduleUpdated" xml:space="preserve">
+    <value>Schemat uppdaterat.</value>
+  </data>
+  <data name="WorkflowUpdated" xml:space="preserve">
+    <value>Arbetsflödet uppdaterat.</value>
+  </data>
+  <data name="ScriptUpdated" xml:space="preserve">
+    <value>Manus uppdaterat.</value>
+  </data>
+  <data name="KeyManagementRemoved" xml:space="preserve">
+    <value>Nyckelhanteringen borttagen.</value>
+  </data>
+  <data name="KeyManagementUpdated" xml:space="preserve">
+    <value>Nyckelhanteringen uppdaterad.</value>
+  </data>
+  <data name="KeyManagementInstalled" xml:space="preserve">
+    <value>Nyckelhantering installerad.</value>
+  </data>
+  <data name="KeyManagementsDescription" xml:space="preserve">
+    <value>Med nyckelhanteringen hanteras inställningarna för krypterade anslutningar.</value>
+  </data>
+  <data name="InvalidKeyType" xml:space="preserve">
+    <value>Ogiltig nyckeltyp.</value>
+  </data>
+  <data name="InvalidKeyData" xml:space="preserve">
+    <value>Ogiltig nyckeldata.</value>
+  </data>
+  <data name="DatabaseType" xml:space="preserve">
+    <value>Databastyp: {0}</value>
+  </data>
+  <data name="Connecting" xml:space="preserve">
+    <value>Koppling: {0}</value>
+  </data>
+  <data name="DatabaseServiceIsDisabled" xml:space="preserve">
+    <value>Databastjänsten är inaktiverad.</value>
+  </data>
+  <data name="SystemTitleIsAlreadyInUse" xml:space="preserve">
+    <value>Systemtitel {0} används redan.</value>
+  </data>
+  <data name="WithScriptsEnabledWorkflowsFuntionalityCanBeExpandWithScripts" xml:space="preserve">
+    <value>Med skript aktiverade kan arbetsflöden utökas med skript.</value>
+  </data>
+  <data name="MaintenanceDescription" xml:space="preserve">
+    <value>Ta sidan offline för underhåll eller ta tillbaka den online.</value>
+  </data>
+  <data name="ManufacturerDescription" xml:space="preserve">
+    <value>Med hjälp av tillverkare kan nya enhetsmallar erbjudas användarna.</value>
+  </data>
+  <data name="WorkflowDescription" xml:space="preserve">
+    <value>Med arbetsflöden aktiverade kan nya anpassade arbetsflöden erbjudas för användarna.</value>
+  </data>
+  <data name="TriggerDescription" xml:space="preserve">
+    <value>Med triggers aktiverade kan ny anpassad funktionalitet erbjudas för användarna.</value>
+  </data>
+  <data name="BlockDescription" xml:space="preserve">
+    <value>Med block aktiverade kan nya anpassade användargränssnitt erbjudas för användarna.</value>
+  </data>
+  <data name="ComponentViewDescription" xml:space="preserve">
+    <value>Med komponentvyer aktiverade kan nya anpassade användargränssnitt erbjudas för användarna.</value>
+  </data>
+  <data name="AgentDescription" xml:space="preserve">
+    <value>Installerbara agentversioner.</value>
+  </data>
+  <data name="ModuleDescription" xml:space="preserve">
+    <value>Med moduler aktiverade kan ny anpassad funktionalitet erbjudas för användarna.</value>
+  </data>
+  <data name="LanguageDescription" xml:space="preserve">
+    <value>Med flera språk aktiverade kan gränssnittstext översättas och registrerade användare kan välja sitt föredragna språk.</value>
+  </data>
+  <data name="ScriptDescription" xml:space="preserve">
+    <value>Med skript aktiverade kan arbetsflöden utökas med skript.</value>
+  </data>
+  <data name="ScriptRebuild" xml:space="preserve">
+    <value>Bygg om manuset.</value>
+  </data>
+  <data name="ScriptRebuildFailed" xml:space="preserve">
+    <value>Att bygga om skriptet misslyckades. {0}</value>
+  </data>
+  <data name="JoinedGroupsAreNotInserted" xml:space="preserve">
+    <value>Nya grupper måste läggas till först.</value>
+  </data>
+  <data name="Gateway" xml:space="preserve">
+    <value>Gateway</value>
+  </data>
+  <data name="Disconnected" xml:space="preserve">
+    <value>Frånkopplad</value>
+  </data>
+  <data name="ReportDescription" xml:space="preserve">
+    <value>Rapporter kan användas för att förbättra skapandet av rapporter från stora mängder data.</value>
+  </data>
+  <data name="SubtotalDescription" xml:space="preserve">
+    <value>Delsummor kan användas för att förbättra skapandet av rapporter från stora mängder data.</value>
+  </data>
+  <data name="MenuDescription" xml:space="preserve">
+    <value>Hantera menyer och menylänkar.</value>
+  </data>
+  <data name="ContentTypeDescription" xml:space="preserve">
+    <value>Hantera innehållstyper.</value>
+  </data>
+  <data name="ContentDescription" xml:space="preserve">
+    <value>Hantera innehåll.</value>
+  </data>
+  <data name="InvalidTitle" xml:space="preserve">
+    <value>Ogiltig titel</value>
+  </data>
+  <data name="InvalidLink" xml:space="preserve">
+    <value>Ogiltig länk.</value>
+  </data>
+  <data name="NotificationDescription" xml:space="preserve">
+    <value>När notifikation är aktiverad kan användare få besked om tillägg, borttagningar eller uppdateringar.</value>
+  </data>
+  <data name="PruneStarted" xml:space="preserve">
+    <value>Plommon började</value>
+  </data>
+  <data name="PruneCompleted" xml:space="preserve">
+    <value>Prune färdigställd</value>
+  </data>
+  <data name="PruneDescription" xml:space="preserve">
+    <value>Prune tar bort oanvända mål baserat på kriterier som tid.</value>
+  </data>
+  <data name="Manufacturers" xml:space="preserve">
+    <value>Tillverkare</value>
+  </data>
+  <data name="Contents" xml:space="preserve">
+    <value>Innehåll</value>
+  </data>
+  <data name="Menus" xml:space="preserve">
+    <value>Menyer</value>
+  </data>
+  <data name="Subtotals" xml:space="preserve">
+    <value>Deltotaler</value>
+  </data>
+  <data name="KeyManagement" xml:space="preserve">
+    <value>Nyckelhantering</value>
+  </data>
+  <data name="Reports" xml:space="preserve">
+    <value>Rapporter</value>
+  </data>
+  <data name="Authentication" xml:space="preserve">
+    <value>Autentisering</value>
+  </data>
+  <data name="Prune" xml:space="preserve">
+    <value>Prune</value>
+  </data>
+  <data name="Components" xml:space="preserve">
+    <value>Komponenter</value>
+  </data>
+  <data name="ContentTypes" xml:space="preserve">
+    <value>Innehållstyper</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="fiIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\fi.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="deIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\de.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="eeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\ee.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="frIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\fr.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="svIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\sv.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="enIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\en.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="itIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>flags\it.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="StatusIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Status.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SecurityIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Security.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="PruneIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Prune.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AddIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Add.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="EditIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Edit.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="RemoveIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Remove.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Run" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Run.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Device.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateImageIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Agent.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Gateway.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ConfigurationIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Configuration.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="LogsIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Logs.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ExtensionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Extension.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Content.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentTypeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentType.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DataExchangeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DataExchange.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="IssueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Issue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="MenuIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Menu.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Notification.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ProjectIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Project.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WarningIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Warning.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AgentGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AgentLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AgentLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="AttributeTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\AttributeTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="BlockIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Block.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="BlockGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\BlockGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ComponentViewIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ComponentView.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ComponentViewGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ComponentViewGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ContentTypeGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ContentTypeGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="CronIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Cron.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceActionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceAction.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTemplateGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTemplateGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="DeviceTraceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\DeviceTrace.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="FavoriteIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Favorite.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\GatewayGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="GatewayLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\GatewayLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagement.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementKeyIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementKey.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="KeyManagementLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\KeyManagementLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="LanguageIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Language.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ManufacturerIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Manufacturer.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ManufacturerGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ManufacturerGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="MenuGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\MenuGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModelIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Model.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Module.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ModuleGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ModuleLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ModuleLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\NotificationGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="NotificationLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\NotificationLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ObjectTemplateIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ObjectTemplate.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="PerformanceIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Performance.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Report.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ReportValueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ReportValue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="RoleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Role.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Schedule.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScheduleGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScheduleLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScheduleLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Script.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScriptGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="ScriptLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\ScriptLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Subtotal.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SubtotalValueIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SubtotalValue.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="SystemLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\SystemLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TaskIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Task.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TokenIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Token.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TriggerIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Trigger.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="TriggerGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\TriggerGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UnknownIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Unknown.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\User.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserActionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserAction.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserErrorIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserError.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="UserStampIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\UserStamp.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="VersionIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Version.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Workflow.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowGroupIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\WorkflowGroup.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="WorkflowLogIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\WorkflowLog.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="HomeIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>svg\Home.svg;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notiser</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Språk</value>
+  </data>
+  <data name="Admin" xml:space="preserve">
+    <value>Administratör</value>
+  </data>
+  <data name="AgentGroup" xml:space="preserve">
+    <value>Agentgrupp</value>
+  </data>
+  <data name=" AgentGroupManager" xml:space="preserve">
+    <value>Agentgruppschef</value>
+  </data>
+  <data name="AgentLog" xml:space="preserve">
+    <value>Agentlogg</value>
+  </data>
+  <data name="AgentLogManager" xml:space="preserve">
+    <value>Agentlogghanterare</value>
+  </data>
+  <data name="AgentManager" xml:space="preserve">
+    <value>Agentchef.</value>
+  </data>
+  <data name="BlockGroupManager" xml:space="preserve">
+    <value>Blockgruppschef</value>
+  </data>
+  <data name="ContentType" xml:space="preserve">
+    <value>Innehållstyp</value>
+  </data>
+  <data name="DataExchange" xml:space="preserve">
+    <value>Datautbyte</value>
+  </data>
+  <data name="DataExchangeDescription" xml:space="preserve">
+    <value>Med datautbyte kan användaren importera och exportera data.</value>
+  </data>
+  <data name="AlreadyExists" xml:space="preserve">
+    <value>{0} {1} finns redan.</value>
+  </data>
+  <data name="GatewayGroup" xml:space="preserve">
+    <value>Gateway-gruppen</value>
+  </data>
+  <data name="DeviceGroup" xml:space="preserve">
+    <value>Enhetsgrupp</value>
+  </data>
+  <data name="ScheduleGroup" xml:space="preserve">
+    <value>Schemagrupp</value>
+  </data>
+  <data name="Schedule" xml:space="preserve">
+    <value>Schema</value>
+  </data>
+  <data name="ContentGroup" xml:space="preserve">
+    <value>Innehållsgrupp</value>
+  </data>
+  <data name="Content" xml:space="preserve">
+    <value>Innehåll</value>
+  </data>
+  <data name="ContentTypeGroup" xml:space="preserve">
+    <value>Innehållstypgrupp</value>
+  </data>
+  <data name="ScriptGroup" xml:space="preserve">
+    <value>Manusgrupp</value>
+  </data>
+  <data name="Script" xml:space="preserve">
+    <value>Manus</value>
+  </data>
+  <data name="AppearanceDescription" xml:space="preserve">
+    <value>Utseende kan användas för att anpassa användarens tema och ikoner.</value>
+  </data>
+  <data name="Appearance" xml:space="preserve">
+    <value>Utseende</value>
+  </data>
+  <data name="Proxy" xml:space="preserve">
+    <value>Proxy</value>
+  </data>
+  <data name="ProxyDescription" xml:space="preserve">
+    <value>Proxy kan användas för att routa och lastbalansera inkommande förfrågningar över flera backend-tjänster.</value>
+  </data>
+  <data name="IpAccessDescription" xml:space="preserve">
+    <value>IP-åtkomstkontroll kan användas för att blockera specifika klienter, IP-adresser eller förfrågningsmönster innan de når applikationen, vilket förbättrar säkerheten och minskar oönskad trafik.</value>
+  </data>
+  <data name="IpAccessControl" xml:space="preserve">
+    <value>IP-åtkomstkontroll</value>
+  </data>
+  <data name="NewLoginTitle" xml:space="preserve">
+    <value>Ny inloggning</value>
+  </data>
+  <data name="NewLogin" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>NewLogin.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="PATExpiring" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>PAT Expiring.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="PATExpired" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>PAT Expired.html;System.String, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089;utf-8</value>
+  </data>
+  <data name="AccountDescription" xml:space="preserve">
+    <value>Konfigurera standardinställningar för användarkontot, inklusive fält, registreringskrav och e-postmeddelanden.</value>
+  </data>
+  <data name="LocalizedResourceDescription" xml:space="preserve">
+    <value>Med flera språk aktiverade kan gränssnittstext översättas och registrerade användare kan välja sitt föredragna språk.</value>
+  </data>
+  <data name="Home" xml:space="preserve">
+    <value>Hem</value>
+  </data>
+  <data name="Devices" xml:space="preserve">
+    <value>Enheter</value>
+  </data>
+  <data name="Schedules" xml:space="preserve">
+    <value>Scheman</value>
+  </data>
+  <data name="DeviceTemplates" xml:space="preserve">
+    <value>Enhetsmallar</value>
+  </data>
+  <data name="UserManagement" xml:space="preserve">
+    <value>Användarhantering</value>
+  </data>
+  <data name="Logs" xml:space="preserve">
+    <value>Loggar</value>
+  </data>
+  <data name="Favorites" xml:space="preserve">
+    <value>Favoriter</value>
+  </data>
+  <data name="SystemLogs" xml:space="preserve">
+    <value>Systemloggar</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Uppgifter</value>
+  </data>
+  <data name="ScriptLog" xml:space="preserve">
+    <value>Skriptlogg</value>
+  </data>
+  <data name="ModuleLogs" xml:space="preserve">
+    <value>Modulloggar</value>
+  </data>
+  <data name="ScheduleLogs" xml:space="preserve">
+    <value>Schemaloggar</value>
+  </data>
+  <data name="WorkflowLog" xml:space="preserve">
+    <value>Arbetsflödeslogg</value>
+  </data>
+</root>

@@ -1,0 +1,666 @@
+@*
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+*@
+@using Gurux.DLMS.AMI.Client.Pages.Device
+@using Gurux.DLMS.AMI.Client.Shared.Enums
+@using Gurux.DLMS.AMI.Components.Enums
+@using Gurux.DLMS.AMI.Shared.DIs
+@using Gurux.DLMS.AMI.Shared.DTOs.Enums
+@using Gurux.DLMS.AMI.Shared.DTOs.Notification
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Gurux.DLMS.AMI.Shared.DTOs
+@using Gurux.DLMS.AMI.Shared.Rest
+@using Gurux.DLMS.AMI.Shared.Enums
+@using Gurux.DLMS.AMI.Module
+@using System.Globalization
+@using System.Text.Json
+@using System.Diagnostics
+
+@attribute [Authorize(Roles = GXRoles.Admin + "," + GXRoles.NotificationManager)]
+@inject NavigationManager NavigationManager
+@inject ILogger<Notification> Logger
+@inject HttpClient Http
+@inject IGXNotifier2 Notifier
+@if (Active != null)
+{
+    <EditForm EditContext="@Notifier.EditContext">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <GXValidator @ref="_validator" OnValidate="OnValidate" />
+        <div class="row">
+            <div style="width:100%">
+                <div class="form-group">
+                    <InputNullableSwitch Text="@Properties.Resources.Active" @bind-Value="Active.Active" />
+                </div>
+                <div class="form-group">
+                    <CopyLabel Value="@Active.Name">@Properties.Resources.Name</CopyLabel>
+                    <InputText id="description" disabled="@IsDeleting" @bind-Value="Active.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>@Properties.Resources.Description</label>
+                    <InputText id="name" disabled="@IsDeleting" class="form-control"
+                               @bind-Value="Active.Description" />
+                </div>
+                <TabControl Context="item">
+                    <TabTextTemplate>
+                        <span class=@item.Icon aria-hidden="true"></span>
+                        @item.Text
+                    </TabTextTemplate>
+                    <ChildContent>
+                        <TabPage Text=@Properties.Resources.GeneralInformation>
+                            <div class="form-group">
+                                <label>Notification delivery</label>
+                                <GXInputDropdown class="form-select"
+                                                 Id="Notification.Delivery"
+                                                 LastValue="@(action == CrudAction.Create)"
+                                                 Values="@notificationDelivery"
+                                                 @bind-Value="Delivery">
+                                </GXInputDropdown>
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.Destination</label>
+                                <InputText id="name" disabled="@IsDestinationDeleting" class="form-control"
+                                           @bind-Value="Active.Destination" />
+                            </div>
+                            <div class="form-group">
+                                <label>@Properties.Resources.TraceLevel</label>
+                                <GXInputDropdown class="form-select"
+                                                 Id="Notification.TraceLevel"
+                                                 LastValue="@(action == CrudAction.Create)"
+                                                 @bind-Value="Active.TraceLevel">
+                                </GXInputDropdown>
+                            </div>
+                            <AuthoringInformationDateTimeOffset Action="@Action" @bind-Creator="Active.Creator" CreationTime="@Active.CreationTime"
+                                                                Updated="@Active.Updated" @bind-Removed="Active.Removed" />
+                        </TabPage>
+                        <TabPage Text="Notification Target">
+                            <Search Placeholder="@Properties.Resources.FilterByName"
+                                    Id="Performance.Filter"
+                                    Immediate="true"
+                                    @bind-Value="@SearchText"
+                                    OnClickAsync="@SearchByName" />
+                            <hr />
+                            <table class="table table-striped" width="100%">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <Tooltip Title="@ToolTip">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           @onchange="@((ChangeEventArgs __e) => ToggleAll(Convert.ToBoolean(__e.Value)))" />
+                                                </div>
+                                            </Tooltip>
+                                        </th>
+                                        <th>@Properties.Resources.Name</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var it in Notifications)
+                                    {
+                                        <tr class=@(GetSelectedClass(it)) @onclick="@(() => RowSelected(it))">
+                                            <td>
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           checked="@IsEnabled(@it)"
+                                                           @onchange="@((e) => UpdateIgnoredState(@it, e.Value))" />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @it
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </TabPage>
+                        <TabPage Text="Notification type">
+                            <InputMaskedSwitch Id="Add" Text="@Properties.Resources.Add" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Add"></InputMaskedSwitch>
+                            <InputMaskedSwitch Id="Edit" Text="@Properties.Resources.Edit" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Edit" />
+                            <InputMaskedSwitch Id="Remove" Text="@Properties.Resources.Remove" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Remove" />
+                            <InputMaskedSwitch Id="Clear" Text="@Properties.Resources.Clear" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Clear" />
+                            <InputMaskedSwitch Id="Execute" Text="@Properties.Resources.Execute" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Execute" />
+                            <InputMaskedSwitch Id="Error" Text="@Properties.Resources.Error" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Error" />
+                            <InputMaskedSwitch Id="Close" Text="@Properties.Resources.Close" @bind-Value="Active.Action" Mask="(byte)NotificationAction.Close" />
+                        </TabPage>
+                    </ChildContent>
+                </TabControl>
+            </div>
+        </div>
+    </EditForm>
+}
+@code {
+    [CascadingParameter]
+    private NotificationTab? Parent { get; set; }
+    private string? SearchText;
+    private bool _allSelected = false;
+
+    /// <summary>
+    /// Search from notifications.
+    /// </summary>
+    private Task SearchByName(object? value)
+    {
+        Search(new ChangeEventArgs() { Value = value });
+        return Task.CompletedTask;
+    }
+
+
+    private NotificationDelivery Delivery
+    {
+        get
+        {
+            if (Active?.Delivery == null)
+            {
+                return NotificationDelivery.None;
+            }
+            return (NotificationDelivery)Active.Delivery;
+        }
+        set
+        {
+            if (Active != null)
+            {
+                Active.Delivery = (UInt16)value;
+            }
+        }
+    }
+
+    private string? _activeStr;
+
+    protected string GetSelectedClass(string selected)
+    {
+        return selected == _activeStr ? "table-info" : "table-striped";
+    }
+
+    protected void RowSelected(string selected)
+    {
+        _activeStr = selected;
+    }
+
+    private bool IsEnabled(string? value)
+    {
+        if (string.IsNullOrEmpty(_active?.Targets))
+        {
+            return false;
+        }
+        var items = _active.Targets.Split(";", StringSplitOptions.RemoveEmptyEntries);
+        return items.Contains(value);
+    }
+
+    private void UpdateIgnoredState(string value, object? selected)
+    {
+        if (_active != null)
+        {
+            List<string> list = new List<string>();
+            if (_active.Targets != null)
+            {
+                list.AddRange(_active.Targets.Split(";", StringSplitOptions.RemoveEmptyEntries));
+            }
+            if (Convert.ToBoolean(selected))
+            {
+                list.Add(value);
+            }
+            else
+            {
+                list.Remove(value);
+            }
+            _active.Targets = string.Join(";", list);
+        }
+    }
+
+    /// <summary>
+    /// Search from notifications.
+    /// </summary>
+    private void Search(ChangeEventArgs args)
+    {
+        string? value = Convert.ToString(args.Value);
+        Notifications = ClientHelpers.GetNotifications(false);
+        if (!string.IsNullOrEmpty(value))
+        {
+            value = value.ToLower();
+            List<string> tmp = new List<string>();
+            foreach (var it in Notifications)
+            {
+                if (it.ToLower().Contains(value))
+                {
+                    tmp.Add(it);
+                }
+            }
+            Notifications = tmp;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleAll(bool select)
+    {
+        _allSelected = select;
+        if (Active != null)
+        {
+            if (select)
+            {
+                Active.Targets = string.Join(";", Notifications);
+            }
+            else
+            {
+                Active.Targets = null;
+            }
+        }
+    }
+
+    protected string ToolTip
+    {
+        get
+        {
+            return _allSelected ? "Disable all notifications" : "Enable all notifications.";
+        }
+    }
+
+
+    IEnumerable<string> Notifications = ClientHelpers.GetNotifications(false);
+    /// <summary>
+    /// Selected notification target.
+    /// </summary>
+    private string _target;
+
+    /// <summary>
+    /// Selected notification.
+    /// </summary>
+    private GXNotification? _active;
+
+    [Parameter, EditorRequired]
+    public GXNotification? Active
+    {
+        get
+        {
+            return _active;
+        }
+        set
+        {
+            _active = value;
+            if (value != null)
+            {
+                Notifier.EditContext = new EditContext(value);
+                Notifier.EditContext.MarkAsUnmodified();
+            }
+            if (_active?.Devices != null && _active.Devices.Any())
+            {
+                _target = TargetType.Device;
+            }
+            else if (_active?.DeviceGroups != null && _active.DeviceGroups.Any())
+            {
+                _target = TargetType.DeviceGroup;
+            }
+            else if (_active?.Agents != null && _active.Agents.Any())
+            {
+                _target = TargetType.Agent;
+            }
+            else if (_active?.AgentGroups != null && _active.AgentGroups.Any())
+            {
+                _target = TargetType.AgentGroup;
+            }
+            else if (_active?.Gateways != null && _active.Gateways.Any())
+            {
+                _target = TargetType.Gateway;
+            }
+            else if (_active?.GatewayGroups != null && _active.GatewayGroups.Any())
+            {
+                _target = TargetType.GatewayGroup;
+            }
+            else if (_active?.Users != null && _active.Users.Any())
+            {
+                _target = TargetType.User;
+            }
+            else if (_active?.UserGroups != null && _active.UserGroups.Any())
+            {
+                _target = TargetType.UserGroup;
+            }
+            else if (_active?.Blocks != null && _active.Blocks.Any())
+            {
+                _target = TargetType.Block;
+            }
+            else if (_active?.BlockGroups != null && _active.BlockGroups.Any())
+            {
+                _target = TargetType.BlockGroup;
+            }
+            else if (_active?.Contents != null && _active.Contents.Any())
+            {
+                _target = TargetType.Content;
+            }
+            else if (_active?.ContentGroups != null && _active.ContentGroups.Any())
+            {
+                _target = TargetType.ContentGroup;
+            }
+            else if (_active?.DeviceTemplates != null && _active.DeviceTemplates.Any())
+            {
+                _target = TargetType.DeviceTemplate;
+            }
+            else if (_active?.DeviceTemplateGroups != null && _active.DeviceTemplateGroups.Any())
+            {
+                _target = TargetType.DeviceTemplateGroup;
+            }
+            else if (_active?.KeyManagements != null && _active.KeyManagements.Any())
+            {
+                _target = TargetType.KeyManagement;
+            }
+            else if (_active?.KeyManagementGroups != null && _active.KeyManagementGroups.Any())
+            {
+                _target = TargetType.KeyManagementGroup;
+            }
+            else if (_active?.Manufacturers != null && _active.Manufacturers.Any())
+            {
+                _target = TargetType.Manufacturer;
+            }
+            else if (_active?.ManufacturerGroups != null && _active.ManufacturerGroups.Any())
+            {
+                _target = TargetType.ManufacturerGroup;
+            }
+            else if (_active?.Modules != null && _active.Modules.Any())
+            {
+                _target = TargetType.Module;
+            }
+            else if (_active?.ModuleGroups != null && _active.ModuleGroups.Any())
+            {
+                _target = TargetType.ModuleGroup;
+            }
+            else if (_active?.Reports != null && _active.Reports.Any())
+            {
+                _target = TargetType.Report;
+            }
+            else if (_active?.ReportGroups != null && _active.ReportGroups.Any())
+            {
+                _target = TargetType.ReportGroup;
+            }
+            else if (_active?.Schedules != null && _active.Schedules.Any())
+            {
+                _target = TargetType.Schedule;
+            }
+            else if (_active?.ScheduleGroups != null && _active.ScheduleGroups.Any())
+            {
+                _target = TargetType.ScheduleGroup;
+            }
+            else if (_active?.Scripts != null && _active.Scripts.Any())
+            {
+                _target = TargetType.Script;
+            }
+            else if (_active?.ScriptGroups != null && _active.ScriptGroups.Any())
+            {
+                _target = TargetType.ScriptGroup;
+            }
+            else if (_active?.Subtotals != null && _active.Subtotals.Any())
+            {
+                _target = TargetType.Subtotal;
+            }
+            else if (_active?.SubtotalGroups != null && _active.SubtotalGroups.Any())
+            {
+                _target = TargetType.SubtotalGroup;
+            }
+            else if (_active?.Triggers != null && _active.Triggers.Any())
+            {
+                _target = TargetType.Trigger;
+            }
+            else if (_active?.TriggerGroups != null && _active.TriggerGroups.Any())
+            {
+                _target = TargetType.TriggerGroup;
+            }
+            else if (_active?.Workflows != null && _active.Workflows.Any())
+            {
+                _target = TargetType.Workflow;
+            }
+            else if (_active?.WorkflowGroups != null && _active.WorkflowGroups.Any())
+            {
+                _target = TargetType.WorkflowGroup;
+            }
+        }
+    }
+
+    /// <summary>
+    /// User action.
+    /// </summary>
+    [Parameter]
+    public string? Action { get; set; }
+
+    private CrudAction action;
+    /// <summary>
+    /// Selected item.
+    /// </summary>
+    [Parameter]
+    public Guid? Id { get; set; }
+
+    /// <summary>
+    ///Notification operations.
+    /// </summary>
+    List<NotificationDelivery> notificationDelivery = new List<NotificationDelivery>();
+
+    /// <summary>
+    ///Notification types.
+    /// </summary>
+    List<NotificationAction> notificationTypes = new List<NotificationAction>();
+
+    public string? IsDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                return null;
+            }
+            return "disabled";
+        }
+    }
+
+    public string? IsDestinationDeleting
+    {
+        get
+        {
+            if (Notifier.Action != CrudAction.Delete)
+            {
+                if (Active?.Delivery == (UInt16)NotificationDelivery.Email)
+                {
+                    return null;
+                }
+            }
+            return "disabled";
+        }
+    }
+
+    private GXValidator? _validator;
+
+    /// <summary>
+    /// Validate the notification content.
+    /// </summary>
+    /// <param name="sender"></param>
+    private void OnValidate(GXValidator sender)
+    {
+        if (Active != null)
+        {
+            if (string.IsNullOrEmpty(Active.Name))
+            {
+                sender.AddError(() => Active.Name, "Invalid name.");
+            }
+            if (Active.Delivery != (UInt16)NotificationDelivery.UI && string.IsNullOrEmpty(Active.Destination))
+            {
+                sender.AddError(() => Active.Destination, "Invalid destination.");
+            }
+            if (Active.Targets == null || !Active.Targets.Any())
+            {
+                sender.AddError(() => Active.Targets, "Invalid target.");
+            }
+            if (Active.Action == 0)
+            {
+                sender.AddError(() => Active.Action, "Invalid notification action.");
+            }
+            if (Active.MinimumDeliveryTime < 0)
+            {
+                sender.AddError(() => Active.MinimumDeliveryTime, "Invalid interval.");
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            notificationTypes.AddRange(Enum.GetValues<NotificationAction>());
+            notificationDelivery.AddRange(Enum.GetValues<NotificationDelivery>());
+            notificationTypes.Remove(NotificationAction.None);
+            notificationDelivery.Remove(NotificationDelivery.None);
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            Notifier.Clear();
+            if (Active == null && Id != null)
+            {
+                //Get notification data.
+                var tmp = (await Http.GetAsJsonAsync<GetNotificationResponse>(string.Format("api/Notification?id={0}", Id)));
+                if (tmp?.Item != null)
+                {
+                    Active = tmp.Item;
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("404");
+                }
+            }
+            if (Active == null)
+            {
+                throw new ArgumentException(Properties.Resources.InvalidTarget);
+            }
+
+            action = ClientHelpers.GetAction(Action);
+            if (action == CrudAction.Delete)
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Remove,
+                    Icon = "Remove",
+                    OnClick = EventCallback.Factory.Create(this, OnSave)
+                });
+            }
+            else
+            {
+                Notifier.AddMenuItem(new GXMenuItem()
+                {
+                    Text = Properties.Resources.Save,
+                    Icon = "Save",
+                    Enabled = EnableStyle.Modified,
+                    OnClick = EventCallback.Factory.Create(this, OnSave)
+                });
+            }
+            Notifier.AddMenuItem(new GXMenuItem()
+            {
+                Text = Properties.Resources.Cancel,
+                Icon = "Cancel",
+                OnClick = EventCallback.Factory.Create(this, OnCancel)
+            });
+            Notifier.UpdateButtons();
+            Notifier.EditContext = new EditContext(Active);
+            Notifier.EditContext.MarkAsUnmodified();
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Save notification.
+    /// </summary>
+    public async void OnSave()
+    {
+        try
+        {
+            _validator?.ClearErrors();
+            if (Active == null)
+            {
+                throw new Exception(Properties.Resources.InvalidTarget);
+            }
+            if (_validator != null && !_validator.Validate())
+            {
+                return;
+            }
+            Notifier.ProgressStart();
+            Notifier.ClearStatus();
+            if (action == CrudAction.Delete)
+            {
+                await Http.PostAsJson<RemoveNotificationResponse>("api/Notification/Delete", new RemoveNotification()
+                {
+                    Ids = new Guid[] { Active.Id }
+                });
+            }
+            else
+            {
+                string address;
+                if (action == CrudAction.Create)
+                {
+                    address = "api/Notification/Add";
+                }
+                else if (action == CrudAction.Update)
+                {
+                    address = "api/Notification/Update";
+                }
+                else
+                {
+                    throw new Exception(Properties.Resources.InvalidTarget);
+                }
+                await Http.PostAsJson<UpdateNotificationResponse>(address, new UpdateNotification() { Notifications = new List<GXNotification>() { Active } });
+            }
+            ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+            exception.Redirect();
+        }
+        catch (Exception ex)
+        {
+            Notifier?.ProcessError(ex);
+        }
+        finally
+        {
+            Notifier?.ProgressEnd();
+        }
+    }
+
+    /// <summary>
+    /// Cancel update.
+    /// </summary>
+    private void OnCancel()
+    {
+        ClientHelpers.NavigateToLastPage(NavigationManager, Notifier);
+    }
+}
+
