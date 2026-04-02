@@ -40,6 +40,11 @@ namespace Gurux.DLMS.AMI.Components.Table
     public interface IGXTable
     {
         /// <summary>
+        /// Table Id.
+        /// </summary>
+        string? Id { get; }
+
+        /// <summary>
         /// Sorted column.
         /// </summary>
         string? OrderBy { get; set; }

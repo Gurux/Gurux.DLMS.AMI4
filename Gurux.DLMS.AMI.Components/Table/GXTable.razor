@@ -243,11 +243,10 @@
     {
         if (Id != null)
         {
-            return Id + ":PageSize";
+            return Id + "-page-size";
         }
         return null;
     }
-
 
     int[] RowsPerPage = new int[] { 10, 20, 50, 100 };
     public delegate Task SearchDelegate();
@@ -850,7 +849,7 @@
             // Only apply result if the task was not canceled.
             if (!cancellationToken.IsCancellationRequested && renderOnSuccess)
             {
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)

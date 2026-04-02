@@ -38,7 +38,7 @@
 
 @if (!_hidden)
 {
-    <th id="@Id" style="@CssStyle" class="@GetCssClass()" @attributes="@AdditionalAttributes"
+    <th id="@GetId()" style="@CssStyle" class="@GetCssClass()" @attributes="@AdditionalAttributes"
         onclick="@(() => SortTable())">
         @ChildContent
         <span class="@(GetSortIcon())"></span>
@@ -47,6 +47,32 @@
 
 @code
 {
+    /// Gets the id of the column as kebab-case.
+    private string? GetId()
+    {
+        string? value = null;
+        if (Parent != null)
+        {
+            if (!string.IsNullOrEmpty(Parent.Id))
+            {
+                value = Parent.Id + "-";
+            }
+        }
+        if (!string.IsNullOrEmpty(Id))
+        {
+            value += Id;
+        }
+        else if (!string.IsNullOrEmpty(Name))
+        {
+            value += Name[0].ToString().ToLower() + Name.Substring(1);
+        }
+        else
+        {
+            value = null;
+        }
+        return value;
+    }
+
     /// <summary>
     /// Parent table.
     /// </summary>
@@ -66,10 +92,16 @@
     public SortMode SortMode { get; set; } = SortMode.None;
 
     /// <summary>
-    /// Id.
+    /// Id used with serialization.
     /// </summary>
     [Parameter]
     public string? Id { get; set; }
+
+    /// <summary>
+    /// Name is used with filter and sorting.
+    /// </summary>
+    [Parameter]
+    public string? Name { get; set; }
 
     [Parameter]
     public TItem? Target { get; set; }
@@ -124,9 +156,9 @@
         if (SortMode != SortMode.None)
         {
             Parent.SortMode = SortMode;
-            Parent.OrderBy = Id;
+            Parent.OrderBy = Name;
         }
-        _hidden = Parent.IsHidden(Id);
+        _hidden = Parent.IsHidden(Name);
         base.OnInitialized();
     }
 
@@ -142,10 +174,10 @@
             {
                 OrderBy = GetPath(Sort);
             }
-            if (Id != Parent.OrderBy ||
+            if (Name != Parent.OrderBy ||
                 (!string.IsNullOrEmpty(OrderBy) && OrderBy != Parent.OrderBy))
             {
-                Parent.OrderBy = Id;
+                Parent.OrderBy = Name;
                 Parent.SortMode = SortMode.Ascending;
             }
             else
@@ -195,7 +227,7 @@
 
     public string GetSortIcon()
     {
-        if (Parent != null && Parent.OrderBy == Id)
+        if (Parent != null && Parent.OrderBy == Name)
         {
             switch (Parent.SortMode)
             {
