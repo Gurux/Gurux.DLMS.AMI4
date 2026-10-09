@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using System.Threading;
 
 namespace Gurux.DLMS.AMI.Script
 {
@@ -49,20 +50,12 @@ namespace Gurux.DLMS.AMI.Script
         /// <summary>
         /// Sender object.
         /// </summary>
-        object? Sender
-        {
-            get;
-            set;
-        }
+        object? Sender { get; set; }
 
         /// <summary>
         /// User that owns the script.
         /// </summary>
-        GXUser? User
-        {
-            get;
-            set;
-        }
+        GXUser? User { get; set; }
 
         /// <summary>
         /// Default device template.
@@ -71,11 +64,7 @@ namespace Gurux.DLMS.AMI.Script
         /// Default device template is used to create a new device when unknown device 
         /// establish the connection for the agent.
         /// </remarks>
-        GXDeviceTemplate? DefaultDeviceTemplate
-        {
-            get;
-            set;
-        }
+        GXDeviceTemplate? DefaultDeviceTemplate { get; set; }
 
         /// <summary>
         /// Select objects using filter.
@@ -83,15 +72,16 @@ namespace Gurux.DLMS.AMI.Script
         /// <typeparam name="T">Object type</typeparam>
         /// <param name="filter">Filter</param>
         /// <returns>Found object or null if not found.</returns>
-        T[] Select<T>(T filter);
+        IEnumerable<T> Select<T>(T filter);
 
         /// <summary>
         /// Select objects using filter.
         /// </summary>
         /// <typeparam name="T">Object type</typeparam>
         /// <param name="filter">Filter</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Found object or null if not found.</returns>
-        Task<T[]> SelectAsync<T>(T filter);
+        Task<IEnumerable<T>> SelectAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get single object.
@@ -106,8 +96,9 @@ namespace Gurux.DLMS.AMI.Script
         /// </summary>
         /// <typeparam name="T">Object type</typeparam>
         /// <param name="filter">Filter</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Found object or null if not found.</returns>
-        Task<T?> SingleOrDefaultAsync<T>(T filter);
+        Task<T?> SingleOrDefaultAsync<T>(T filter, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Adds new value for the database.
@@ -119,7 +110,8 @@ namespace Gurux.DLMS.AMI.Script
         /// Adds new value for the database.
         /// </summary>
         /// <param name="value">Added value.</param>
-        Task AddAsync(object value);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task AddAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Adds new device for the database.
@@ -133,14 +125,16 @@ namespace Gurux.DLMS.AMI.Script
         /// </summary>
         /// <param name="value">Added device.</param>
         /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
-        Task AddDeviceAsync(GXDevice value, bool lateBinding);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task AddDeviceAsync(GXDevice value, bool lateBinding, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Remove value from the database.
         /// </summary>
         /// <param name="value">Removed value.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task RemoveAsync(object value, bool delete);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task RemoveAsync(object value, bool delete, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Remove value from the database.
@@ -177,7 +171,8 @@ namespace Gurux.DLMS.AMI.Script
         /// Updates the content of the value for the database.
         /// </summary>
         /// <param name="value">Added value.</param>
-        Task UpdateAsync(object value);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task UpdateAsync(object value, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get required service by type.

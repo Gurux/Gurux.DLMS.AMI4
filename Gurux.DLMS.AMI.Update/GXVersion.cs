@@ -41,56 +41,32 @@ namespace Gurux.DLMS.AMI.Update
         /// <summary>
         /// Creation time.
         /// </summary>
-        public DateTime CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Version number.
         /// </summary>
-        public string Number
-        {
-            get;
-            set;
-        }
+        public string Number { get; set; }
 
         /// <summary>
         /// Url.
         /// </summary>
-        public string? Url
-        {
-            get;
-            set;
-        }
+        public string? Url { get; set; }
 
         /// <summary>
         /// File name.
         /// </summary>
-        public string? FileName
-        {
-            get;
-            set;
-        }
+        public string? FileName { get; set; }
 
         /// <summary>
         /// Version description.
         /// </summary>
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Is this version pre-release.
         /// </summary>
-        public bool Prerelease
-        {
-            get;
-            set;
-        }
+        public bool Prerelease { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

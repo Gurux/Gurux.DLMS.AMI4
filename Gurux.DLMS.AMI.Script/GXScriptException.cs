@@ -44,30 +44,18 @@ namespace Gurux.DLMS.AMI.Script
         /// Error identifier.
         /// </summary>
         [Filter(FilterType.Exact)]
-        public string Id
-        {
-            get;
-            set;
-        }
+        public string Id { get; set; }
 
         /// <summary>
         /// Line number where error has occurred.
         /// </summary>
-        public int Line
-        {
-            get;
-            set;
-        }
+        public int Line { get; set; }
 
         /// <summary>
         /// Occurred error.
         /// </summary>
         [Filter(FilterType.Contains)]
-        public string Message
-        {
-            get;
-            set;
-        }
+        public string Message { get; set; }
 
         /// <summary>
         /// Constructor.

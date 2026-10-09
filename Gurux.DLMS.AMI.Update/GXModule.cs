@@ -37,37 +37,21 @@ namespace Gurux.DLMS.AMI.Update
         /// <summary>
         /// Module name.
         /// </summary>
-        public string Name
-        {
-            get;
-            set;
-        }      
+        public string Name { get; set; }
 
         /// <summary>
         /// Folder name.
         /// </summary>
-        public string FolderName
-        {
-            get;
-            set;
-        }
+        public string FolderName { get; set; }
 
         /// <summary>
         /// Module description.
         /// </summary>
-        public string Desription
-        {
-            get;
-            set;
-        }
+        public string Desription { get; set; }
         /// <summary>
         /// Module versions.
         /// </summary>
-        public List<GXVersion> Versions
-        {
-            get;
-            set;
-        }
+        public List<GXVersion> Versions { get; set; }
 
         /// <summary>
         /// Constructor.

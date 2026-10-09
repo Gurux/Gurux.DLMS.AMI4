@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -42,11 +42,8 @@ namespace Gurux.DLMS.AMI.Script
         /// <summary>
         /// (COFF)-based image containing an emitted assembly.
         /// </summary>
-        public byte[] ByteAssembly
-        {
-            get;
-            set;
-        }
+        public byte[] ByteAssembly { get; set; } = [];
+
         /// <summary>
         /// Invoked method name.
         /// </summary>
@@ -55,27 +52,15 @@ namespace Gurux.DLMS.AMI.Script
         /// <summary>
         /// Is the function called asyncronously.
         /// </summary>
-        public bool Asyncronous
-        {
-            get;
-            set;
-        }
+        public bool Asyncronous { get; set; }
         /// <summary>
         /// Return AssemblyLoadContext so script can be unload when not needed.
         /// </summary>
-        public AssemblyLoadContext? AssemblyLoadContext
-        {
-            get;
-            set;
-        }
+        public AssemblyLoadContext? AssemblyLoadContext { get; set; }
 
         /// <summary>
         /// Script parameters.
         /// </summary>
-        public object?[]? Parameters
-        {
-            get;
-            set;
-        }
+        public object?[]? Parameters { get; set; }
     }
 }

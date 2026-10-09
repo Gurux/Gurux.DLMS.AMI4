@@ -21,6 +21,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <PackageLicenseExpression>GPL-2.0-only</PackageLicenseExpression>
     <PackageIcon>gurux_dlms_ami.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
  <PropertyGroup>
     <IncludeSymbols>true</IncludeSymbols>
@@ -28,10 +29,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2604.201" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.5" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="5.3.0" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.1.2610.902" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" Version="5.9.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
@@ -49,5 +50,6 @@
   </ItemGroup>
  <ItemGroup>
     <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
+    <None Update="README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
