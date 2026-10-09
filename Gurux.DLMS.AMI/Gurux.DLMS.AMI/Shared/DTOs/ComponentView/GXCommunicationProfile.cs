@@ -44,11 +44,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// Used interface type.
         /// </summary>
         [Description("Interface type.")]
-        public int InterfaceType
-        {
-            get;
-            set;
-        }
+        public int InterfaceType { get; set; }
 
         /// <summary>
         /// Used logical client ID.
@@ -60,11 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Description("Client address.")]
         [Range(0, 127, ErrorMessage = "Value must be between 1 to 127")]
 
-        public int ClientAddress
-        {
-            get;
-            set;
-        }
+        public int ClientAddress { get; set; }
 
         /// <summary>
         /// Used Physical address.
@@ -74,21 +66,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// </remarks>
         [DefaultValue(1)]
         [Range(1, 16383, ErrorMessage = "Value must be between 1 to 16383")]
-        virtual public int PhysicalAddress
-        {
-            get;
-            set;
-        }
+        virtual public int PhysicalAddress { get; set; }
 
         /// <summary>
         /// Used logical address. Logical address is used only with HDLC.
         /// </summary>
         [DefaultValue(0)]
         [Range(0, 16383, ErrorMessage = "Value must be between 0 to 16383")]
-        public int LogicalAddress
-        {
-            get;
-            set;
-        }
+        public int LogicalAddress { get; set; }
     }
 }

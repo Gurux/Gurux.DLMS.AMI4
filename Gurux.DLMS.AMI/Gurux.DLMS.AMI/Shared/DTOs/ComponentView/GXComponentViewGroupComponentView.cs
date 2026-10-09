@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [DataMember(Name = "ComponentViewGroupId")]
         [ForeignKey(typeof(GXComponentViewGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid ComponentViewGroupId
-        {
-            //ForeignKeyDelete is None because creator of the component view is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the component view is causing multiple cascade paths error in MSSQL.
+        public Guid ComponentViewGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the component view.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [DataMember(Name = "ComponentViewID")]
         [ForeignKey(typeof(GXComponentView), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid ComponentViewId
-        {
-            get;
-            set;
-        }
+        public Guid ComponentViewId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when component view was removed from component view group.
@@ -89,10 +77,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

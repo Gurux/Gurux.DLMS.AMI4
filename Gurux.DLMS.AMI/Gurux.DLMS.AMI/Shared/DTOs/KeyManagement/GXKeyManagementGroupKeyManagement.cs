@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </summary>
         [DataMember(Name = "KeyManagementGroupId")]
         [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid KeyManagementGroupId
-        {
-            //ForeignKeyDelete is None because creator of the key management is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the key management is causing multiple cascade paths error in MSSQL.
+        public Guid KeyManagementGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the key management.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember(Name = "KeyManagementID")]
         [ForeignKey(typeof(GXKeyManagement), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(36)]
-        public Guid KeyManagementId
-        {
-            get;
-            set;
-        }
+        public Guid KeyManagementId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when key management was removed from key management group.
@@ -89,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

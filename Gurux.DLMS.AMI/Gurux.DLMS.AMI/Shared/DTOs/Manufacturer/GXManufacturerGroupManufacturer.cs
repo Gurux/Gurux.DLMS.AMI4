@@ -49,23 +49,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// </summary>
         [DataMember(Name = "ManufacturerGroupId")]
         [ForeignKey(typeof(GXManufacturerGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid ManufacturerGroupId
-        {
-            //ForeignKeyDelete is None because creator of the manufacturer is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the manufacturer is causing multiple cascade paths error in MSSQL.
+        public Guid ManufacturerGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the manufacturer.
         /// </summary>
         [DataMember(Name = "ManufacturerID")]
         [ForeignKey(typeof(GXManufacturer), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ManufacturerId
-        {
-            get;
-            set;
-        }
+        public Guid ManufacturerId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -75,11 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when agent group was removed from user group.
@@ -88,10 +76,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }       
+        public DateTimeOffset? Removed { get; set; }
     }
 }

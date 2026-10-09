@@ -48,23 +48,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </summary>
         [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup),
             OnDelete = ForeignKeyDelete.None)]
-        public Guid UserGroupId
-        {
-            //ForeignKeyDelete is None because creator of the device template group is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the device template group is causing multiple cascade paths error in MSSQL.
+        public Guid UserGroupId { get; set; }
 
         /// <summary>
         /// Device template group ID.
         /// </summary>
         [DataMember(Name = "DeviceTemplateGroupId"), ForeignKey(typeof(GXDeviceTemplateGroup),
             OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid DeviceTemplateGroupId
-        {
-            get;
-            set;
-        }
+        public Guid DeviceTemplateGroupId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -75,11 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when device template group was removed from user group.
@@ -88,10 +76,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

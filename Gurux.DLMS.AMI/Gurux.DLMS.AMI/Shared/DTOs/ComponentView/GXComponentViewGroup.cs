@@ -73,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the component view group.
@@ -86,11 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the component view group.
@@ -100,11 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Component view group description.
@@ -114,11 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -127,11 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when component view group was removed.
@@ -140,11 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the compoent view group last updated.
@@ -152,11 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -164,11 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -179,32 +147,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// List of users groups that belongs to this Component view group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupComponentViewGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of Component views that this Component view group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXComponentView), 
+        [DataMember, ForeignKey(typeof(GXComponentView),
             typeof(GXComponentViewGroupComponentView))]
-        public List<GXComponentView>? ComponentViews
-        {
-            get;
-            set;
-        }
+        public List<GXComponentView>? ComponentViews { get; set; }
 
         /// <summary>
         /// This is default component view group where new component views are added automatically when user creates them.
@@ -213,11 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

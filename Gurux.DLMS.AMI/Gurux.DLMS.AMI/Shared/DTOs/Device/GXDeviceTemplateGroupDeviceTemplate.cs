@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember(Name = "DeviceTemplateGroupId")]
         [ForeignKey(typeof(GXDeviceTemplateGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid DeviceTemplateGroupId
-        {
-            //ForeignKeyDelete is None because creator of the device template is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the device template is causing multiple cascade paths error in MSSQL.
+        public Guid DeviceTemplateGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the schedule.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember(Name = "DeviceTemplateId")]
         [ForeignKey(typeof(GXDeviceTemplate), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid DeviceTemplateId
-        {
-            get;
-            set;
-        }
+        public Guid DeviceTemplateId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when device template was removed from device template group.
@@ -89,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update Creation time.
