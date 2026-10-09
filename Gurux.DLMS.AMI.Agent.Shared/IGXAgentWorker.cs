@@ -74,9 +74,6 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <remarks>
         /// If true, tasks are polled. If false, the server sends notification from the new tasks.
         /// </remarks>
-        bool PollTasks
-        {
-            get; set;
-        }
+        bool PollTasks { get; set; }
     }
 }

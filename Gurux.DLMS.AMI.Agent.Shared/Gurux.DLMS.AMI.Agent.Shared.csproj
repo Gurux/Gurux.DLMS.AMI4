@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.0.2604.201" />
+    <PackageReference Include="Gurux.DLMS.AMI.Shared" Version="4.1.2610.902" />
   </ItemGroup>
 
 </Project>

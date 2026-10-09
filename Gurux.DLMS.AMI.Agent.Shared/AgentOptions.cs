@@ -75,56 +75,32 @@ namespace Gurux.DLMS.AMI.Agent.Shared
         /// <summary>
         /// Reader settings.
         /// </summary>
-        public ReaderSettings? ReaderSettings
-        {
-            get;
-            set;
-        }
+        public ReaderSettings? ReaderSettings { get; set; }
 
         /// <summary>
         /// Listener settings. Agent waits server to connect for the listener.
         /// </summary>
-        public ListenerSettings? ListenerSettings
-        {
-            get;
-            set;
-        }
+        public ListenerSettings? ListenerSettings { get; set; }
 
         /// <summary>
         /// Notify settings. Agent waits notify, event or push messages to this port.
         /// </summary>
-        public NotifySettings? NotifySettings
-        {
-            get;
-            set;
-        }
+        public NotifySettings? NotifySettings { get; set; }
 
         /// <summary>
         /// Gateway settings. Agent waits gateway connections.
         /// </summary>
-        public GatewaySettings? GatewaySettings
-        {
-            get;
-            set;
-        }
+        public GatewaySettings? GatewaySettings { get; set; }
 
         /// <summary>
         /// Available serial ports.
         /// </summary>
-        public string? SerialPorts
-        {
-            get;
-            set;
-        }
+        public string? SerialPorts { get; set; }
 
         /// <summary>
         /// Selected serial port.
         /// </summary>
-        public string? SerialPort
-        {
-            get;
-            set;
-        }
+        public string? SerialPort { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()
