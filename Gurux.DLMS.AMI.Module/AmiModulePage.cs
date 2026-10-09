@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,22 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Page component exposed by a module.</summary>
+/// <param name="Component">Fully qualified component type name.</param>
+/// <param name="Policy">Required access policy.</param>
+/// <param name="Route">Unique module page URL segment.</param>
+public sealed record AmiModulePage(string Route, string Component, string Policy)
 {
-    /// <summary>
-    /// Device group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize device group settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedDeviceGroupUI : IAmiExtendedUI
+    /// <summary>Optional title displayed for the module page.</summary>
+    public string? Title
     {
+        get; init;
+    }
+    /// <summary>Whether the page appears in module navigation.</summary>
+    public bool Navigation
+    {
+        get; init;
     }
 }

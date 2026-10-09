@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
     /// Object settings UI interface.
     /// </summary>
@@ -41,5 +41,5 @@ namespace Gurux.DLMS.AMI.Module
     public interface IAmiExtendedObjectSettingsUI : IAmiExtendedSettingsUI
     {
 
-    }    
+    }
 }

@@ -148,39 +148,43 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <inheritdoc/>
-        Task<string?> IAmiModuleSettings.SaveAsync()
+        async Task<string?> IAmiModuleSettings.SaveAsync()
         {
             if (!_saved)
             {
                 _saved = true;
-                if (SaveAsync().Result == true)
+                try
                 {
-                    var s = GetType().GetProperty("Settings");
-                    if (s != null && s.CanRead && s.CanWrite)
+                    if (await SaveAsync())
                     {
-                        return Task.FromResult<string?>(JsonSerializer.Serialize(Settings));
+                        var s = GetType().GetProperty("Settings");
+                        if (s != null && s.CanRead && s.CanWrite)
+                        {
+                            return JsonSerializer.Serialize(Settings);
+                        }
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Save operation failed.");
                     }
                 }
-                else
+                catch
                 {
-                    throw new InvalidOperationException("Save operation failed.");
+                    _saved = false;
+                    throw;
                 }
             }
-            return Task.FromResult<string?>(null);
+            return null;
         }
         /// <inheritdoc/>
         public virtual Task<bool> SaveAsync()
         {
-            return Task.FromResult(false);
+            return Task.FromResult(Save());
         }
 
         /// <summary>
         /// Configuration settings.
         /// </summary>
-        public TSettings Settings
-        {
-            get;
-            set;
-        } = default!;
+        public TSettings Settings { get; set; } = default!;
     }
 }

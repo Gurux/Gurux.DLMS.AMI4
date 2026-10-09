@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{       
+{
     /// <summary>
     /// Attribute settings UI interface.
     /// </summary>

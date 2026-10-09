@@ -29,17 +29,24 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// Gurux DLMS AMI read argument.
+    /// Defines a contract for sending email messages asynchronously.
     /// </summary>
-    public class AMIReadArgument
+    /// <remarks>Implementations of this interface are responsible for delivering email messages to the
+    /// specified recipient. The method is asynchronous and returns a <see cref="Task"/> that completes when the email
+    /// has been sent or the operation has failed.</remarks>
+    public interface IAmiEmailSender
     {
         /// <summary>
-        /// Read object.
+        /// Sends an email message asynchronously to the specified recipient with the given subject and HTML content.
         /// </summary>
-        public object? Target { get; set; }
+        /// <param name="email">The email address of the recipient. Cannot be null or empty.</param>
+        /// <param name="subject">The subject line of the email. Cannot be null or empty.</param>
+        /// <param name="htmlMessage">The HTML content of the email body. Cannot be null or empty.</param>
+        /// <param name="cancellationToken">Cancels the active send when the caller or module stops.</param>
+        /// <returns>A task that represents the asynchronous send operation.</returns>
+        Task SendEmailAsync(string email, string subject, string htmlMessage, CancellationToken cancellationToken = default);
     }
 }

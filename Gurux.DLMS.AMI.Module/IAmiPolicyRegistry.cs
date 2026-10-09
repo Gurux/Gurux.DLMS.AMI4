@@ -29,22 +29,40 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Microsoft.AspNetCore.Authorization;
 
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Gurux DLMS AMI write argument.
+    /// Defines methods for managing authorization policies by name.
     /// </summary>
-    public class AMIWriteArgument
+    public interface IAmiPolicyRegistry
     {
         /// <summary>
-        /// Attribute object to be written.
+        /// Retrieves an authorization policy by its name.
         /// </summary>
-        public object? Target { get; set; }
+        /// <param name="name">The name of the authorization policy to retrieve.</param>
+        /// <returns>The authorization policy associated with the specified name, or null if not found.</returns>
+        AuthorizationPolicy? Get(string name);
 
         /// <summary>
-        /// Attribute object value to be written.
+        /// Adds a new authorization policy associated with the specified name.
         /// </summary>
-        public object? Value { get; set; }
+        /// <param name="name">The name of the authorization policy to add.</param>
+        /// <param name="policy">The authorization policy to associate with the specified name.</param>
+        void Add(string name, AuthorizationPolicy policy);
+
+        /// <summary>
+        /// Removes the authorization policy associated with the specified name.
+        /// </summary>
+        /// <param name="name">The name of the authorization policy to remove.</param>
+        /// <returns></returns>
+        bool Remove(string name);
+
+        /// <summary>
+        /// Retrieves all policy names.
+        /// </summary>
+        /// <returns>A read-only collection of policy names.</returns>
+        IReadOnlyCollection<string> GetAllPolicyNames();
     }
 }

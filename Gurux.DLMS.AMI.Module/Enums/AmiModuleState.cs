@@ -1,4 +1,4 @@
-﻿@*
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,48 +29,33 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-*@
-@using Microsoft.JSInterop
 
-@inject IJSRuntime JSRuntime
-@typeparam TItem
-
-@ChildContent
-<button type="button"
-        class="btn btn-link p-0"
-        aria-label="Copy value"
-        title="Copy"
-        onclick="@CopyToClipboard">
-    📋
-</button>
-@if (ShowCopiedHint)
+namespace Gurux.DLMS.AMI.Shared.Enums
 {
-    <span class="text-success ms-2">Copied!</span>
-}
-@code
-{
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    private bool ShowCopiedHint;
-
-    [Parameter]
-    public bool CopyAsUtcIso8601 { get; set; }
-
-    [Parameter]
-    public TItem? Value { get; set; }
-
-    private async Task CopyToClipboard()
+    /// <summary>
+    /// Specifies the lifecycle states of an Ami module.
+    /// </summary>
+    public enum AmiModuleState
     {
-        if (Value != null)
-        {
-            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", Value.ToString());
-            ShowCopiedHint = true;
-            _ = Task.Delay(1200).ContinueWith(_ =>
-            {
-                ShowCopiedHint = false;
-                InvokeAsync(StateHasChanged);
-            });
-        }
+        /// <summary>
+        /// Module is loading. It is not yet ready to be used.
+        /// </summary>
+        Loading,
+        /// <summary>
+        /// Module is active and ready to be used.
+        /// </summary>
+        Active,
+        /// <summary>
+        /// Module is stopping. It is not yet fully stopped and may still be processing requests.
+        /// </summary>
+        Stopping,
+        /// <summary>
+        /// Module is stopped. It is not processing any requests and may be unloaded from memory.
+        /// </summary>
+        Stopped,
+        /// <summary>
+        /// Module failed to load or encountered an error during operation. It may not be usable until the issue is resolved.
+        /// </summary>
+        Failed
     }
 }

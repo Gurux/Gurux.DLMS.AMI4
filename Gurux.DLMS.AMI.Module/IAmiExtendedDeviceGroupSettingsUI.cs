@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
     /// Device group settings UI interface.
     /// </summary>
@@ -40,5 +40,5 @@ namespace Gurux.DLMS.AMI.Module
     /// </remarks>
     public interface IAmiExtendedDeviceGroupSettingsUI : IAmiExtendedSettingsUI
     {
-    }   
+    }
 }

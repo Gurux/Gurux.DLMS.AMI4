@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Module
         /// Decrypt the string.
         /// </summary>
         /// <param name="encrypted">Decrypted string.</param>
-        /// <returns>Decrypted string.</returns>
-        Task<string> DecryptAsync(string encrypted);
+        /// <returns>Decrypted byte array.</returns>
+        Task<byte[]> DecryptAsync(string encrypted);
 
         /// <summary>
         /// Encrypt the byte array.
@@ -62,7 +62,7 @@ namespace Gurux.DLMS.AMI.Module
         /// Encrypt the string.
         /// </summary>
         /// <param name="plainText">Encrypted byte array.</param>
-        /// <returns>Encrypted ASCII string</returns>
-        Task<string> EncryptAsync(string plainText);
+        /// <returns>Encrypted byte array.</returns>
+        Task<byte[]> EncryptAsync(string plainText);
     }
 }

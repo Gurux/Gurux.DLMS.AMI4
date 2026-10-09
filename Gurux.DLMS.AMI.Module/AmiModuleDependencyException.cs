@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Device group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize device group settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedDeviceGroupUI : IAmiExtendedUI
-    {
-    }
-}
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>A safe, user-facing dependency conflict for module lifecycle operations.</summary>
+public sealed class AmiModuleDependencyException(string message) : InvalidOperationException(message);

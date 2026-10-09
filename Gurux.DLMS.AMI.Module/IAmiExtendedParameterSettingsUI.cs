@@ -40,5 +40,5 @@ namespace Gurux.DLMS.AMI.Module
     /// </remarks>
     public interface IAmiExtendedParameterSettingsUI : IAmiExtendedSettingsUI
     {
-    }   
+    }
 }

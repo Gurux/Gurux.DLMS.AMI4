@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{    
+{
     /// <summary>
     /// Meter settings UI interface.
     /// </summary>
@@ -40,6 +40,6 @@ namespace Gurux.DLMS.AMI.Module
     /// </remarks>
     public interface IAmiExtendedDeviceUI : IAmiExtendedUI
     {
-        
-    }   
+
+    }
 }

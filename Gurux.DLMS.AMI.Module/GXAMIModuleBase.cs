@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,183 +30,58 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+namespace Gurux.DLMS.AMI.Module;
 
-namespace Gurux.DLMS.AMI.Module
+/// <summary>Convenient defaults for modules with optional capabilities.</summary>
+public abstract class GXAmiModuleBase : IAmiModule
 {
-    /// <summary>
-    /// Gurux DLMS AMI module base class.
-    /// </summary>
-    public abstract class GXAmiModuleBase : IAmiModule
+    /// <inheritdoc />
+    public abstract string Id
     {
-        /// <inheritdoc/>
-        public abstract string Id
-        {
-            get;
-        }
-
-        /// <inheritdoc/>
-        public abstract string Name
-        {
-            get;
-        }
-
-        /// <inheritdoc/>
-        public virtual string? Protocols
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        /// <inheritdoc/>
-        public abstract string Description
-        {
-            get;
-        }
-
-        /// <inheritdoc/>
-        public virtual string? Help
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual string? Icon
-        {
-            get
-            {
-                return null;
-            }
-        }       
-
-        /// <inheritdoc/>
-        public virtual Type? Extension
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual void ConfigureMidlewares(IServiceCollection services)
-        {
-
-        }
-
-        /// <inheritdoc/>
-        public virtual bool CanSchedule
-        {
-            get
-            {
-                return false;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual Type? Schedule
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual Type? Configuration
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        /// <inheritdoc/>
-        public virtual void ConfigureModuleServices(IServiceCollection services, IConfiguration configuration)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual void Execute(
-            IServiceProvider services,
-            string? settings,
-            string? instanceSettings)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task ExecuteAsync(
-            IServiceProvider services,
-            string? settings,
-            string? instanceSettings)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Install(IServiceProvider services, object module)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task InstallAsync(IServiceProvider services, object module)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Start(IServiceProvider services)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task StartAsync(IServiceProvider services)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Stop(IServiceProvider services)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task StopAsync(IServiceProvider services)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Uninstall(IServiceProvider services, object module)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task UninstallAsync(IServiceProvider services, object module)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Update(IServiceProvider services, string current, string updated)
-        {
-        }
-
-        /// <inheritdoc/>
-        public virtual Task UpdateAsync(IServiceProvider services, object current, object updated)
-        {
-            return Task.CompletedTask;
-        }
-
-        /// <inheritdoc/>
-        public virtual void Register(AmiModuleContext context)
-        {
-        }
+        get;
     }
+    /// <inheritdoc />
+    public abstract string Name
+    {
+        get;
+    }
+    /// <inheritdoc />
+    public abstract string Description
+    {
+        get;
+    }
+    /// <inheritdoc />
+    public virtual string? Protocols => null;
+    /// <inheritdoc />
+    public virtual string? Help => null;
+    /// <inheritdoc />
+    public virtual string? Icon => null;
+    /// <inheritdoc />
+    public virtual Type? Configuration => null;
+    /// <inheritdoc />
+    public virtual Type? Extension => null;
+    /// <inheritdoc />
+    public virtual Type? Schedule => null;
+    /// <inheritdoc />
+    public virtual IReadOnlyList<AmiModuleDependency> Dependencies => [];
+    /// <inheritdoc />
+    public virtual bool CanSchedule => Schedule != null;
+    /// <inheritdoc />
+    public virtual void Configure(AmiModuleBuilder builder)
+    {
+    }
+    /// <inheritdoc />
+    public virtual Task InstallAsync(AmiModuleContext context, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task UpdateAsync(AmiModuleContext context, string previousVersion, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task UninstallAsync(AmiModuleContext context, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task StartAsync(AmiModuleContext context, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task SettingsChangedAsync(AmiModuleContext context, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task ExecuteAsync(AmiModuleContext context, string? instanceSettings, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <inheritdoc />
+    public virtual Task StopAsync(AmiModuleContext context, CancellationToken cancellationToken) => Task.CompletedTask;
 }

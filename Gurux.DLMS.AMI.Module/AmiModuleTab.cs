@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Device group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize device group settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedDeviceGroupUI : IAmiExtendedUI
-    {
-    }
-}
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Tab component exposed by a module.</summary>
+/// <param name="Area">User or Config tab area.</param>
+/// <param name="Component">Fully qualified component type name.</param>
+/// <param name="Policy">Required access policy.</param>
+/// <param name="Title">Displayed tab title.</param>
+public sealed record AmiModuleTab(string Area, string Title, string Component, string Policy);

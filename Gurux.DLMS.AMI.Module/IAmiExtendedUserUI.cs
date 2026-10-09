@@ -31,7 +31,7 @@
 //---------------------------------------------------------------------------
 
 namespace Gurux.DLMS.AMI.Module
-{       
+{
     /// <summary>
     /// User group settings UI interface.
     /// </summary>

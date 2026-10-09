@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,36 +29,78 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-namespace Gurux.DLMS.AMI.Module
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>
+/// A module-owned settings snapshot; serializer metadata is not shared across modules.
+/// </summary>
+public sealed class AmiModuleSettings
 {
-    /// <summary>
-    /// Provides context information and endpoint mapping delegates for an AMI module, including base API path and
-    /// handlers for HTTP GET and POST requests.
-    /// </summary>
-    /// <remarks>This class supplies the base path for the module's API endpoints and delegates for mapping
-    /// HTTP GET and POST routes to their respective handlers. It is typically used to configure routing and request
-    /// handling within an AMI module.</remarks>
-    public sealed class AmiModuleContext
+    private string? value;
+    private readonly JsonSerializerOptions json = new() { PropertyNameCaseInsensitive = true };
+    /// <summary>Creates a settings snapshot from an optional serialized value.</summary>
+    public AmiModuleSettings(string? value = null) => this.value = value;
+    /// <summary>Serialized module settings, read and written atomically.</summary>
+    public string? Value
     {
-        /// <summary>
-        /// Gets or sets the base directory path used for file operations. E.g. "/api/smtp"
-        /// </summary>
-        public required string BasePath { get; init; }
-
-        /// <summary>
-        /// Gets or sets the delegate used to map an HTTP GET route to a handler.
-        /// </summary>
-        /// <remarks>The returned object typically represents the route mapping and may be used for
-        /// further configuration or chaining. The handler delegate should match the expected signature for the
-        /// route.</remarks>
-        public required Func<string, Delegate, object> MapGet { get; init; }
-
-        /// <summary>
-        /// Gets or sets the delegate used to map HTTP POST endpoints to their corresponding handlers.
-        /// </summary>
-        /// <remarks>Use this property to configure how POST routes are registered and associated with
-        /// their handlers. The returned object typically represents the endpoint registration and may be used for
-        /// further configuration.</remarks>
-        public required Func<string, Delegate, object> MapPost { get; init; }
+        get => Volatile.Read(ref value); set => Volatile.Write(ref this.value, value);
+    }
+    /// <summary>Deserializes the settings or creates default settings when no value is available.</summary>
+    public T Read<T>() where T : new()
+    {
+        string? snapshot = Value;
+        return string.IsNullOrWhiteSpace(snapshot) ? new T() : JsonSerializer.Deserialize<T>(snapshot, json) ?? new T();
     }
 }
+
+/// <summary>Services and cancellation owned by one module operation.</summary>
+public sealed class AmiModuleContext
+{
+    /// <summary>Unique module identifier.</summary>
+    public required string ModuleId
+    {
+        get; init;
+    }
+    /// <summary>Data removal options for module uninstallation.</summary>
+    public AmiModuleUninstallOptions UninstallOptions { get; set; } = new();
+    /// <summary>Services registered in the module scope.</summary>
+    public required IServiceProvider Services
+    {
+        get; init;
+    }
+    /// <summary>Services provided by the host.</summary>
+    public required IServiceProvider HostServices
+    {
+        get; init;
+    }
+    /// <summary>Module settings snapshot.</summary>
+    public required AmiModuleSettings Settings
+    {
+        get; init;
+    }
+    /// <summary>Cancellation token for the current module operation.</summary>
+    public required CancellationToken CancellationToken
+    {
+        get; init;
+    }
+    /// <summary>Serializer options for the current module operation.</summary>
+    public required JsonSerializerOptions JsonOptions
+    {
+        get; init;
+    }
+    /// <summary>Package location; stream-loaded assemblies do not expose a usable Assembly.Location.</summary>
+    public string? PackageDirectory
+    {
+        get; init;
+    }
+    /// <summary>Tracks externally created subscriptions/timers for disposal at module stop.</summary>
+    public Action<IDisposable> Track { get; init; } = _ => throw new InvalidOperationException("This context has no resource owner.");
+    /// <summary>Tracks a resource for disposal when the module stops.</summary>
+    public void Own(IDisposable resource) => Track(resource);
+}
+
+/// <summary>HTTP context plus the module's own service scope.</summary>
+public sealed record AmiModuleRequest(HttpContext HttpContext, AmiModuleContext Module);

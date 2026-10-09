@@ -40,28 +40,16 @@ namespace Gurux.DLMS.AMI.Module
         /// <summary>
         /// Invoked COSEM object.
         /// </summary>
-        public object? Target
-        {
-            get;
-            set;
-        }
+        public object? Target { get; set; }
 
         /// <summary>
         /// Invoked value.
         /// </summary>
-        public object? Value
-        {
-            get;
-            set;
-        }
+        public object? Value { get; set; }
 
         /// <summary>
         /// Action index.
         /// </summary>
-        public byte Index
-        {
-            get;
-            set;
-        }
+        public byte Index { get; set; }
     }
 }
