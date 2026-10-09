@@ -54,5 +54,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// </summary>
         [XmlEnum("2")]
         Script = 2,
+        /// <summary>Block contains inline Markdown.</summary>
+        [XmlEnum("3")]
+        Markdown = 3,
+        /// <summary>Block contains HTML read from a server content file.</summary>
+        [XmlEnum("4")]
+        HtmlFile = 4,
+        /// <summary>Block contains Markdown read from a server content file.</summary>
+        [XmlEnum("5")]
+        MarkdownFile = 5,
     }
 }

@@ -142,7 +142,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         public string? Style { get; set; }
 
         /// <summary>
-        /// HTML Body or component settings are saved here.
+        /// Inline HTML, Markdown, component settings, or a server content file path.
         /// </summary>
         public string? Body { get; set; }
 
