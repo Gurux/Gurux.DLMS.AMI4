@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,19 +33,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
-using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
-using Gurux.DLMS.AMI.Shared.DTOs.Notification;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
@@ -76,22 +71,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
-            nameof(GXUserGroup.SubtotalGroups),
-            nameof(GXUserGroup.ContentTypeGroups),
-            nameof(GXUserGroup.ContentGroups),
-            nameof(GXUserGroup.MenuGroups),
-            nameof(GXUserGroup.NotificationGroups),
-            nameof(GXUserGroup.ReportGroups))]
-        public GXUserGroup? Item
-        {
-            get;
-            set;
-        }
+            nameof(GXUserGroup.MenuGroups))]
+        public GXUserGroup? Item { get; set; }
     }
 
     /// <summary>
@@ -103,21 +88,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the user groups to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter user groups.
@@ -133,23 +109,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
-             nameof(GXUserGroup.SubtotalGroups),
-            nameof(GXUserGroup.ContentTypeGroups),
-            nameof(GXUserGroup.ContentGroups),
-            nameof(GXUserGroup.MenuGroups),
-            nameof(GXUserGroup.NotificationGroups),
-            nameof(GXUserGroup.ReportGroups))]
+            nameof(GXUserGroup.MenuGroups))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXUserGroup? Filter
-        {
-            get;
-            set;
-        }
+        public GXUserGroup? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access groups from all users.
@@ -157,11 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, groups from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -169,11 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -182,21 +140,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -204,11 +154,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -216,11 +162,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -244,32 +186,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXUserGroup.WorkflowGroups),
             nameof(GXUserGroup.TriggerGroups),
             nameof(GXUserGroup.BlockGroups),
-            nameof(GXUserGroup.ContentGroups),
             nameof(GXUserGroup.ComponentViewGroups),
             nameof(GXUserGroup.ManufacturerGroups),
             nameof(GXUserGroup.KeyManagementGroups),
             nameof(GXUserGroup.ScriptGroups),
-            nameof(GXUserGroup.SubtotalGroups),
-            nameof(GXUserGroup.ContentTypeGroups),
-            nameof(GXUserGroup.ContentGroups),
-            nameof(GXUserGroup.MenuGroups),
-            nameof(GXUserGroup.NotificationGroups),
-            nameof(GXUserGroup.ReportGroups))]
-        public GXUserGroup[]? UserGroups
-        {
-            get;
-            set;
-        }
+            nameof(GXUserGroup.MenuGroups))]
+        public IEnumerable<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// Total count of the user groups.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -292,22 +220,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id))]
         [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id))]
         [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id))]
-        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id))]
         [IncludeOpenApi(typeof(GXComponentViewGroup), nameof(GXComponentViewGroup.Id))]
         [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id))]
         [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
         [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id))]
-        [IncludeOpenApi(typeof(GXReportGroup), nameof(GXReportGroup.Id))]
-        [IncludeOpenApi(typeof(GXSubtotalGroup), nameof(GXSubtotalGroup.Id))]
-        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id))]
-        [IncludeOpenApi(typeof(GXContentTypeGroup), nameof(GXContentTypeGroup.Id))]
         [IncludeOpenApi(typeof(GXMenuGroup), nameof(GXMenuGroup.Id))]
-        [IncludeOpenApi(typeof(GXNotificationGroup), nameof(GXNotificationGroup.Id))]
-        public GXUserGroup[]? UserGroups
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXUserGroup> UserGroups { get; set; } = default!;
     }
 
     /// <summary>
@@ -319,11 +237,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// New user group IDs.
         /// </summary>
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -336,11 +250,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// User group Ids to remove.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -350,11 +260,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>

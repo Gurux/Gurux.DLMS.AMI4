@@ -49,23 +49,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </summary>
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.None)]
-        public Guid WorkflowId
-        {
-            //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
+        public Guid WorkflowId { get; set; }
 
         /// <summary>
         /// The database ID of the module.
         /// </summary>
         [DataMember(Name = "ModuleId")]
         [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ModuleId
-        {
-            get;
-            set;
-        }
+        public Guid ModuleId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -74,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when script method was removed from workflow.
@@ -87,11 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -67,14 +68,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         {
             Name = name;
             Active = true;
-            Attributes = new List<GXAttribute>();
-            Objects = new List<GXObject>();
             Devices = new List<GXDevice>();
             ScriptMethods = new List<GXScriptMethod>();
             DeviceGroups = new List<GXDeviceGroup>();
             ScheduleGroups = new List<GXScheduleGroup>();
             Triggers = new List<GXTrigger>();
-            Logs = new List<GXScheduleLog>();
+            Logs = new List<GXLog>();
             Modules = new List<GXModule>();
             DeviceObjectTemplates = new List<GXObjectTemplate>();
             DeviceAttributeTemplates = new List<GXAttributeTemplate>();
@@ -91,11 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         //Filter uses default value.
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Is schedule active.
@@ -106,50 +101,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         public bool? Active { get; set; }
 
         /// <summary>
-        /// Scheduled attributes.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXAttribute), typeof(GXScheduleToAttribute))]
-        [Obsolete("Use AttributeTemplates instead.")]
-        public List<GXAttribute>? Attributes
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Scheduled objects.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXObject), typeof(GXScheduleToObject))]
-        [Obsolete("Use DeviceObjectTemplates instead.")]
-        public List<GXObject>? Objects
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
         /// Scheduled devices.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDevice), typeof(GXScheduleToDevice))]
-        public List<GXDevice>? Devices
-        {
-            get;
-            set;
-        }
+        public List<GXDevice>? Devices { get; set; }
 
         /// <summary>
         /// Scheduled device groups.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXScheduleToDeviceGroup))]
-        public List<GXDeviceGroup>? DeviceGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
         /// <summary>
         /// Scheduled device attribute templates.
@@ -161,11 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <seealso cref="DeviceGroupAttributeTemplates"/>
         [DataMember]
         [ForeignKey(typeof(GXAttributeTemplate), typeof(GXScheduleToDeviceAttributeTemplate))]
-        public List<GXAttributeTemplate>? DeviceAttributeTemplates
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeTemplate>? DeviceAttributeTemplates { get; set; }
 
         /// <summary>
         /// Scheduled device objects.
@@ -177,11 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <seealso cref="DeviceGroupAttributeTemplates"/>
         [DataMember]
         [ForeignKey(typeof(GXObjectTemplate), typeof(GXScheduleToDeviceObjectTemplate))]
-        public List<GXObjectTemplate>? DeviceObjectTemplates
-        {
-            get;
-            set;
-        }
+        public List<GXObjectTemplate>? DeviceObjectTemplates { get; set; }
 
         /// <summary>
         /// Scheduled device group attribute templates.
@@ -193,11 +148,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <seealso cref="DeviceGroups"/>
         [DataMember]
         [ForeignKey(typeof(GXAttributeTemplate), typeof(GXScheduleToDeviceGroupAttributeTemplate))]
-        public List<GXAttributeTemplate>? DeviceGroupAttributeTemplates
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeTemplate>? DeviceGroupAttributeTemplates { get; set; }
 
         /// <summary>
         /// Scheduled device group objects.
@@ -209,65 +160,41 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// <seealso cref="DeviceGroups"/>
         [DataMember]
         [ForeignKey(typeof(GXObjectTemplate), typeof(GXScheduleToDeviceGroupObjectTemplate))]
-        public List<GXObjectTemplate>? DeviceGroupObjectTemplates
-        {
-            get;
-            set;
-        }
+        public List<GXObjectTemplate>? DeviceGroupObjectTemplates { get; set; }
 
         /// <summary>
         /// Scheduled script methods.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXScheduleScript))]
-        public List<GXScriptMethod>? ScriptMethods
-        {
-            get;
-            set;
-        }
+        public List<GXScriptMethod>? ScriptMethods { get; set; }
 
         /// <summary>
         /// Scheduled modules.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModule), typeof(GXScheduleModule))]
-        public List<GXModule>? Modules
-        {
-            get;
-            set;
-        }
+        public List<GXModule>? Modules { get; set; }
 
         /// <summary>
         /// Scheduled triggers.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXTrigger), typeof(GXScheduleTrigger))]
-        public List<GXTrigger>? Triggers
-        {
-            get;
-            set;
-        }
+        public List<GXTrigger>? Triggers { get; set; }
 
         /// <summary>
         /// List of schedule groups where this schedule belongs.
         /// </summary>
         [DataMember,
             ForeignKey(typeof(GXScheduleGroup), typeof(GXScheduleGroupSchedule))]
-        public List<GXScheduleGroup>? ScheduleGroups
-        {
-            get;
-            set;
-        }
+        public List<GXScheduleGroup>? ScheduleGroups { get; set; }
 
         /// <summary>
         /// Schedule logs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXScheduleLog))]
-        public List<GXScheduleLog>? Logs
-        {
-            get;
-            set;
-        }
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<GXLog>? Logs { get; set; }
 
         /// <summary>
         /// The creator of the schedule.
@@ -276,11 +203,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
 
         /// <summary>
@@ -292,21 +215,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DefaultValue(null)]
         [Index(Unique = false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Description.
@@ -316,11 +225,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -330,21 +235,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DefaultValue(null)]
         [Index(false, Descend = true)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When was the schedule last updated.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the schedule.
@@ -352,11 +249,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Used trace level.
@@ -365,22 +258,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
         [Description("Used trace level.")]
         [IsRequired]
-        public TraceLevel? TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Schedule targets are handled concurrently.
         /// </summary>
         [DefaultValue(false)]
         [IsRequired]
-        public bool? Concurrently
-        {
-            get;
-            set;
-        }
+        public bool? Concurrently { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -391,11 +276,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Schedule start time.
@@ -406,11 +288,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [StringLength(36)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Start
-        {
-            get;
-            set;
-        }
+        public string? Start { get; set; }
 
         /// <summary>
         /// Last execution time
@@ -420,11 +298,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DataMember]
         //Filter uses default value.
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? ExecutionTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExecutionTime { get; set; }
 
         /// <summary>
         /// Next schedule execution time.
@@ -434,11 +308,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Description("Next schedule execution time.")]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
-        public DateTimeOffset? Next
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Next { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -448,11 +318,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

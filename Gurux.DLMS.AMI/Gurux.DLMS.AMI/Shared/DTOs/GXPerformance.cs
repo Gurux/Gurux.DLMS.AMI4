@@ -47,11 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         //Filter uses default value.
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The target type.
@@ -60,88 +56,56 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public string? Target
-        {
-            get;
-            set;
-        }
+        public string? Target { get; set; }
 
         /// <summary>
         /// The number of the list requests during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ListCount
-        {
-            get;
-            set;
-        }
+        public UInt64? ListCount { get; set; }
 
         /// <summary>
         /// The total time spent on list requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ListTime
-        {
-            get;
-            set;
-        }
+        public UInt64? ListTime { get; set; }
 
         /// <summary>
         /// The number of the get requests during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ReadCount
-        {
-            get;
-            set;
-        }
+        public UInt64? ReadCount { get; set; }
 
         /// <summary>
         /// The total time spent on get requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ReadTime
-        {
-            get;
-            set;
-        }
+        public UInt64? ReadTime { get; set; }
 
         /// <summary>
         /// The number of the add requests during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? AddCount
-        {
-            get;
-            set;
-        }
+        public UInt64? AddCount { get; set; }
 
         /// <summary>
         /// The total time spent on add requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? AddTime
-        {
-            get;
-            set;
-        }
+        public UInt64? AddTime { get; set; }
 
         /// <summary>
         /// The total time spent on add notifications in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? AddNotificationTime
-        {
-            get;
-            set;
-        }
+        public UInt64? AddNotificationTime { get; set; }
 
 
         /// <summary>
@@ -149,33 +113,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? UpdateCount
-        {
-            get;
-            set;
-        }
+        public UInt64? UpdateCount { get; set; }
 
         /// <summary>
         /// The total time spent on update requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? UpdateTime
-        {
-            get;
-            set;
-        }
+        public UInt64? UpdateTime { get; set; }
 
         /// <summary>
         /// The total time spent on update notifications in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? UpdateNotificationTime
-        {
-            get;
-            set;
-        }
+        public UInt64? UpdateNotificationTime { get; set; }
 
 
         /// <summary>
@@ -183,66 +135,42 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? DeleteCount
-        {
-            get;
-            set;
-        }
+        public UInt64? DeleteCount { get; set; }
 
         /// <summary>
         /// The total time spent on delete requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? DeleteTime
-        {
-            get;
-            set;
-        }
+        public UInt64? DeleteTime { get; set; }
 
         /// <summary>
         /// The total time spent on delete notifications in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? DeleteNotificationTime
-        {
-            get;
-            set;
-        }
+        public UInt64? DeleteNotificationTime { get; set; }
 
         /// <summary>
         /// The number of the clear requests during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ClearCount
-        {
-            get;
-            set;
-        }
+        public UInt64? ClearCount { get; set; }
 
         /// <summary>
         /// The total time spent on clear requests in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ClearTime
-        {
-            get;
-            set;
-        }
+        public UInt64? ClearTime { get; set; }
 
         /// <summary>
         /// The total time spent on clear notifications in milliseconds during the period.
         /// </summary>
         [DefaultValue(0)]
         [IsRequired]
-        public UInt64? ClearNotificationTime
-        {
-            get;
-            set;
-        }
+        public UInt64? ClearNotificationTime { get; set; }
 
         /// <summary>
         /// The start time of performance.
@@ -250,22 +178,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [IsRequired]
         [Index(false, Descend = true)]
-        public DateTimeOffset? Start
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Start { get; set; }
 
         /// <summary>
         /// The end time of performance.
         /// </summary>
         [DefaultValue(null)]
         [IsRequired]
-        public DateTimeOffset? End
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? End { get; set; }
 
         /// <summary>
         /// Returns total operation count.

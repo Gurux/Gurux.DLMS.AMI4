@@ -49,23 +49,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </summary>
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid UserGroupId
-        {
-            //ForeignKeyDelete is None because creator of the script group is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the script group is causing multiple cascade paths error in MSSQL.
+        public Guid UserGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the trigger group.
         /// </summary>
         [DataMember(Name = "ScriptGroupID")]
         [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ScriptGroupId
-        {
-            get;
-            set;
-        }
+        public Guid ScriptGroupId { get; set; }
 
         /// <summary>
 		/// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when script group was removed from user group.
@@ -89,10 +77,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

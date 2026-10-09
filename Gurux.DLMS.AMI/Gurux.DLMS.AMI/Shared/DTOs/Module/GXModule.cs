@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -60,11 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [StringLength(64)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string Id
-        {
-            get;
-            set;
-        } = "";
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Module name.
@@ -74,21 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [StringLength(128)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Protocols that can use this module.
@@ -97,11 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Description("Protocols that can use this module.")]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Protocols
-        {
-            get;
-            set;
-        }
+        public string? Protocols { get; set; }
 
         /// <summary>
         /// The creator of the module.
@@ -110,11 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Module Description.
@@ -123,11 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Description("Module Description.")]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Is module active.
@@ -164,162 +135,109 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </remarks>
         [StringLength(64)]
         [Filter(FilterType.Contains)]
-        public string? FileName
-        {
-            get;
-            set;
-        }
+        public string? FileName { get; set; }
+
+        /// <summary>
+        /// Module development path.
+        /// </summary>
+        [Description("Module development path.")]
+        [DefaultValue(null)]
+        public string? Path { get; set; }
 
         /// <summary>
         /// Settings of the module.
         /// </summary>
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// List of external assemblies.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModuleAssembly))]
-        public List<GXModuleAssembly>? Assemblies
-        {
-            get;
-            set;
-        }
+        public List<GXModuleAssembly>? Assemblies { get; set; }
 
         /// <summary>
         /// List of scripts that this module has created.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScript))]
-        public List<GXScript>? Scripts
-        {
-            get;
-            set;
-        }
+        public List<GXScript>? Scripts { get; set; }
 
         /// <summary>
         /// List of schedule that are calling this module.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule))]
-        public List<GXSchedule>? Schedules
-        {
-            get;
-            set;
-        }
+        public List<GXSchedule>? Schedules { get; set; }
 
         /// <summary>
         /// List of workflows that are calling this module.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXWorkflow))]
-        public List<GXWorkflow>? Workflows
-        {
-            get;
-            set;
-        }
+        public List<GXWorkflow>? Workflows { get; set; }
 
         /// <summary>
         /// List of user groups that this module belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of module groups where this module belongs.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModuleGroup), typeof(GXModuleGroupModule))]
-        public List<GXModuleGroup>? ModuleGroups
-        {
-            get;
-            set;
-        }
+        public List<GXModuleGroup>? ModuleGroups { get; set; }
 
         /// <summary>
         /// Module logs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXModuleLog))]
-        public List<GXModuleLog>? Logs
-        {
-            get;
-            set;
-        }
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<GXLog>? Logs { get; set; }
 
         /// <summary>
         /// Module versions.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXModuleVersion))]
-        public List<GXModuleVersion>? Versions
-        {
-            get;
-            set;
-        }
+        public List<GXModuleVersion>? Versions { get; set; }
 
         /// <summary>
         /// List of device parameters that are using this module.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceParameter))]
-        public List<GXDeviceParameter>? DeviceParameters
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceParameter>? DeviceParameters { get; set; }
 
         /// <summary>
         /// List of object parameters that are using this module.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXObjectParameter))]
-        public List<GXObjectParameter>? ObjectParameters
-        {
-            get;
-            set;
-        }
+        public List<GXObjectParameter>? ObjectParameters { get; set; }
 
         /// <summary>
         /// List of attribute template parameters that are using this module.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXAttributeParameter))]
-        public List<GXAttributeParameter>? AttributeParameters
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeParameter>? AttributeParameters { get; set; }
 
         /// <summary>
         /// Module active version number.
         /// </summary>
         [DefaultValue(null)]
-        [StringLength(20)]
+        [StringLength(128)]
         [Filter(FilterType.Contains)]
-        public string? Version
-        {
-            get;
-            set;
-        }
+        public string? Version { get; set; }
 
         /// <summary>
         /// Latest available module version.
         /// </summary>
         [DefaultValue(null)]
-        [StringLength(20)]
+        [StringLength(128)]
         [Filter(FilterType.Contains)]
-        public string? AvailableVersion
-        {
-            get;
-            set;
-        }
+        public string? AvailableVersion { get; set; }
 
 
         /// <summary>
@@ -328,11 +246,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? NewVersion
-        {
-            get;
-            set;
-        }
+        public bool? NewVersion { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -342,22 +256,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the module is updated for the last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -365,11 +271,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Used trace level.
@@ -378,11 +280,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
         [Description("Used trace level.")]
         [IsRequired]
-        public TraceLevel? TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -393,11 +291,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }        
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Constructor.
@@ -416,7 +311,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
             Id = name;
             UserGroups = new List<GXUserGroup>();
             ModuleGroups = new List<GXModuleGroup>();
-            Logs = new List<GXModuleLog>();
+            Logs = new List<GXLog>();
             Versions = new List<GXModuleVersion>();
             Scripts = new List<GXScript>();
             Assemblies = new List<GXModuleAssembly>();
@@ -456,5 +351,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
             }
             return nameof(GXModule);
         }
+        /// <summary>Installed catalog release label, independent of the assembly/package directory version.</summary>
+        [DataMember, StringLength(128)]
+        public string? ReleaseVersion { get; set; }
     }
 }

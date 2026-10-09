@@ -81,11 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The device group creator.
@@ -93,12 +89,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
-        [DefaultValue(null)]        
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        [DefaultValue(null)]
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Is device group active.
@@ -115,32 +107,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(null)]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Device group description.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -151,11 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
 
         /// <summary>
@@ -165,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the device group last updated.
@@ -177,11 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -189,11 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
 
         /// <summary>
@@ -205,22 +163,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Device group parameters.
         /// </summary>
         [DataMember]
         [ForeignKey]
-        public List<GXDeviceGroupParameter>? Parameters
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceGroupParameter>? Parameters { get; set; }
 
         /// <summary>
         /// List of key managements.
@@ -228,53 +179,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [ForeignKey(typeof(GXKeyManagement))]
         [Filter(FilterType.Contains)]
-        public List<GXKeyManagement>? Keys
-        {
-            get;
-            set;
-        }
+        public List<GXKeyManagement>? Keys { get; set; }
 
         /// <summary>
         /// List of devices that belongs to this device group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDevice), typeof(GXDeviceGroupDevice))]
-        public List<GXDevice>? Devices
-        {
-            get;
-            set;
-        }
+        public List<GXDevice>? Devices { get; set; }
 
         /// <summary>
         /// List of user groups that can access this device group
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of agent groups that are allower to read this device group.
         /// </summary>
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXAgentGroup), typeof(GXAgentGroupDeviceGroup))]
-        public List<GXAgentGroup>? AgentGroups
-        {
-            get;
-            set;
-        }
+        public List<GXAgentGroup>? AgentGroups { get; set; }
 
         /// <summary>
         /// List of gateway that are allower to read this device group.
         /// </summary>
         [DataMember(IsRequired = false)]
         [ForeignKey(typeof(GXGateway), typeof(GXGatewayDeviceGroup))]
-        public List<GXGateway>? Gateways
-        {
-            get;
-            set;
-        }
+        public List<GXGateway>? Gateways { get; set; }
 
         /// <summary>
         /// This is default device group where new devices are added automatically when user creates them.
@@ -283,11 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

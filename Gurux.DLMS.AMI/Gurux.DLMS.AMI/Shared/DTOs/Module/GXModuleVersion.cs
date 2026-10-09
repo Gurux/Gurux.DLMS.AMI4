@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -48,11 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </summary>
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Is version active.
@@ -68,31 +64,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </summary>
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Module Version number.
         /// </summary>
-        [StringLength(20)]
+        [StringLength(128)]
         [DefaultValue(null)]
-        public string? Number
-        {
-            get;
-            set;
-        }
+        public string? Number { get; set; }
 
         /// <summary>
         /// Is this a pre-release version.
         /// </summary>
-        public bool Prerelease
-        {
-            get;
-            set;
-        }
+        public bool Prerelease { get; set; }
+
+        /// <summary>
+        /// List of framework versions that can use this module version.
+        /// </summary>
+        [DefaultValue(null)]
+        [Filter(FilterType.Contains)]
+        public string? RequiredFrameworkVersions { get; set; }
 
         /// <summary>
         /// Installation Url.
@@ -100,32 +91,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// <remarks>
         /// If module is added manually this is null.
         /// </remarks>
-        [StringLength(256)]
+        [StringLength(2048)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Url
-        {
-            get;
-            set;
-        }
+        public string? Url { get; set; }
 
         /// <summary>
         /// File path.
         /// </summary>
-        public string? FileName
-        {
-            get;
-            set;
-        }
+        public string? FileName { get; set; }
 
         /// <summary>
         /// Version description.
         /// </summary>
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// The module that owns this version.
@@ -133,24 +112,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DefaultValue(null)]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
-        public GXModule? Module
-        {
-            get;
-            set;
-        }
+        public GXModule? Module { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()
         {
-            return Number;
-        }
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public GXModuleVersion()
-        {
-            Number = "";
+            if (!string.IsNullOrEmpty(Number))
+            {
+                return Number;
+            }
+            return nameof(GXModuleVersion);
         }
     }
 }

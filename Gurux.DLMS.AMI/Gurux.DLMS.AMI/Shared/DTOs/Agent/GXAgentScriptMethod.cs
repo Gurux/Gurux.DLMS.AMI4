@@ -50,11 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember(Name = "AgentID")]
         [ForeignKey(typeof(GXAgent), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid AgentId
-        {
-            get;
-            set;
-        }
+        public Guid AgentId { get; set; }
 
         /// <summary>
         /// The database ID of the script method.
@@ -62,12 +58,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember(Name = "MethodId")]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid MethodId
-        {
-            //ForeignKeyDelete is None because Agent will handle the deletion.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because Agent will handle the deletion.
+        public Guid MethodId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when script method was removed from Agent.
@@ -89,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

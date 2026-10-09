@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user activities.
         /// </summary>
         /// <returns>UserActivitys.</returns>
-        Task<GXUserAction[]> ListAsync(
-            ListUserAction? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListUserAction? request = null,
             ListUserActionResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -53,20 +58,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read user activity.
         /// </summary>
         /// <param name="id">User activity id.</param>
-        /// <returns></returns>
-        Task<GXUserAction> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add user activity.
         /// </summary>
         /// <param name="type">Action type.</param>
         /// <param name="userActions">Added user actions.</param>
-        Task AddAsync(string type, IEnumerable<GXUserAction> userActions);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> userActions, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear all user activitys.
         /// </summary>
         /// <param name="users">List of user Ids whoes activities are cleared.</param>
-        Task ClearAsync(IEnumerable<string>? users);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<string>? users, CancellationToken cancellationToken = default);
     }
 }

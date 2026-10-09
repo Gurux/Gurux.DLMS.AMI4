@@ -51,11 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Value identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Attribute .
@@ -65,11 +61,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXAttribute? Attribute
-        {
-            get;
-            set;
-        }
+        public GXAttribute? Attribute { get; set; }
 
         /// <summary>
         /// Attribute value.
@@ -77,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Attribute value.")]
         [Filter(FilterType.Contains)]
-        public string? Value
-        {
-            get;
-            set;
-        }
+        public string? Value { get; set; }
 
         /// <summary>
         /// Is value send without parsing.
@@ -90,13 +78,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// Data can be send without parsing when push messages are received.
         /// </remarks>
         [DataMember]
-        [Description("Block index.")]
+        [Description("Is value send without parsing.")]
         [Filter(FilterType.Equals)]
-        public bool? Raw
-        {
-            get;
-            set;
-        }
+        public bool? Raw { get; set; }
 
         /// <summary>
         /// Block index.
@@ -110,11 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Block index.")]
         [Filter(FilterType.Contains)]
-        public UInt32? BlockIndex
-        {
-            get;
-            set;
-        }
+        public UInt32? BlockIndex { get; set; }
 
         /// <summary>
         /// Read time.
@@ -124,11 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? Read
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Read { get; set; }
 
         /// <summary>
         /// The user has entered a new value.
@@ -141,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Exact)]
         [DefaultValue(false)]
         [IsRequired]
-        public bool? User
-        {
-            get;
-            set;
-        }
+        public bool? User { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

@@ -76,11 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Description("Trigger identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the trigger.
@@ -89,22 +85,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Trigger class name.
         /// </summary>
         [StringLength(64)]
         [IsRequired]
-        public string? ClassName
-        {
-            get;
-            set;
-        }
+        public string? ClassName { get; set; }
 
         /// <summary>
         /// Trigger name.
@@ -114,51 +102,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Icon name.
         /// </summary>
         [Description("Icon name.")]
-        public string? Icon
-        {
-            get;
-            set;
-        }
+        public string? Icon { get; set; }
 
         /// <summary>
         /// Name of the configuration view class.
         /// </summary>
         [StringLength(128)]
-        public string? ConfigurationUI
-        {
-            get;
-            set;
-        }
+        public string? ConfigurationUI { get; set; }
 
         /// <summary>
         /// Trigger activities.
         /// </summary>
         [ForeignKey(typeof(GXTriggerActivity))]
-        public List<GXTriggerActivity>? Activities
-        {
-            get;
-            set;
-        }
+        public List<GXTriggerActivity>? Activities { get; set; }
 
         /// <summary>
         /// Is Trigger active.
@@ -172,93 +134,57 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// User that triggers this event.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXUser? User
-        {
-            get;
-            set;
-        }
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// User group that triggers this event.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXUserGroup? UserGroup
-        {
-            get;
-            set;
-        }
+        public GXUserGroup? UserGroup { get; set; }
 
         /// <summary>
         /// Device that triggers this event.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
         /// <summary>
         /// DeviceGroup that triggers this event.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXDeviceGroup? DeviceGroup
-        {
-            get;
-            set;
-        }
+        public GXDeviceGroup? DeviceGroup { get; set; }
 
         /// <summary>
         /// Module that triggers this event.
         /// </summary>
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXModule? Module
-        {
-            //ForeignKeyDelete is None because creator is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator is causing multiple cascade paths error in MSSQL.
+        public GXModule? Module { get; set; }
 
         /// <summary>
         /// Scheduled triggers.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule), typeof(GXScheduleTrigger))]
-        public List<GXSchedule>? Schedules
-        {
-            get;
-            set;
-        }
+        public List<GXSchedule>? Schedules { get; set; }
 
         /// <summary>
         /// List of workflows that this trigger invokes.
         /// </summary>
         [Ignore(IgnoreType.Db)]
-        public List<GXWorkflow>? Workflows
-        {
-            get;
-            set;
-        }
+        public List<GXWorkflow>? Workflows { get; set; }
 
         /// <summary>
         /// List of trigger groups where this trigger belongs.
         /// </summary>
         [DataMember,
             ForeignKey(typeof(GXTriggerGroup), typeof(GXTriggerGroupTrigger))]
-        public List<GXTriggerGroup>? TriggerGroups
-        {
-            get;
-            set;
-        }
+        public List<GXTriggerGroup>? TriggerGroups { get; set; }
 
         /// <summary>
         /// Trigger settings.
         /// </summary>
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -268,22 +194,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the Trigger is updated for the last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -291,11 +209,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -306,11 +220,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
         /// <summary>
         /// Remove time.
         /// </summary>
@@ -318,11 +229,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Last execution time
@@ -331,11 +238,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Description("Last execution time.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public DateTimeOffset? ExecutionTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExecutionTime { get; set; }
 
         /// <summary>
         /// Update creation time before update.

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,35 +45,43 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List component view groups.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>User groups.</returns>
-        Task<GXComponentViewGroup[]> ListAsync(
-            ListComponentViewGroups? request,
+        Task<IEnumerable<GXComponentViewGroup>> ListAsync(
+            ListComponentViewGroups? request = null,
             ListComponentViewGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read component view group information.
+        /// Read component view group details.
         /// </summary>
         /// <param name="id">Component view id.</param>
-        /// <returns></returns>
-        Task<GXComponentViewGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXComponentViewGroup> ReadAsync(Guid id, Expression<Func<GXComponentViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update component view groups.
         /// </summary>
         /// <param name="groups">Updated component view groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
 
             IEnumerable<GXComponentViewGroup> groups,
-            Expression<Func<GXComponentViewGroup, object?>>? columns = null);
+            Expression<Func<GXComponentViewGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete component view group(s).
         /// </summary>
         /// <param name="groups">Block component view to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns component view groups list where component view belongs.
@@ -86,15 +94,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this component view group.
         /// </summary>
         /// <param name="componentViewGroupId">Component view group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? componentViewGroupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? componentViewGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access component view groups.
         /// </summary>
         /// <param name="componentViewGroupIds">Component view group ids.</param>
-        /// <returns></returns>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task<List<string>> GetUsersAsync(
-            IEnumerable<Guid>? componentViewGroupIds);
+            IEnumerable<Guid>? componentViewGroupIds, CancellationToken cancellationToken = default);
     }
 }

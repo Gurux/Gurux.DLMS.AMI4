@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -42,39 +42,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Token identifier.
         /// </summary>
-        public string Id
-        {
-            get;
-            set;
-        }
+        public string Id { get; set; }
 
         /// <summary>
         /// Token Name.
         /// </summary>
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Creation time.
         /// </summary>
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Expiration time.
         /// </summary>        
-        public DateTimeOffset? Expiration
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Expiration { get; set; }
 
         /// <summary>
         /// Custom scopes.
@@ -82,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <remarks>
         /// Custom scopes can be used if full access is not wanted to give for the client.
         /// </remarks>
-        public string[]? Scopes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Scopes { get; set; }
 
         /// <summary>
         /// Constructor.

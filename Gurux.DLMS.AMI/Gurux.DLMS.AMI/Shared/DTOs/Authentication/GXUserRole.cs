@@ -50,11 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [IsRequired]
         [DataMember]
         [StringLength(36)]
-        public string? UserId
-        {
-            get;
-            set;
-        }
+        public string? UserId { get; set; }
 
         /// <summary>
         /// Role ID.
@@ -63,10 +59,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(36)]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public string? RoleId
-        {
-            get;
-            set;
-        }
+        public string? RoleId { get; set; }
     }
 }

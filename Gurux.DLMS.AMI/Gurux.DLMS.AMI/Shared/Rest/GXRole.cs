@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,15 +44,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Role information.
         /// </summary>
-        [ExcludeOpenApi(typeof(GXScope),
-                nameof(GXScope.Role))]
         [IncludeOpenApi(typeof(GXModule),
                 nameof(GXModule.Id), nameof(GXModule.Name))]
-        public GXRole? Item
-        {
-            get;
-            set;
-        }
+        public GXRole? Item { get; set; }
     }
 
     /// <summary>
@@ -66,12 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
-        [ExcludeOpenApi(typeof(GXScope), nameof(GXScope.Role))]
-        public GXRole[] Roles
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXRole> Roles { get; set; } = default!;
     }
 
     /// <summary>
@@ -84,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New role identifier(s).
         /// </summary>
         [DataMember]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Ids { get; set; }
     }
 
     /// <summary>
@@ -100,20 +85,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the roles to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter roles.
@@ -121,12 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXModule),
             nameof(GXModule.Id),
             nameof(GXModule.Name))]
-        [ExcludeOpenApi(typeof(GXScope), nameof(GXScope.Role))]
-        public GXRole? Filter
-        {
-            get;
-            set;
-        }
+        public GXRole? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -134,11 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -147,21 +115,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -169,11 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -181,11 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -201,24 +153,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXModule),
             nameof(GXModule.Id),
             nameof(GXModule.Name))]
-        [IncludeOpenApi(typeof(GXScope),
-            nameof(GXScope.Id),
-            nameof(GXScope.Name))]
-        public GXRole[]? Roles
-        {
-            get;
-            set;
-        }
+        [IncludeOpenApi(typeof(GXPermission),
+            nameof(GXPermission.Id),
+            nameof(GXPermission.Name))]
+        public IEnumerable<GXRole>? Roles { get; set; }
 
         /// <summary>
         /// Total count of the roles.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -231,11 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed roles.
         /// </summary>
         [DataMember]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string> Ids { get; set; } = default!;
     }
 
     /// <summary>

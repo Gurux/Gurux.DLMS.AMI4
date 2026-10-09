@@ -49,52 +49,32 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         //Filter uses default value.
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Executing User.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUser))]
         [Index(false)]
-        public GXUser? User
-        {
-            get;
-            set;
-        }
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// Rest path.
         /// </summary>
         [StringLength(64)]
-        public string? Path
-        {
-            get;
-            set;
-        }
+        public string? Path { get; set; }
 
         /// <summary>
         /// The start time of rest execution.
         /// </summary>
         [DefaultValue(null)]
         [Index(false, Descend = true)]
-        public DateTimeOffset? Start
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Start { get; set; }
 
         /// <summary>
         /// The end time of rest execution.
         /// </summary>
         [DefaultValue(null)]
-        public DateTimeOffset? End
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? End { get; set; }
     }
 }

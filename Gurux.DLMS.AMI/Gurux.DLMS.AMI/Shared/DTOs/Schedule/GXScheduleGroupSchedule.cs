@@ -48,23 +48,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </summary>
         [DataMember(Name = "ScheduleGroupId")]
         [ForeignKey(typeof(GXScheduleGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid ScheduleGroupId
-        {
-            //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
+        public Guid ScheduleGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the schedule.
         /// </summary>
         [DataMember(Name = "ScheduleID")]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ScheduleId
-        {
-            get;
-            set;
-        }
+        public Guid ScheduleId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -74,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset CreationTime { get; set; }
 
         /// <summary>
         /// Time when schedule was removed from schedule group.
@@ -87,10 +75,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }        
+        public DateTimeOffset? Removed { get; set; }
     }
 }

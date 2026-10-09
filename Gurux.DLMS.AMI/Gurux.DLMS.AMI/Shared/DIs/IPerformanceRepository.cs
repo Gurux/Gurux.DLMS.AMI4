@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,28 +44,40 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// Performance list.
         /// </summary>
+        /// <param name="User">Calling user.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Performances.</returns>
-        Task<GXPerformance[]> ListAsync(
-            ListPerformances? request,
+        Task<IEnumerable<GXPerformance>> ListAsync(
+            ClaimsPrincipal User,
+            ListPerformances? request = null,
             ListPerformancesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new performances.
         /// </summary>
+        /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Added performances.</param>
-        Task<Guid[]> AddAsync(IEnumerable<GXPerformance> performances);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> AddAsync(ClaimsPrincipal User, IEnumerable<GXPerformance> performances,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete performance(s).
         /// </summary>
+        /// <param name="User">The user performing the operation.</param>
         /// <param name="performances">Performance(s) to delete.</param>
-        Task DeleteAsync(IEnumerable<Guid> performances);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(ClaimsPrincipal User, IEnumerable<Guid> performances, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear performances.
         /// </summary>
-        Task ClearAsync();
+        /// <param name="User">The user performing the operation.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(ClaimsPrincipal User, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Snapshot values.

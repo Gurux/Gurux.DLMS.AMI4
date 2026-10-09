@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 // 
@@ -51,12 +51,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
-        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]        
-        public GXUserSetting? Item
-        {
-            get;
-            set;
-        }
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXUserSetting? Item { get; set; }
     }
 
     /// <summary>
@@ -71,11 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
-        public GXUserSetting[]? Settings
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXUserSetting> Settings { get; set; } = default!;
     }
 
     /// <summary>
@@ -88,11 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New user settings identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -104,32 +92,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the user settings to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter user settings.
         /// </summary>
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
-        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]        
-        public GXValue? Filter
-        {
-            get;
-            set;
-        }
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        public GXValue? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -137,11 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -150,21 +121,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -172,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -184,11 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -204,20 +159,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXUserSetting[] Settings
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXUserSetting> Settings { get; set; } = default!;
 
         /// <summary>
         /// Total count of the user settings items.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 }

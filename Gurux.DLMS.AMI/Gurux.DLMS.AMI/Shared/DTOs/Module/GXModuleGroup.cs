@@ -73,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DataMember(Name = "ID"), Index(Unique = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the module group.
@@ -86,11 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the module group.
@@ -98,31 +90,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
 		[DataMember]
         [StringLength(64)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Module group description.
         /// </summary>
 		[DataMember]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -131,11 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when module group was removed.
@@ -144,22 +114,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the module group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -167,11 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
 
         /// <summary>
@@ -183,31 +141,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupModuleGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of schedules that this schedule group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXModule), typeof(GXModuleGroupModule))]
-        public List<GXModule>? Modules
-        {
-            get;
-            set;
-        }
+        public List<GXModule>? Modules { get; set; }
 
         /// <summary>
         /// This is default module group where new modules are added automatically when user creates them.
@@ -216,11 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

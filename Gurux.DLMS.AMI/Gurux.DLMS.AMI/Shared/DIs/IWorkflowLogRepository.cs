@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,29 +46,37 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List workflow logs.
         /// </summary>
         /// <returns>List of workflow logs.</returns>
-        Task<GXWorkflowLog[]> ListAsync(
-            ListWorkflowLogs? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListWorkflowLogs? request = null,
             ListWorkflowLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read workflow log information.
+        /// Read workflow log details.
         /// </summary>
         /// <param name="id">Workflow log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Workflow information.</returns>
-        Task<GXWorkflowLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear workflow logs.
         /// </summary>
-        Task ClearAsync(IEnumerable<Guid>? workflows);
+        /// <param name="workflows">Workflows to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? workflows, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add workflow log.
         /// </summary>
         /// <param name="type">Log type.</param>
         /// <param name="logs">New log items.</param>
-        Task AddAsync(string type, IEnumerable<GXWorkflowLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -74,12 +84,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Log type.</param>
         /// <param name="workflow">Workflow.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXWorkflowLog> AddAsync(string type, GXWorkflow workflow, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXWorkflow workflow, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close workflow log(s).
         /// </summary>
         /// <param name="errors">Logs to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> errors, CancellationToken cancellationToken = default);
     }
 }

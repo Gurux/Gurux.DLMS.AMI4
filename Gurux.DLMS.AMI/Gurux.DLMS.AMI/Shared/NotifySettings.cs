@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -60,20 +60,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Media type.
         /// </summary>
-        public string MediaType
-        {
-            get;
-            set;
-        } = string.Empty;
+        public string MediaType { get; set; } = string.Empty;
 
         /// <summary>
         /// Media settings as a string.
         /// </summary>
-        public string? MediaSettings
-        {
-            get;
-            set;
-        }
+        public string? MediaSettings { get; set; }
 
         /// <summary>
         /// Interface type.
@@ -138,11 +130,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Used trace level.
         /// </summary>
-        public TraceLevel TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel TraceLevel { get; set; }
 
         /// <summary>
         /// How long the the connection is keeped up in seconds.

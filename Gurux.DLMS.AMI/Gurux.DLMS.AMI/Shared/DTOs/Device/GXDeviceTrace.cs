@@ -47,24 +47,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Creation time.
         /// </summary>
         [DataMember]
+        [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Device.
@@ -76,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
         /// <summary>
         /// Device trace type. This can be e.g. send or receive.
@@ -89,21 +78,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(0)]
         [IsRequired]
         [Filter(FilterType.Exact)]
-        public int? Type
-        {
-            get;
-            set;
-        }
+        public int? Type { get; set; }
 
         /// <summary>
         /// Device frame data as a hex string.
         /// </summary>
         [DataMember]
-        public string? Frame
-        {
-            get;
-            set;
-        }
+        public string? Frame { get; set; }
 
         /// <summary>
         /// Update creation time before update.

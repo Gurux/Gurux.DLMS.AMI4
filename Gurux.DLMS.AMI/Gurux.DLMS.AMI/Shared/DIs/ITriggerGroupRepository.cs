@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,33 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List trigger groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXTriggerGroup[]> ListAsync(
-            ListTriggerGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXTriggerGroup>> ListAsync(
+            ListTriggerGroups? request = null,
             ListTriggerGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read trigger group information.
+        /// Read trigger group details.
         /// </summary>
         /// <param name="id">Trigger group id.</param>
-        /// <returns></returns>
-        Task<GXTriggerGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXTriggerGroup> ReadAsync(Guid id, Expression<Func<GXTriggerGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update trigger groups.
         /// </summary>
         /// <param name="groups">Updated trigger groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXTriggerGroup> groups,
-            Expression<Func<GXTriggerGroup, object?>>? columns = null);
+            Expression<Func<GXTriggerGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete trigger group(s).
         /// </summary>
         /// <param name="groups">Trigger groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns trigger groups list where trigger belongs.
@@ -85,13 +93,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="groupId">Trigger group id.</param>
         /// <returns>User Ids that can access this script.</returns>
-        Task<List<string>> GetUsersAsync(Guid? groupId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access trigger groups.
         /// </summary>
         /// <param name="groupIds">Trigger group ids.</param>
         /// <returns>User Ids that can access this scripts.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default);
     }
 }

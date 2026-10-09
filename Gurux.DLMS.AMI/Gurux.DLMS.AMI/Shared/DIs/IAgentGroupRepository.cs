@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,9 +44,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List agent groups.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>  
         /// <returns>User groups.</returns>
-        Task<GXAgentGroup[]> ListAsync(
-            ListAgentGroups? request,
+        Task<IEnumerable<GXAgentGroup>> ListAsync(
+            ListAgentGroups? request = null,
             ListAgentGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,37 +57,49 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read agent.
         /// </summary>
         /// <param name="id">Agent id.</param>
-        /// <returns></returns>
-        Task<GXAgentGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>  
+        /// <returns>Operation result.</returns>
+        Task<GXAgentGroup> ReadAsync(Guid id, Expression<Func<GXAgentGroup, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update agent groups.
         /// </summary>
         /// <param name="groups">Updated agent groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>  
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXAgentGroup> groups,
-            Expression<Func<GXAgentGroup, object?>>? columns = null);
+            Expression<Func<GXAgentGroup, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete agent group(s).
         /// </summary>
         /// <param name="groups">User agent to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>  
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this agent group.
         /// </summary>
         /// <param name="agentGroupId">Agent group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? agentGroupId);
+        /// <param name="cancellationToken">The cancellation token.</param>  
+        /// <returns>Operation result.</returns>
+        Task<List<string>> GetUsersAsync(Guid? agentGroupId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access agent groups.
         /// </summary>
         /// <param name="agentGroupIds">Agent group ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentGroupIds);
+        /// <param name="cancellationToken">The cancellation token.</param>  
+        /// <returns>Operation result.</returns>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentGroupIds,
+            CancellationToken cancellationToken = default);
     }
 }

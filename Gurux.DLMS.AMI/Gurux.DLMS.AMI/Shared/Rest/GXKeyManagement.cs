@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -58,8 +59,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeOpenApi(typeof(GXKeyManagementLog),
-        nameof(GXKeyManagementLog.KeyManagement))]
+        [ExcludeOpenApi(typeof(GXLog),
+        nameof(GXLog.Creator))]
         [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
         [IncludeOpenApi(typeof(GXKeyManagementGroup),
@@ -78,11 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.DeviceTemplate))]
         [ExcludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.ObjectTemplate))]
         [ExcludeOpenApi(typeof(GXAttributeListItem), nameof(GXAttributeListItem.Template))]
-        public GXKeyManagement? Item
-        {
-            get;
-            set;
-        }
+        public GXKeyManagement? Item { get; set; }
     }
 
     /// <summary>
@@ -94,21 +91,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the key managements to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter key managements.
@@ -122,17 +110,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeOpenApi(typeof(GXKeyManagementLog),
-        nameof(GXKeyManagementLog.KeyManagement))]
+        [ExcludeOpenApi(typeof(GXLog),
+        nameof(GXLog.Creator))]
         [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
         [IncludeOpenApi(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-        public GXKeyManagement? Filter
-        {
-            get;
-            set;
-        }
+        public GXKeyManagement? Filter { get; set; }
 
 
         /// <summary>
@@ -141,11 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, key managements from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -153,11 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -166,21 +142,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -188,11 +156,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -200,11 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -222,21 +182,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXKeyManagement.SystemTitle), nameof(GXKeyManagement.Modified)
             , nameof(GXKeyManagement.CreationTime)
             )]
-        public GXKeyManagement[]? KeyManagements
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXKeyManagement>? KeyManagements { get; set; }
 
         /// <summary>
         /// Total count of the key managementrs.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -245,14 +197,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class UpdateKeyManagement : IGXRequest<UpdateKeyManagementResponse>
     {
-        /// <summary>
-        /// Constructor.
-        /// </summary>
-        public UpdateKeyManagement()
-        {
-            KeyManagements = new List<GXKeyManagement>();
-        }
-
         /// <summary>
         /// KeyManagements to update.
         /// </summary>
@@ -265,17 +209,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXUser),
         nameof(GXUser.Id))]
-        [ExcludeOpenApi(typeof(GXKeyManagementLog),
-        nameof(GXKeyManagementLog.KeyManagement))]
+        [ExcludeOpenApi(typeof(GXLog),
+        nameof(GXLog.Creator))]
         [ExcludeOpenApi(typeof(GXKeyManagementKey),
         nameof(GXKeyManagementKey.KeyManagement))]
         [IncludeOpenApi(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
-        public List<GXKeyManagement> KeyManagements
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXKeyManagement> KeyManagements { get; set; } = default!;
     }
 
     /// <summary>
@@ -288,11 +228,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New key management identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -305,11 +241,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed key management identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -319,11 +251,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -354,23 +282,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXKeyManagement),
         nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Keys))]
-        [ExcludeOpenApi(typeof(GXKeyManagementKey), 
+        [ExcludeOpenApi(typeof(GXKeyManagementKey),
             nameof(GXKeyManagementKey.KeyManagement))]
         /*
         [IncludeSwagger(typeof(GXDevice),
         nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeSwagger(typeof(GXUser),
         nameof(GXUser.Id), nameof(GXUser.UserName))]
-        [ExcludeSwagger(typeof(GXKeyManagementLog),
-        nameof(GXKeyManagementLog.KeyManagement))]
+        [ExcludeSwagger(typeof(GXLog),
+        nameof(GXLog.Creator))]
         [IncludeSwagger(typeof(GXKeyManagementGroup),
         nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
         */
-        public List<GXKeyManagement> Keys
-        {
-            get;
-            set;
-        }
+        public List<GXKeyManagement> Keys { get; set; }
     }
 
     /// <summary>

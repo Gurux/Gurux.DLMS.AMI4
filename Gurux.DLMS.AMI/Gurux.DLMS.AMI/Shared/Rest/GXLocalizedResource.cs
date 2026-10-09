@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXLanguage.Id))]
         [IncludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Id))]
-        public GXLocalizedResource? Item
-        {
-            get;
-            set;
-        }
+        public GXLocalizedResource? Item { get; set; }
     }
 
     /// <summary>
@@ -70,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXLanguage.Id))]
         [IncludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Id))]
-        public GXLocalizedResource[] LocalizedResources
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<GXLocalizedResource> LocalizedResources { get; set; } = default!;
     }
 
     /// <summary>
@@ -87,11 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New localized resource identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -103,20 +91,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the localized resources to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter localized resources.
@@ -125,11 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXLanguage.Id))]
         [IncludeOpenApi(typeof(GXUser),
                 nameof(GXUser.Id))]
-        public GXLocalizedResource? Filter
-        {
-            get;
-            set;
-        }
+        public GXLocalizedResource? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -137,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -150,21 +122,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -172,11 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -184,11 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -203,21 +159,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXLanguage),
                 nameof(GXLanguage.Id))]
-        public GXLocalizedResource[]? LocalizedResources
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLocalizedResource>? LocalizedResources { get; set; }
 
         /// <summary>
         /// Total count of the localized resources.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -230,11 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed localized resources.
         /// </summary>
         [DataMember]
-        public Guid[] Ids
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>

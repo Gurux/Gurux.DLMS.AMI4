@@ -47,11 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// </summary>
         [Key]
         [DataMember(Name = "ID"), Index(Unique = true), AutoIncrement]
-        public int Id
-        {
-            get;
-            set;
-        }
+        public int Id { get; set; }
 
         /// <summary>
         /// User identifier.
@@ -60,34 +56,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// User who has the claim.
         /// </remarks>
         [DataMember]
-        [Index]
+        [Index(false)]
         [IsRequired]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [StringLength(36)]
-        public string? UserId
-        {
-            get;
-            set;
-        }
+        public string? UserId { get; set; }
 
         /// <summary>
         /// Claim type defines e,g. role, name, etc.
         /// </summary>
         [DataMember]
-        public string? ClaimType
-        {
-            get;
-            set;
-        }
+        public string? ClaimType { get; set; }
 
         /// <summary>
         /// Claim value defines the value of the claim.
         /// </summary>
         [DataMember]
-        public string? ClaimValue
-        {
-            get;
-            set;
-        }
+        public string? ClaimValue { get; set; }
     }
 }

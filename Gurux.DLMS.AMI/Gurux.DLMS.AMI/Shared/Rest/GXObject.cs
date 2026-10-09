@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -53,13 +53,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
-        [ExcludeOpenApi(typeof(GXObjectParameter), 
+        [ExcludeOpenApi(typeof(GXObjectParameter),
             nameof(GXObjectParameter.Object), nameof(GXObjectParameter.Module))]
-        public GXObject? Item
-        {
-            get;
-            set;
-        }
+        public GXObject? Item { get; set; }
     }
 
     /// <summary>
@@ -75,18 +71,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObject),
             nameof(GXObject.Template),
             nameof(GXObject.Device),
-            nameof(GXObject.Tasks), 
+            nameof(GXObject.Tasks),
             nameof(GXObject.Errors))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
         [ExcludeOpenApi(typeof(GXObjectParameter),
             nameof(GXObjectParameter.Object),
             nameof(GXObjectParameter.Module))]
-        public GXObject[]? Objects
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXObject>? Objects { get; set; }
     }
 
     /// <summary>
@@ -99,11 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Object identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
 
@@ -117,21 +105,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Start index.
         /// </summary>
         [DataMember]
-        public UInt64 Index
-        {
-            get;
-            set;
-        }
+        public UInt64 Index { get; set; }
 
         /// <summary>
         /// Amount of the modules to retrieve.
         /// </summary>
         [DataMember]
-        public UInt64 Count
-        {
-            get;
-            set;
-        }
+        public UInt64 Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter objects.
@@ -139,13 +119,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks),
             nameof(GXObject.Template),
-            nameof(GXObject.Errors), nameof(GXObject.Device), 
+            nameof(GXObject.Errors), nameof(GXObject.Device),
             nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject? Filter
-        {
-            get;
-            set;
-        }
+        public GXObject? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access agents from all users.
@@ -153,11 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, agents from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -165,11 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -178,21 +146,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -200,11 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -212,40 +168,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
 
         /// <summary>
         /// Device Ids.
         /// </summary>
-        public Guid[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Devices { get; set; }
 
         /// <summary>
         /// Filtered object types.
         /// </summary>
         /// <remarks>
         /// </remarks>
-        public int[]? ObjectTypes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? ObjectTypes { get; set; }
 
         /// <summary>
         /// Ignored object types.
         /// </summary>
-        public int[]? IgnoredObjectTypes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? IgnoredObjectTypes { get; set; }
     }
 
     /// <summary>
@@ -260,20 +200,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Tasks), nameof(GXObject.Errors), nameof(GXObject.Device), nameof(GXObject.Attributes), nameof(GXObject.Parameters))]
-        public GXObject[]? Objects
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXObject>? Objects { get; set; }
         /// <summary>
         /// Total count of the objects.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -285,11 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed COSEM objects identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -299,11 +227,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>

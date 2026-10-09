@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,9 +45,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List component views.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
         /// <returns>Blocks.</returns>
-        Task<GXComponentView[]> ListAsync(
-            ListComponentViews? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<GXComponentView>> ListAsync(
+            ListComponentViews? request = null,
             ListComponentViewsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,42 +58,49 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read component view.
         /// </summary>
         /// <param name="id">Component view ID.</param>
-        /// <returns></returns>
-        Task<GXComponentView> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXComponentView> ReadAsync(Guid id, Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update component view(s).
         /// </summary>
         /// <param name="componentviews">Updated component view(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXComponentView> componentviews,
-            Expression<Func<GXComponentView, object?>>? columns = null);
+            Expression<Func<GXComponentView, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete component view(s).
         /// </summary>
         /// <param name="componentviews">Component view(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> componentviews, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> componentviews, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this component view.
         /// </summary>
         /// <param name="componentViewId">Component view id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? componentViewId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? componentViewId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access component views.
         /// </summary>
-        /// <param name="componentViewIds">Component view ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? componentViewIds);
+        /// <param name="Ids">Component view ids.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Refresh component view(s).
         /// </summary>
-        Task<bool> RefrestAsync();
+        Task<bool> RefrestAsync(CancellationToken cancellationToken);
     }
 }

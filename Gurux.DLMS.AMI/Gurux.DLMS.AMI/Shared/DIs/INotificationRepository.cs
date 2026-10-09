@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -31,6 +31,7 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -45,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List notifications.
         /// </summary>
         /// <returns>Notifications.</returns>
-        Task<GXNotification[]> ListAsync(
-            ListNotifications? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXNotification>> ListAsync(
+            ListNotifications? request = null,
             ListNotificationResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,37 +58,39 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read notification.
         /// </summary>
         /// <param name="id">Notification id.</param>
-        /// <returns></returns>
-        Task<GXNotification> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXNotification> ReadAsync(Guid id, Expression<Func<GXNotification, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update notification(s).
         /// </summary>
         /// <param name="notifications">Updated notification(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXNotification> notifications,
-            Expression<Func<GXNotification, object?>>? columns = null);
+            Expression<Func<GXNotification, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete notification(s).
         /// </summary>
         /// <param name="notifications">Notification(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> notifications, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> notifications, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Get all users that can access this notification.
+        /// Refresh notifications.
         /// </summary>
-        /// <param name="notificationId">Notification id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? notificationId);
-
-        /// <summary>
-        /// Get all users that can access notifications.
-        /// </summary>
-        /// <param name="notificationIds">Notification ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? notificationIds);
+        /// <param name="user">User for whom the notifications are being refreshed.</param>
+        /// <param name="delete">If true, exists notifications are deleted and the new ones are generated.</param>
+        /// <param name="notify">If true, notifications are sent for the refresh.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> RefreshAsync(GXUser? user, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default);
     }
 }

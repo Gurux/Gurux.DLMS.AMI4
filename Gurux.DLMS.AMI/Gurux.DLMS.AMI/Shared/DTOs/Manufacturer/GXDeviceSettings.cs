@@ -66,22 +66,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
+
+        /// <summary>Stable identity in the DeviceProfiles index; distinct from the database ID.</summary>
+        [DataMember]
+        [StringLength(1024)]
+        public string? ProfileId { get; set; }
 
         /// <summary>
         /// Settings version.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXDeviceVersion), OnDelete = ForeignKeyDelete.Cascade)]
-        public GXDeviceVersion? Version
-        {
-            get;
-            set;
-        }
+        public GXDeviceVersion? Version { get; set; }
 
         /// <summary>
         /// Name of the model version settings.
@@ -89,22 +86,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Device settings as JSON.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -113,32 +102,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Installation time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? InstallationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? InstallationTime { get; set; }
 
         /// <summary>
         /// Device Template location.
         /// </summary>
         [DataMember]
-        public string? Location
-        {
-            get;
-            set;
-        }
+        public string? Location { get; set; }
 
         /// <summary>
         /// Installed device template.
@@ -146,11 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DataMember]
-        public GXDeviceTemplate? Template
-        {
-            get;
-            set;
-        }
+        public GXDeviceTemplate? Template { get; set; }
 
         /// <summary>
         /// Time when device type was removed.
@@ -159,21 +132,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the device type is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Update creation time before update.

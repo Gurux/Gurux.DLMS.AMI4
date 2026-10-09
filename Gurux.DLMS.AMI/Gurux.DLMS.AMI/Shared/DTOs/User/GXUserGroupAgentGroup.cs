@@ -47,25 +47,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// <summary>
         /// User group ID.
         /// </summary>
-        [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup), 
+        [DataMember(Name = "UserGroupID"), ForeignKey(typeof(GXUserGroup),
             OnDelete = ForeignKeyDelete.None)]
-        public Guid UserGroupId
-        {
-            //ForeignKeyDelete is None because creator of the agent group is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the agent group is causing multiple cascade paths error in MSSQL.
+        public Guid UserGroupId { get; set; }
 
         /// <summary>
         /// Agent group ID.
         /// </summary>
-        [DataMember(Name = "AgentGroupID"), ForeignKey(typeof(GXAgentGroup), 
+        [DataMember(Name = "AgentGroupID"), ForeignKey(typeof(GXAgentGroup),
             OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid AgentGroupId
-        {
-            get;
-            set;
-        }
+        public Guid AgentGroupId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -75,11 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when agent group was removed from user group.
@@ -88,10 +76,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

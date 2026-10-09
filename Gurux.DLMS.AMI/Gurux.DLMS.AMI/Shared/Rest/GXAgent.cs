@@ -46,7 +46,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent information.
         /// </summary>
         [ExcludeOpenApi(typeof(GXAgent),
-                nameof(GXAgent.UrlAlias),
                 nameof(GXAgent.Template),
                 nameof(GXAgent.ScriptMethods),
                 nameof(GXAgent.Versions), nameof(GXAgent.Tasks),
@@ -56,11 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             , nameof(GXAgentGroup.Description))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id)
             , nameof(GXUser.UserName))]
-        public GXAgent? Item
-        {
-            get;
-            set;
-        }      
+        public GXAgent? Item { get; set; }
     }
 
     /// <summary>
@@ -80,13 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXAgentVersion), nameof(GXAgentVersion.Id))]
         [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id))]
         [Required]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXAgent[] Agents
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAgent> Agents { get; set; } = default!;
     }
 
     /// <summary>
@@ -99,11 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? AgentIds
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? AgentIds { get; set; }
     }
 
     /// <summary>
@@ -115,21 +100,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the agents to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter agents.
@@ -138,11 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions), nameof(GXAgent.Template), nameof(GXAgent.ReaderSettings),
             nameof(GXAgent.ListenerSettings), nameof(GXAgent.NotifySettings))]
-        public GXAgent? Filter
-        {
-            get;
-            set;
-        }
+        public GXAgent? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access agents from all users.
@@ -150,11 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, agents from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -162,11 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -175,21 +139,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -197,11 +153,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -209,11 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -229,21 +177,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions))]
-        public GXAgent[]? Agents
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAgent>? Agents { get; set; }
 
         /// <summary>
         /// Total count of the agents.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -255,21 +195,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the agent installers to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter agent installers.
@@ -277,11 +208,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
       nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
       nameof(GXAgent.Versions))]
-        public GXAgent? Filter
-        {
-            get;
-            set;
-        }
+        public GXAgent? Filter { get; set; }
     }
 
     /// <summary>
@@ -297,20 +224,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXAgent), nameof(GXAgent.Creator), nameof(GXAgent.Tasks),
             nameof(GXAgent.AgentGroups), nameof(GXAgent.Logs), nameof(GXAgent.ScriptMethods),
             nameof(GXAgent.Versions))]
-        public GXAgent[]? Agents
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAgent>? Agents { get; set; }
         /// <summary>
         /// Total count of the agent installers.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -324,11 +243,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Required]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -337,12 +252,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// If false, the Removed date is set for the items, but items are kept on the database.
         /// </remarks>
         [DataMember]
-        [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; } = true;
     }
 
     /// <summary>
@@ -363,21 +273,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent ID.
         /// </summary>
         [DataMember]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Agent Status.
         /// </summary>
         [DataMember]
-        public DTOs.Enums.AgentStatus Status
-        {
-            get;
-            set;
-        }
+        public DTOs.Enums.AgentStatus Status { get; set; }
 
         /// <summary>
         /// Optional data.
@@ -386,11 +288,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Serial ports are added to data field when ports are added or removed from the agent.
         /// </remarks>
         [DataMember]
-        public string? Data
-        {
-            get;
-            set;
-        }
+        public string? Data { get; set; }
     }
 
     /// <summary>
@@ -404,11 +302,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
-        public List<GXAgent> Agents
-        {
-            get;
-            set;
-        } = new List<GXAgent>();
+        public IEnumerable<GXAgent> Agents { get; set; } = default!;
     }
 
     /// <summary>
@@ -431,11 +325,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.UpdateVersion))]
-        public GXAgent? Agent
-        {
-            get;
-            set;
-        }
+        public GXAgent? Agent { get; set; }
     }
 
     /// <summary>
@@ -448,11 +338,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of urls where agent can be loaded.
         /// </summary>
         [DataMember]
-        public string[]? Urls
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Urls { get; set; }
     }
 
     /// <summary>
@@ -469,6 +355,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class CheckAgentResponse
     {
+        /// <summary>The completed background execution ID.</summary>
+        [DataMember]
+        public Guid RunId { get; set; }
     }
 
     /// <summary>
@@ -482,23 +371,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Required]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Cleared caches.
         /// </summary>
         [DataMember]
         [Required]
-        public string[]? Names
-        {
-            get;
-            set;
-        }
-
+        public IEnumerable<string> Names { get; set; } = default!;
     }
 
     /// <summary>

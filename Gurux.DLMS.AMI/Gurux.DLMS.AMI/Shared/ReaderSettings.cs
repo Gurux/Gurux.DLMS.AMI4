@@ -62,11 +62,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Used trace level.
         /// </summary>
-        public TraceLevel TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel TraceLevel { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

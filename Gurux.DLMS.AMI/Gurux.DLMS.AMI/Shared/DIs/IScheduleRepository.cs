@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List schedules.
         /// </summary>
         /// <returns>Schedules.</returns>
-        Task<GXSchedule[]> ListAsync(
-            ListSchedules? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXSchedule>> ListAsync(
+            ListSchedules? request = null,
             ListSchedulesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,70 +58,80 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read schedule.
         /// </summary>
         /// <param name="id">Schedule id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Read schedule.</returns>
         /// <remarks>
         /// Required extra info can be used to read following extra information:
         /// TargetType.User: Creator.
         /// </remarks>
-        Task<GXSchedule> ReadAsync(
-            Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXSchedule> ReadAsync(Guid id, Expression<Func<GXSchedule, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update schedule(s).
         /// </summary>
         /// <param name="schedulers">Updated schedule(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXSchedule> schedulers,
-            Expression<Func<GXSchedule, object?>>? columns = null);
+            Expression<Func<GXSchedule, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete schedule(s).
         /// </summary>
         /// <param name="schedulers">Schedule(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> schedulers, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> schedulers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this scheduler.
         /// </summary>
         /// <param name="scheduleId">Schedule id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? scheduleId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? scheduleId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access schedulers.
         /// </summary>
-        /// <param name="scheduleIds">Schedule ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? scheduleIds);
+        /// <param name="Ids">Schedule ids.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update schedule execution start time.
         /// </summary>
         /// <param name="schedule">Schedule to update.</param>
-        void UpdateExecutionTime(GXSchedule schedule);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task UpdateExecutionTimeAsync(GXSchedule schedule, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Run the schedule.
         /// </summary>
         /// <param name="id">Schedule id.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task RunAsync(
-            Guid id);
+            Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get module settings for the schedule.
         /// </summary>
         /// <param name="settings">Schedule and module id.</param>
         /// <returns>Module settings for the schedule.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task<GXScheduleModule?> GetModuleSettingsAsync(
-            GXScheduleModule? settings);
+            GXScheduleModule? settings, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update module settings for the schedule.
         /// </summary>
         /// <param name="settings">Module settings to the schedule.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task UpdateModuleSettingsAsync(
-            GXScheduleModule? settings);
+            GXScheduleModule? settings, CancellationToken cancellationToken = default);
     }
 }

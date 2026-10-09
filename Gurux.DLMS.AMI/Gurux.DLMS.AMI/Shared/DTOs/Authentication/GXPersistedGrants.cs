@@ -48,53 +48,42 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(200)]
         [DataMember(Name = "Key")]
         [Filter(FilterType.Exact)]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string Id
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
+        public string Id { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the entity type.
+        /// </summary>
         [DataMember]
         [StringLength(50)]
-        public string Type
-        {
-            get;
-            set;
-        }
+        public string Type { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the unique identifier for the subject.
+        /// </summary>
         [StringLength(200)]
         [DataMember]
-        public string SubjectId
-        {
-            get;
-            set;
-        }
+        public string SubjectId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the session identifier.
+        /// </summary>
         [DataMember]
         [StringLength(100)]
-        public string SessionId
-        {
-            get;
-            set;
-        }
+        public string SessionId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the client identifier.
+        /// </summary>
         [DataMember]
         [StringLength(200)]
-        public string ClientId
-        {
-            get;
-            set;
-        }
+        public string ClientId { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the description.
+        /// </summary>
         [DataMember]
         [StringLength(200)]
-        public string Description
-        {
-            get;
-            set;
-        } = "";
+        public string Description { get; set; } = default!;
 
         /// <summary>
         /// Creation time.
@@ -103,35 +92,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Expiration time.
         /// </summary>
         [DataMember]
         [Index(false)]
-        public DateTime Expiration
-        {
-            get;
-            set;
-        }
+        public DateTime Expiration { get; set; }
 
+        /// <summary>
+        /// Consumed time.
+        /// </summary>
         [DataMember]
-        public DateTime ConsumedTime
-        {
-            get;
-            set;
-        }
+        public DateTime ConsumedTime { get; set; } = default!;
 
+        /// <summary>
+        /// Data. This is the actual data of the token, which can be a JSON string or any other format depending on the implementation. It contains the information needed to validate and use the token, such as claims, scopes, and other relevant details.
+        /// </summary>
         [DataMember]
-        public string Data
-        {
-            get;
-            set;
-        }
+        public string Data { get; set; } = default!;
     }
 }

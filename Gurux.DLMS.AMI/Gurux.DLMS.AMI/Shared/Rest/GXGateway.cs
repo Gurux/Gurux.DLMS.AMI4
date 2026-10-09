@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -56,11 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
-        public GXGateway? Item
-        {
-            get;
-            set;
-        }
+        public GXGateway? Item { get; set; }
     }
 
     /// <summary>
@@ -75,18 +71,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [ExcludeOpenApi(typeof(GXGateway), nameof(GXGateway.Creator),
             nameof(GXGateway.ScriptMethod),
-            nameof(GXGateway.Logs), nameof(GXGateway.Detected), 
+            nameof(GXGateway.Logs), nameof(GXGateway.Detected),
             nameof(GXGateway.CreationTime), nameof(GXGateway.Updated))]
         [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
         [Required]
-        public GXGateway[] Gateways
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXGateway> Gateways { get; set; } = default!;
     }
 
     /// <summary>
@@ -99,11 +91,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New gateway identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? GatewayIds
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
     }
 
     /// <summary>
@@ -115,21 +103,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the gateways to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter gateways.
@@ -140,11 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
-        public GXGateway? Filter
-        {
-            get;
-            set;
-        }
+        public GXGateway? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access gateways from all users.
@@ -152,11 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, gateways from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -164,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -177,21 +144,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -199,11 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -211,11 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -233,22 +184,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXGateway.GatewayGroups), nameof(GXGateway.Logs)
             , nameof(GXGateway.DeviceGroups), nameof(GXGateway.Devices))]
         [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
-        public GXGateway[]? Gateways
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXGateway>? Gateways { get; set; }
 
         /// <summary>
         /// Total count of the gateways.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
-    }    
+        public int Count { get; set; }
+    }
 
     /// <summary>
     /// Remove gateways.
@@ -261,11 +204,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Required]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -275,11 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -300,20 +235,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Gateway ID.
         /// </summary>
         [DataMember]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Gateway Status.
         /// </summary>
         [DataMember]
-        public DTOs.Enums.GatewayStatus Status
-        {
-            get;
-            set;
-        }
+        public DTOs.Enums.GatewayStatus Status { get; set; }
     }
 }

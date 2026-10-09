@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -54,7 +55,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device))]
         [ExcludeOpenApi(typeof(GXObject), nameof(GXObject.Device))]
-        [ExcludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
+        [ExcludeOpenApi(typeof(GXLog), nameof(GXLog.Creator))]
         [ExcludeOpenApi(typeof(GXDevice), nameof(GXDevice.Traces),
             nameof(GXDevice.Objects), nameof(GXDevice.Actions)
             , nameof(GXDevice.Keys)
@@ -64,15 +65,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXLog), nameof(GXLog.PublicId))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         [ExcludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
         [ExcludeOpenApi(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
-        public GXDevice? Item
-        {
-            get;
-            set;
-        }
+        public GXDevice? Item { get; set; }
     }
 
     /// <summary>
@@ -97,26 +94,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXLog), nameof(GXLog.PublicId))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
         [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
         [ExcludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Device))]
         [ExcludeOpenApi(typeof(GXKeyManagementKey), nameof(GXKeyManagementKey.KeyManagement))]
-        public GXDevice[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDevice>? Devices { get; set; }
 
         /// <summary>
         /// Device objects are created when they are read from the meter. This improves device creation speed.
         /// </summary>
-        public bool LateBinding
-        {
-            get;
-            set;
-        }
+        public bool LateBinding { get; set; }
 
         /// <summary>
         /// Device groups where devices are added.
@@ -124,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceGroup),
             nameof(GXDeviceGroup.Id),
             nameof(GXDeviceGroup.Name))]
-        public IEnumerable<GXDeviceGroup>? Groups
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDeviceGroup>? Groups { get; set; }
     }
 
     /// <summary>
@@ -142,20 +127,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New device identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Device groups IDs where devices are added.
         /// </summary>
-        public Guid[]? Groups
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Groups { get; set; }
     }
 
     /// <summary>
@@ -167,21 +144,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the devices to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter devices.
@@ -201,14 +169,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXLog), nameof(GXLog.PublicId))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDevice? Filter
-        {
-            get;
-            set;
-        }
+        public GXDevice? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access devices from all users.
@@ -216,11 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, devices from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -228,11 +188,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -241,21 +197,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -263,11 +211,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -275,11 +219,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -305,14 +245,10 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id))]
-        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Id))]
+        [IncludeOpenApi(typeof(GXLog), nameof(GXLog.PublicId))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDevice[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDevice>? Devices { get; set; }
 
         /// <summary>
         /// Total count of the devices.
@@ -323,11 +259,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Description("Total count of the devices.")]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
 
@@ -341,11 +273,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed devices.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -355,11 +283,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -380,20 +304,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Device ID.
         /// </summary>
         [DataMember]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Device status.
         /// </summary>
         [DataMember]
-        public DTOs.Enums.DeviceStatus Status
-        {
-            get;
-            set;
-        }
+        public DTOs.Enums.DeviceStatus Status { get; set; }
     }
 }

@@ -33,7 +33,7 @@ using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.Rest
-{    
+{
     /// <summary>
     /// Get configuration settings.
     /// </summary>
@@ -43,11 +43,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Configuration.
         /// </summary>
-        public string? Configuration
-        {
-            get;
-            set;
-        }
+        public string? Configuration { get; set; }
     }
 
     /// <summary>
@@ -60,11 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Configuration settings as JSON.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
     }
 
     /// <summary>
@@ -76,31 +68,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Configuration.
         /// </summary>
-        public string? Configuration
-        {
-            get;
-            set;
-        }      
+        public string? Configuration { get; set; }
 
         /// <summary>
         /// Settings data type.
         /// </summary>
         [DataMember]
-        public string? SettingsType
-        {
-            get;
-            set;
-        }
+        public string? SettingsType { get; set; }
 
         /// <summary>
         /// Configuration settings as JSON.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
     }
 
     /// <summary>

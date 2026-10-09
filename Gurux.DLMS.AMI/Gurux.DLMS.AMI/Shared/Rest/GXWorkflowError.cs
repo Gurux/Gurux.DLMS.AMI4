@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,7 +33,6 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.Service.Orm.Common;
-using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -46,12 +46,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Workflow log information.
         /// </summary>
-        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Item
-        {
-            get;
-            set;
-        }
+        public GXLog? Item { get; set; }
     }
 
     /// <summary>
@@ -73,12 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXWorkflow.Modules),
              nameof(GXWorkflow.WorkflowGroups),
              nameof(GXWorkflow.Logs))]
-        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog? Filter
-        {
-            get;
-            set;
-        }
+        public GXLog? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access errors from all users.
@@ -86,30 +76,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, errors from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
 
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the logs to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -117,11 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -130,21 +104,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -152,11 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -164,11 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -191,21 +149,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXWorkflow.Modules),
              nameof(GXWorkflow.WorkflowGroups),
              nameof(GXWorkflow.Logs))]
-        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        public GXWorkflowLog[]? Logs
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLog>? Logs { get; set; }
 
         /// <summary>
         /// Total amount of the logs.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -218,24 +167,15 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New workflow log(s).
         /// </summary>
         [DataMember]
-        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id))]
-        [ExcludeOpenApi(typeof(GXWorkflowLog), nameof(GXWorkflowLog.CreationTime), nameof(GXWorkflowLog.Closed))]
-        public GXWorkflowLog[] Logs
-        {
-            get;
-            set;
-        } = default!;
+        [ExcludeOpenApi(typeof(GXLog), nameof(GXLog.CreationTime), nameof(GXLog.Closed))]
+        public IEnumerable<GXLog> Logs { get; set; } = default!;
 
         /// <summary>
         /// Log type.
         /// </summary>
         [DataMember]
         [Description("Log type.")]
-        public string Type
-        {
-            get;
-            set;
-        } = default!;
+        public string Type { get; set; } = default!;
     }
 
     /// <summary>
@@ -256,11 +196,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Workflow identifiers where logs are removed.
         /// </summary>
         [DataMember]
-        public Guid[]? Workflows
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
     }
 
     /// <summary>
@@ -282,12 +218,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public Guid[] Logs
+        public IEnumerable<Guid> Logs { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
     }
 
     /// <summary>

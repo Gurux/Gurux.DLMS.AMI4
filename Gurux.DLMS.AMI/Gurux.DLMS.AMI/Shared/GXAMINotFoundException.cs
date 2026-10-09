@@ -46,11 +46,7 @@ namespace Gurux.DLMS.AMI.Shared
         }
 
         /// <inheritdoc />
-        public new string Message
-        {
-            get;
-            set;
-        }
+        public new string Message { get; set; }
 
         /// <summary>
         /// Constructor.

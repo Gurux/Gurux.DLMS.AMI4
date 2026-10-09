@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -69,7 +70,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
             Name = name;
             ScriptMethods = new List<GXScriptMethod>();
             WorkflowGroups = new List<GXWorkflowGroup>();
-            Logs = new List<GXWorkflowLog>();
+            Logs = new List<GXLog>();
             Modules = new List<GXModule>();
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
@@ -80,11 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Workflow name.
@@ -92,21 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [StringLength(64)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Workflow description.
@@ -114,11 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Is Workflow active.
@@ -135,11 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
 
         /// <summary>
@@ -147,109 +122,69 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXTriggerActivity))]
-        public GXTriggerActivity? TriggerActivity
-        {
-            get;
-            set;
-        }
+        public GXTriggerActivity? TriggerActivity { get; set; }
 
         /// <summary>
         /// Trigger condition script method that workflow uses.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
-        public GXScriptMethod? TriggerMethod
-        {
-            get;
-            set;
-        }
+        public GXScriptMethod? TriggerMethod { get; set; }
 
         /// <summary>
         /// User that Workflows this event.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXUser? User
-        {
-            get;
-            set;
-        }
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// User group that Workflows this event.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXUserGroup? UserGroup
-        {
-            get;
-            set;
-        }
+        public GXUserGroup? UserGroup { get; set; }
 
         /// <summary>
         /// Device that Workflows this event.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
         /// <summary>
         /// DeviceGroup that Workflows this event.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXDeviceGroup? DeviceGroup
-        {
-            get;
-            set;
-        }
+        public GXDeviceGroup? DeviceGroup { get; set; }
 
         /// <summary>
         /// Executed script methods.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXScriptMethod), typeof(GXWorkflowScriptMethod))]
-        public List<GXScriptMethod>? ScriptMethods
-        {
-            get;
-            set;
-        }
+        public List<GXScriptMethod>? ScriptMethods { get; set; }
 
         /// <summary>
         /// Executed modules.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXModule), typeof(GXWorkflowModule))]
-        public List<GXModule>? Modules
-        {
-            get;
-            set;
-        }
+        public List<GXModule>? Modules { get; set; }
 
         /// <summary>
         /// List of workflow groups where this workflow belongs.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXWorkflowGroup), typeof(GXWorkflowGroupWorkflow))]
-        public List<GXWorkflowGroup>? WorkflowGroups
-        {
-            get;
-            set;
-        }
+        public List<GXWorkflowGroup>? WorkflowGroups { get; set; }
 
         /// <summary>
         /// Workflow logs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXWorkflowLog))]
-        public List<GXWorkflowLog>? Logs
-        {
-            get;
-            set;
-        }
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<GXLog>? Logs { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -257,22 +192,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember]
         [Description("Creation time.")]
         [DefaultValue(null)]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the Workflow is updated for the last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -280,11 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Used trace level.
@@ -293,11 +216,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
         [Description("Used trace level.")]
         [IsRequired]
-        public TraceLevel? TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -308,11 +227,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -321,11 +237,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Last execution time
@@ -334,11 +246,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Description("Last execution time.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public DateTimeOffset? ExecutionTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExecutionTime { get; set; }
 
         /// <summary>
         /// Update creation time before update.

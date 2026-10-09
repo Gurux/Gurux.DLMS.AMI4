@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,34 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List device groups.
         /// </summary>
         /// <returns>Device groups.</returns>
-        Task<GXDeviceGroup[]> ListAsync(
-            ListDeviceGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXDeviceGroup>> ListAsync(
+            ListDeviceGroups? request = null,
             ListDeviceGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read device information.
+        /// Read device details.
         /// </summary>
         /// <param name="id">Device id.</param>
-        /// <returns></returns>
-        Task<GXDeviceGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXDeviceGroup> ReadAsync(Guid id, Expression<Func<GXDeviceGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update device groups.
         /// </summary>
         /// <param name="groups">Updated device groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXDeviceGroup> groups,
-            Expression<Func<GXDeviceGroup, object?>>? columns = null);
+            Expression<Func<GXDeviceGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete device group(s).
         /// </summary>
         /// <param name="groups">Device groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(
-            IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns device groups where device belongs.
@@ -103,13 +110,15 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="groupId">Device group Id.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(Guid? groupId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns list of users that can access device groups.
         /// </summary>
         /// <param name="groupIds">Device group Ids.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupIds, CancellationToken cancellationToken = default);
     }
 }

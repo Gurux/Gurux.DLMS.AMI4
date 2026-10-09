@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Description("Trigger activity identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Trigger activity name.
@@ -62,22 +58,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [StringLength(64)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Parent trigger.
         /// </summary>
         [ForeignKey(typeof(GXTrigger))]
         [Index(false)]
-        public GXTrigger? Trigger
-        {
-            get;
-            set;
-        }
+        public GXTrigger? Trigger { get; set; }
 
 
         /// <summary>
@@ -89,22 +77,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the Trigger is updated for the last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Update creation time before update.

@@ -75,11 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </summary>
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Template type.
@@ -88,11 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Type
-        {
-            get;
-            set;
-        }
+        public string? Type { get; set; }
 
         /// <summary>
         /// This is default device group where new devices are added automatically when user creates them.
@@ -101,11 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Name of the meter template.
@@ -114,21 +102,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Protocol that the device uses.
@@ -137,42 +111,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Description("Protocol that the device uses.")]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Protocol
-        {
-            get;
-            set;
-        }
+        public string? Protocol { get; set; }
 
         /// <summary>
         /// Define how long reply is waited in seconds.
         /// </summary>
         [DefaultValue(5)]
-        public int WaitTime
-        {
-            get;
-            set;
-        }
+        public int WaitTime { get; set; }
 
         /// <summary>
         /// Define re-send count.
         /// </summary>
         [DefaultValue(3)]
-        public int ResendCount
-        {
-            get;
-            set;
-        }
+        public int ResendCount { get; set; }
 
         /// <summary>
         /// Device settings.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// Media type.
@@ -181,11 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public virtual string? MediaType
-        {
-            get;
-            set;
-        }
+        public virtual string? MediaType { get; set; }
 
         /// <summary>
         /// Media settings as a string.
@@ -193,11 +147,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public string? MediaSettings
-        {
-            get;
-            set;
-        }
+        public string? MediaSettings { get; set; }
 
         /// <summary>
         /// The creator of the device template.
@@ -206,11 +156,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -218,21 +164,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When device template is updated.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -240,11 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Manufacturer of the device settings.
@@ -254,11 +188,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// This information is not saved for the DB.
         /// </remarks>
         [Ignore]
-        public GXManufacturer? Manufacturer
-        {
-            get;
-            set;
-        }
+        public GXManufacturer? Manufacturer { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -269,11 +199,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -282,34 +209,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Object templates.
         /// </summary>
         [Description("Object templates.")]
         [ForeignKey(typeof(GXObjectTemplate))]
-        public List<GXObjectTemplate>? Objects
-        {
-            get;
-            set;
-        }
+        public List<GXObjectTemplate>? Objects { get; set; }
 
         /// <summary>
         /// List of device template groups where this device template belongs.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXDeviceTemplateGroup), 
+        [ForeignKey(typeof(GXDeviceTemplateGroup),
             typeof(GXDeviceTemplateGroupDeviceTemplate))]
-        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups { get; set; }
 
         /// <summary>
         /// List of key managements.
@@ -317,11 +232,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [ForeignKey(typeof(GXKeyManagement))]
         [Filter(FilterType.Contains)]
-        public List<GXKeyManagement>? Keys
-        {
-            get;
-            set;
-        }
+        public List<GXKeyManagement>? Keys { get; set; }
 
         /// <summary>
         /// Update creation time before update.

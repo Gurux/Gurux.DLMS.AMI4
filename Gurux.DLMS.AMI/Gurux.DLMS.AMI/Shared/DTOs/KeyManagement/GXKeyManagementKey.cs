@@ -52,11 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The parent key management.
@@ -66,45 +62,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(null)]
         [Index(false)]
         [IsRequired]
-        public GXKeyManagement? KeyManagement
-        {
-            get;
-            set;
-        }
+        public GXKeyManagement? KeyManagement { get; set; }
 
         /// <summary>
         /// Key type.
         /// </summary>
         [DataMember]
         [IsRequired]
-        public KeyManagementType? KeyType
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Is data in ASCII or hex format.
-        /// </summary>      
-        [DataMember]
-        [IsRequired]
-        [DefaultValue(false)]
-        public bool? IsHex
-        {
-            get;
-            set;
-        }
+        public KeyManagementType? KeyType { get; set; }
 
         /// <summary>
         /// Key data.
-        /// </summary>      
+        /// </summary>
         [DataMember]
-        [IsRequired]
-        public string? Data
-        {
-            get;
-            set;
-        }
+        [DefaultValue(null)]
+        //[IsRequired]
+        public byte[]? Key { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -114,11 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When was the key management key last updated.
@@ -127,11 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the key management key.
@@ -139,11 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -154,11 +115,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -167,11 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.
@@ -197,7 +151,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         {
             if (KeyType != null)
             {
-                return KeyType.ToString() + " " + Data;
+                if (Key != null)
+                {
+                    return KeyType.ToString() + " " + Convert.ToHexString(Key);
+                }
+                return KeyType.ToString()!;
             }
             return nameof(GXKeyManagementKey);
         }

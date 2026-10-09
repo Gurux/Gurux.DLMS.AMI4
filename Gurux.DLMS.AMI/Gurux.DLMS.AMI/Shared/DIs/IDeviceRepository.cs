@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,34 +46,39 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List devices.
         /// </summary>
         /// <returns>Devices.</returns>
-        Task<GXDevice[]> ListAsync(
-        ListDevices? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXDevice>> ListAsync(
+        ListDevices? request = null,
         ListDevicesResponse? response = null,
         CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read device information.
+        /// Read device details.
         /// </summary>
         /// <param name="id">Device id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Device information.</returns>
-        Task<GXDevice> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXDevice> ReadAsync(Guid id, Expression<Func<GXDevice, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update device(s).
         /// </summary>
         /// <param name="devices">Updated device(s).</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <param name="columns">Updated columns(s).</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="columns">Updated columns.</param>
         /// <param name="groups">Device groups where devices are added. This can be used with batch.</param>
         /// <param name="lateBinding">Device objects are create only when they are read from the meter.</param>
         /// <remarks>
         /// Late binding improves device creation when a huge amount of devices is created. 
         /// This is handy when only a part of device objects is read, but the objects want to remain active just in case.
         /// </remarks>
-        Task<Guid[]> UpdateAsync(
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXDevice> devices,
-            CancellationToken cancellationToken,
-            Expression<Func<GXDevice, object?>>? columns = null,
+            CancellationToken cancellationToken = default,
+            Expression<Func<GXDevice, object>>? columns = null,
             bool lateBinding = false,
             IEnumerable<GXDeviceGroup>? groups = null);
 
@@ -82,30 +87,35 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="devices">Deleted device(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        /// <param name="notify">If true, users are notified about the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task DeleteAsync(
             IEnumerable<Guid> devices,
-            bool delete);
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns list of users that can access this device.
         /// </summary>
         /// <param name="deviceId">Device Id.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(Guid? deviceId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? deviceId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns list of users that can access devices.
         /// </summary>
         /// <param name="deviceIds">Device Ids.</param>
         /// <returns>List of users.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid> deviceIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid> deviceIds, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Updates the device status.
         /// </summary>
         /// <param name="deviceId">Device ID.</param>
         /// <param name="status">Device status</param>
-        Task UpdateStatusAsync(Guid deviceId, DeviceStatus status);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task UpdateStatusAsync(Guid deviceId, DeviceStatus status, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reset devices to disconnected state.

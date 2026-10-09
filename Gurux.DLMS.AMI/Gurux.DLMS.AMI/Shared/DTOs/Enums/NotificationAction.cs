@@ -79,5 +79,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// </summary>
         [XmlEnum("64")]
         Close = 0x40,
+        /// <summary>
+        /// Notification is send when item status is changed.
+        /// </summary>
+        [XmlEnum("128")]
+        StatusChange = 0x80,
+        /// <summary>
+        /// Progress is started.
+        /// </summary>
+        [XmlEnum("256")]
+        Start = 0x100,
+        /// <summary>
+        /// Progress is ended.
+        /// </summary>
+        [XmlEnum("512")]
+        End = 0x200,
     }
 }

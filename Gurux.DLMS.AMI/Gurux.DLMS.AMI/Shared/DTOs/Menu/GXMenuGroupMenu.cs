@@ -41,7 +41,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
     /// </summary>
     [DataContract(Name = "GXMenuGroupMenu"), Serializable]
     [IndexCollection(true, nameof(MenuGroupId), nameof(MenuId), Clustered = true)]
-    public class GXMenuGroupMenu 
+    public class GXMenuGroupMenu
     {
         /// <summary>
         /// The database ID of the content group.
@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [DataMember(Name = "MenuGroupId")]
         [ForeignKey(typeof(GXMenuGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid MenuGroupId
-        {
-            //ForeignKeyDelete is None because creator of the menu is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the menu is causing multiple cascade paths error in MSSQL.
+        public Guid MenuGroupId { get; set; }
 
         /// <summary>
         /// The content ID.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [DataMember(Name = "MenuId")]
         [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid MenuId
-        {
-            get;
-            set;
-        }
+        public Guid MenuId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when block was removed from content group.
@@ -89,10 +77,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }       
+        public DateTimeOffset? Removed { get; set; }
     }
 }

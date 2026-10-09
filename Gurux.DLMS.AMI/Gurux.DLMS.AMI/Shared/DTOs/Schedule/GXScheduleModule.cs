@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ScheduleId
-        {
-            get;
-            set;
-        }
+        public Guid ScheduleId { get; set; }
 
         /// <summary>
         /// Module ID.
@@ -61,12 +57,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DataMember]
         [ForeignKey(typeof(GXModule), OnDelete = ForeignKeyDelete.None)]
         [StringLength(64)]
-        public string ModuleId
-        {
-            //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        public string ModuleId { get; set; } = default!;
+        //ForeignKeyDelete is None because creator of the schedule is causing multiple cascade paths error in MSSQL.
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when module was removed from schedule.
@@ -89,21 +77,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Time when module was updated to the schedule.
         /// </summary>
         [DataMember]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -114,20 +94,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Schedule-specific module settings.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
     }
 }

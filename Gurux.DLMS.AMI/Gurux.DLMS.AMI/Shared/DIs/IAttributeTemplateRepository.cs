@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,47 +45,57 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List attribute templates.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Attribute templates.</returns>
-        Task<GXAttributeTemplate[]> ListAsync(
-            ListAttributeTemplates? request,
+        Task<IEnumerable<GXAttributeTemplate>> ListAsync(
+            ListAttributeTemplates? request = null,
             ListAttributeTemplatesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read attribute template information.
+        /// Read attribute template details.
         /// </summary>
         /// <param name="id">Attribute template id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Attribute template information.</returns>
-        Task<GXAttributeTemplate> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXAttributeTemplate> ReadAsync(Guid id, Expression<Func<GXAttributeTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update attribute template(s).
         /// </summary>
         /// <param name="templates">Updated attribute template(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXAttributeTemplate> templates,
-            Expression<Func<GXAttributeTemplate, object?>>? columns = null);
+            Expression<Func<GXAttributeTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete attribute template(s).
         /// </summary>
         /// <param name="templates">AttributeTemplate(s) to delete.</param>
         /// <param name="delete">If true, attribute templates are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> templates, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> templates, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this attribute template.
         /// </summary>
         /// <param name="templateId">Attribute template id.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(Guid? templateId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? templateId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access attribute templates.
         /// </summary>
         /// <param name="templateIds">Attribute template ids.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? templateIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? templateIds, CancellationToken cancellationToken = default);
     }
 }

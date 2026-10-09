@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -47,11 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>        
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                       nameof(GXUser.UserName))]
-        public GXAppearance? Item
-        {
-            get;
-            set;
-        }
+        public GXAppearance? Item { get; set; }
     }
 
     /// <summary>
@@ -60,23 +56,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class ListAppearances : IGXRequest<ListAppearancesResponse>
     {
+        /// <summary>Administrative listing including appearances unavailable to the current user.</summary>
+        [DataMember]
+        public bool AllUsers { get; set; }
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the appearances to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter appearances.
@@ -86,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAppearance.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
-        public GXAppearance? Filter
-        {
-            get;
-            set;
-        }
+        public GXAppearance? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -98,11 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -111,21 +94,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -133,11 +108,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public string[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -145,11 +116,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public string[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -163,21 +130,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXAppearance[]? Appearances
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAppearance>? Appearances { get; set; }
 
         /// <summary>
         /// Total count of the resourcers.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -199,11 +158,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public List<GXAppearance> Appearances
-        {
-            get;
-            set;
-        }
+        public List<GXAppearance> Appearances { get; set; }
     }
 
     /// <summary>
@@ -216,11 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New appearance identifiers.
         /// </summary>
         [DataMember]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Ids { get; set; }
     }
 
     /// <summary>
@@ -233,11 +184,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed appearance identifiers.
         /// </summary>
         [DataMember]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -247,11 +194,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -271,11 +214,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// If true, all system appearances are reload.
         /// </summary>
-        public bool Force
-        {
-            get;
-            set;
-        }
+        public bool Force { get; set; }
 
         /// <summary>
         /// Appearances to update.
@@ -283,11 +222,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXAppearance), nameof(GXAppearance.Id),
             nameof(GXAppearance.ResourceType), nameof(GXAppearance.Category))]
-        public GXAppearance? Filter
-        {
-            get;
-            set;
-        }
+        public GXAppearance? Filter { get; set; }
     }
 
     /// <summary>
@@ -299,10 +234,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// True, if there are new appearances available.
         /// </summary>
-        public bool NewItems
-        {
-            get;
-            set;
-        }
+        public bool NewItems { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate appearance.
+    /// </summary>
+    [DataContract]
+    public class RegenerateAppearance : IGXRequest<RegenerateAppearanceResponse>
+    {
+        /// <summary>
+        /// Appearance IDs to regenerate.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid>? Ids { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate appearance response.
+    /// </summary>
+    [DataContract]
+    public class RegenerateAppearanceResponse
+    {
     }
 }

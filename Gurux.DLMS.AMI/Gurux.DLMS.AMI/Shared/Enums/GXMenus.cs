@@ -37,6 +37,14 @@ namespace Gurux.DLMS.AMI.Shared.Enums
     public class GXMenus
     {
         /// <summary>
+        /// User tab items.
+        /// </summary>
+        public const string UserTab = "UserTab";
+
+        /// <summary>User editor tab items.</summary>
+        public const string UserDetailsTab = "UserDetailsTab";
+
+        /// <summary>
         /// Navication menu.
         /// </summary>
         public const string NavMenu = "NavMenu";
@@ -44,9 +52,37 @@ namespace Gurux.DLMS.AMI.Shared.Enums
         /// Hamburger menu.
         /// </summary>
         public const string HamburgerMenu = "HamburgerMenu";
+
+
         /// <summary>
         /// Log tab items.
         /// </summary>
         public const string LogTab = "LogTab";
+
+        /// <summary>
+        /// Device tab items.
+        /// </summary>
+        public const string DeviceTab = "DeviceTab";
+
+        /// <summary>
+        /// Device template tab items.
+        /// </summary>
+        public const string DeviceTemplateTab = "DeviceTemplateTab";
+
+        /// <summary>
+        /// Schedule tab items.
+        /// </summary>
+        public const string ScheduleTab = "ScheduleTab";
+
+        /// <summary>
+        /// Gateway tab items.
+        /// </summary>
+        public const string GatewayTab = "GatewayTab";
+
+        /// <summary>
+        /// Agent tab items.
+        /// </summary>
+        public const string AgentTab = "AgentTab";
+
     }
 }

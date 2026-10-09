@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -41,29 +41,33 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     public interface IPatRepository
     {
         /// <summary>
-        /// Get personal token by ID that belows for the user.
+        /// Get personal token by ID that belongs for the user.
         /// </summary>
         /// <param name="id">Token ID.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Personal token by ID.</returns>
-        Task<GXPersonalToken> GetPersonalTokenByIdAsync(string id);
+        Task<GXPersonalToken> GetPersonalTokenByIdAsync(string id, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Get personal tokens that belows for the user.
+        /// Get personal tokens that belongs for the user.
         /// </summary>
-        /// <param name="request">Request parameters.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Collection of personal tokens.</returns>
-        Task<GXPersonalToken[]> GetPersonalTokensAsync(ListTokens? request);
+        Task<IEnumerable<GXPersonalToken>> GetPersonalTokensAsync(ListTokens? request, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new personal access token.
         /// </summary>
-        /// <param name="token"></param>
-        Task<string> AddPersonalTokenAsync(GXPersonalToken token);
+        /// <param name="token">Token details to create.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<string> AddPersonalTokenAsync(GXPersonalToken token, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Remove personal token.
         /// </summary>
         /// <param name="id">Removed token ID</param>
-        Task<GXPersonalToken> RemovePersonalTokenAsync(string id);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<GXPersonalToken> RemovePersonalTokenAsync(string id, CancellationToken cancellationToken = default);
     }
 }

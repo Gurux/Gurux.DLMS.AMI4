@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -35,7 +35,6 @@ using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
@@ -54,7 +53,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
-        [IncludeOpenApi(typeof(GXContentGroup), nameof(GXContentGroup.Id), nameof(GXContentGroup.Name))]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
         [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
@@ -69,11 +67,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
             nameof(GXWorkflow.WorkflowGroups))]
-        public GXWorkflow? Item
-        {
-            get;
-            set;
-        }
+        public GXWorkflow? Item { get; set; }
     }
 
     /// <summary>
@@ -85,21 +79,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the workflows to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter workflows.
@@ -112,11 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
             nameof(GXWorkflow.WorkflowGroups))]
-        public GXWorkflow? Filter
-        {
-            get;
-            set;
-        }
+        public GXWorkflow? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access workflows from all users.
@@ -124,11 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, workflows from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -136,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -149,21 +122,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -171,11 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -183,11 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -207,21 +164,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup), nameof(GXWorkflow.ScriptMethods),
             nameof(GXWorkflow.WorkflowGroups))]
-        public GXWorkflow[]? Workflows
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXWorkflow>? Workflows { get; set; }
 
         /// <summary>
         /// Total count of the workflowrs.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -242,11 +191,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXWorkflow.TriggerMethod), nameof(GXWorkflow.User),
             nameof(GXWorkflow.UserGroup), nameof(GXWorkflow.Device),
             nameof(GXWorkflow.DeviceGroup))]
-        public GXWorkflow[]? Workflows
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXWorkflow> Workflows { get; set; } = default!;
     }
 
     /// <summary>
@@ -257,15 +202,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class UpdateWorkflowResponse
     {
         /// <summary>
-        /// New workflow identifiers.
+        /// Workflow identifiers.
         /// </summary>
         [DataMember]
-        [Description("New workflow identifiers.")]
-        public Guid[]? WorkflowIds
-        {
-            get;
-            set;
-        }
+        [Description("Workflow identifiers.")]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -278,11 +219,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed workflow identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -292,11 +229,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>

@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember(Name = "AgentGroupID")]
         [ForeignKey(typeof(GXAgentGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid AgentGroupId
-        {
-            //ForeignKeyDelete is None because creator of the agent is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the agent is causing multiple cascade paths error in MSSQL.
+        public Guid AgentGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the agent.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember(Name = "GXAgentID")]
         [ForeignKey(typeof(GXAgent), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid AgentId
-        {
-            get;
-            set;
-        }
+        public Guid AgentId { get; set; }
 
         /// <summary>
 		/// Creation time.
@@ -77,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when agent was removed from agent group.
@@ -90,11 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update Creation time.

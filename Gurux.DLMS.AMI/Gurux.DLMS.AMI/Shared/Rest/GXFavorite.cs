@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,11 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Favorite information.
         /// </summary>        
         [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
-        public GXFavorite? Item
-        {
-            get;
-            set;
-        }
+        public GXFavorite? Item { get; set; }
     }
 
     /// <summary>
@@ -61,31 +57,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the favorites to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter favorites.
         /// </summary>
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXFavorite? Filter
-        {
-            get;
-            set;
-        }
+        public GXFavorite? Filter { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -94,21 +77,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }       
+        public bool Descending { get; set; }
     }
 
     /// <summary>
@@ -122,21 +97,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeOpenApi(typeof(GXFavorite), nameof(GXFavorite.User))]
-        public GXFavorite[]? Favorites
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXFavorite>? Favorites { get; set; }
 
         /// <summary>
         /// Total count of the favoriters.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -151,11 +118,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [ExcludeOpenApi(typeof(GXFavorite),
             nameof(GXFavorite.CreationTime), nameof(GXFavorite.User))]
-        public GXFavorite[] Favorites
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXFavorite> Favorites { get; set; } = default!;
     }
 
     /// <summary>
@@ -168,11 +131,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New favorite identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
     }
 
     /// <summary>
@@ -185,11 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed favorite identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>

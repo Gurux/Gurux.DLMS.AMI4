@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,9 +44,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List appearances.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Appearances.</returns>
-        Task<GXAppearance[]> ListAsync(
-            ListAppearances? request,
+        Task<IEnumerable<GXAppearance>> ListAsync(
+            ListAppearances? request = null,
             ListAppearancesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,37 +58,56 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="type">Appearance type.</param>
         /// <param name="id">Appearance id.</param>
-        /// <returns></returns>
-        Task<GXAppearance> ReadAsync(int type, string id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXAppearance> ReadAsync(int type, string id, Expression<Func<GXAppearance, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update appearance(s).
         /// </summary>
         /// <param name="appearances">Updated appearance(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<string[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<string>> UpdateAsync(
             IEnumerable<GXAppearance> appearances,
-            Expression<Func<GXAppearance, object?>>? columns = null);
+            Expression<Func<GXAppearance, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete appearance(s).
         /// </summary>
         /// <param name="appearances">Appearance(s) to delete.</param>
         /// <param name="delete">If true, appearances are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<string> appearances, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<string> appearances,
+            bool delete = true,
+            bool notify = true,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Refresh appearance(s).
         /// </summary>
         /// <param name="force">Refresh system appearances are reload.</param>
         /// <param name="filter">Refreshed appearance(s).</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>True, if there are new appearances.</returns>
-        Task<bool> RefreshAsync(bool force, GXAppearance? filter);
+        Task<bool> RefreshAsync(bool force, GXAppearance? filter, CancellationToken cancellationToken);
 
         /// <summary>
         /// When the appearance was last changed.
         /// </summary>
         /// <param name="type">Appearance type</param>
-        Task<DateTimeOffset?> LastChanged(byte type);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<DateTimeOffset?> LastChanged(byte type, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Regenerate appearance(s).
+        /// </summary>
+        /// <param name="appearances">Appearance(s) to regenerate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task RegenerateAsync(IEnumerable<Guid>? appearances, CancellationToken cancellationToken = default);
+
     }
 }

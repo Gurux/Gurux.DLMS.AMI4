@@ -79,11 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The object that caused the error.
@@ -92,24 +88,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [DefaultValue(null)]
-        public GXObject? Object
-        {
-            get;
-            set;
-        }
+        public GXObject? Object { get; set; }
 
         /// <summary>
         /// Creation time.
         /// </summary>
         [DataMember]
+        [TimeStorageUnit(TimeStorageUnit.Milliseconds)]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Error is active if closed time is not set.
@@ -118,11 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Closed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Closed { get; set; }
 
         /// <summary>
         /// Error string.
@@ -131,11 +116,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Message
-        {
-            get;
-            set;
-        }
+        public string? Message { get; set; }
 
         /// <summary>
         /// Stack trace.
@@ -143,11 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? StackTrace
-        {
-            get;
-            set;
-        }
+        public string? StackTrace { get; set; }
 
         /// <summary>
         /// Error severity level.
@@ -156,11 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(1)]
         [IsRequired]
         [Filter(FilterType.Exact)]
-        public int? Level
-        {
-            get;
-            set;
-        }
+        public int? Level { get; set; }
 
         /// <summary>
         /// Update creation time before update.

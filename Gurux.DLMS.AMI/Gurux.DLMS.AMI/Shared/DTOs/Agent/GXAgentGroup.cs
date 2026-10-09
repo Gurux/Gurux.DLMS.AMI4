@@ -77,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
 
         /// <summary>
@@ -91,11 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Agent group name.
@@ -105,21 +97,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Description.
@@ -129,11 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Is agent group active.
@@ -149,33 +123,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// List of agents that this agent group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXAgent), typeof(GXAgentGroupAgent))]
-        public List<GXAgent>? Agents
-        {
-            get;
-            set;
-        }
+        public List<GXAgent>? Agents { get; set; }
 
         /// <summary>
         /// User groups that can access this agent group. 
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupAgentGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of device groups that this agent group can access.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXAgentGroupDeviceGroup))]
-        public List<GXDeviceGroup>? DeviceGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -186,11 +148,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -199,11 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the agent group last updated.
@@ -211,11 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the agent group.
@@ -223,11 +173,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -238,11 +184,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// This is default agent group where new agents are added automatically when user creates them.
@@ -251,11 +194,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

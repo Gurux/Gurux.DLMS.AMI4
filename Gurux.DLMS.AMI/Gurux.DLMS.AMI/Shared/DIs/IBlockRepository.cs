@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,9 +44,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List blocks.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Blocks.</returns>
-        Task<GXBlock[]> ListAsync(
-            ListBlocks? request,
+        Task<IEnumerable<GXBlock>> ListAsync(
+            ListBlocks? request = null,
             ListBlocksResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,43 +57,59 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read block.
         /// </summary>
         /// <param name="id">Block id.</param>
-        /// <returns></returns>
-        Task<GXBlock> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXBlock> ReadAsync(Guid id, Expression<Func<GXBlock, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update block(s).
         /// </summary>
         /// <param name="blocks">Updated block(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXBlock> blocks,
-            Expression<Func<GXBlock, object?>>? columns = null);
+            Expression<Func<GXBlock, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete block(s).
         /// </summary>
         /// <param name="blocks">Block(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> blocks, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> blocks, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close block(s).
         /// </summary>
         /// <param name="blocks">Blocks to close.</param>
-        Task CloseAsync(IEnumerable<Guid>? blocks);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid>? blocks, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this block.
         /// </summary>
         /// <param name="blockId">Block id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? blockId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? blockId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access blocks.
         /// </summary>
         /// <param name="blockIds">Block ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Regenerate blocks(s).
+        /// </summary>
+        /// <param name="blocks">Block(s) to regenerate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task RegenerateAsync(IEnumerable<Guid>? blocks,
+            CancellationToken cancellationToken);
     }
 }

@@ -47,7 +47,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// <summary>
         /// Script language is Visual basic.
         /// </summary>
-        [XmlEnum("1")] 
+        [XmlEnum("1")]
         VisualBasic = 1
     }
 }

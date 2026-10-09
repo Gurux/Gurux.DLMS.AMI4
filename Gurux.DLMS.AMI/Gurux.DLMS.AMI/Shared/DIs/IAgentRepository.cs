@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,9 +45,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List agents.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Agents.</returns>
-        Task<GXAgent[]> ListAsync(
-            ListAgents? request,
+        Task<IEnumerable<GXAgent>> ListAsync(
+            ListAgents? request = null,
             ListAgentsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,38 +58,48 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read agent.
         /// </summary>
         /// <param name="id">Agent id.</param>
-        /// <returns></returns>
-        Task<GXAgent> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXAgent> ReadAsync(Guid id,
+            Expression<Func<GXAgent, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update agent(s).
         /// </summary>
         /// <param name="agents">Updated agent(s).</param>
-        /// <param name="columns">Updated column(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXAgent> agents,
-            Expression<Func<GXAgent, object?>>? columns = null);
+            Expression<Func<GXAgent, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete agent(s).
         /// </summary>
         /// <param name="agents">Agent(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> agents, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> agents, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this agent.
         /// </summary>
         /// <param name="agentId">Agent id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? agentId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? agentId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access agents.
         /// </summary>
         /// <param name="agentIds">Agent ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? agentIds, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Agent updates the status.
@@ -94,29 +107,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="agentId">Agent ID.</param>
         /// <param name="connectionInfo">Connection info e.g. IP address.</param>
         /// <param name="status">Agent status</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <param name="data">Optional data. List of available serial ports.</param>
-        Task UpdateStatusAsync(Guid agentId, string? connectionInfo, AgentStatus status, string? data);
+        Task UpdateStatusAsync(Guid agentId, string? connectionInfo, AgentStatus status, string? data, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Upgrade agent version.
         /// </summary>
         /// <param name="agents">Upgraded agents.</param>
-        Task UpgradeAsync(IEnumerable<GXAgent> agents);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task UpgradeAsync(IEnumerable<GXAgent> agents, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// List agent installers.
         /// </summary>
         /// <returns>Agent installers.</returns>
-        Task<GXAgent[]> ListInstallersAsync(
-            ListAgentInstallers? request,
-            bool includeRemoved,
-            ListAgentInstallersResponse? response);
+        /// <param name="request">The request parameters.</param>
+        /// <param name="includeRemoved">Are removed agents included.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<GXAgent>> ListInstallersAsync(
+            ListAgentInstallers? request = null,
+            bool includeRemoved = false,
+            ListAgentInstallersResponse? response = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear agents' cache.
         /// </summary>
         /// <param name="Ids">Agent IDs.</param>
         /// <param name="names">Cache names to clear</param>
-        Task ClearCache(Guid[]? Ids, string[] names);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearCache(IEnumerable<Guid>? Ids, IEnumerable<string> names,
+            CancellationToken cancellationToken = default);
     }
 }

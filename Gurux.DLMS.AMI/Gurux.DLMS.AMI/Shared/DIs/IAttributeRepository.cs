@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,40 +44,51 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List attributes.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Attributes.</returns>
-        Task<GXAttribute[]> ListAsync(
-            ListAttributes? request,
+        Task<IEnumerable<GXAttribute>> ListAsync(
+            ListAttributes? request = null,
             ListAttributesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read attribute information.
+        /// Read attribute details.
         /// </summary>
         /// <param name="id">Attribute id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Attribute information.</returns>
-        Task<GXAttribute> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXAttribute> ReadAsync(Guid id, Expression<Func<GXAttribute, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update attribute(s).
         /// </summary>
         /// <param name="attributers">Updated attribute(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXAttribute> attributers,
-            Expression<Func<GXAttribute, object?>>? columns = null);
+            Expression<Func<GXAttribute, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete attribute(s).
         /// </summary>
         /// <param name="attributes">Attribute(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> attributes, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> attributes, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update attribute datatype.
         /// </summary>
-        /// <param name="attributes"></param>
-        /// <returns></returns>
-        Task UpdateDatatypeAsync(IEnumerable<GXAttribute> attributes);
+        /// <param name="attributes">Attributes whose datatype metadata is updated.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Operation result.</returns>
+        Task UpdateDatatypeAsync(IEnumerable<GXAttribute> attributes,
+            CancellationToken cancellationToken = default);
     }
 }

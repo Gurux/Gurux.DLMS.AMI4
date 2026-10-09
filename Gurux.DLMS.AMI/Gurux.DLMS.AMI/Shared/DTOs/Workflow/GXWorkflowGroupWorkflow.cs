@@ -49,22 +49,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </summary>
         [DataMember(Name = "WorkflowGroupId")]
         [ForeignKey(typeof(GXWorkflowGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid WorkflowGroupId
-        {
-            get;
-            set;
-        }
+        public Guid WorkflowGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the workflow.
         /// </summary>
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid WorkflowId
-        {
-            get;
-            set;
-        }
+        public Guid WorkflowId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -74,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when agent group was removed from user group.
@@ -87,10 +75,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,8 +29,8 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -45,6 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
     /// Block group controller.
     /// </summary>
     [DataContract(Name = "GXBlockGroup"), Serializable]
+    [System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
     public class GXBlockGroup : GXTableBase, IUnique<Guid>
     {
 
@@ -68,7 +69,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
             Name = name;
             UserGroups = new List<GXUserGroup>();
             Blocks = new List<GXBlock>();
-            Roles = new List<GXRole>();
         }
 
         /// <summary>
@@ -77,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the block group.
@@ -90,11 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the block group.
@@ -104,35 +96,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Block group description.
         /// </summary>
-		[DataMember]
+        [DataMember]
         [StringLength(256)]
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -141,11 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when block group was removed.
@@ -154,11 +124,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the block group last updated.
@@ -166,11 +132,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -178,11 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -193,41 +151,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
-        /// List of required roles to see this block.
+        /// Authorization policies that allow viewing this resource (alternative named policies).
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXRole), typeof(GXBlockGroupRole))]
-        public List<GXRole>? Roles
-        {
-            get;
-            set;
-        }
+        [DataMember]
+        [Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
 
         /// <summary>
         /// List of users groups that belongs to this Block group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupBlockGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of Blocks that this Block group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlock), typeof(GXBlockGroupBlock))]
-        public List<GXBlock>? Blocks
-        {
-            get;
-            set;
-        }
+        public List<GXBlock>? Blocks { get; set; }
 
         /// <summary>
         /// This is default block group where new blocks are added automatically when user creates them.
@@ -236,11 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

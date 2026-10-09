@@ -68,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Manufacturer Name.
@@ -80,21 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Manufacturer template settings are used to show download information.
@@ -102,30 +84,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Template
-        {
-            get;
-            set;
-        }
+        public bool? Template { get; set; }
 
         /// <summary>
         /// Manufacturer logo.
         /// </summary>
         [DefaultValue(null)]
-        public string? Logo
-        {
-            get; set;
-        }
+        public string? Logo { get; set; }
 
         /// <summary>
         /// Manufacturer url.
         /// </summary>
         [StringLength(128)]
         [DefaultValue(null)]
-        public string? Url
-        {
-            get; set;
-        }
+        public string? Url { get; set; }
 
         /// <summary>
         /// List of manufacturer device models.
@@ -133,22 +105,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember]
         [ForeignKey(typeof(GXDeviceModel))]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceModel>? Models
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceModel>? Models { get; set; }
 
         /// <summary>
         /// List of manufacturer groups where this manufacturer belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXManufacturerGroup), typeof(GXManufacturerGroupManufacturer))]
         [Filter(FilterType.Contains)]
-        public List<GXManufacturerGroup>? ManufacturerGroups
-        {
-            get;
-            set;
-        }
+        public List<GXManufacturerGroup>? ManufacturerGroups { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -157,11 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when manufacturer was removed.
@@ -170,21 +130,25 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the block is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
+
+        /// <summary>Revision of the manufacturer profiles installed in AMI.</summary>
+        [DataMember, StringLength(64)]
+        public string? Version { get; set; }
+
+        /// <summary>Latest manufacturer profile revision recorded by cron.</summary>
+        [DataMember, StringLength(64)]
+        public string? AvailableVersion { get; set; }
+
+        /// <summary>Whether at least one profile belonging to this manufacturer is installed.</summary>
+        [DataMember]
+        public bool ProfilesInstalled { get; set; }
 
         /// <summary>
         /// User has modified the manufacturer.
@@ -192,11 +156,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -207,11 +167,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Update creation time before update.

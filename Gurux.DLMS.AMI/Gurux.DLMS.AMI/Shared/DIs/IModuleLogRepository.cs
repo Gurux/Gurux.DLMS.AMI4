@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List module errors.
         /// </summary>
         /// <returns>List of module log.</returns>
-        Task<GXModuleLog[]> ListAsync(
-            ListModuleLogs? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListModuleLogs? request = null,
             ListModuleLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -53,20 +58,26 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read module log information.
         /// </summary>
         /// <param name="id">Module log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Module error information.</returns>
-        Task<GXModuleLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear module log.
         /// </summary>
-        Task ClearAsync(string[]? modules);
+        /// <param name="modules">Modules to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<string>? modules, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add module log.
         /// </summary>
         /// <param name="type">Module log type.</param>
         /// <param name="errors">New log.</param>
-        Task AddAsync(string type, IEnumerable<GXModuleLog> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> errors, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -74,12 +85,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Module log type.</param>
         /// <param name="module">Module.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXModuleLog> AddAsync(string type, GXModule module, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXModule module, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close module log(s).
         /// </summary>
         /// <param name="errors">Log items to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> errors, CancellationToken cancellationToken = default);
     }
 }

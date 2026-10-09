@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,33 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List script groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXScriptGroup[]> ListAsync(
-            ListScriptGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXScriptGroup>> ListAsync(
+            ListScriptGroups? request = null,
             ListScriptGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read script group information.
+        /// Read script group details.
         /// </summary>
         /// <param name="id">Script group id.</param>
-        /// <returns></returns>
-        Task<GXScriptGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXScriptGroup> ReadAsync(Guid id, Expression<Func<GXScriptGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update script groups.
         /// </summary>
         /// <param name="groups">Updated script groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXScriptGroup> groups,
-            Expression<Func<GXScriptGroup, object?>>? columns = null);
+            Expression<Func<GXScriptGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete script group(s).
         /// </summary>
         /// <param name="groups">Script groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns script groups list where script belongs.
@@ -84,14 +92,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this script group.
         /// </summary>
         /// <param name="groupId">Script group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? groupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access script groups.
         /// </summary>
         /// <param name="groupId">Script group ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId, CancellationToken cancellationToken = default);
     }
 }

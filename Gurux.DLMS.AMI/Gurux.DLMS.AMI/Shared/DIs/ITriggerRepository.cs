@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List triggers.
         /// </summary>
         /// <returns>Triggers.</returns>
-        Task<GXTrigger[]> ListAsync(
-            ListTriggers? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXTrigger>> ListAsync(
+            ListTriggers? request = null,
             ListTriggersResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,43 +58,51 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read trigger.
         /// </summary>
         /// <param name="id">Trigger id.</param>
-        /// <returns></returns>
-        Task<GXTrigger> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXTrigger> ReadAsync(Guid id, Expression<Func<GXTrigger, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update trigger(s).
         /// </summary>
         /// <param name="triggers">Updated trigger(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXTrigger> triggers,
-            Expression<Func<GXTrigger, object?>>? columns = null);
+            Expression<Func<GXTrigger, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete trigger(s).
         /// </summary>
         /// <param name="triggers">Trigger(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> triggers, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> triggers, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this trigger.
         /// </summary>
         /// <param name="triggerId">Trigger id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? triggerId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? triggerId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access triggers.
         /// </summary>
-        /// <param name="triggerIds">Trigger ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? triggerIds);
+        /// <param name="Ids">Trigger ids.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Refresh triggers(s).
         /// </summary>
         /// <returns>True, if there are new triggers.</returns>
-        Task<bool> RefrestAsync();
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<bool> RefrestAsync(CancellationToken cancellationToken = default);
     }
 }

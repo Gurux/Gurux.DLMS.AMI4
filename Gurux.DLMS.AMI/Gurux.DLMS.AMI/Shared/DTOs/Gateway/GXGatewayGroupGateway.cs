@@ -49,12 +49,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DataMember(Name = "GatewayGroupID")]
         [ForeignKey(typeof(GXGatewayGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid GatewayGroupId
-        {
-            //ForeignKeyDelete is None because creator of the gateway is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the gateway is causing multiple cascade paths error in MSSQL.
+        public Guid GatewayGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the gateway.
@@ -62,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DataMember(Name = "GatewayID")]
         [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid GatewayId
-        {
-            get;
-            set;
-        }
+        public Guid GatewayId { get; set; }
 
         /// <summary>
 		/// Creation time.
@@ -77,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when gateway was removed from gateway group.
@@ -90,11 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update Creation time.

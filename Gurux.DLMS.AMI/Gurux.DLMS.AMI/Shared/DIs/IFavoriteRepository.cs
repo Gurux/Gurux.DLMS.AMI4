@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List Favorites.
         /// </summary>
         /// <returns>Favorites.</returns>
-        Task<GXFavorite[]> ListAsync(
-            ListFavorites? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXFavorite>> ListAsync(
+            ListFavorites? request = null,
             ListFavoritesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,23 +58,27 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read Favorite.
         /// </summary>
         /// <param name="id">Favorite id.</param>
-        /// <returns></returns>
-        Task<GXFavorite> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXFavorite> ReadAsync(Guid id, Expression<Func<GXFavorite, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update Favorite(s).
         /// </summary>
         /// <param name="favorites">Updated Favorite(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
 
             IEnumerable<GXFavorite> favorites,
-            Expression<Func<GXFavorite, object?>>? columns = null);
+            Expression<Func<GXFavorite, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete Favorite(s).
         /// </summary>
         /// <param name="favorites">Favorite(s) to delete.</param>
-        Task DeleteAsync(IEnumerable<Guid> favorites);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> favorites, CancellationToken cancellationToken = default);
     }
 }

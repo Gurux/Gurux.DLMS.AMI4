@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -75,9 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [ExcludeOpenApi(typeof(GXSchedule),
-        nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
-             nameof(GXSchedule.Objects),
              nameof(GXSchedule.Devices),
              nameof(GXSchedule.ScriptMethods),
              nameof(GXSchedule.DeviceGroups),
@@ -85,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.Triggers),
              nameof(GXSchedule.Logs),
              nameof(GXSchedule.Modules))]
-        public GXSchedule? Item
-        {
-            get;
-            set;
-        }
+        public GXSchedule? Item { get; set; }
     }
 
     /// <summary>
@@ -101,29 +95,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the schedules to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter schedules.
         /// </summary>
         [ExcludeOpenApi(typeof(GXSchedule),
-        nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
-             nameof(GXSchedule.Objects),
              nameof(GXSchedule.Devices),
              nameof(GXSchedule.ScriptMethods),
              nameof(GXSchedule.DeviceGroups),
@@ -137,11 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.Modules))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
-        public GXSchedule? Filter
-        {
-            get;
-            set;
-        }
+        public GXSchedule? Filter { get; set; }
 
 
         /// <summary>
@@ -150,11 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, schedules from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -162,11 +137,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -175,21 +146,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -197,11 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -209,11 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -227,9 +182,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeOpenApi(typeof(GXSchedule),
-        nameof(GXSchedule.Attributes),
              nameof(GXSchedule.Creator),
-             nameof(GXSchedule.Objects),
              nameof(GXSchedule.Devices),
              nameof(GXSchedule.ScriptMethods),
              nameof(GXSchedule.DeviceGroups),
@@ -239,21 +192,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXSchedule.Modules))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
-        public GXSchedule[]? Schedules
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXSchedule>? Schedules { get; set; }
 
         /// <summary>
         /// Total count of the schedulers.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -288,11 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
                 nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id))]
         [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id))]
-        public List<GXSchedule> Schedules
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXSchedule> Schedules { get; set; } = default!;
     }
 
     /// <summary>
@@ -305,11 +246,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New schedule identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] ScheduleIds
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -322,11 +259,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed schedule identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -336,11 +269,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -361,11 +290,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Module and schedule IDs.
         /// </summary>
         [DataMember]
-        public GXScheduleModule? Item
-        {
-            get;
-            set;
-        }
+        public GXScheduleModule? Item { get; set; }
     }
 
     /// <summary>
@@ -378,11 +303,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Module settings for the schedule.
         /// </summary>
         [DataMember]
-        public GXScheduleModule? Item
-        {
-            get;
-            set;
-        }
+        public GXScheduleModule? Item { get; set; }
     }
 
     /// <summary>
@@ -397,11 +318,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
-        public GXScheduleModule? Item
-        {
-            get;
-            set;
-        }
+        public GXScheduleModule? Item { get; set; }
     }
 
     /// <summary>
@@ -415,11 +332,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                       nameof(GXUser.UserName))]
-        public GXScheduleModule? Item
-        {
-            get;
-            set;
-        }
+        public GXScheduleModule? Item { get; set; }
     }
 
 }

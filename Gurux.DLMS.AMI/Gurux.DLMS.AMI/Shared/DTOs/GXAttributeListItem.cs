@@ -48,11 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Parent attribute template.
@@ -61,51 +57,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [JsonIgnore]
-        public GXAttributeTemplate? Template
-        {
-            get;
-            set;
-        }
+        public GXAttributeTemplate? Template { get; set; }
 
         /// <summary>
         /// UI value.
         /// </summary>
         [DataMember]
-        public string? UIValue
-        {
-            get;
-            set;
-        }
+        public string? UIValue { get; set; }
 
         /// <summary>
         /// Value.
         /// </summary>
         [DataMember]
-        public int Value
-        {
-            get;
-            set;
-        }
+        public int Value { get; set; }
 
         /// <summary>
         /// Mask size.
         /// </summary>
         [DataMember]
-        public int MaskSize
-        {
-            get;
-            set;
-        }
+        public int MaskSize { get; set; }
 
         /// <summary>
         /// Shift.
         /// </summary>
         [DataMember]
-        public int Shift
-        {
-            get;
-            set;
-        }       
+        public int Shift { get; set; }
 
         /// <summary>
         /// User has modified the parameter.
@@ -113,10 +89,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }       
+        public bool Modified { get; set; }
     }
 }

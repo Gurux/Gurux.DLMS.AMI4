@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -62,11 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id),
             nameof(GXLanguage.EnglishName),
             nameof(GXLanguage.NativeName))]
-        public GXBlock? Item
-        {
-            get;
-            set;
-        }
+        public GXBlock? Item { get; set; }
     }
 
     /// <summary>
@@ -78,21 +74,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the blocks to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter blocks.
@@ -106,11 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXBlock.ScriptMethod))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
             nameof(GXUser.UserName))]
-        public GXBlock? Filter
-        {
-            get;
-            set;
-        }
+        public GXBlock? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access blocks from all users.
@@ -118,11 +101,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, blocks from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -130,11 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -143,21 +118,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -165,11 +132,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -177,11 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -202,21 +161,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
         [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        public GXBlock[]? Blocks
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXBlock>? Blocks { get; set; }
 
         /// <summary>
         /// Total count of the blockrs.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -245,11 +196,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
         [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
         [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
-        public List<GXBlock> Blocks
-        {
-            get;
-            set;
-        }
+        public List<GXBlock> Blocks { get; set; }
     }
 
     /// <summary>
@@ -262,11 +209,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New block identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -279,11 +222,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed block identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -293,11 +232,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -318,11 +253,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Blocks IDs to close.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -330,6 +261,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     /// </summary>
     [DataContract]
     public class CloseBlockResponse
+    {
+    }
+
+    /// <summary>
+    /// Regenerate blocks.
+    /// </summary>
+    [DataContract]
+    public class RegenerateBlock : IGXRequest<RegenerateBlockResponse>
+    {
+        /// <summary>
+        /// Block IDs to regenerate.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid>? Ids { get; set; }
+    }
+
+    /// <summary>
+    /// Regenerate block response.
+    /// </summary>
+    [DataContract]
+    public class RegenerateBlockResponse
     {
     }
 }

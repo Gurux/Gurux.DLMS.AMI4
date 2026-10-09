@@ -75,11 +75,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The block creator.
@@ -88,22 +84,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            //ForeignKeyDelete is None because User will handle the deletion.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because User will handle the deletion.
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Block Title.
         /// </summary>
         [StringLength(128)]
-        public string? Title
-        {
-            get;
-            set;
-        }
+        public string? Title { get; set; }
 
         /// <summary>
         /// Block Name.
@@ -111,134 +99,84 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Block type.
         /// </summary>
-        public BlockType BlockType
-        {
-            get;
-            set;
-        }
+        public BlockType BlockType { get; set; }
 
         /// <summary>
         /// GXComponent view that this block uses.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXComponentView), OnDelete = ForeignKeyDelete.Cascade)]
-        public GXComponentView? ComponentView
-        {
-            get;
-            set;
-        }
+        public GXComponentView? ComponentView { get; set; }
 
         /// <summary>
         /// Script method that this block uses.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.None)]
-        public GXScriptMethod? ScriptMethod
-        {
-            get;
-            set;
-        }
+        public GXScriptMethod? ScriptMethod { get; set; }
 
         /// <summary>
         /// CSS class name.
         /// </summary>
         [StringLength(128)]
         [DefaultValue(null)]
-        public string? CssClass
-        {
-            get;
-            set;
-        }
+        public string? CssClass { get; set; }
 
         /// <summary>
         /// CSS role name.
         /// </summary>
         [StringLength(128)]
         [DefaultValue(null)]
-        public string? CssRole
-        {
-            get;
-            set;
-        }
+        public string? CssRole { get; set; }
 
         /// <summary>
-        /// CSS role name.
+        /// CSS style.
         /// </summary>
         [StringLength(256)]
         [DefaultValue(null)]
-        public string? Style
-        {
-            get;
-            set;
-        }
+        public string? Style { get; set; }
 
         /// <summary>
         /// HTML Body or component settings are saved here.
         /// </summary>
-        public string? Body
-        {
-            get;
-            set;
-        }
+        public string? Body { get; set; }
 
         /// <summary>
         /// Pages where block is shown.
         /// </summary>
-        public BlockShown Shown
-        {
-            get;
-            set;
-        }
+        [DefaultValue(BlockShown.Listed)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public BlockShown? Shown { get; set; }
 
 
         /// <summary>
         /// Logaction where block is shown.
         /// </summary>
         /// <seealso cref="LocationOrder"/>
-        public BlockLocation Location
-        {
-            get;
-            set;
-        }
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public BlockLocation? Location { get; set; }
 
         /// <summary>
         /// Locaction order index.
         /// </summary>
         /// <seealso cref="Location"/>
-        public int LocationOrder
-        {
-            get;
-            set;
-        }
+        [DefaultValue(0)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public int? LocationOrder { get; set; }
 
 
         /// <summary>
         /// List of pages where block is shown.
         /// </summary>
-        public string? Pages
-        {
-            get;
-            set;
-        }
+        public string? Pages { get; set; }
 
         /// <summary>
         /// Is block active.
@@ -255,33 +193,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// If block is closed it's not shown for the user.
         /// </remarks>
         [DefaultValue(false)]
-        public bool Closable
-        {
-            get;
-            set;
-        }
+        public bool Closable { get; set; }
 
         /// <summary>
         /// List of block groups where this block belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXBlockGroupBlock), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
-        public List<GXBlockGroup>? BlockGroups
-        {
-            get;
-            set;
-        }
+        public List<GXBlockGroup>? BlockGroups { get; set; }
 
         /// <summary>
         /// Block settings for the user.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUser), typeof(GXUserBlockSettings), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
-        public GXUser? User
-        {
-            get;
-            set;
-        }
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -290,11 +216,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when block was removed.
@@ -306,21 +228,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the block is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// When block is published.
@@ -328,11 +242,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// <seealso cref="EndTime"/>/>
         [DataMember]
         [DefaultValue(null)]
-        public DateTimeOffset? PublishTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? PublishTime { get; set; }
 
         /// <summary>
         /// When block is not shown anymore.
@@ -340,11 +250,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// <seealso cref="PublishTime"/>/>
         [DataMember]
         [DefaultValue(null)]
-        public DateTimeOffset? EndTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? EndTime { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -352,23 +258,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }       
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Parent block.
         /// </summary>
         [DefaultValue(null)]
-        [ForeignKey(typeof(GXBlock), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXBlock), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
-        public GXBlock? Parent
-        {
-            get;
-            set;
-        }
+        public GXBlock? Parent { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -379,11 +277,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
+
+        /// <summary>
+        /// Responsive determines the order
+        /// in which the contents are hidden if they do not fit the screen.
+        /// </summary>
+        [DefaultValue(0)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public int? Visibility { get; set; }
 
         /// <summary>
         /// Update creation time before update.

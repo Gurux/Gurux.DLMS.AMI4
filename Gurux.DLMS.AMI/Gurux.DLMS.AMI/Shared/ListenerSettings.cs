@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,7 +29,7 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
+
 using System.Diagnostics;
 using System.Text;
 
@@ -74,20 +74,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Media type.
         /// </summary>
-        public string MediaType
-        {
-            get;
-            set;
-        } = string.Empty;
+        public string MediaType { get; set; } = string.Empty;
 
         /// <summary>
         /// Media settings as a string.
         /// </summary>
-        public string? MediaSettings
-        {
-            get;
-            set;
-        }
+        public string? MediaSettings { get; set; }
 
         /// <summary>
         /// Interface type.
@@ -132,20 +124,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Used trace level.
         /// </summary>
-        public TraceLevel TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel TraceLevel { get; set; }
 
         /// <summary>
         /// Absolute expiration time in seconds.
         /// </summary>
-        public int ExpirationTime
-        {
-            get;
-            set;
-        }
+        public int ExpirationTime { get; set; }
 
         /// <summary>
         /// Device name method is used to to generate device name for the new device.

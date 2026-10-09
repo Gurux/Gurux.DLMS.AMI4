@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
 
@@ -46,48 +45,56 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List device templates.
         /// </summary>
         /// <returns>Device templates.</returns>
-        Task<GXDeviceTemplate[]> ListAsync(
-            ListDeviceTemplates? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXDeviceTemplate>> ListAsync(
+            ListDeviceTemplates? request = null,
             ListDeviceTemplatesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read device template information.
+        /// Read device template details.
         /// </summary>
         /// <param name="id">Device template id.</param>
-        /// <returns></returns>
-        Task<GXDeviceTemplate> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXDeviceTemplate> ReadAsync(Guid id, Expression<Func<GXDeviceTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update device template.
         /// </summary>
         /// <param name="templates">Updated device templates.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXDeviceTemplate> templates,
-            Expression<Func<GXDeviceTemplate, object?>>? columns = null);
+            Expression<Func<GXDeviceTemplate, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete device template(s).
         /// </summary>
         /// <param name="templates">Device templates to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(
-            IEnumerable<Guid> templates,
-            bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> templates, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access device template.
         /// </summary>
         /// <param name="deviceTemplateId">Device template id.</param>
         /// <returns>User Ids that can access device template.</returns>
-        Task<List<string>> GetUsersAsync(Guid? deviceTemplateId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? deviceTemplateId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access given device templates.
         /// </summary>
         /// <param name="deviceTemplateIds">Device template ids.</param>
         /// <returns>User Ids that can access device template.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceTemplateIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? deviceTemplateIds, CancellationToken cancellationToken = default);
     }
 }

@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -68,7 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
             Active = true;
             Name = name;
             GatewayGroups = new List<GXGatewayGroup>();
-            Logs = new List<GXGatewayLog>();
+            Logs = new List<GXLog>();
             DeviceGroups = new List<GXDeviceGroup>();
             Devices = new List<GXDevice>();
             TraceLevel = System.Diagnostics.TraceLevel.Error;
@@ -80,11 +81,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Gateway Name.
@@ -92,21 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Description.
@@ -116,11 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Unique gateway identifier.
@@ -128,11 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Equals)]
-        public string? Identifier
-        {
-            get;
-            set;
-        }
+        public string? Identifier { get; set; }
 
         /// <summary>
         /// Gateway Status.
@@ -141,22 +116,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DefaultValue(AgentStatus.Offline)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GatewayStatus? Status
-        {
-            get;
-            set;
-        }
+        public GatewayStatus? Status { get; set; }
 
         /// <summary>
         /// Script method that this gateway uses.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXScriptMethod))]
-        public GXScriptMethod? ScriptMethod
-        {
-            get;
-            set;
-        }
+        public GXScriptMethod? ScriptMethod { get; set; }
 
         /// <summary>
         /// Is gateway active.
@@ -171,33 +138,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDeviceGroup), typeof(GXGatewayDeviceGroup))]
-        public List<GXDeviceGroup>? DeviceGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
         /// <summary>
         /// List of devices that this gateway can access.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXDevice), typeof(GXGatewayDevice))]
-        public List<GXDevice>? Devices
-        {
-            get;
-            set;
-        }
+        public List<GXDevice>? Devices { get; set; }
 
         /// <summary>
         /// List of gateway groups where this gateway belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXGatewayGroup), typeof(GXGatewayGroupGateway))]
         [Filter(FilterType.Contains)]
-        public List<GXGatewayGroup>? GatewayGroups
-        {
-            get;
-            set;
-        }
+        public List<GXGatewayGroup>? GatewayGroups { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -206,11 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// The creator of the gateway.
@@ -219,11 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// When the gateway is detected for the last time.
@@ -231,11 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Description("When the gateway is detected for the last time.")]
         [Filter(FilterType.GreaterOrEqual)]
         [DefaultValue(null)]
-        public DateTimeOffset? Detected
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Detected { get; set; }
 
         /// <summary>
         /// Holds metadata about the client connection, including the remote IP address and other optional 
@@ -246,11 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Filter(FilterType.Contains)]
         [DefaultValue(null)]
         [StringLength(64)]
-        public string? ConnectionInfo
-        {
-            get;
-            set;
-        }
+        public string? ConnectionInfo { get; set; }
 
         /// <summary>
         /// Time when gateway was removed.
@@ -262,21 +201,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the gateway is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -284,11 +215,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Used trace level.
@@ -297,22 +224,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
         [Description("Used trace level.")]
         [IsRequired]
-        public TraceLevel? TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Gateway logs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXGatewayLog))]
+        [DataMember, Ignore(IgnoreType.Db)]
         [Filter(FilterType.Contains)]
-        public List<GXGatewayLog>? Logs
-        {
-            get;
-            set;
-        }
+        public List<GXLog>? Logs { get; set; }
 
 
         /// <summary>
@@ -324,11 +243,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Update creation time before update.
@@ -357,11 +273,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false)]
         [DataMember]
         [DefaultValue(null)]
-        public GXAgent? Agent
-        {
-            get;
-            set;
-        }
+        public GXAgent? Agent { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

@@ -74,11 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the management group.
@@ -87,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Manufacturer group name.
@@ -101,21 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Description.
@@ -125,21 +103,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Description("Description.")]
         //Filter uses default value.
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// List of manufacturers that this manufacturer group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXManufacturer), typeof(GXManufacturerGroupManufacturer))]
-        public List<GXManufacturer>? Manufacturers
-        {
-            get;
-            set;
-        }
+        public List<GXManufacturer>? Manufacturers { get; set; }
 
         /// <summary>
         /// This manufacturer group is public.
@@ -152,22 +122,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DefaultValue(true)]
         [Filter(FilterType.Equals)]
         [IsRequired]
-        public bool? Public
-        {
-            get;
-            set;
-        }
+        public bool? Public { get; set; }
 
         /// <summary>
         /// User groups that can access this manufacturer group. 
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupManufacturerGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -178,11 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -191,11 +149,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the manufacturer group last updated.
@@ -203,11 +157,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the manufacturer group.
@@ -215,11 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -230,11 +176,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// This is default manufacturer group where new manufacturers are added automatically when user creates them.
@@ -243,11 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

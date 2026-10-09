@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +32,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,8 +45,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List localized resources.
         /// </summary>
         /// <returns>LocalizedResources.</returns>
-        Task<GXLocalizedResource[]> ListAsync(
-            ListLocalizedResources? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLocalizedResource>> ListAsync(
+            ListLocalizedResources? request = null,
             ListLocalizedResourcesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -53,8 +57,12 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read localized resource.
         /// </summary>
         /// <param name="id">Localized resource id.</param>
-        /// <returns></returns>
-        Task<GXLocalizedResource> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLocalizedResource> ReadAsync(Guid id,
+            Expression<Func<GXLocalizedResource, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read localized resource.
@@ -62,20 +70,23 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="lang">Language identifier.</param>
         /// <param name="hash">Hash of localized resource.</param>
         /// <param name="text">Localized text.</param>
-        /// <returns></returns>
-        Task<GXLocalizedResource> ReadAsync(string lang, string hash, string? text);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLocalizedResource> ReadAsync(string lang, string hash, string? text, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update localized resource(s).
         /// </summary>
         /// <param name="localizedResources">Updated localized resource(s).</param>
-        Task<Guid[]> UpdateAsync(IEnumerable<GXLocalizedResource> localizedResources);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(IEnumerable<GXLocalizedResource> localizedResources, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete localized resource(s).
         /// </summary>
         /// <param name="localizedResources">Localized resource(s) to delete.</param>
-        Task DeleteAsync(IEnumerable<Guid> localizedResources);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> localizedResources, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// When the localized resource was last changed.

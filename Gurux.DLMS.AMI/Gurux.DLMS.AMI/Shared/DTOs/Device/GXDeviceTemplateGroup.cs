@@ -73,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
 
         /// <summary>
@@ -87,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the device template group.
@@ -101,34 +93,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Device template group description.
         /// </summary>
-		[DataMember]
+        [DataMember]
         [StringLength(256)]
         [Description("Description.")]
         [DefaultValue(null)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -137,11 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when device template group was removed.
@@ -150,22 +120,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the device template group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -173,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
 
         /// <summary>
@@ -189,32 +147,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// List of users groups that belongs to this device template group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupDeviceTemplateGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of  device templates that this device template group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXDeviceTemplate), 
+        [DataMember, ForeignKey(typeof(GXDeviceTemplate),
             typeof(GXDeviceTemplateGroupDeviceTemplate))]
-        public List<GXDeviceTemplate>? DeviceTemplates
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceTemplate>? DeviceTemplates { get; set; }
 
         /// <summary>
         /// This is default device template group where new device templates are added automatically when user creates them.
@@ -223,11 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

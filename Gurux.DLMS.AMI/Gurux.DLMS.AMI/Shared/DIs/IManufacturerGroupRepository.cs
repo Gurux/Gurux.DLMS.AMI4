@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,33 +46,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List manufacturer groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXManufacturerGroup[]> ListAsync(
-            ListManufacturerGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXManufacturerGroup>> ListAsync(
+            ListManufacturerGroups? request = null,
             ListManufacturerGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read manufacturer group information.
+        /// Read manufacturer group details.
         /// </summary>
         /// <param name="id">Manufacturer group id.</param>
-        /// <returns></returns>
-        Task<GXManufacturerGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXManufacturerGroup> ReadAsync(Guid id, Expression<Func<GXManufacturerGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update manufacturer groups.
         /// </summary>
         /// <param name="groups">Updated manufacturer groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXManufacturerGroup> groups,
-            Expression<Func<GXManufacturerGroup, object?>>? columns = null);
+            Expression<Func<GXManufacturerGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete manufacturer group(s).
         /// </summary>
         /// <param name="groups">Manufacturer groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns manufacturer groups list where manufacturer belongs.
@@ -85,14 +93,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this manufacturer group.
         /// </summary>
         /// <param name="manufacturerGroupId">Manufacturer group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? manufacturerGroupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? manufacturerGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access manufacturer group.
         /// </summary>
         /// <param name="manufacturerGroupIds">Agent Manufacturer ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerGroupIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? manufacturerGroupIds, CancellationToken cancellationToken = default);
     }
 }

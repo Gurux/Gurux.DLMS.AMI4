@@ -48,22 +48,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         /// </summary>
         [DataMember(Name = "ScriptGroupId")]
         [ForeignKey(typeof(GXScriptGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid ScriptGroupId
-        {
-            get;
-            set;
-        }
+        public Guid ScriptGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the script.
         /// </summary>
         [DataMember(Name = "ScriptID")]
         [ForeignKey(typeof(GXScript), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ScriptId
-        {
-            get;
-            set;
-        }
+        public Guid ScriptId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -72,11 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when script was removed from script group.
@@ -85,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

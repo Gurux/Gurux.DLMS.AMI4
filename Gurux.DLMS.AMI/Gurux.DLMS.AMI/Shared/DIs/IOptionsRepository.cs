@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -37,21 +37,27 @@ namespace Gurux.DLMS.AMI.Shared.DIs
     /// </summary>
     public interface IOptionsRepository
     {
+        /// <summary>
+        /// Get server settings.
+        /// </summary>
+        /// <typeparam name="T">Type of the settings object.</typeparam>
+        /// <param name="configuration">Configuration key.</param>
+        /// <returns>Settings object of type T.</returns>
         T GetServerSettings<T>(string configuration);
 
         /// <summary>
         /// Get settings from the database as JSON string.
         /// </summary>
-        /// <param name="configuration"></param>
-        /// <returns></returns>
+        /// <param name="configuration">Configuration key.</param>
+        /// <returns>Operation result.</returns>
         Task<string> GetSettingsAsJsonAsync(string configuration);
 
         /// <summary>
         /// Save settings to the database.
         /// </summary>
-        /// <param name="configuration"></param>
-        /// <param name="value"></param>
-        /// <returns></returns>
+        /// <param name="configuration">Configuration key.</param>
+        /// <param name="value">Configuration value to persist.</param>
+        /// <returns>Operation result.</returns>
         Task SaveSettingsAsync(string configuration, object value);
     }
 }

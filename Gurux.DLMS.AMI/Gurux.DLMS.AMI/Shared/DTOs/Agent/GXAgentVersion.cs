@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -48,11 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// Agent version identifier.
         /// </summary>
         [DefaultValue(null)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Is this the default agent version.
@@ -60,11 +56,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Is agent version active.
@@ -78,15 +70,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <summary>
         /// Agent version number.
         /// </summary>
-        [StringLength(20)]
+        [StringLength(128)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Number
-        {
-            get;
-            set;
-        }
+        public string? Number { get; set; }
 
         /// <summary>
         /// Is this a pre-release version.
@@ -94,11 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Prerelease
-        {
-            get;
-            set;
-        }
+        public bool? Prerelease { get; set; }
 
         /// <summary>
         /// Installation Url.
@@ -106,27 +90,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         /// <remarks>
         /// Only agent template sets this.
         /// </remarks>
-        [StringLength(256)]
+        [StringLength(2048)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string? Url
-        {
-            get;
-            set;
-        }
+        public string? Url { get; set; }
 
         /// <summary>
         /// File path.
         /// </summary>
-        [StringLength(64)]
+        [StringLength(256)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? FileName
-        {
-            get;
-            set;
-        }
+        public string? FileName { get; set; }
 
         /// <summary>
         /// Description.
@@ -134,11 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -147,11 +119,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -160,11 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// The agent that owns this version.
@@ -174,11 +138,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Agent
         [Index(false)]
         [IsRequired]
         [JsonIgnore]
-        public GXAgent? Agent
-        {
-            get;
-            set;
-        }
+        public GXAgent? Agent { get; set; }
 
         /// <summary>
         /// Constructor.

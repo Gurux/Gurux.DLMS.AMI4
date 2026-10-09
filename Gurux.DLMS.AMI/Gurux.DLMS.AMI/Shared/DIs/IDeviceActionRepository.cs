@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,9 +31,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List device activities.
         /// </summary>
         /// <returns>Device actions.</returns>
-        Task<GXDeviceAction[]> ListAsync(
-            ListDeviceAction? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListDeviceAction? request = null,
             ListDeviceActionResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,21 +58,26 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read device activity.
         /// </summary>
         /// <param name="id">Device activity id.</param>
-        /// <returns></returns>
-        Task<GXDeviceAction> ReadAsync(
-            Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id,
+            Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add device activity.
         /// </summary>
         /// <param name="type">Device action type.</param>
         /// <param name="deviceActions">Added device actions.</param>
-        Task AddAsync(string type, IEnumerable<GXDeviceAction> deviceActions);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> deviceActions, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear all device activitys.
         /// </summary>
         /// <param name="devices">List of device Ids whoes activities are cleared.</param>
-        Task ClearAsync(IEnumerable<Guid>? devices);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken = default);
     }
 }

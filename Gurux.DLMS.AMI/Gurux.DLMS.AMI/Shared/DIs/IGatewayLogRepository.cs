@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +34,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,29 +47,37 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List Gateway logs.
         /// </summary>
         /// <returns>List of Gateway logs.</returns>
-        Task<GXGatewayLog[]> ListAsync(
-            ListGatewayLogs? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListGatewayLogs? request = null,
             ListGatewayLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read Gateway log information.
+        /// Read gateway log details.
         /// </summary>
         /// <param name="id">Gateway log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Gateway log information.</returns>
-        Task<GXGatewayLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear Gateway logs.
         /// </summary>
-        Task ClearAsync(Guid[]? Gateways);
+        /// <param name="Gateways">The gateway IDs to clear logs for.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? Gateways, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add Gateway logs.
         /// </summary>
         /// <param name="type">Gateway log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(string type, IEnumerable<GXGatewayLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -75,12 +85,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Gateway log type.</param>
         /// <param name="Gateway">Gateway.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXGatewayLog> AddAsync(string type, GXGateway Gateway, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXGateway Gateway, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close Gateway log(s).
         /// </summary>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(IEnumerable<Guid> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> logs, CancellationToken cancellationToken = default);
     }
 }

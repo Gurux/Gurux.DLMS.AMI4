@@ -48,8 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GXObjectTemplate() 
-        { 
+        public GXObjectTemplate()
+        {
         }
 
         /// <summary>
@@ -69,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         //Filter uses default value.
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
 
         /// <summary>
@@ -84,11 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Device template identifier.")]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXDeviceTemplate? DeviceTemplate
-        {
-            get;
-            set;
-        }
+        public GXDeviceTemplate? DeviceTemplate { get; set; }
 
         /// <summary>
         /// Object type.
@@ -97,11 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Object type.")]
         [IsRequired]
         [Filter(FilterType.Exact)]
-        public int? ObjectType
-        {
-            get;
-            set;
-        }
+        public int? ObjectType { get; set; }
 
 
         /// <summary>
@@ -111,11 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Object version.")]
         [DefaultValue(0)]
         [IsRequired]
-        public int? Version
-        {
-            get;
-            set;
-        }
+        public int? Version { get; set; }
 
 
         /// <summary>
@@ -126,11 +110,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Logical name of the object.
@@ -140,11 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Contains)]
         [DefaultValue(null)]
         [IsRequired]
-        public string? LogicalName
-        {
-            get;
-            set;
-        }
+        public string? LogicalName { get; set; }
 
         /// <summary>
         /// Short name of the object.
@@ -152,11 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Filter(FilterType.Exact)]
         [DefaultValue(0)]
-        public UInt16? ShortName
-        {
-            get;
-            set;
-        }
+        public UInt16? ShortName { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -165,22 +137,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When object is last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -188,11 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
 
         /// <summary>
@@ -202,11 +162,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
@@ -214,11 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Expiration time.")]
         [DefaultValue(null)]
-        public DateTimeOffset? ExpirationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExpirationTime { get; set; }
 
         /// <summary>
         /// Attribute templates.
@@ -226,11 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Attribute templates")]
         [ForeignKey(typeof(GXAttributeTemplate))]
-        public List<GXAttributeTemplate>? Attributes
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeTemplate>? Attributes { get; set; }
 
         /// <summary>
         /// Action access levels.
@@ -238,11 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [StringLength(20)]
-        public string? ActionAccessLevels
-        {
-            get;
-            set;
-        }
+        public string? ActionAccessLevels { get; set; }
 
         /// <summary>
         /// Update creation time before update.

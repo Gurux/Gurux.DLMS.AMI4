@@ -47,30 +47,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         /// <summary>
         /// Module settings unique name.
         /// </summary>
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
 
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
-        public GXModule? Module
-        {
-            get;
-            set;
-        }
+        public GXModule? Module { get; set; }
 
         /// <summary>
         /// Module settings.
         /// </summary>
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
     }
 
     /// <summary>
@@ -84,11 +72,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Parent device.
@@ -97,65 +81,41 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [JsonIgnore]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
         /// <summary>
         /// The module whose settings these are.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        public GXModule? Module
-        {
-            //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
+        public GXModule? Module { get; set; }
 
         /// <summary>
         /// Module settings unique name.
         /// </summary>
         [DataMember]
         [StringLength(64)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Module settings.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// Creation time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset CreationTime { get; set; }
         /// <summary>
         /// When parameter is updated for last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the parameter.
@@ -163,11 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -176,10 +132,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Device
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

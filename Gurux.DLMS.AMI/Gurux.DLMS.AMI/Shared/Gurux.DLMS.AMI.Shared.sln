@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.5.33627.172
+VisualStudioVersion = 17.14.37628.2 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Gurux.DLMS.AMI.Shared", "Gurux.DLMS.AMI.Shared.csproj", "{1684F4B5-2709-4408-A8FB-25F1D9819EF7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gurux.DLMS.AMI.Shared", "Gurux.DLMS.AMI.Shared.csproj", "{2B3F9FD1-2070-6531-0568-760C0E26EB1D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{1684F4B5-2709-4408-A8FB-25F1D9819EF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1684F4B5-2709-4408-A8FB-25F1D9819EF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1684F4B5-2709-4408-A8FB-25F1D9819EF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1684F4B5-2709-4408-A8FB-25F1D9819EF7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B3F9FD1-2070-6531-0568-760C0E26EB1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B3F9FD1-2070-6531-0568-760C0E26EB1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B3F9FD1-2070-6531-0568-760C0E26EB1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B3F9FD1-2070-6531-0568-760C0E26EB1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {4F4E4262-02FF-4F03-A912-5A684DE845CB}
+		SolutionGuid = {B097A7FB-C96B-4D15-8CDB-7DB77063074C}
 	EndGlobalSection
 EndGlobal

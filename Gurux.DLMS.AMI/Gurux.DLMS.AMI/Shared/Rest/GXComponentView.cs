@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -51,11 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXComponentViewGroup.Id), nameof(GXComponentViewGroup.Name))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id),
                 nameof(GXUser.UserName))]
-        public GXComponentView? Item
-        {
-            get;
-            set;
-        }
+        public GXComponentView? Item { get; set; }
     }
     /// <summary>
     /// Get list from component views.
@@ -66,21 +62,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the component views to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter component views.
@@ -89,11 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXComponentView.ComponentViewGroups),
             nameof(GXComponentView.Icon))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public GXComponentView? Filter
-        {
-            get;
-            set;
-        }
+        public GXComponentView? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access component views from all users.
@@ -101,11 +84,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, component views from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -113,11 +92,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -126,21 +101,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -148,11 +115,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -160,11 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -181,21 +140,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXComponentViewGroup.ComponentViews),
             nameof(GXComponentViewGroup.UserGroups))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        public GXComponentView[]? ComponentViews
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXComponentView>? ComponentViews { get; set; }
 
         /// <summary>
         /// Total count of the component viewrs.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -205,25 +156,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class UpdateComponentView : IGXRequest<UpdateComponentViewResponse>
     {
         /// <summary>
-        /// Constructor.
-        /// </summary>
-        public UpdateComponentView()
-        {
-            ComponentViews = new List<GXComponentView>();
-        }
-
-        /// <summary>
         /// ComponentViews to update.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXComponentViewGroup),
             nameof(GXComponentViewGroup.Id))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
-        public List<GXComponentView> ComponentViews
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXComponentView> ComponentViews { get; set; } = default!;
     }
 
     /// <summary>
@@ -236,11 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New component view identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? ComponentViewIds
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -253,11 +188,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed component view identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -267,11 +198,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -300,10 +227,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// True, if there are new component views avialable.
         /// </summary>
-        public bool NewItems
-        {
-            get;
-            set;
-        }
+        public bool NewItems { get; set; }
     }
 }

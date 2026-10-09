@@ -49,22 +49,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </summary>
         [DataMember(Name = "WorkflowID")]
         [ForeignKey(typeof(GXWorkflow), OnDelete = ForeignKeyDelete.None)]
-        public Guid WorkflowId
-        {
-            get;
-            set;
-        }
+        public Guid WorkflowId { get; set; }
 
         /// <summary>
         /// The database ID of the script method.
         /// </summary>
         [DataMember(Name = "MethodId")]
         [ForeignKey(typeof(GXScriptMethod), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid MethodId
-        {
-            get;
-            set;
-        }
+        public Guid MethodId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -73,11 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when script method was removed from workflow.
@@ -86,11 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.

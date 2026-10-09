@@ -64,11 +64,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// </summary>
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the Component view.
@@ -77,22 +73,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the component view class.
         /// </summary>
         [StringLength(128)]
         [IsRequired]
-        public string? ClassName
-        {
-            get;
-            set;
-        }
+        public string? ClassName { get; set; }
 
         /// <summary>
         /// Name of the component view.
@@ -102,31 +90,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Icon name.
         /// </summary>
         [Description("Icon name.")]
-        public string? Icon
-        {
-            get;
-            set;
-        }
+        public string? Icon { get; set; }
 
         /// <summary>
         /// Name of the configuration view class.
         /// </summary>
         [StringLength(128)]
-        public string? ConfigurationUI
-        {
-            get;
-            set;
-        }
+        public string? ConfigurationUI { get; set; }
 
         /// <summary>
         /// Is component view active.
@@ -141,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         /// </summary>
         [DataMember, ForeignKey(typeof(GXComponentViewGroup),
             typeof(GXComponentViewGroupComponentView), OnDelete = ForeignKeyDelete.Cascade)]
-        public List<GXComponentViewGroup>? ComponentViewGroups
-        {
-            get;
-            set;
-        }
+        public List<GXComponentViewGroup>? ComponentViewGroups { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -156,11 +128,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when block group was removed.
@@ -169,22 +137,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.ComponentView
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the block is updated for the last time.
         /// </summary>
         [Description("When the block is updated for the last time.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Update creation time before update.

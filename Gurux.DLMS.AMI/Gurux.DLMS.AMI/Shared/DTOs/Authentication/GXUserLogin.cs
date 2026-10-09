@@ -42,41 +42,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     [DataContract(Name = "GXUserLogin"), Serializable]
     public class GXUserLogin : IUnique<string>
     {
-        //Identifier.
+        /// <summary>
+        /// Gets or sets the login provider.
+        /// </summary>
         [StringLength(128)]
         [DataMember(Name = "LoginProvider")]
         [Filter(FilterType.Exact)]
-        public string Id
-        {
-            get;
-            set;
-        }
+        public string Id { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the unique identifier for the authentication provider.
+        /// </summary>
         [DataMember]
         [StringLength(128)]
-        public string? ProviderKey
-        {
-            get;
-            set;
-        }
+        public string? ProviderKey { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the display name of the authentication provider.
+        /// </summary>
         [DataMember]
         [StringLength(128)]
-        public string? ProviderDisplayName
-        {
-            get;
-            set;
-        }
+        public string? ProviderDisplayName { get; set; } = default!;
 
         /// <summary>
         /// User ID.
         /// </summary>
         [DataMember]
         [Index]
-        public Guid UserId
-        {
-            get;
-            set;
-        }
+        public Guid UserId { get; set; }
     }
 }

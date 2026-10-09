@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +33,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,61 +46,72 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List tasks.
         /// </summary>
         /// <returns>Tasks.</returns>
-        Task<GXTask[]> ListAsync(
-            ListTasks? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXTask>> ListAsync(
+            ListTasks? request = null,
             ListTasksResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read task information.
+        /// Read task details.
         /// </summary>
         /// <param name="id">Task id.</param>
-        /// <returns></returns>
-        Task<GXTask> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXTask> ReadAsync(Guid id, Expression<Func<GXTask, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new tasks.
         /// </summary>
         /// <param name="tasks">Updated task(s).</param>
-        Task<Guid[]> AddAsync(IEnumerable<GXTask> tasks);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken);
 
         /// <summary>
         /// Delete task(s).
         /// </summary>
         /// <param name="tasks">Deleted task(s).</param>
-        Task DeleteAsync(IEnumerable<Guid> tasks);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Mark task(s) to complete.
         /// </summary>
         /// <param name="tasks">Completed task(s).</param>
-        Task DoneAsync(IEnumerable<GXTask> tasks);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DoneAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Restart task(s).
         /// </summary>
         /// <param name="tasks">Restarted task(s).</param>
-        Task RestartAsync(IEnumerable<GXTask> tasks);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task RestartAsync(IEnumerable<GXTask> tasks, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Agent asks for the next tasks to execute.
+        /// Claim all pending tasks for one idle meter, preferring mapped meters before the oldest unmapped meter.
         /// </summary>
         /// <param name="connectionInfo">Connection information.</param>
         /// <param name="agentId">Agent ID.</param>
         /// <param name="DeviceId">Device Id</param>
         /// <param name="gatewayId">GatewayId Id</param>
         /// <param name="listener">Is agent in listener mode.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Collections of tasks to execute.</returns>
-        Task<GXTask[]> GetNextAsync(
+        Task<IEnumerable<GXTask>> GetNextAsync(
             string? connectionInfo,
             Guid agentId,
             Guid? DeviceId,
             Guid? gatewayId,
-            bool listener);
+            bool listener, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear tasks.
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// </summary>
-        Task ClearAsync();
+        Task ClearAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 // 
@@ -46,31 +46,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the values to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter values.
         /// </summary>
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
-        public GXValue? Filter
-        {
-            get;
-            set;
-        }
+        public GXValue? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -78,11 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -91,21 +74,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -113,11 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -125,47 +96,27 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
 
         /// <summary>
         /// Device Ids for which values are retrieved.
         /// </summary>
-        public Guid[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Devices { get; set; }
 
         /// <summary>
         /// Object Ids for which values are retrieved.
         /// </summary>
-        public Guid[]? Objects
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Objects { get; set; }
 
         /// <summary>
         /// Attribute Ids for which values are retrieved.
         /// </summary>
-        public Guid[]? Attributes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Attributes { get; set; }
 
         /// <summary>
         /// Attribute template Ids for which values are retrieved.
         /// </summary>
-        public Guid[]? AttributeTemplates
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? AttributeTemplates { get; set; }
     }
 
     /// <summary>
@@ -179,21 +130,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
-        public GXValue[]? Values
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXValue>? Values { get; set; }
 
         /// <summary>
         /// Total count of the value items.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -208,11 +151,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [Description("Values to add")]
         [ExcludeOpenApi(typeof(GXValue), nameof(GXValue.Attribute))]
-        public GXValue[]? Values
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXValue> Values { get; set; } = default!;
     }
 
     /// <summary>
@@ -226,11 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New value identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -244,31 +179,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
-        public GXDevice[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDevice>? Devices { get; set; }
         /// <summary>
         /// Objects to clear.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
-        public GXObject[]? Objects
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXObject>? Objects { get; set; }
         /// <summary>
         /// Attributes to clear.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
-        public GXAttribute[]? Attributes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAttribute>? Attributes { get; set; }
     }
 
     /// <summary>

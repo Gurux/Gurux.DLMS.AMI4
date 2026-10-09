@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -43,7 +43,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Imported data.
         /// </summary>
         /// <param name="req">Data exchange type filter.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Imported target type and Guid.</returns>
         Task<GXDataExchangeTypeResponse> AvailableTypes(
             GXDataExchangeType? req,
@@ -53,7 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Imported data.
         /// </summary>
         /// <param name="data">Import data.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Imported target type and Guid.</returns>
         Task<GXImportDataResponse> ImportDataAsync(
             GXImportData data,
@@ -63,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Exported data.
         /// </summary>
         /// <param name="filter">Exported filter.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task<GXExportDataResponse> ExportDataAsync(
             GXExportData filter,
             CancellationToken cancellationToken = default);

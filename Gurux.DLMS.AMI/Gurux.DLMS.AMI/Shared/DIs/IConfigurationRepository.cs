@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +33,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -51,40 +52,59 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List configuration settings.
         /// </summary>
+        /// <param name="user">The user making the request.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Tasks.</returns>
-        Task<GXConfiguration[]> ListAsync(
-            ListConfiguration? request,
+        Task<IEnumerable<GXConfiguration>> ListAsync(
+            ClaimsPrincipal user,
+            ListConfiguration? request = null,
             ListConfigurationResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read configuration information.
+        /// Read configuration details.
         /// </summary>
+        /// <param name="user">The user making the request.</param>
         /// <param name="id">Configuration id.</param>
         /// <param name="culture">Used culture.</param>
-        /// <returns></returns>
-        Task<GXConfiguration> ReadAsync(Guid id, string? culture);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXConfiguration> ReadAsync(ClaimsPrincipal user, Guid id, string? culture, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add or update configuration settings.
         /// </summary>
+        /// <param name="user">The user making the request.</param>
         /// <param name="configurations">Updated configuration(s).</param>
         /// <param name="notification">Is update notified.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task UpdateAsync(
+            ClaimsPrincipal user,
             IEnumerable<GXConfiguration> configurations,
-            bool notification);
+            bool notification, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete configuration(s).
         /// </summary>
+        /// <param name="user">The user making the request.</param>
         /// <param name="configurations">Deleted configuration(s).</param>
-        Task DeleteAsync(
-            IEnumerable<Guid> configurations);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(ClaimsPrincipal user, IEnumerable<Guid> configurations, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Configuration has been updated.
         /// </summary>
         event ConfigurationModifiedEventHandler? Updated;
 
+        /// <summary>
+        /// Returns a list from changed database schemas.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>List of tables with schema changes.</returns>
+        Task<IEnumerable<string>?> GetTablesWithSchemaChangesAsync(CancellationToken cancellationToken = default);
+        /// <summary>Returns descriptions of pending schema changes grouped by table.</summary>
+        Task<IEnumerable<GXConfigurationTableChange>> GetTableChangesAsync(CancellationToken cancellationToken = default);
     }
 }

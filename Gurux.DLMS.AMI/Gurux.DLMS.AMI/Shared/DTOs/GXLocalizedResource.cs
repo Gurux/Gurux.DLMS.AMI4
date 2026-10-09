@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,9 +30,6 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
-using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
-using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
@@ -52,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Localized string.
@@ -72,11 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Exact)]
         [StringLength(64)]
         [IsRequired]
-        public string? Hash
-        {
-            get;
-            set;
-        }
+        public string? Hash { get; set; }
 
         /// <summary>
         /// Status is used to tell when a resource is missing. 
@@ -85,11 +74,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(0)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public int? Status
-        {
-            get;
-            set;
-        }
+        public int? Status { get; set; }
 
         /// <summary>
         /// Parent language.
@@ -100,24 +85,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [Index(false)]
-        public GXLanguage? Language
-        {
-            get;
-            set;
-        }
+        public GXLanguage? Language { get; set; }
 
         /// <summary>
         /// The creator of the localized resource.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -126,11 +103,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When was the localized resource last updated.
@@ -138,11 +111,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("When was the localized resource last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -153,16 +122,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()
         {
             return Id + ": " + Value;
         }
+        /// <summary>Load this resource during client initialization when access is allowed.</summary>
+        [DataMember, IsRequired, DefaultValue(false), Filter(FilterType.Exact)]
+        public bool? Preload { get; set; }
     }
 }

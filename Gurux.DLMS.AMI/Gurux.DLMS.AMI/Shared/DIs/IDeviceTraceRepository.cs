@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +33,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List device activities.
         /// </summary>
         /// <returns>DeviceActivitys.</returns>
-        Task<GXDeviceTrace[]> ListAsync(
-            ListDeviceTrace? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXDeviceTrace>> ListAsync(
+            ListDeviceTrace? request = null,
             ListDeviceTraceResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,20 +58,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read device activity.
         /// </summary>
         /// <param name="id">Device activity id.</param>
-        /// <returns></returns>
-        Task<GXDeviceTrace> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXDeviceTrace> ReadAsync(Guid id, Expression<Func<GXDeviceTrace, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add device traces.
         /// </summary>
         /// <param name="type">Device trace type.</param>
         /// <param name="deviceTraces">Added device traces.</param>
-        Task AddAsync(string type, IEnumerable<GXDeviceTrace> deviceTraces);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXDeviceTrace> deviceTraces, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear all device activitys.
         /// </summary>
         /// <param name="devices">List of device Ids whoes activities are cleared.</param>
-        Task ClearAsync(IEnumerable<Guid>? devices);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken);
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -37,6 +37,7 @@ using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm.Common;
 using System.ComponentModel;
 using System.Runtime.Serialization;
@@ -58,11 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
-        public GXModule? Item
-        {
-            get;
-            set;
-        }
+        public GXModule? Item { get; set; }
     }
 
 
@@ -95,21 +92,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXAttributeParameter), nameof(GXAttributeParameter.Module))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
 
-        public GXModule[] Modules
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<GXModule> Modules { get; set; } = default!;
 
         /// <summary>
         /// Is restart required.
         /// </summary>
         [DataMember]
-        public bool Restart
-        {
-            get;
-            set;
-        }
+        public bool Restart { get; set; }
     }
 
 
@@ -119,16 +108,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class InstallModule
     {
+        /// <summary>Gets or sets the catalog version identifier to install, if specified.</summary>
+        [DataMember]
+        public Guid? VersionId { get; set; }
+
         /// <summary>
         /// Installed module.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
-        public GXModule Module
-        {
-            get;
-            set;
-        } = default!;
+        public GXModule Module { get; set; } = default!;
     }
 
     /// <summary>
@@ -141,11 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Is restart required.
         /// </summary>
         [DataMember]
-        public bool Restart
-        {
-            get;
-            set;
-        }
+        public bool Restart { get; set; }
     }
 
 
@@ -177,11 +162,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXObjectParameter), nameof(GXObjectParameter.Module))]
         [ExcludeOpenApi(typeof(GXAttributeParameter), nameof(GXAttributeParameter.Module))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id))]
-        public GXModule Module
-        {
-            get;
-            set;
-        } = default!;
+        public GXModule Module { get; set; } = default!;
     }
 
     /// <summary>
@@ -194,11 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Is restart required.
         /// </summary>
         [DataMember]
-        public bool Restart
-        {
-            get;
-            set;
-        }
+        public bool Restart { get; set; }
     }
 
     /// <summary>
@@ -207,6 +184,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class ListModules : IGXRequest<ListModulesResponse>
     {
+        /// <summary>Gets or sets whether to list modules from the update catalog only.</summary>
+        [DataMember]
+        public bool CatalogOnly { get; set; }
+        /// <summary>Gets or sets whether to include prerelease module versions.</summary>
+        [DataMember]
+        public bool IncludePrereleases { get; set; }
+
         /// <summary>
         /// Filter can be used to filter modules.
         /// </summary>
@@ -217,11 +201,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
-        public GXModule? Filter
-        {
-            get;
-            set;
-        }
+        public GXModule? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access modules from all users.
@@ -229,29 +209,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, groups from all modules are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the modules to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -259,11 +227,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -272,21 +236,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -294,22 +250,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public string[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Included { get; set; }
         /// <summary>
         /// Excluded Ids.
         /// </summary>
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public string[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -319,6 +267,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class ListModulesResponse
     {
+        /// <summary>Gets or sets the available catalog releases grouped by module identifier.</summary>
+        [DataMember] public Dictionary<string, List<ModuleReleaseInfo>> CatalogVersions { get; set; } = new();
+
         /// <summary>
         /// Installed modules.
         /// </summary>
@@ -331,22 +282,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXModule.ObjectParameters), nameof(GXModule.AttributeParameters),
             nameof(GXModule.Schedules), nameof(GXModule.Workflows),
             nameof(GXModule.Creator))]
-        public GXModule[]? Modules
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXModule>? Modules { get; set; }
 
         /// <summary>
         /// Amount of the modules.
         /// </summary>
         [DataMember]
         [Description("Amount of the modules.")]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -357,14 +300,16 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class RemoveModule
     {
         /// <summary>
+        /// Data removal options.
+        /// </summary>
+        [DataMember]
+        public ModuleDataRemoval DataRemoval { get; set; }
+
+        /// <summary>
         /// Removed modules.
         /// </summary>
         [DataMember]
-        public string[] Modules
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<string> Modules { get; set; } = default!;
     }
 
     /// <summary>
@@ -373,15 +318,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class RemoveModuleResponse
     {
+        /// <summary>Gets or sets the removal outcome for each requested module.</summary>
+        [DataMember] public List<ModuleRemovalResult> Results { get; set; } = [];
+
         /// <summary>
         /// Is restart required to remove the module.
         /// </summary>
         [DataMember]
-        public bool Restart
-        {
-            get;
-            set;
-        }
+        public bool Restart { get; set; }
     }
 
     /// <summary>
@@ -398,5 +342,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class CheckModuleResponse
     {
+        /// <summary>The completed background execution ID.</summary>
+        [DataMember]
+        public Guid RunId { get; set; }
     }
+
+    /// <summary>Reports the removal outcome for a module.</summary>
+    /// <param name="ModuleId">The identifier of the module requested for removal.</param>
+    /// <param name="Success">Whether the module was removed successfully.</param>
+    /// <param name="Error">The error description if removal failed.</param>
+    public sealed record ModuleRemovalResult(string ModuleId, bool Success, string? Error = null);
+
+    /// <summary>Describes a catalog release and whether it can be installed.</summary>
+    /// <param name="Id">The catalog release identifier.</param>
+    /// <param name="Number">The release version number.</param>
+    /// <param name="Prerelease">Whether the release is a prerelease.</param>
+    /// <param name="Installable">Whether the release can be installed.</param>
+    public sealed record ModuleReleaseInfo(Guid Id, string Number, bool Prerelease, bool Installable);
 }

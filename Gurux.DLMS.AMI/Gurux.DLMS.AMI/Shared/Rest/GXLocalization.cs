@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -50,11 +50,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language), nameof(GXLocalizedResource.Creator))]
-        public GXLanguage[] Localizations
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<GXLanguage> Localizations { get; set; } = default!;
     }
 
     /// <summary>
@@ -67,11 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New localization identifiers.
         /// </summary>
         [DataMember]
-        public Guid[] LocalizationIds
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> LocalizationIds { get; set; } = default!;
     }
 
     /// <summary>
@@ -83,31 +75,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the localizations to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter localizations.
         /// </summary>
         [ExcludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Resources))]
-        public GXLanguage? Filter
-        {
-            get;
-            set;
-        }
+        public GXLanguage? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -115,11 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -128,21 +103,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -150,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -162,11 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -181,21 +140,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language),
             nameof(GXLocalizedResource.Creator))]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLanguage>? Languages { get; set; }
 
         /// <summary>
         /// Total count of the languages.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -208,11 +159,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Language identifiers to remove.
         /// </summary>
         [DataMember]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Ids { get; set; }
     }
 
     /// <summary>
@@ -234,10 +181,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id))]
-        public GXLanguage[]? Languages
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLanguage>? Languages { get; set; }
     }
 }

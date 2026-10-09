@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,7 +33,6 @@ using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
@@ -42,18 +41,14 @@ using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
 using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
 using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
-using Gurux.DLMS.AMI.Shared.DTOs.Subtotal;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
-using Gurux.DLMS.AMI.Shared.DTOs.ContentType;
 using Gurux.DLMS.AMI.Shared.DTOs.Menu;
-using Gurux.DLMS.AMI.Shared.DTOs.Notification;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
@@ -90,15 +85,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
             WorkflowGroups = new List<GXWorkflowGroup>();
             TriggerGroups = new List<GXTriggerGroup>();
             BlockGroups = new List<GXBlockGroup>();
-            ContentGroups = new List<GXContentGroup>();
-            ContentTypeGroups = new List<GXContentTypeGroup>();
             MenuGroups = new List<GXMenuGroup>();
             ComponentViewGroups = new List<GXComponentViewGroup>();
             ScriptGroups = new List<GXScriptGroup>();
             ManufacturerGroups = new List<GXManufacturerGroup>();
             KeyManagementGroups = new List<GXKeyManagementGroup>();
-            SubtotalGroups = new List<GXSubtotalGroup>();
-            ReportGroups = new List<GXReportGroup>();
         }
 
         /// <summary>
@@ -107,11 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the user group.
@@ -120,11 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the user group.
@@ -134,34 +117,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Filter(FilterType.Contains)]
         [StringLength(64)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// User group description.
         /// </summary>
-		[DataMember]
+        [DataMember]
         [DefaultValue(null)]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -171,11 +136,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when user group was removed.
@@ -183,34 +144,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember]
         [Index(false, Descend = true)]
         [DefaultValue(null)]
-        [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the user group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
         /// <summary>
         /// User has modified the item.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -221,11 +170,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// List of users who belong to this device group.
@@ -233,33 +179,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember]
         [ForeignKey(typeof(GXUser), typeof(GXUserGroupUser))]
         [DefaultValue(null)]
-        public List<GXUser>? Users
-        {
-            get;
-            set;
-        }
+        public List<GXUser>? Users { get; set; }
 
         /// <summary>
         /// List of device groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXDeviceGroup), typeof(GXUserGroupDeviceGroup))]
         [DefaultValue(null)]
-        public List<GXDeviceGroup>? DeviceGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceGroup>? DeviceGroups { get; set; }
 
         /// <summary>
         /// List of schedule groups that this user group can access.
         /// </summary>        
         [DataMember, ForeignKey(typeof(GXScheduleGroup), typeof(GXUserGroupScheduleGroup))]
         [DefaultValue(null)]
-        public List<GXScheduleGroup>? ScheduleGroups
-        {
-            get;
-            set;
-        }
+        public List<GXScheduleGroup>? ScheduleGroups { get; set; }
 
         /// <summary>
         /// List of device templates that this user group can access.
@@ -267,188 +201,94 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember, ForeignKey(typeof(GXDeviceTemplateGroup),
             typeof(GXUserGroupDeviceTemplateGroup))]
         [DefaultValue(null)]
-        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups
-        {
-            get;
-            set;
-        }
+        public List<GXDeviceTemplateGroup>? DeviceTemplateGroups { get; set; }
 
         /// <summary>
         ///List of agent groups that this user group can access.
         /// </summary>     
         [DataMember, ForeignKey(typeof(GXAgentGroup), typeof(GXUserGroupAgentGroup))]
         [DefaultValue(null)]
-        public List<GXAgentGroup>? AgentGroups
-        {
-            get;
-            set;
-        }
+        public List<GXAgentGroup>? AgentGroups { get; set; }
 
         /// <summary>
         ///List of gateway groups that this user group can access.
         /// </summary>     
         [DataMember, ForeignKey(typeof(GXGatewayGroup), typeof(GXUserGroupGatewayGroup))]
         [DefaultValue(null)]
-        public List<GXGatewayGroup>? GatewayGroups
-        {
-            get;
-            set;
-        }
+        public List<GXGatewayGroup>? GatewayGroups { get; set; }
 
         /// <summary>
         /// List of modules that this user group can access.
         /// </summary>      
         [DataMember, ForeignKey(typeof(GXModuleGroup), typeof(GXUserGroupModuleGroup))]
         [DefaultValue(null)]
-        public List<GXModuleGroup>? ModuleGroups
-        {
-            get;
-            set;
-        }
+        public List<GXModuleGroup>? ModuleGroups { get; set; }
 
         /// <summary>
         /// List of workflows that this user group can access.
         /// </summary>       
         [DataMember, ForeignKey(typeof(GXWorkflowGroup), typeof(GXUserGroupWorkflowGroup))]
         [DefaultValue(null)]
-        public List<GXWorkflowGroup>? WorkflowGroups
-        {
-            get;
-            set;
-        }
+        public List<GXWorkflowGroup>? WorkflowGroups { get; set; }
 
         /// <summary>
         /// List of workflows that this user group can access.
         /// </summary>       
         [DataMember, ForeignKey(typeof(GXTriggerGroup), typeof(GXUserGroupTriggerGroup))]
         [DefaultValue(null)]
-        public List<GXTriggerGroup>? TriggerGroups
-        {
-            get;
-            set;
-        }
+        public List<GXTriggerGroup>? TriggerGroups { get; set; }
 
         /// <summary>
         /// List of block groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXBlockGroup), typeof(GXUserGroupBlockGroup))]
         [DefaultValue(null)]
-        public List<GXBlockGroup>? BlockGroups
-        {
-            get;
-            set;
-        }
+        public List<GXBlockGroup>? BlockGroups { get; set; }
 
         /// <summary>
         /// List of content groups that this user group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXContentGroup), typeof(GXUserGroupContentGroup))]
-        [DefaultValue(null)]
-        public List<GXContentGroup>? ContentGroups
-        {
-            get;
-            set;
-        }
+
 
         /// <summary>
         /// List of content type groups that this user group can access.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXContentTypeGroup), typeof(GXUserGroupContentTypeGroup))]
-        [DefaultValue(null)]
-        public List<GXContentTypeGroup>? ContentTypeGroups
-        {
-            get;
-            set;
-        }
+
 
         /// <summary>
         /// List of content type groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXMenuGroup), typeof(GXUserGroupMenuGroup))]
         [DefaultValue(null)]
-        public List<GXMenuGroup>? MenuGroups
-        {
-            get;
-            set;
-        }
+        public List<GXMenuGroup>? MenuGroups { get; set; }
 
         /// <summary>
         /// List of component view groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXComponentViewGroup), typeof(GXUserGroupComponentViewGroup))]
         [DefaultValue(null)]
-        public List<GXComponentViewGroup>? ComponentViewGroups
-        {
-            get;
-            set;
-        }
+        public List<GXComponentViewGroup>? ComponentViewGroups { get; set; }
 
         /// <summary>
         /// List of script groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXScriptGroup), typeof(GXUserGroupScriptGroup))]
         [DefaultValue(null)]
-        public List<GXScriptGroup>? ScriptGroups
-        {
-            get;
-            set;
-        }
+        public List<GXScriptGroup>? ScriptGroups { get; set; }
 
         /// <summary>
         /// List of manufacturer groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXManufacturerGroup), typeof(GXUserGroupManufacturerGroup))]
         [DefaultValue(null)]
-        public List<GXManufacturerGroup>? ManufacturerGroups
-        {
-            get;
-            set;
-        }
+        public List<GXManufacturerGroup>? ManufacturerGroups { get; set; }
 
         /// <summary>
         /// List of key management groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXKeyManagementGroup), typeof(GXUserGroupKeyManagementGroup))]
         [DefaultValue(null)]
-        public List<GXKeyManagementGroup>? KeyManagementGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of Subtotal groups that this user group can access.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXSubtotalGroup), typeof(GXUserGroupSubtotalGroup))]
-        [DefaultValue(null)]
-        public List<GXSubtotalGroup>? SubtotalGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of report groups that this user group can access.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXReportGroup), typeof(GXUserGroupReportGroup))]
-        [DefaultValue(null)]
-        public List<GXReportGroup>? ReportGroups
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of notification groups that this user group can access.
-        /// </summary>
-        [DataMember, ForeignKey(typeof(GXNotificationGroup), typeof(GXUserGroupNotificationGroup))]
-        [DefaultValue(null)]
-        public List<GXNotificationGroup>? NotificationGroups
-        {
-            get;
-            set;
-        }
-
+        public List<GXKeyManagementGroup>? KeyManagementGroups { get; set; }
 
         /// <summary>
         /// This is default user group where new users are added automatically when user creates them.
@@ -457,24 +297,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// User group roles.
-        /// </summary>
-        [Ignore(IgnoreType.Db)]
-        [DataMember]
-        [DefaultValue(null)]
-        [Filter(FilterType.Contains)]
-        public List<string>? Roles
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update Creation time.

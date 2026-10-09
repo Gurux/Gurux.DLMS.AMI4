@@ -67,22 +67,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Version model.
         /// </summary>
         [DefaultValue(null)]
         [ForeignKey(typeof(GXDeviceModel), OnDelete = ForeignKeyDelete.Cascade)]
-        public GXDeviceModel? Model
-        {
-            get;
-            set;
-        }
+        public GXDeviceModel? Model { get; set; }
 
         /// <summary>
         /// Name of the version version.
@@ -93,23 +85,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// List of device settings.
         /// </summary>
         [DataMember]
         [Filter(FilterType.Contains)]
-        public List<GXDeviceSettings>? Settings
-        {
-            get;
-            set;
-        }     
-       
+        public List<GXDeviceSettings>? Settings { get; set; }
+
         /// <summary>
         /// Creation time.
         /// </summary>
@@ -117,12 +101,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
-        
+        public DateTimeOffset? CreationTime { get; set; }
+
         /// <summary>
         /// Time when device type was removed.
         /// </summary>
@@ -130,21 +110,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Manufacturer
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the device type is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Update creation time before update.

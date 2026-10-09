@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -48,11 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of tokens to add or update.")]
         [DataMember]
-        public GXPersonalToken[]? Tokens
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXPersonalToken>? Tokens { get; set; }
     }
 
     /// <summary>
@@ -66,11 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Generated token.
         /// </summary>
         [DataMember]
-        public string? Token
-        {
-            get;
-            set;
-        }
+        public string? Token { get; set; }
     }
 
     /// <summary>
@@ -83,30 +75,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the token to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter tokens.
         /// </summary>
-        public GXPersonalToken? Filter
-        {
-            get;
-            set;
-        }
+        public GXPersonalToken? Filter { get; set; }
     }
 
     /// <summary>
@@ -121,22 +100,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [Description("List of tokens.")]
         [DataMember]
-        public GXPersonalToken[]? Tokens
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXPersonalToken>? Tokens { get; set; }
 
         /// <summary>
         /// Total count of the tokens.
         /// </summary>
         [DataMember]
         [Description("Total count of the tokens.")]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -151,11 +122,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("Removed tokens.")]
-        public string[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Ids { get; set; }
     }
 
     /// <summary>

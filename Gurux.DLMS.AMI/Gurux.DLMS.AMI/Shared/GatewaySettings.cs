@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -60,11 +60,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// <remarks>
         /// This is used when the gateway is selected from the list of saved gateways.
         /// </remarks>
-        public Guid? Id
-        {
-            get;
-            set;
-        }
+        public Guid? Id { get; set; }
 
         /// <summary>
         /// How long in seconds the gateway identify message is waited from the gateway.
@@ -74,30 +70,18 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Media settings as a string.
         /// </summary>
-        public string? MediaSettings
-        {
-            get;
-            set;
-        }
+        public string? MediaSettings { get; set; }
 
         /// <summary>
         /// Used trace level.
         /// </summary>
-        public TraceLevel TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel TraceLevel { get; set; }
 
         /// <summary>
         /// Absolute expiration time in seconds. 
         /// After that time the agent closes the idle connection.
         /// </summary>
-        public int ExpirationTime
-        {
-            get;
-            set;
-        }
+        public int ExpirationTime { get; set; }
 
         /// <summary>
         /// Gateway script is used to identify the connecting gateway.

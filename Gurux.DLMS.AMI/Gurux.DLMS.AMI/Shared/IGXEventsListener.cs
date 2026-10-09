@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,10 +30,10 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.DTOs.Content;
 using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
@@ -47,10 +47,27 @@ using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
 namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// Event listener is used to listen Gurux.DLMS.AMI server events.
+    /// Defines callbacks for Gurux.DLMS.AMI domain events.
     /// </summary>
     public interface IGXEventsListener
     {
+        /// <summary>Occurs when module targets are updated.</summary>
+        event Action<IEnumerable<GXTarget>> OnModuleTargetUpdate;
+        /// <summary>
+        /// New item is added or updated.
+        /// </summary>
+        event Action<IEnumerable<GXTarget>> OnUpdate;
+
+        /// <summary>
+        /// New item is deleted.
+        /// </summary>
+        event Action<IEnumerable<GXTarget>> OnDelete;
+
+        /// <summary>
+        /// Items are cleared.
+        /// </summary>      
+        event Action<IEnumerable<GXTarget>> OnClear;
+
         /// <summary>
         /// Configuration is saved.
         /// </summary>
@@ -69,12 +86,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New system error is added.
         /// </summary>
-        event Action<IEnumerable<GXSystemLog>> OnAddSystemLogs;
+        event Action<IEnumerable<GXLog>> OnAddSystemLogs;
 
         /// <summary>
         /// System errors are closed.
         /// </summary>
-        event Action<IEnumerable<GXSystemLog>> OnCloseSystemLogs;
+        event Action<IEnumerable<GXLog>> OnCloseSystemLogs;
 
         /// <summary>
         /// Device errors are cleared.
@@ -84,12 +101,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New device error is added.
         /// </summary>
-        event Action<IEnumerable<GXDeviceError>> OnAddDeviceErrors;
+        event Action<IEnumerable<GXLog>> OnAddDeviceErrors;
 
         /// <summary>
         /// Device errors are closed.
         /// </summary>
-        event Action<IEnumerable<GXDeviceError>> OnCloseDeviceErrors;
+        event Action<IEnumerable<GXLog>> OnCloseDeviceErrors;
 
         /// <summary>
         /// Workflow logs are cleared.
@@ -99,12 +116,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New workflow log is added.
         /// </summary>
-        event Action<IEnumerable<GXWorkflowLog>> OnAddWorkflowLogs;
+        event Action<IEnumerable<GXLog>> OnAddWorkflowLogs;
 
         /// <summary>
-        /// Workflow log are closed.
+        /// Workflow logs are closed.
         /// </summary>
-        event Action<IEnumerable<GXWorkflowLog>> OnCloseWorkflowLogs;
+        event Action<IEnumerable<GXLog>> OnCloseWorkflowLogs;
 
         /// <summary>
         /// Schedule logs are cleared.
@@ -114,12 +131,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New schedule logs are added.
         /// </summary>
-        event Action<IEnumerable<GXScheduleLog>> OnAddScheduleLog;
+        event Action<IEnumerable<GXLog>> OnAddScheduleLog;
 
         /// <summary>
         /// Schedule logs are closed.
         /// </summary>
-        event Action<IEnumerable<GXScheduleLog>> OnCloseScheduleLog;
+        event Action<IEnumerable<GXLog>> OnCloseScheduleLog;
 
         /// <summary>
         /// Script logs are cleared.
@@ -127,14 +144,14 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXScript>?> OnClearScriptLogs;
 
         /// <summary>
-        /// New Script log is added.
+        /// New script log is added.
         /// </summary>
-        event Action<IEnumerable<GXScriptLog>> OnAddScriptLogs;
+        event Action<IEnumerable<GXLog>> OnAddScriptLogs;
 
         /// <summary>
         /// Script logs are closed.
         /// </summary>
-        event Action<IEnumerable<GXScriptLog>> OnCloseScriptLogs;
+        event Action<IEnumerable<GXLog>> OnCloseScriptLogs;
 
         /// <summary>
         /// User errors are cleared.
@@ -142,14 +159,14 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXUser>?> OnClearUserErrors;
 
         /// <summary>
-        /// New User error is added.
+        /// New user error is added.
         /// </summary>
-        event Action<IEnumerable<GXUserError>> OnAddUserErrors;
+        event Action<IEnumerable<GXLog>> OnAddUserErrors;
 
         /// <summary>
         /// User errors are closed.
         /// </summary>
-        event Action<IEnumerable<GXUserError>> OnCloseUserErrors;
+        event Action<IEnumerable<GXLog>> OnCloseUserErrors;
 
         /// <summary>
         /// Module logs are cleared.
@@ -159,12 +176,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New module log is added.
         /// </summary>
-        event Action<IEnumerable<GXModuleLog>> OnAddModuleLogs;
+        event Action<IEnumerable<GXLog>> OnAddModuleLogs;
 
         /// <summary>
         /// Module logs are closed.
         /// </summary>
-        event Action<IEnumerable<GXModuleLog>> OnCloseModuleLogs;
+        event Action<IEnumerable<GXLog>> OnCloseModuleLogs;
 
 
         /// <summary>
@@ -175,16 +192,16 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// New agent error is added.
         /// </summary>
-        event Action<IEnumerable<GXAgentLog>> OnAddAgentErrors;
+        event Action<IEnumerable<GXLog>> OnAddAgentErrors;
 
         /// <summary>
         /// Agent errors are closed.
         /// </summary>
-        event Action<IEnumerable<GXAgentLog>> OnCloseAgentErrors;
+        event Action<IEnumerable<GXLog>> OnCloseAgentErrors;
 
 
         /// <summary>
-        /// New Schedule is added.
+        /// New schedule is added.
         /// </summary>
         event Action<IEnumerable<GXSchedule>> OnScheduleUpdate;
 
@@ -199,7 +216,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXSchedule>> OnScheduleStart;
 
         /// <summary>
-        /// Schedule is compleated.
+        /// Schedule is completed.
         /// </summary>
         event Action<IEnumerable<GXSchedule>> OnScheduleCompleate;
 
@@ -410,47 +427,42 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXTask>> OnTaskDelete;
 
         /// <summary>
-        /// Task(s) are cleared.
+        /// Tasks are cleared.
         /// </summary>
         event Action<IEnumerable<GXUser>?> OnTaskClear;
 
         /// <summary>
         /// Contents are updated or modified.
         /// </summary>
-        event Action<IEnumerable<GXContent>> OnContentUpdate;
 
         /// <summary>
         /// Content is deleted.
         /// </summary>
-        event Action<IEnumerable<GXContent>> OnContentDelete;
 
         /// <summary>
         /// Contents are closed.
         /// </summary>
-        event Action<IEnumerable<GXContent>> OnContentClose;
 
         /// <summary>
         /// New content group is added or modified.
         /// </summary>
-        event Action<IEnumerable<GXContentGroup>> OnContentGroupUpdate;
 
         /// <summary>
         /// Content group is deleted.
         /// </summary>
-        event Action<IEnumerable<GXContentGroup>> OnContentGroupDelete;
 
         /// <summary>
         /// New user action is added.
         /// </summary>
-        event Action<IEnumerable<GXUserAction>> OnUserActionAdd;
+        event Action<IEnumerable<GXLog>> OnUserActionAdd;
 
         /// <summary>
         /// User action is deleted.
         /// </summary>
-        event Action<IEnumerable<GXUserAction>> OnUserActionDelete;
+        event Action<IEnumerable<GXLog>> OnUserActionDelete;
 
         /// <summary>
-        /// User actions are clear.
+        /// User actions are cleared.
         /// </summary>
         event Action<IEnumerable<GXUser>?> OnUserActionsClear;
 
@@ -480,7 +492,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXScript>> OnScriptUpdate;
 
         /// <summary>
-        /// Component view is deleted.
+        /// Script is deleted.
         /// </summary>
         event Action<IEnumerable<GXScript>> OnScriptDelete;
 
@@ -490,7 +502,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXScriptGroup>> OnScriptGroupUpdate;
 
         /// <summary>
-        /// Component view group is deleted.
+        /// Script group is deleted.
         /// </summary>
         event Action<IEnumerable<GXScriptGroup>> OnScriptGroupDelete;
 
@@ -500,17 +512,17 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXDeviceTrace>> OnDeviceTraceAdd;
 
         /// <summary>
-        /// Device traces are clear.
+        /// Device traces are cleared.
         /// </summary>
         event Action<IEnumerable<GXDevice>> OnDeviceTraceClear;
 
         /// <summary>
         /// New device action is added.
         /// </summary>
-        event Action<IEnumerable<GXDeviceAction>> OnDeviceActionAdd;
+        event Action<IEnumerable<GXLog>> OnDeviceActionAdd;
 
         /// <summary>
-        /// Device actions are clear.
+        /// Device actions are cleared.
         /// </summary>
         event Action<IEnumerable<GXDevice>?> OnDeviceActionsClear;
 
@@ -520,7 +532,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action<IEnumerable<GXRestStatistic>> OnRestStatisticAdd;
 
         /// <summary>
-        /// REST statistics are clear for the users.
+        /// REST statistics are cleared for the specified users.
         /// </summary>
         event Action<IEnumerable<GXUser>?> OnRestStatisticClear;
 
@@ -545,7 +557,7 @@ namespace Gurux.DLMS.AMI.Shared
         event Action OnCronStart;
 
         /// <summary>
-        /// Cron is compleated.
+        /// Cron is completed.
         /// </summary>
         event Action OnCronCompleate;
 
@@ -570,7 +582,7 @@ namespace Gurux.DLMS.AMI.Shared
         /// </summary>
         event Action<IEnumerable<GXLocalizedResource>>? OnLocalizedResourceUpdate;
         /// <summary>
-        /// Localized resource group is deleted.
+        /// Localized resource is deleted.
         /// </summary>
         event Action<IEnumerable<GXLocalizedResource>>? OnLocalizedResourceDelete;
     }

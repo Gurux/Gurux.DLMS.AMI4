@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Favorite Name.
@@ -61,31 +57,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(128)]
         [Index(false)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Favorite type.
         /// </summary>
         [StringLength(64)]
         [Index(false)]
-        public string? Type
-        {
-            get; set;
-        }
+        public string? Type { get; set; }
 
         /// <summary>
         /// Favorite path.
         /// </summary>
         [StringLength(256)]
-        public string? Path
-        {
-            get;
-            set;
-        }
+        public string? Path { get; set; }
 
         /// <summary>
         /// The Favorite user.
@@ -94,11 +79,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? User
-        {
-            get;
-            set;
-        }
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -107,21 +88,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the block is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }       
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Update creation time before update.

@@ -66,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("Attribute template Id.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Object template.
@@ -80,22 +76,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [IsRequired]
         [Filter(FilterType.Exact)]
-        public GXObjectTemplate? ObjectTemplate
-        {
-            get;
-            set;
-        }
+        public GXObjectTemplate? ObjectTemplate { get; set; }
 
         /// <summary>
         /// Attribute index.
         /// </summary>
         [DataMember]
         [Filter(FilterType.Exact, 0)]
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Object attribute name.
@@ -106,33 +94,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Contains)]
         [DefaultValue(null)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Attribute enumerated values.
         /// </summary>
         [DataMember]
         [ForeignKey]
-        public List<GXAttributeListItem>? ListItems
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeListItem>? ListItems { get; set; }
 
         /// <summary>
         /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public DateTimeOffset? ExpirationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExpirationTime { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -141,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When value is last updated.
@@ -153,11 +125,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the attribute templates.
@@ -165,11 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -181,11 +145,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -194,11 +155,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Access level.
@@ -206,11 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Access level.")]
         [DefaultValue(0)]
-        public int AccessLevel
-        {
-            get;
-            set;
-        }
+        public int AccessLevel { get; set; }
 
         /// <summary>
         /// Data type.
@@ -218,11 +171,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Data type.")]
         [DefaultValue(0)]
-        public int DataType
-        {
-            get;
-            set;
-        }
+        public int DataType { get; set; }
 
         /// <summary>
         /// UI Data type.
@@ -230,11 +179,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("UI Data type.")]
         [DefaultValue(0)]
-        public int UIDataType
-        {
-            get;
-            set;
-        }
+        public int UIDataType { get; set; }
 
         /// <summary>
         /// Attribute weight.
@@ -244,11 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [DefaultValue(0)]
-        public int Weight
-        {
-            get;
-            set;
-        }
+        public int Weight { get; set; }
 
         /// <summary>
         /// Default value.
@@ -256,22 +197,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Default value")]
         [Filter(FilterType.Contains)]
-        public string? DefaultValue
-        {
-            get;
-            set;
-        }
+        public string? DefaultValue { get; set; }
 
         /// <summary>
         /// Optional scaler is used to multiple the value with the given scaler.
         /// </summary>
         [DataMember]
         [Description("Optional scaler is used to multiple the value with the given scaler.")]
-        public double? Scaler
-        {
-            get;
-            set;
-        }
+        public double? Scaler { get; set; }
 
 
         /// <summary>
@@ -279,11 +212,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Description("Optional unit is used to describe the unit.")]
-        public string? Unit
-        {
-            get;
-            set;
-        }
+        public string? Unit { get; set; }
 
         /// <summary>
         /// Update creation time before update.

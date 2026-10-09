@@ -9,7 +9,7 @@
     <Authors>Gurux Ltd</Authors>
     <Copyright>Copyright (c) 1998-2026 Gurux Ltd. All rights reserved.</Copyright>
     <PackageProjectUrl>www.gurux.fi/Gurux.DLMS.AMI4</PackageProjectUrl>
-    <Description>Gurux.DLMS.AMI.Messages implements interfaces that are needed for Gurux DLMS AMI v4.</Description>
+    <Description>Gurux.DLMS.AMI.Shared implements interfaces that are needed for Gurux DLMS AMI v4.</Description>
     <Version Condition=" '$(BUILD_BUILDNUMBER)' == '' ">0.0.1-local</Version>
     <Version Condition=" '$(BUILD_BUILDNUMBER)' != '' ">$(BUILD_BUILDNUMBER)</Version>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance> 
@@ -27,8 +27,8 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Gurux.Service.Common" Version="3.0.2511.2001" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.5" />
+    <PackageReference Include="Gurux.Service.Common" Version="3.0.2609.2901" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.12" />
   </ItemGroup>
 
   <ItemGroup>

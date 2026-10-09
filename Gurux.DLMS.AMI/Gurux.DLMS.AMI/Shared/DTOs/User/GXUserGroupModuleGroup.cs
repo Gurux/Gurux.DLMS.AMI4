@@ -40,7 +40,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
     /// <summary>
     /// A data contract class representing user group to module binding object.
     /// </summary>
-    [DataContract(Name = "GXUserGroupModule"), Serializable]
+    [DataContract(Name = "GXUserGroupModuleGroup"), Serializable]
     [IndexCollection(true, nameof(UserGroupId), nameof(ModuleGroupId), Clustered = true)]
     public class GXUserGroupModuleGroup
     {
@@ -50,23 +50,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember(Name = "UserGroupID")]
         [ForeignKey(typeof(GXUserGroup), OnDelete = ForeignKeyDelete.None)]
 
-        public Guid UserGroupId
-        {
-            //ForeignKeyDelete is None because creator of the module group is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the module group is causing multiple cascade paths error in MSSQL.
+        public Guid UserGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the module group.
         /// </summary>
         [DataMember(Name = "ModuleGroupID")]
         [ForeignKey(typeof(GXModuleGroup), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid ModuleGroupId
-        {
-            get;
-            set;
-        }
+        public Guid ModuleGroupId { get; set; }
 
         /// <summary>
 		/// Creation time.
@@ -77,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when module group was removed from user group.
@@ -90,10 +78,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

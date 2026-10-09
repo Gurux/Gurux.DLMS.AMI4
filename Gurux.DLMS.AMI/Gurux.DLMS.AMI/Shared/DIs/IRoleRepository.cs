@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -47,8 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List roles.
         /// </summary>
         /// <returns>Roles.</returns>
-        Task<GXRole[]> ListAsync(
-            ListRoles? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXRole>> ListAsync(
+            ListRoles? request = null,
             ListRolesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -56,19 +59,37 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read role.
         /// </summary>
         /// <param name="id">Role id.</param>
-        /// <returns></returns>
-        Task<GXRole> ReadAsync(string id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXRole> ReadAsync(string id, Expression<Func<GXRole, object>>? columns = null, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Read by role name.
+        /// </summary>
+        /// <param name="name">Role name.</param>
+        /// <returns>Operation result.</returns>
+        Task<GXRole> ReadByNameAsync(string name);
 
         /// <summary>
         /// Update role(s).
         /// </summary>
         /// <param name="roles">Updated role(s).</param>
-        Task<string[]> UpdateAsync(IEnumerable<GXRole> roles);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<string>> UpdateAsync(IEnumerable<GXRole> roles, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete role(s).
         /// </summary>
         /// <param name="roles">Role(s) to delete.</param>
-        Task DeleteAsync(IEnumerable<string> roles);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<string> roles, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Asynchronously restores the default roles.
+        /// </summary>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>true if the refresh succeeds; otherwise, false.</returns>
+        Task<bool> RestoreDefaultRoles(CancellationToken cancellationToken);
     }
 }

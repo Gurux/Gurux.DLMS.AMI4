@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +34,7 @@
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.User;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,41 +47,53 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user errors.
         /// </summary>
         /// <returns>List of user errors.</returns>
-        Task<GXUserError[]> ListAsync(
-            ListUserErrors? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListUserErrors? request = null,
             ListUserErrorsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read user error information.
+        /// Read user error details.
         /// </summary>
         /// <param name="id">User error id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>User error information.</returns>
-        Task<GXUserError> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear user errors.
         /// </summary>
-        Task ClearAsync(IEnumerable<string>? users);
+        /// <param name="users">Users whose errors should be cleared.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<string>? users, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add user errors.
         /// </summary>
         /// <param name="type">Log type.</param>
         /// <param name="errors">New errors.</param>
-        Task AddAsync(string type, IEnumerable<GXUserError> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> errors, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
         /// <param name="type">Log type.</param>
+        /// <param name="user">User associated with the error.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXUserError> AddAsync(string type, GXUser user, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXUser user, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close user error(s).
         /// </summary>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> errors, CancellationToken cancellationToken = default);
     }
 }

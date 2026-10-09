@@ -30,11 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace Gurux.DLMS.AMI.Shared
 {
@@ -108,33 +108,166 @@ namespace Gurux.DLMS.AMI.Shared
             public IDictionary<string, object?> Extensions { get; set; } = new Dictionary<string, object?>(StringComparer.Ordinal);
         }
 
-        /// <summary>
-        /// Validate server reply status code.
+        private static void GetErrors(StringBuilder sb, JsonElement element)
+        {
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                sb.AppendLine(element.ToString());
+            }
+            else
+            {
+                foreach (var property in element.EnumerateObject())
+                {
+                    string errorKey = property.Name;
+                    if (property.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in property.Value.EnumerateArray())
+                        {
+                            if (errorKey == "DuplicateUserName")
+                            {
+                                //If user already exists.
+                                sb.AppendLine(item.GetString());
+                                break;
+                            }
+                            else
+                            {
+                                sb.AppendLine($"{errorKey}: {item.GetString()}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>       
+        /// Validates the HTTP response status code and throws an exception if the response indicates an error.
         /// </summary>
-        public static async Task ValidateStatusCode(HttpResponseMessage response, 
+        /// <param name="response">The HTTP response message.</param>
+        /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <exception cref="UnauthorizedAccessException">Thrown when the response indicates unauthorized access.</exception>
+        /// <exception cref="Exception">Thrown when the response indicates an error.</exception>
+        public static async Task ValidateStatusCode(HttpResponseMessage response,
             CancellationToken cancellationToken)
         {
             if (!response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync(cancellationToken);
-                ProblemDetails? problem;
-                try
+                if (response.StatusCode == HttpStatusCode.ServiceUnavailable && !string.IsNullOrWhiteSpace(content))
                 {
-                    problem = JsonSerializer.Deserialize<ProblemDetails>(content);
+                    try
+                    {
+                        using var document = JsonDocument.Parse(content);
+                        var root = document.RootElement;
+                        if (root.ValueKind == JsonValueKind.Object &&
+                            root.TryGetProperty("type", out var type) && type.GetString() == "maintenance")
+                        {
+                            var error = new GXMaintenanceException(root.TryGetProperty("detail", out var detail)
+                                ? detail.GetString() : "Site is on maintenance mode.");
+                            if (root.TryGetProperty("endTime", out var end) && end.ValueKind == JsonValueKind.String &&
+                                end.TryGetDateTimeOffset(out var endTime))
+                            {
+                                error.EndTime = endTime;
+                            }
+                            error.RetryAfter = response.Headers.RetryAfter?.Delta ??
+                                (response.Headers.RetryAfter?.Date is DateTimeOffset retryAt
+                                    ? retryAt - DateTimeOffset.UtcNow : null);
+                            throw error;
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // Other service-unavailable responses follow the normal error handling below.
+                    }
                 }
-                catch
+                ProblemDetails? problem = null;
+                if (!string.IsNullOrEmpty(content))
                 {
-                    throw new Exception(content);
+                    try
+                    {
+                        problem = JsonSerializer.Deserialize<ProblemDetails>(content);
+                    }
+                    catch
+                    {
+                        if (response.StatusCode != 0)
+                        {
+                            //Handle 404 etc errors.
+                            response.EnsureSuccessStatusCode();
+                        }
+                        throw new Exception(content);
+                    }
+                    StringBuilder sb = new StringBuilder();
+                    if (problem?.Extensions.Any() == true)
+                    {
+                        foreach (var kvp in problem.Extensions)
+                        {
+                            try
+                            {
+                                if (kvp.Key == "traceId")
+                                {
+                                    if (problem?.Title == "Forbidden" && problem.Status == (int)HttpStatusCode.Forbidden)
+                                    {
+                                        throw new UnauthorizedAccessException(kvp.Value?.ToString());
+                                    }
+                                    continue;
+                                }
+                                if (kvp.Value is JsonElement element)
+                                {
+                                    GetErrors(sb, element);
+                                }
+                                else
+                                {
+                                    sb.AppendLine(kvp.Key);
+                                    sb.AppendLine(kvp.Value?.ToString());
+                                }
+                            }
+                            catch (UnauthorizedAccessException)
+                            {
+                                throw;
+                            }
+                            catch (Exception)
+                            {
+                                sb.AppendLine(kvp.Key);
+                                sb.AppendLine(kvp.Value?.ToString());
+                            }
+                        }
+                    }
+                    if (sb.Length == 0)
+                    {
+                        if (problem?.Title == "Forbidden" && problem.Status == (int)HttpStatusCode.Forbidden)
+                        {
+                            throw new UnauthorizedAccessException(problem?.Detail);
+                        }
+                        else if (problem?.Title == "Unauthorized")
+                        {
+                            throw new UnauthorizedAccessException(problem?.Detail);
+                        }
+                        else
+                        {
+                            sb.AppendLine(problem?.Title);
+                            sb.AppendLine(problem?.Detail);
+                        }
+                    }
+                    throw new Exception(sb.ToString());
                 }
-                throw new Exception(problem?.Detail ?? problem?.Title ?? content);
+                else
+                {
+                    response.EnsureSuccessStatusCode();
+                }
             }
         }
 
         /// <summary>
-        /// Post object as JSON to the server.
+        /// Sends a JSON-encoded request to the specified URI and reads the response as a specified type.
         /// </summary>
-        /// <returns>Server reply.</returns>
-        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
+        /// <typeparam name="RET">The type of the response content.</typeparam>
+        /// <param name="client">The HttpClient used to send the request.</param>
+        /// <param name="requestUri">The URI to which the request is sent.</param>
+        /// <param name="value">The object to serialize and send as the request content.</param>
+        /// <param name="cancellationToken">A cancellation token to cancel the operation.</param>
+        /// <returns>The deserialized response content of type RET.</returns>
+        /// <exception cref="Exception">Thrown when the response content is null.</exception>
+        public static async Task<RET> PostAsJson<RET>(this HttpClient client, string requestUri, object? value, CancellationToken cancellationToken = default)
         {
             JsonSerializerOptions options = new JsonSerializerOptions()
             {
@@ -153,10 +286,10 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Post object as JSON to the server.
         /// </summary>
-        /// <param name="client"></param>
-        /// <param name="requestUri"></param>
-        /// <param name="value"></param>
-        /// <param name="cancellationToken"></param>
+        /// <param name="client">HttpClient instance.</param>
+        /// <param name="requestUri">Request URI.</param>
+        /// <param name="value">Object to be sent as JSON.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Server reply.</returns>
         public static async Task PostAsJson(this HttpClient client, string requestUri, object value, CancellationToken cancellationToken = default)
         {
@@ -169,11 +302,14 @@ namespace Gurux.DLMS.AMI.Shared
         }
 
         /// <summary>
-        /// 
+        /// Get object from the server as JSON.
         /// </summary>
-        /// <typeparam name="RET"></typeparam>
-        /// <param name="client"></param>
-        /// <returns>Server reply.</returns>
+        /// <typeparam name="RET">Type of the object to be returned.</typeparam>
+        /// <param name="client">HttpClient instance.</param>
+        /// <param name="requestUri">Request URI.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Deserialized object from the server response.</returns>
+        /// <exception cref="Exception">Thrown when the server response is invalid.</exception>
         public static async Task<RET> GetAsJsonAsync<RET>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default)
         {
             HttpResponseMessage response = await client.GetAsync(requestUri, cancellationToken);

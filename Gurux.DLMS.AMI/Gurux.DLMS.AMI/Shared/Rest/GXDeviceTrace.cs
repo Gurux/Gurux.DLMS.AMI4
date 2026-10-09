@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
-using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm.Common;
 using System.ComponentModel;
 using System.Runtime.Serialization;
@@ -50,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             , nameof(GXUser.UserName))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id)
             , nameof(GXDevice.Name))]
-        public GXDeviceTrace? Item
-        {
-            get;
-            set;
-        }
+        public GXDeviceTrace? Item { get; set; }
     }
 
     /// <summary>
@@ -68,22 +63,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
-        public GXDeviceTrace[] Traces
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<GXDeviceTrace> Traces { get; set; } = default!;
 
         /// <summary>
         /// Trace type.
         /// </summary>
         [DataMember]
         [Description("Trace type.")]
-        public string Type
-        {
-            get;
-            set;
-        } = default!;
+        public string Type { get; set; } = default!;
     }
 
     /// <summary>
@@ -105,31 +92,19 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Start index.
         /// </summary>
         [DataMember]
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Maximum device trace count to return.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter device traces.
         /// </summary>
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
-        public GXDeviceTrace? Filter
-        {
-            get;
-            set;
-        }
+        public GXDeviceTrace? Filter { get; set; }
 
 
         /// <summary>
@@ -138,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, traces from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -150,11 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -163,21 +130,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -185,11 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -197,11 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -215,11 +166,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
-        public GXDeviceTrace[] Traces
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDeviceTrace> Traces { get; set; } = default!;
 
         /// <summary>
         /// Total count of the trace items.
@@ -229,11 +176,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// In those cases the count is set to -1.
         /// </remarks>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -246,11 +189,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Device identifiers where device traces are removed.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
     }
 
     /// <summary>

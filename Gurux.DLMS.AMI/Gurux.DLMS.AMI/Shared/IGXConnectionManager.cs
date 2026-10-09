@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -35,10 +35,12 @@ using Gurux.DLMS.AMI.Shared.Rest;
 namespace Gurux.DLMS.AMI.Shared
 {
     /// <summary>
-    /// Defines methods and events for managing and monitoring a collection of connections.
+    /// Provides operations for managing active device connections.
     /// </summary>
-    /// <remarks>This interface provides functionality to add, remove, and retrieve connections, as well as an
-    /// event to notify subscribers when the collection of connections changes.</remarks>
+    /// <remarks>
+    /// Implementations maintain an in-memory view of currently active connections and
+    /// offer filtered listing support for API responses.
+    /// </remarks>
     public interface IGXConnectionManager
     {
         /// <summary>
@@ -59,12 +61,13 @@ namespace Gurux.DLMS.AMI.Shared
         void RemoveConnection(string connectionId);
 
         /// <summary>
-        /// Retrieves a collection of active connections.
+        /// Retrieves active connections using optional filter and paging information.
         /// </summary>
-        /// <returns>A read-only collection of <see cref="GXConnectionInfo"/> objects representing the current active
-        /// connections. The collection will be empty if no connections are active.</returns>
-        GXConnectionInfo[] List(
-            ListConnection? request,
+        /// <param name="request">Optional list request that defines filtering and pagination.</param>
+        /// <param name="response">Optional response context populated with paging metadata.</param>
+        /// <returns>Matching active connections. Returns an empty sequence if no matches are found.</returns>
+        IEnumerable<GXConnectionInfo> List(
+            ListConnection? request = null,
             ListConnectionResponse? response = null);
     }
 }

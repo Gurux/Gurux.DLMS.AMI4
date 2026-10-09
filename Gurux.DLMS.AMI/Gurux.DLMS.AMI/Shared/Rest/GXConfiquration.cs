@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -48,11 +48,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
         [ExcludeOpenApi(typeof(GXLocalizedResource),
             nameof(GXLocalizedResource.Language))]
-        public GXConfiguration? Item
-        {
-            get;
-            set;
-        }
+        [ExcludeOpenApi(typeof(GXConfiguration), nameof(GXConfiguration.UI))]
+        public GXConfiguration? Item { get; set; }
     }
 
     /// <summary>
@@ -64,31 +61,21 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the configuration items to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter system info.
         /// </summary>
-        [ExcludeOpenApi(typeof(GXConfiguration))]
-        public GXConfiguration? Filter
-        {
-            get;
-            set;
-        }
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource),
+             nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXConfiguration), nameof(GXConfiguration.UI))]
+        public GXConfiguration? Filter { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -96,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -109,21 +92,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -131,11 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -143,11 +114,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -160,21 +127,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of configuration settings.
         /// </summary>
         [DataMember]
-        public GXConfiguration[]? Configurations
-        {
-            get;
-            set;
-        }
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource),
+            nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXConfiguration), nameof(GXConfiguration.UI))]
+        public IEnumerable<GXConfiguration>? Configurations { get; set; }
 
         /// <summary>
         /// Total count of the configuration items.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -187,14 +150,9 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Updated configurations.
         /// </summary>
         [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
-        [ExcludeOpenApi(typeof(GXConfiguration))]
-        [ExcludeOpenApi(typeof(GXLocalizedResource),
-            nameof(GXLocalizedResource.Language))]
-        public GXConfiguration[]? Configurations
-        {
-            get;
-            set;
-        }
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [ExcludeOpenApi(typeof(GXConfiguration), nameof(GXConfiguration.UI))]
+        public IEnumerable<GXConfiguration>? Configurations { get; set; }
     }
 
     /// <summary>
@@ -247,11 +205,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter assemblies.
         /// </summary>
-        public GXAssembly? Filter
-        {
-            get;
-            set;
-        }
+        public GXAssembly? Filter { get; set; }
     }
 
     /// <summary>
@@ -263,11 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Loaded assemblies.
         /// </summary>
-        public GXAssembly[]? Assemblies
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAssembly>? Assemblies { get; set; }
     }
 
     /// <summary>

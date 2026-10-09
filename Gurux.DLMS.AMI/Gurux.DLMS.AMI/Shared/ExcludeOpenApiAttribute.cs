@@ -34,7 +34,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 
 namespace Gurux.DLMS.AMI.Shared
-{   
+{
     /// <summary>
     /// Property is removed from swagger schema.
     /// </summary>
@@ -61,5 +61,5 @@ namespace Gurux.DLMS.AMI.Shared
             Type = type;
             Exclude = exclude;
         }
-    }  
+    }
 }

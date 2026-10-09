@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +34,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,29 +47,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List key management logs.
         /// </summary>
         /// <returns>List of key management logs.</returns>
-        Task<GXKeyManagementLog[]> ListAsync(
-            ListKeyManagementLogs? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListKeyManagementLogs? request = null,
             ListKeyManagementLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read key management log information.
+        /// Read key management log details.
         /// </summary>
         /// <param name="id">KeyManagement log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>KeyManagement information.</returns>
-        Task<GXKeyManagementLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear key management logs.
         /// </summary>
-        Task ClearAsync(Guid[]? keys);
+        /// <param name="keys">Keys of the logs to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? keys, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add key management logs.
         /// </summary>
         /// <param name="type">Key management log type.</param>
         /// <param name="logs">New key management logs.</param>
-        Task AddAsync(string type, IEnumerable<GXKeyManagementLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -75,12 +86,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Key management log type.</param>
         /// <param name="key">Key management.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXKeyManagementLog> AddAsync(string type, GXKeyManagement key, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXKeyManagement key, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close key management log(s).
         /// </summary>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> errors, CancellationToken cancellationToken = default);
     }
 }

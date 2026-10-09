@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -59,11 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Errors))]
         [ExcludeOpenApi(typeof(GXAttributeListItem),
             nameof(GXAttributeListItem.Template))]
-        public GXAttribute? Item
-        {
-            get;
-            set;
-        }
+        public GXAttribute? Item { get; set; }
     }
 
 
@@ -87,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Tasks),
             nameof(GXAttribute.Values),
             nameof(GXAttribute.Errors))]
-        public GXAttribute[]? Attributes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAttribute>? Attributes { get; set; }
     }
 
     /// <summary>
@@ -104,11 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Attribute identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -121,21 +109,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Profile Generic Index. This is used only with Profile Generic attributes.
         /// </summary>
         [DataMember]
-        public UInt64 Index
-        {
-            get;
-            set;
-        }
+        public UInt64 Index { get; set; }
 
         /// <summary>
         /// Profile Generic Count. This is used only with Profile Generic attributes.
         /// </summary>
         [DataMember]
-        public UInt64 Count
-        {
-            get;
-            set;
-        }
+        public UInt64 Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter attributes.
@@ -147,11 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Errors),
             nameof(GXAttribute.Parameters),
             nameof(GXAttribute.Values))]
-        public GXAttribute? Filter
-        {
-            get;
-            set;
-        }
+        public GXAttribute? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access agents from all users.
@@ -159,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, agents from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -171,11 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
         /// <summary>
         /// Order by name.
         /// </summary>
@@ -183,21 +151,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -205,11 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -217,40 +173,24 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
 
         /// <summary>
         /// Device Ids.
         /// </summary>
-        public Guid[]? Devices
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Devices { get; set; }
 
         /// <summary>
         /// Filtered object types.
         /// </summary>
         /// <remarks>
         /// </remarks>
-        public int[]? ObjectTypes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? ObjectTypes { get; set; }
 
         /// <summary>
         /// Ignored object types.
         /// </summary>
-        public int[]? IgnoredObjectTypes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? IgnoredObjectTypes { get; set; }
     }
 
     /// <summary>
@@ -273,20 +213,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXAttributeTemplate),
             nameof(GXAttributeTemplate.Id),
             nameof(GXAttributeTemplate.Name))]
-        public GXAttribute[]? Attributes
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAttribute>? Attributes { get; set; }
         /// <summary>
         /// Total count of the attributes.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -298,11 +230,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed COSEM attributes identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -312,11 +240,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -345,11 +269,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXAttribute.Parameters))]
         [IncludeOpenApi(typeof(GXAttributeTemplate),
                 nameof(GXAttributeTemplate.Id))]
-        public GXAttribute[]? Items
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXAttribute> Items { get; set; } = default!;
     }
 
     /// <summary>

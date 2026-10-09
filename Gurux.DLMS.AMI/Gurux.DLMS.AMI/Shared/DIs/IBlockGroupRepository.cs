@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,34 +44,46 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List block groups.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>User groups.</returns>
-        Task<GXBlockGroup[]> ListAsync(
-            ListBlockGroups? request,
+        Task<IEnumerable<GXBlockGroup>> ListAsync(
+            ListBlockGroups? request = null,
             ListBlockGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read block group information.
+        /// Read block group details.
         /// </summary>
         /// <param name="id">Block group id.</param>
-        /// <returns></returns>
-        Task<GXBlockGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXBlockGroup> ReadAsync(Guid id,
+            Expression<Func<GXBlockGroup, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update block groups.
         /// </summary>
         /// <param name="groups">Updated block groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXBlockGroup> groups,
-            Expression<Func<GXBlockGroup, object?>>? columns = null);
+            Expression<Func<GXBlockGroup, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete block group(s).
         /// </summary>
         /// <param name="groups">Block groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns block groups list where block belongs.
@@ -84,14 +96,17 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this block group.
         /// </summary>
         /// <param name="blockGroupId">Block group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? blockGroupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? blockGroupId,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access block group.
         /// </summary>
         /// <param name="blockGroupIds">Agent Block ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockGroupIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? blockGroupIds, CancellationToken cancellationToken = default);
     }
 }

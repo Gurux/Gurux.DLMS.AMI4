@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -80,11 +80,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(64)]
         [DefaultValue(null)]
         [Filter(FilterType.Contains)]
-        public string Id
-        {
-            get;
-            set;
-        } = "";
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// The Appearance creator.
@@ -94,11 +90,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Is appearance active.
@@ -116,32 +108,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(null)]
         [StringLength(64)]
         [Index(Unique = false)]
-        public string? Category
-        {
-            get;
-            set;
-        }
+        public string? Category { get; set; }
 
         /// <summary>
         /// Appearance description.
         /// </summary>
         [DataMember]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Appearance value.
         /// </summary>
         [DataMember]
         [IsRequired]
-        public string? Value
-        {
-            get;
-            set;
-        }
+        public string? Value { get; set; }
 
         /// <summary>
         /// Resource type.
@@ -150,11 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Filter(FilterType.Exact)]
         [Index(false)]
-        public byte? ResourceType
-        {
-            get;
-            set;
-        }
+        public byte? ResourceType { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -163,11 +139,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when Appearance was removed.
@@ -179,21 +151,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the Appearance is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -201,11 +165,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -216,11 +176,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Update creation time before update.
@@ -250,5 +207,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
             }
             return nameof(GXAppearance);
         }
+        /// <summary>Alternative policies allowing use of this appearance; empty means unrestricted.</summary>
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
+
+        /// <summary>Higher values take precedence when choosing a default theme.</summary>
+        [DataMember, DefaultValue(0), Filter(FilterType.Exact)]
+        public int Priority { get; set; }
+
+        /// <summary>Load this resource during client initialization when access is allowed.</summary>
+        [DataMember, IsRequired, DefaultValue(false), Filter(FilterType.Exact)]
+        public bool? Preload { get; set; }
     }
 }

@@ -51,22 +51,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// User settings name.
         /// </summary>
         [DataMember]
         [StringLength(64)]
-        public string Name
-        {
-            get;
-            set;
-        } = string.Empty;
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// Settings owner.
@@ -75,12 +67,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? User
-        {
-            //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the module is causing multiple cascade paths error in MSSQL.
+        public GXUser? User { get; set; }
 
         /// <summary>
         /// Settings module.
@@ -88,21 +76,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
-        public GXModule? Module
-        {
-            get;
-            set;
-        }
+        public GXModule? Module { get; set; }
 
         /// <summary>
         /// User settings value.
         /// </summary>
         [DataMember]
-        public string? Value
-        {
-            get;
-            set;
-        }
+        public string? Value { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -111,22 +91,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When the user setting is updated for the last time.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -137,10 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
     }
 }

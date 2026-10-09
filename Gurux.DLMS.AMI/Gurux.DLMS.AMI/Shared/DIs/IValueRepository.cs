@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -34,6 +34,7 @@ using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -46,46 +47,56 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List values.
         /// </summary>
         /// <returns>List of values.</returns>
-        Task<GXValue[]> ListAsync(
-            ListValues? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXValue>> ListAsync(
+            ListValues? request = null,
             ListValuesResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read value information.
+        /// Read value details.
         /// </summary>
         /// <param name="id">Object id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Value information.</returns>
-        Task<GXValue> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXValue> ReadAsync(Guid id, Expression<Func<GXValue, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add values(s).
         /// </summary>
         /// <param name="values">Added values.</param>
-        Task<Guid[]> AddAsync(IEnumerable<GXValue> values);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> AddAsync(IEnumerable<GXValue> values, CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Delete values(s).
+        /// Delete value(s).
         /// </summary>
         /// <param name="values">Values(s) to delete.</param>
-        Task DeleteAsync(IEnumerable<Guid> values);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> values, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear device values(s).
         /// </summary>
         /// <param name="devices">Cleared devices.</param>
-        Task ClearDeviceAsync(IEnumerable<GXDevice> devices);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearDeviceAsync(IEnumerable<GXDevice> devices, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear object values(s).
         /// </summary>
         /// <param name="objects">Cleared objects.</param>
-        Task ClearObjectAsync(IEnumerable<GXObject> objects);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearObjectAsync(IEnumerable<GXObject> objects, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear attribute values(s).
         /// </summary>
-        /// <param name="attributes">Values(s) to clear.</param>
-        Task ClearAttributeAsync(IEnumerable<GXAttribute> attributes);
+        /// <param name="attributes">Values to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAttributeAsync(IEnumerable<GXAttribute> attributes, CancellationToken cancellationToken = default);
     }
 }

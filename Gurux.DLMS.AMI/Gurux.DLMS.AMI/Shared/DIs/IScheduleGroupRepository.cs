@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,33 +46,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List schedule groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXScheduleGroup[]> ListAsync(
-            ListScheduleGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXScheduleGroup>> ListAsync(
+            ListScheduleGroups? request = null,
             ListScheduleGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read schedule group information.
+        /// Read schedule group details.
         /// </summary>
         /// <param name="id">Schedule group id.</param>
-        /// <returns></returns>
-        Task<GXScheduleGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXScheduleGroup> ReadAsync(Guid id, Expression<Func<GXScheduleGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update schedule groups.
         /// </summary>
         /// <param name="groups">Updated schedule groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXScheduleGroup> groups,
-            Expression<Func<GXScheduleGroup, object?>>? columns = null);
+            Expression<Func<GXScheduleGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete schedule group(s).
         /// </summary>
         /// <param name="groups">Schedule groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns schedule groups list where schedule belongs.
@@ -85,14 +93,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Get all users that can access this schedule group.
         /// </summary>
         /// <param name="scheduleGroupId">Schedule group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? scheduleGroupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? scheduleGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access schedule groups.
         /// </summary>
         /// <param name="scheduleGroupIds">Schedule group ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? scheduleGroupIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? scheduleGroupIds, CancellationToken cancellationToken = default);
     }
 }

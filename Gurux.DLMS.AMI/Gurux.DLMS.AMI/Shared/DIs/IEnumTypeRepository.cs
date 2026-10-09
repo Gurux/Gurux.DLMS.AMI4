@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,21 +45,30 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// </summary>
         /// <param name="type">Type</param>
         /// <param name="name">Name.</param>
-        /// <returns></returns>
-        Task<int> GetLogTypeAsync(string type, string name);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>Operation result.</returns>
+        Task<int> GetLogTypeAsync(string type,
+            string name,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get the enum type. The new type is added if it's not found.
         /// </summary>
         /// <param name="type">Type</param>
         /// <param name="value">Enumrated value.</param>
-        /// <returns></returns>
-        Task<int> GetLogTypeAsync(string type, Enum value);
+        /// <param name="cancellationToken"></param>
+        /// <returns>Operation result.</returns>
+        Task<int> GetLogTypeAsync(string type,
+            Enum value,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get available enum types.
         /// </summary>
-        Task<IEnumerable<GXEnumType>> ListAsync(ListEnumTypes? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXEnumType>> ListAsync(ListEnumTypes? request = null,
             ListEnumTypesResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -67,7 +76,9 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Delete enum type.
         /// </summary>
         /// <param name="type">Deleted logs.</param>
-        Task DeleteAsync(string type);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(string type,
+            CancellationToken cancellationToken = default);
 
     }
 }

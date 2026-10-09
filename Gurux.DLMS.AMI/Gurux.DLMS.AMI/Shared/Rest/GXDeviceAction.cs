@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,7 +34,6 @@ using Gurux.Service.Orm.Common;
 using System.Runtime.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
-using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
@@ -60,11 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDeviceAction? Item
-        {
-            get;
-            set;
-        }
+        public GXLog? Item { get; set; }
     }
     /// <summary>
     /// Adds a new device action.
@@ -87,22 +83,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDeviceAction[] Actions
-        {
-            get;
-            set;
-        } = default!;
+        public IEnumerable<GXLog> Actions { get; set; } = default!;
 
         /// <summary>
         /// Action type.
         /// </summary>
         [DataMember]
         [Description("Action type.")]
-        public string Type
-        {
-            get;
-            set;
-        } = default!;
+        public string Type { get; set; } = default!;
     }
 
     /// <summary>
@@ -124,26 +112,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Start index.
         /// </summary>
         [DataMember]
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Maximum device action count to return.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter device actions.
         /// </summary>
-        [IncludeOpenApi(typeof(GXDeviceAction), nameof(GXDeviceAction.Device))]
+        [IncludeOpenApi(typeof(GXLog), nameof(GXLog.Creator))]
         [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
         [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
         [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
@@ -155,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDeviceAction? Filter
-        {
-            get;
-            set;
-        }
+        public GXLog? Filter { get; set; }
 
 
         /// <summary>
@@ -168,11 +144,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, actions from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -180,11 +152,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -193,21 +161,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -215,11 +175,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -227,11 +183,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -259,11 +211,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id))]
         [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
         [ExcludeOpenApi(typeof(GXDeviceParameter), nameof(GXDeviceParameter.Device), nameof(GXDeviceParameter.Module))]
-        public GXDeviceAction[]? Actions
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLog>? Actions { get; set; }
 
         /// <summary>
         /// Total count of the device action items.
@@ -273,11 +221,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// In those cases the count is set to -1.
         /// </remarks>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -290,11 +234,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Device identifiers where device actions are removed.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
 
         /// <summary>
         /// Items are removed from the database.
@@ -304,11 +244,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>

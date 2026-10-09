@@ -89,11 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Attribute Id.")]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Object identifier.
@@ -103,11 +99,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXObject? Object
-        {
-            get;
-            set;
-        }
+        public GXObject? Object { get; set; }
 
         /// <summary>
         /// Template identifier.
@@ -117,21 +109,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [IsRequired]
         [Filter(FilterType.Exact)]
-        public GXAttributeTemplate? Template
-        {
-            get;
-            set;
-        }
+        public GXAttributeTemplate? Template { get; set; }
 
         /// <summary>
         /// Attribute module settings.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
 
         /// <summary>
         /// Latest read value.
@@ -139,11 +123,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Latest read value")]
         [Filter(FilterType.Contains)]
-        public string? Value
-        {
-            get;
-            set;
-        }
+        public string? Value { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -152,22 +132,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When value is last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the attributes.
@@ -175,11 +147,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -190,11 +158,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// When value is read last time.
@@ -205,11 +170,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [Description("When value is read last time.")]
-        public DateTimeOffset? Read
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Read { get; set; }
 
         /// <summary>
         /// When the object's attribute were last written.
@@ -217,11 +178,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the object's attribute were last written.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastWrite
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastWrite { get; set; }
 
         /// <summary>
         /// When the object's actions were last invoked.
@@ -229,11 +186,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the object's actions were last invoked.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastAction
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastAction { get; set; }
 
         /// <summary>
         /// When the last error was occurred.
@@ -241,11 +194,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the last error was occurred.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastError
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastError { get; set; }
 
         /// <summary>
         /// Last exception. Successful read nulls this.
@@ -253,21 +202,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Last exception.")]
         [Filter(FilterType.Contains)]
-        public string? Exception
-        {
-            get;
-            set;
-        }
+        public string? Exception { get; set; }
 
         /// <summary>
         /// Expiration time tells how often value needs to read from the meter. If it's null it will read every read. If it's DateTime.Max it's read only once.
         /// </summary>
         [DataMember]
-        public DateTimeOffset? ExpirationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? ExpirationTime { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -276,11 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Attribute parameters.
@@ -288,11 +225,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXAttributeParameter>? Parameters
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeParameter>? Parameters { get; set; }
 
         /// <summary>
         /// Attribute historical values.
@@ -300,11 +233,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXValue>? Values
-        {
-            get;
-            set;
-        }
+        public List<GXValue>? Values { get; set; }
 
         /// <summary>
         /// Executed tasks.
@@ -312,11 +241,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
-        public List<GXTask>? Tasks
-        {
-            get;
-            set;
-        }
+        public List<GXTask>? Tasks { get; set; }
 
         /// <summary>
         /// Attribute errors.
@@ -324,11 +249,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember, ForeignKey(typeof(GXAttributeError))]
         [Filter(FilterType.Contains)]
         [JsonIgnore]
-        public List<GXAttributeError>? Errors
-        {
-            get;
-            set;
-        }
+        public List<GXAttributeError>? Errors { get; set; }
 
         /// <summary>
         /// Update creation time before update.

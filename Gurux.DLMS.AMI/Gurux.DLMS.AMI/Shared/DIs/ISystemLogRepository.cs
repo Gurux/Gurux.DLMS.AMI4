@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -43,51 +45,59 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List system logs.
         /// </summary>
-        /// <param name="request">Request filter.</param>
-        /// <param name="response">Response filter.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>List of system logs.</returns>
-        Task<GXSystemLog[]> ListAsync(
-            ListSystemLogs? request,
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListSystemLogs? request = null,
             ListSystemLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read system log information.
+        /// Read system log details.
         /// </summary>
         /// <param name="id">System log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>System log information.</returns>
-        Task<GXSystemLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null
+            , CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear system logs.
         /// </summary>
-        Task ClearAsync();
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add system logs.
         /// </summary>
         /// <param name="type">Log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(string type, IEnumerable<GXSystemLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
         /// </summary>
         /// <param name="type">Log type.</param>
         /// <param name="ex">Occurred exception.</param>
-        Task<GXSystemLog> AddAsync(string type, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close system log(s).
         /// </summary>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(IEnumerable<Guid>? logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid>? logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete system logs items.
         /// </summary>
         /// <param name="logs">Deleted logs.</param>
-        Task DeleteAsync(IEnumerable<GXSystemLog>? logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<GXLog>? logs, CancellationToken cancellationToken = default);
     }
 }

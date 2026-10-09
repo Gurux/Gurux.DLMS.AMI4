@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -54,11 +54,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Available data exchange types.
         /// </summary>
         [DataMember]
-        public GXTargetType[]? Types
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXTargetType>? Types { get; set; }
     }
 
     /// <summary>
@@ -71,21 +67,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Imported data as Json.
         /// </summary>
         [DataMember]
-        public string? Data
-        {
-            get;
-            set;
-        }
+        public string? Data { get; set; }
 
         /// <summary>
         /// Defines what data is done if it exists.
         /// </summary>
         [DataMember]
-        public DataExchangeRule Rule
-        {
-            get;
-            set;
-        }
+        public DataExchangeRule Rule { get; set; }
     }
 
     /// <summary>
@@ -98,11 +86,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Imported data items and the amount of imported data items.
         /// </summary>
         [DataMember]
-        public GXTargetType[]? Types
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXTargetType>? Types { get; set; }
     }
 
     /// <summary>
@@ -114,21 +98,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Exported target type.
         /// </summary>
         [DataMember]
-        public string? TargetType
-        {
-            get;
-            set;
-        }
+        public string? TargetType { get; set; }
 
         /// <summary>
         /// Target guids.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -141,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Exported targets.
         /// </summary>
         [DataMember]
-        public GXExportDataItem[]? Targets
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXExportDataItem>? Targets { get; set; }
     }
 
     /// <summary>
@@ -158,10 +130,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Exported data.
         /// </summary>
         [DataMember]
-        public string? Data
-        {
-            get;
-            set;
-        }
+        public string? Data { get; set; }
     }
 }

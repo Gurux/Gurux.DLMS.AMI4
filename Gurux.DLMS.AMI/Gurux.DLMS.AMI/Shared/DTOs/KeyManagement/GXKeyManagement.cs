@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -61,11 +62,11 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// This constuctor is called when a new key management is created. It will create all needed lists.
         /// </remarks>
         /// <param name="systemTitle">System title.</param>
-        public GXKeyManagement(string? systemTitle)
+        public GXKeyManagement(byte[]? systemTitle)
         {
             SystemTitle = systemTitle;
             KeyManagementGroups = new List<GXKeyManagementGroup>();
-            Logs = new List<GXKeyManagementLog>();
+            Logs = new List<GXLog>();
             Keys = new List<GXKeyManagementKey>();
             TraceLevel = System.Diagnostics.TraceLevel.Error;
         }
@@ -77,11 +78,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Key management name.
@@ -92,21 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Target device.
@@ -115,11 +98,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
         /// <summary>
         /// Target device group.
@@ -128,12 +107,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXDeviceGroup? DeviceGroup
-        {
-            //ForeignKeyDelete is None because Device will handle the deletion.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because Device will handle the deletion.
+        public GXDeviceGroup? DeviceGroup { get; set; }
 
         /// <summary>
         /// Target device template.
@@ -142,11 +117,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [ForeignKey]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXDeviceTemplate? Template
-        {
-            get;
-            set;
-        }
+        public GXDeviceTemplate? Template { get; set; }
 
         /// <summary>
         /// The creator of the key management.
@@ -155,12 +126,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            //ForeignKeyDelete is None because Device will handle the deletion.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because Device will handle the deletion.
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// System title.
@@ -169,23 +136,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [IsRequired]
         [Filter(FilterType.Contains)]
-        [StringLength(16)]
-        public string? SystemTitle
-        {
-            get;
-            set;
-        }
+        [MaxLength(16)]
+        public byte[]? SystemTitle { get; set; }
 
         /// <summary>
         /// Key management keys.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXKeyManagementKey))]
         [Filter(FilterType.Contains)]
-        public List<GXKeyManagementKey>? Keys
-        {
-            get;
-            set;
-        }
+        public List<GXKeyManagementKey>? Keys { get; set; }
 
         /// <summary>
         /// List of key management groups where this key management belongs.
@@ -193,22 +152,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [ForeignKey(typeof(GXKeyManagementGroup), typeof(GXKeyManagementGroupKeyManagement))]
         [Filter(FilterType.Contains)]
-        public List<GXKeyManagementGroup>? KeyManagementGroups
-        {
-            get;
-            set;
-        }
+        public List<GXKeyManagementGroup>? KeyManagementGroups { get; set; }
 
         /// <summary>
         /// Key management logs.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXKeyManagementLog))]
+        [DataMember, Ignore(IgnoreType.Db)]
         [Filter(FilterType.Contains)]
-        public List<GXKeyManagementLog>? Logs
-        {
-            get;
-            set;
-        }
+        public List<GXLog>? Logs { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -217,11 +168,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When was the key management last updated.
@@ -230,11 +177,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DataMember]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the key management.
@@ -242,11 +185,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Used trace level.
@@ -255,11 +194,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(System.Diagnostics.TraceLevel.Error)]
         [Description("Used trace level.")]
         [IsRequired]
-        public TraceLevel? TraceLevel
-        {
-            get;
-            set;
-        }
+        public TraceLevel? TraceLevel { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -270,11 +205,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -283,11 +215,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Update creation time before update.
@@ -316,9 +244,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
             {
                 str = Name;
             }
-            if (!string.IsNullOrEmpty(SystemTitle))
+            if (SystemTitle?.Any() == true)
             {
-                str += " " + SystemTitle;
+                str += " " + Convert.ToHexString(SystemTitle);
             }
             if (str == string.Empty)
             {

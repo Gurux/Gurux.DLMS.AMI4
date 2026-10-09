@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,33 +45,41 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List workflow groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXWorkflowGroup[]> ListAsync(
-            ListWorkflowGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXWorkflowGroup>> ListAsync(
+            ListWorkflowGroups? request = null,
             ListWorkflowGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read workflow group information.
+        /// Read workflow group details.
         /// </summary>
         /// <param name="id">Workflow group id.</param>
-        /// <returns></returns>
-        Task<GXWorkflowGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXWorkflowGroup> ReadAsync(Guid id, Expression<Func<GXWorkflowGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update workflow groups.
         /// </summary>
         /// <param name="groups">Updated workflow groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXWorkflowGroup> groups,
-            Expression<Func<GXWorkflowGroup, object?>>? columns = null);
+            Expression<Func<GXWorkflowGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete workflow group(s).
         /// </summary>
         /// <param name="groups">Workflow groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Returns workflow groups list where workflow belongs.

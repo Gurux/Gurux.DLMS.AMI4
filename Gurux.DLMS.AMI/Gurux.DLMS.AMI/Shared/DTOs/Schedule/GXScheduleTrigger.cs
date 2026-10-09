@@ -48,23 +48,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXSchedule), OnDelete = ForeignKeyDelete.None)]
-        public Guid ScheduleId
-        {
-            //ForeignKeyDelete is None because creator of the trigger is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the trigger is causing multiple cascade paths error in MSSQL.
+        public Guid ScheduleId { get; set; }
 
         /// <summary>
         /// Trigger ID.
         /// </summary>
         [DataMember]
         [ForeignKey(typeof(GXTrigger), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid TriggerId
-        {
-            get;
-            set;
-        }
+        public Guid TriggerId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -73,11 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when module was removed from user schedule.
@@ -86,10 +74,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Schedule
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

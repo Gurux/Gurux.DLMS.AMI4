@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -52,11 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Model))]
         [ExcludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Version), nameof(GXDeviceSettings.Template))]
         [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
-        public GXManufacturer? Item
-        {
-            get;
-            set;
-        }
+        public GXManufacturer? Item { get; set; }
     }
 
     /// <summary>
@@ -67,11 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Model information.
         /// </summary>        
-        public Guid? Id
-        {
-            get;
-            set;
-        }
+        public Guid? Id { get; set; }
     }
 
     /// <summary>
@@ -84,11 +76,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>        
         [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
         [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
-        public GXDeviceModel? Item
-        {
-            get;
-            set;
-        }
+        public GXDeviceModel? Item { get; set; }
     }
 
     /// <summary>
@@ -99,11 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Version information.
         /// </summary>        
-        public Guid? Id
-        {
-            get;
-            set;
-        }
+        public Guid? Id { get; set; }
     }
 
     /// <summary>
@@ -116,11 +100,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>        
         [ExcludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Settings))]
         [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]
-        public GXDeviceVersion? Item
-        {
-            get;
-            set;
-        }
+        public GXDeviceVersion? Item { get; set; }
     }
 
     /// <summary>
@@ -140,11 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXDeviceSettings.Removed), nameof(GXDeviceSettings.Updated))]
         [IncludeOpenApi(typeof(GXManufacturerGroup), nameof(GXManufacturerGroup.Id))]
         [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
-        public GXManufacturer[]? Manufacturers
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXManufacturer>? Manufacturers { get; set; }
     }
 
     /// <summary>
@@ -157,11 +133,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New manufacturer identifier(s).
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -173,31 +145,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the manufacturers to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter manufacturers.
         /// </summary>
         [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Models), nameof(GXManufacturer.ManufacturerGroups))]
-        public GXManufacturer? Filter
-        {
-            get;
-            set;
-        }
+        public GXManufacturer? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access devices from all users.
@@ -205,11 +164,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, devices from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -217,11 +172,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -230,21 +181,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -252,11 +195,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -264,11 +203,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -290,21 +225,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [ExcludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.CreationTime), nameof(GXManufacturer.Removed), nameof(GXManufacturer.Updated))]
         //Select device template ID and name.
         [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
-        public GXManufacturer[]? Manufacturers
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXManufacturer>? Manufacturers { get; set; }
 
         /// <summary>
         /// Total count of the manufacturers.
         /// </summary>
         [DataMember]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -317,11 +244,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed manufacturers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -331,11 +254,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -358,44 +277,28 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id))]
-        public GXManufacturer[]? Manufacturers
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXManufacturer>? Manufacturers { get; set; }
 
         /// <summary>
         /// Installed model IDs.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDeviceModel), nameof(GXDeviceModel.Id))]
-        public GXDeviceModel[]? Models
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDeviceModel>? Models { get; set; }
 
         /// <summary>
         /// Installed version IDs.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDeviceVersion), nameof(GXDeviceVersion.Id))]
-        public GXDeviceVersion[]? Versions
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDeviceVersion>? Versions { get; set; }
 
         /// <summary>
         /// Installed settings IDs.
         /// </summary>
         [DataMember]
         [IncludeOpenApi(typeof(GXDeviceSettings), nameof(GXDeviceSettings.Id))]
-        public GXDeviceSettings[]? Settings
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXDeviceSettings>? Settings { get; set; }
     }
 
     /// <summary>
@@ -420,5 +323,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class CheckManufacturerResponse
     {
+        /// <summary>The completed background execution ID.</summary>
+        [DataMember]
+        public Guid RunId { get; set; }
     }
 }

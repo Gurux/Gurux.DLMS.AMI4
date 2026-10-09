@@ -50,32 +50,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "ID"), Index(Unique = true)]
         [Filter(FilterType.Exact)]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string Id
+        public string Id { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
 
         /// <summary>
         /// Key version.
         /// </summary>
         [DataMember]
-        public int Version
-        {
-            get;
-            set;
-        }
+        public int Version { get; set; }
 
         /// <summary>
         /// When key is created.
         /// </summary>
         [DataMember]
-        public DateTime Created
-        {
-            get;
-            set;
-        }
+        public DateTime Created { get; set; }
 
         /// <summary>
         /// Key use.
@@ -83,53 +71,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(Unique = false)]
         [DataMember]
         [StringLength(450)]
-        public string? Use
-        {
-            get;
-            set;
-        }
+        public string? Use { get; set; }
 
         /// <summary>
         /// Key algorithm.
         /// </summary>
         [DataMember]
         [StringLength(100)]
-        public string? Algorithm
-        {
-            get;
-            set;
-        }
+        public string? Algorithm { get; set; }
 
         /// <summary>
         /// Is Key X509 certificate.
         /// </summary>
         [DataMember]
         [IsRequired]
-        public bool IsX509Certificate
-        {
-            get;
-            set;
-        }
+        public bool IsX509Certificate { get; set; }
 
         /// <summary>
         /// Is key data protected.
         /// </summary>
         [DataMember]
         [IsRequired]
-        public bool DataProtected
-        {
-            get;
-            set;
-        }
+        public bool DataProtected { get; set; }
 
         /// <summary>
         /// Key data.
         /// </summary>
         [DataMember]
-        public string? Data
-        {
-            get;
-            set;
-        }
+        public string? Data { get; set; }
     }
 }

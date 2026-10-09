@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Device;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,29 +46,37 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List device errors.
         /// </summary>
         /// <returns>List of device errors.</returns>
-        Task<GXDeviceError[]> ListAsync(
-            ListDeviceErrors? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListDeviceErrors? request = null,
             ListDeviceErrorsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read device error information.
+        /// Read device error details.
         /// </summary>
         /// <param name="id">Device error id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Device error information.</returns>
-        Task<GXDeviceError> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear device errors.
         /// </summary>
-        Task ClearAsync(IEnumerable<Guid>? devices);
+        Task ClearAsync(IEnumerable<Guid>? devices, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add device errors.
         /// </summary>
         /// <param name="type">Device error type.</param>
         /// <param name="errors">New errors.</param>
-        Task AddAsync(string type, IEnumerable<GXDeviceError> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> errors,
+            CancellationToken cancellationToken);
 
         /// <summary>
         /// Add new exception.
@@ -74,12 +84,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Device error type.</param>
         /// <param name="device">Device.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXDeviceError> AddAsync(string type, GXDevice device, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXDevice device, Exception ex, CancellationToken cancellationToken);
 
         /// <summary>
         /// Close device error(s).
         /// </summary>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid>? errors, CancellationToken cancellationToken);
     }
 }

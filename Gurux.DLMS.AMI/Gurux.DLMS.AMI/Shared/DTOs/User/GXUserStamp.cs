@@ -58,11 +58,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("Stamp identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The stamp Creator.
@@ -72,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -85,11 +77,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When was the stamp last updated.
@@ -97,11 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("When was the stamp last updated.")]
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the stamp.
@@ -109,11 +93,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -124,11 +104,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Stamped target.
@@ -136,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Description("Stamped target.")]
         [DefaultValue(null)]
         [Filter(FilterType.Equals)]
-        public Guid? Target
-        {
-            get;
-            set;
-        }
+        public Guid? Target { get; set; }
 
         /// <summary>
         /// Target type.
@@ -152,51 +125,31 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Filter(FilterType.Equals)]
         [StringLength(32)]
         [Required]
-        public string? TargetType
-        {
-            get;
-            set;
-        }
+        public string? TargetType { get; set; }
 
         /// <summary>
         /// Number of the errors.
         /// </summary>
         [Ignore]
-        public int Errors
-        {
-            get;
-            set;
-        }
+        public int Errors { get; set; }
 
         /// <summary>
         /// Number of the warnings.
         /// </summary>
         [Ignore]
-        public int Warnings
-        {
-            get;
-            set;
-        }
+        public int Warnings { get; set; }
 
         /// <summary>
         /// Number of the informational messages.
         /// </summary>
         [Ignore]
-        public int Informational
-        {
-            get;
-            set;
-        }
+        public int Informational { get; set; }
 
         /// <summary>
         /// Number of the verbose messages.
         /// </summary>
         [Ignore]
-        public int Verboses
-        {
-            get;
-            set;
-        }
+        public int Verboses { get; set; }
 
         /// <summary>
         /// Get user stamp count.

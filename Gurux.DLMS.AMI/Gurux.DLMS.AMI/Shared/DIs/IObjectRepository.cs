@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,46 +45,56 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List objects.
         /// </summary>
         /// <returns>Objects.</returns>
-        Task<GXObject[]> ListAsync(
-            ListObjects? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXObject>> ListAsync(
+            ListObjects? request = null,
             ListObjectsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read object information.
+        /// Read object details.
         /// </summary>
         /// <param name="id">Object id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Object information.</returns>
-        Task<GXObject> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXObject> ReadAsync(Guid id, Expression<Func<GXObject, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update object(s).
         /// </summary>
         /// <param name="objects">Updated object(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXObject> objects,
-            Expression<Func<GXObject, object?>>? columns = null);
+            Expression<Func<GXObject, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete object(s).
         /// </summary>
         /// <param name="objects">Object(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> objects, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> objects, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this object.
         /// </summary>
         /// <param name="objectId">Object id.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(Guid? objectId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? objectId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access objects.
         /// </summary>
         /// <param name="objectIds">Object ids.</param>
         /// <returns>Collection of User IDs.</returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? objectIds, CancellationToken cancellationToken = default);
     }
 }

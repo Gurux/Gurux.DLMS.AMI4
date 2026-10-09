@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -31,7 +32,6 @@
 //---------------------------------------------------------------------------
 
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
-using Gurux.DLMS.AMI.Shared.Enums;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
@@ -45,14 +45,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Agent log information.
         /// </summary>
-        [IncludeOpenApi(typeof(GXAgent),
-                nameof(GXAgent.Id),
-                nameof(GXAgent.Name))]
-        public GXAgentLog? Item
-        {
-            get;
-            set;
-        }
+        public GXLog? Item { get; set; }
     }
 
     /// <summary>
@@ -64,14 +57,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter log example by date.
         /// </summary>
-        [IncludeOpenApi(typeof(GXAgent),
-                nameof(GXAgent.Id),
-                nameof(GXAgent.Name))]
-        public GXAgentLog? Filter
-        {
-            get;
-            set;
-        }
+        public GXLog? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access errors from all users.
@@ -79,29 +65,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, errors from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the logs to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -109,11 +83,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
         /// <summary>
         /// Order by name.
         /// </summary>
@@ -121,21 +91,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -143,11 +105,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -155,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -172,14 +126,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// List of Agent logs.
         /// </summary>
         [DataMember]
-        [IncludeOpenApi(typeof(GXAgent),
-                nameof(GXAgent.Id),
-                nameof(GXAgent.Name))]
-        public GXAgentLog[]? Logs
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLog>? Logs { get; set; }
         /// <summary>
         /// Total amount of the agent logs.
         /// </summary>
@@ -187,11 +134,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// With large databases reading the amount of the data can take a very long time.
         /// In those cases the count is set to -1.
         /// </remarks>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -204,24 +147,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// New agent log.
         /// </summary>
         [DataMember]
-        [IncludeOpenApi(typeof(GXAgent),
-                nameof(GXAgent.Id))]
-        public GXAgentLog[]? Logs
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLog> Logs { get; set; } = default!;
 
         /// <summary>
         /// Log type.
         /// </summary>
         [DataMember]
         [Description("Log type.")]
-        public string Type
-        {
-            get;
-            set;
-        } = default!;
+        public string Type { get; set; } = default!;
     }
 
     /// <summary>
@@ -230,6 +163,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     [DataContract]
     public class AddAgentLogResponse
     {
+        /// <summary>
+        /// Added task identifiers.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -242,11 +180,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Agent identifiers where logs are removed.
         /// </summary>
         [DataMember]
-        public Guid[]? Agents
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Ids { get; set; }
     }
 
     /// <summary>
@@ -267,11 +201,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Closed logs.
         /// </summary>
         [DataMember]
-        public Guid[]? Logs
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Logs { get; set; }
     }
 
     /// <summary>

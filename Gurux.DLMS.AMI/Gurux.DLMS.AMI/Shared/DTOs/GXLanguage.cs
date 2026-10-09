@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,8 +33,6 @@ using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -48,31 +46,19 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [StringLength(5)]
         [Filter(FilterType.Exact)]
-        public string Id
-        {
-            get;
-            set;
-        }
+        public string Id { get; set; }
 
         /// <summary>
         /// Language English name.
         /// </summary>
         [StringLength(30)]
-        public string EnglishName
-        {
-            get;
-            set;
-        }
+        public string EnglishName { get; set; }
 
         /// <summary>
         /// Native name.
         /// </summary>
         [StringLength(30)]
-        public string NativeName
-        {
-            get;
-            set;
-        }
+        public string NativeName { get; set; }
 
         /// <summary>
         /// Is the language actived.
@@ -80,11 +66,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Active
-        {
-            get;
-            set;
-        }
+        public bool? Active { get; set; }
 
         /// <summary>
         /// Is this the default language.
@@ -92,20 +74,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Localized strings.
         /// </summary>
-        public GXLocalizedResource[]? Resources
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXLocalizedResource>? Resources { get; set; }
 
         /// <summary>
         /// Constructor.

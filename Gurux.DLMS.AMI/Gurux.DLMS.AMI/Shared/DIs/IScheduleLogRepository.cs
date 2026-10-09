@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,6 +33,7 @@
 
 using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,29 +46,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List schedule logs.
         /// </summary>
         /// <returns>List of schedule logs.</returns>
-        Task<GXScheduleLog[]> ListAsync(
-            ListScheduleLogs? request,
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListScheduleLogs? request = null,
             ListScheduleLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read schedule log information.
+        /// Read schedule log details.
         /// </summary>
         /// <param name="id">Schedule log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Schedule information.</returns>
-        Task<GXScheduleLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear schedule logs.
         /// </summary>
-        Task ClearAsync(IEnumerable<Guid>? schedules);
+        /// <param name="schedules">Schedule ids to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? schedules, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add schedule logs.
         /// </summary>
         /// <param name="type">Schedule log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(string type, IEnumerable<GXScheduleLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> logs, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -74,12 +85,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Schedule log type.</param>
         /// <param name="schedule">Schedule.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXScheduleLog> AddAsync(string type, GXSchedule schedule, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXSchedule schedule, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close schedule log(s).
         /// </summary>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(IEnumerable<Guid> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> logs, CancellationToken cancellationToken = default);
     }
 }

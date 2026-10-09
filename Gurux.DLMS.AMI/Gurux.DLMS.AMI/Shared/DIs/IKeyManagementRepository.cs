@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -50,7 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <remarks>
         /// If key management is null all the users who can access the key managements are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid id, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this key management.
@@ -60,15 +61,19 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <remarks>
         /// If key management is null all the users who can access the key managements are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid> keyIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid> keyIds, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// List key managements.
         /// </summary>
         /// <returns>KeyManagements.</returns>
-        Task<GXKeyManagement[]> ListAsync(
-            ListKeyManagements? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXKeyManagement>> ListAsync(
+            ListKeyManagements? request = null,
             ListKeyManagementsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -76,23 +81,28 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read key management.
         /// </summary>
         /// <param name="id">Key management id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Read key management.</returns>
-        Task<GXKeyManagement> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXKeyManagement> ReadAsync(Guid id, Expression<Func<GXKeyManagement, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update key management(s).
         /// </summary>
         /// <param name="keys">Updated key management(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXKeyManagement> keys,
-            Expression<Func<GXKeyManagement, object?>>? columns = null);
+            Expression<Func<GXKeyManagement, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete key management(s).
         /// </summary>
         /// <param name="keys">Key management(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> keys, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> keys, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,67 +46,77 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXUserGroup[]> ListAsync(
-            ListUserGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXUserGroup>> ListAsync(
+            ListUserGroups? request = null,
             ListUserGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read user group information.
+        /// Read user group details.
         /// </summary>
         /// <param name="id">User group id.</param>
-        /// <returns></returns>
-        Task<GXUserGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXUserGroup> ReadAsync(Guid id, Expression<Func<GXUserGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update user groups.
         /// </summary>
         /// <param name="groups">Updated user groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXUserGroup> groups,
-            Expression<Func<GXUserGroup, object?>>? columns = null);
+            Expression<Func<GXUserGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete user group(s).
         /// </summary>
         /// <param name="groups">User groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this user group. 
         /// </summary>
         /// <param name="groupId">User group ID.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? groupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access user groups. 
         /// </summary>
         /// <param name="groupId">User group IDs.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? groupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add user to user groups.
         /// </summary>
         /// <param name="userId">User ID.</param>
         /// <param name="groups">Group ID of the group where the user is added.</param>
-        void AddUserToGroups(string userId, IEnumerable<Guid> groups);
+        Task AddUserToGroupsAsync(string userId, IEnumerable<Guid> groups);
 
         /// <summary>
         /// Returns list from user groups where user belongs.
         /// </summary>
         /// <param name="userId">User ID</param>
-        /// <returns></returns>
-        Task<List<GXUserGroup>> GetJoinedUserGroups(string userId);
+        /// <returns>Operation result.</returns>
+        Task<List<GXUserGroup>> GetJoinedUserGroupsAsync(string userId);
 
         /// <summary>
         /// Returns default user groups for the user.
         /// </summary>
         /// <param name="userId">User ID.</param>
         /// <returns>List of user groups.</returns>
-        Task<List<GXUserGroup>> GetDefaultUserGroups(string userId);
+        Task<List<GXUserGroup>> GetDefaultUserGroupsAsync(string userId);
     }
 }

@@ -45,32 +45,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Module
         /// Assembly identifier.
         /// </summary>
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Assembly file name.
         /// </summary>
         [StringLength(64)]
-        public string? FileName
-        {
-            get;
-            set;
-        }
+        public string? FileName { get; set; }
 
         /// <summary>
         /// Parent module.
         /// </summary>
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
-        public GXModule? Module
-        {
-            get;
-            set;
-        }
+        public GXModule? Module { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

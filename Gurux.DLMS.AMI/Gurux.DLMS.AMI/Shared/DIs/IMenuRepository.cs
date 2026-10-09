@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List menus.
         /// </summary>
         /// <returns>Menus.</returns>
-        Task<GXMenu[]> ListAsync(
-            ListMenus? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXMenu>> ListAsync(
+            ListMenus? request = null,
             ListMenusResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,44 +58,60 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read menu.
         /// </summary>
         /// <param name="id">Menu id.</param>
-        /// <returns></returns>
-        Task<GXMenu> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXMenu> ReadAsync(Guid id, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read menu by name.
         /// </summary>
         /// <param name="id">Menu name.</param>
-        /// <returns></returns>
-        Task<GXMenu> ReadAsync(string id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXMenu> ReadAsync(string id, Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update menu(s).
         /// </summary>
         /// <param name="menus">Updated menu(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXMenu> menus,
-            Expression<Func<GXMenu, object?>>? columns = null);
+            Expression<Func<GXMenu, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete menu(s).
         /// </summary>
         /// <param name="menus">Menu(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> menus, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> menus, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this menu.
         /// </summary>
         /// <param name="menuId">Menu id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? menuId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? menuId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access menus.
         /// </summary>
         /// <param name="menuIds">Menu ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? menuIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? menuIds, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Regenerate menu(s).
+        /// </summary>
+        /// <param name="menus">Menu(s) to regenerate.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task RegenerateAsync(IEnumerable<Guid>? menus, CancellationToken cancellationToken = default);
     }
 }

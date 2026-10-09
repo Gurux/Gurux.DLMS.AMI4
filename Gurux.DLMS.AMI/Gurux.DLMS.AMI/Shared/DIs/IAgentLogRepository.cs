@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,9 +31,9 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -44,30 +45,40 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List agent logs.
         /// </summary>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>List of agent logs.</returns>
-        Task<GXAgentLog[]> ListAsync(
-            ListAgentLogs? request,
+        Task<IEnumerable<GXLog>> ListAsync(
+            ListAgentLogs? request = null,
             ListAgentLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read agent log information.
+        /// Read agent log details.
         /// </summary>
         /// <param name="id">Agent log id.</param>
+        /// <param name="columns">Read columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Agent log information.</returns>
-        Task<GXAgentLog> ReadAsync(Guid id);
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear agent logs.
         /// </summary>
-        Task ClearAsync(Guid[]? agents);
+        /// <param name="agents">The agent IDs to clear logs for.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? agents, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add agent logs.
         /// </summary>
         /// <param name="type">Agent log type.</param>
         /// <param name="logs">New logs.</param>
-        Task AddAsync(string type, IEnumerable<GXAgentLog> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> AddAsync(string type, IEnumerable<GXLog> logs,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -75,12 +86,16 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Agent log type.</param>
         /// <param name="agent">Agent.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXAgentLog> AddAsync(string type, GXAgent agent, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXAgent agent, Exception ex,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close agent log(s).
         /// </summary>
         /// <param name="logs">Logs to close.</param>
-        Task CloseAsync(IEnumerable<Guid> logs);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> logs,
+            CancellationToken cancellationToken = default);
     }
 }

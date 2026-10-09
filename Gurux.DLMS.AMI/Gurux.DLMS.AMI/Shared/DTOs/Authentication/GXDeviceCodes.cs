@@ -69,31 +69,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index]
         [StringLength(200)]
         [IsRequired]
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string DeviceCode
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
+        public string DeviceCode { get; set; } = default!;
 
+        /// <summary>
+        /// Gets or sets the unique identifier for the subject.
+        /// </summary>
         [DataMember]
         [StringLength(200)]
-        public string? SubjectId
-        {
-            get;
-            set;
-        }
+        public string? SubjectId { get; set; }
         /// <summary>
         /// Session Id.
         /// </summary>
         [DataMember]
         [StringLength(100)]
-        public string? SessionId
-        {
-            get;
-            set;
-        }
+        public string? SessionId { get; set; }
 
         /// <summary>
         /// Client Id.
@@ -102,23 +91,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [StringLength(200)]
         [IsRequired]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public string ClientId
+        public string ClientId { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
 
         /// <summary>
         /// Description.
         /// </summary>
         [DataMember]
         [StringLength(200)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -128,11 +109,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTime CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Expiration time.
@@ -140,21 +117,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [IsRequired]
         [Index(false)]
-        public DateTime Expiration
-        {
-            get;
-            set;
-        }
+        public DateTime Expiration { get; set; }
 
         /// <summary>
         /// Data.
         /// </summary>
         [DataMember]
         [IsRequired]
-        public string Data
-        {
-            get;
-            set;
-        }
+        public string Data { get; set; } = default!;
     }
 }

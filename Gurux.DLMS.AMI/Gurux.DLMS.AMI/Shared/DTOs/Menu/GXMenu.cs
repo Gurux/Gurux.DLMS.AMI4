@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -42,6 +42,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
     /// <summary>
     /// Gurux DLMS AMI Menu.
     /// </summary>
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public class GXMenu : GXTableBase, IUnique<Guid>
     {
         /// <summary>
@@ -62,8 +63,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         {
             Active = true;
             Name = name;
-            MenuGroups = new List<GXMenuGroup>();
-            Links = new List<GXMenuLink>();
+            MenuGroups = [];
+            Links = [];
         }
 
         /// <summary>
@@ -72,20 +73,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Menu order index.
         /// </summary>
-        public int Order
-        {
-            get;
-            set;
-        }
+        public int Order { get; set; }
 
         /// <summary>
         /// Is the menu active.
@@ -108,21 +101,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Menu Title.
         /// </summary>
         [StringLength(128)]
-        public string? Title
-        {
-            get;
-            set;
-        }
+        public string? Title { get; set; }
 
         /// <summary>
         /// Menu Name.
@@ -130,52 +115,33 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [StringLength(128)]
         [Index(true)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Menu description.
         /// </summary>
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
+
 
         /// <summary>
-        /// List of required roles to see this content.
+        /// Named visibility policy; empty means public within the surrounding resource.
         /// </summary>
-        [DataMember, ForeignKey(typeof(GXRole), typeof(GXMenuRole))]
-        public List<GXRole>? Roles
-        {
-            get;
-            set;
-        }
+        [DataMember, Ignore(IgnoreType.Db)]
+        public List<string>? Policies { get; set; }
 
         /// <summary>
         /// List of menu groups where this menu belongs.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXMenuGroup), typeof(GXMenuGroupMenu))]
         [Filter(FilterType.Contains)]
-        public List<GXMenuGroup>? MenuGroups
-        {
-            get;
-            set;
-        }
+        public List<GXMenuGroup>? MenuGroups { get; set; }
 
         /// <summary>
         /// Menu links.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXMenuLink))]
         [Filter(FilterType.Contains)]
-        public List<GXMenuLink>? Links
-        {
-            get;
-            set;
-        }
+        public List<GXMenuLink>? Links { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -184,11 +150,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when menu was removed.
@@ -200,32 +162,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When the menu is updated for the last time.
         /// </summary>
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// When menu is published.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public DateTimeOffset? PublishTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? PublishTime { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -233,23 +183,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Parent menu.
         /// </summary>
         [DefaultValue(null)]
-        [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
-        public GXMenu? Parent
-        {
-            get;
-            set;
-        }
+        public GXMenu? Parent { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -260,11 +202,22 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
+
+        /// <summary>
+        /// Indicates whether the entity is defined and managed by the system.
+        /// </summary>
+        /// <remarks>
+        /// When set to true, the entity is protected from user modifications,
+        /// including editing and deletion. System-defined entities are controlled
+        /// by the application and are required for core functionality.
+        /// </remarks>
+        [DataMember]
+        [DefaultValue(false)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? SystemDefined { get; set; }
 
         /// <summary>
         /// Update creation time before update.
@@ -299,5 +252,10 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
             }
             return str;
         }
+        /// <summary>
+        /// Load this resource during client initialization when access is allowed.
+        /// </summary>
+        [DataMember, IsRequired, DefaultValue(false), Filter(FilterType.Exact, false)]
+        public bool? Preload { get; set; }
     }
 }

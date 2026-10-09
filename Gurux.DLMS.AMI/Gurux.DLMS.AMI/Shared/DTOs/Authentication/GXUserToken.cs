@@ -50,42 +50,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember(Name = "UserId")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
-        public string Id
-        {
-            get;
-            set;
-        } = "";
+        public string Id { get; set; } = "";
 
         /// <summary>
         /// Login provider.
         /// </summary>
         [DataMember]
         [StringLength(128)]
-        public string LoginProvider
-        {
-            get;
-            set;
-        } = "";
+        public string LoginProvider { get; set; } = "";
 
         /// <summary>
         /// Name.
         /// </summary>
         [DataMember]
         [StringLength(128)]
-        public string Name
-        {
-            get;
-            set;
-        } = "";
+        public string Name { get; set; } = "";
 
         /// <summary>
         /// Value.
         /// </summary>
         [DataMember]
-        public string Value
-        {
-            get;
-            set;
-        } = "";
+        public string Value { get; set; } = "";
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -47,8 +47,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List users.
         /// </summary>
         /// <returns>Users.</returns>
-        Task<GXUser[]> ListAsync(
-            ListUsers? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXUser>> ListAsync(
+            ListUsers? request = null,
             ListUsersResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -56,24 +59,29 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read user.
         /// </summary>
         /// <param name="id">User id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>User information.</returns>
-        Task<GXUser> ReadAsync(string? id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXUser> ReadAsync(string? id, Expression<Func<GXUser, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update users.
         /// </summary>
         /// <param name="users">Updated users.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<string[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<string>> UpdateAsync(
             IEnumerable<GXUser> users,
-            Expression<Func<GXUser, object?>>? columns = null);
+            Expression<Func<GXUser, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete user(s).
         /// </summary>
         /// <param name="users">Users to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<string> users, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<string> users, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Return users that are in the given role.

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -58,12 +58,8 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.ByteAssembly), nameof(GXScript.Module))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        public GXScript Item
+        public GXScript Item { get; set; }
 #pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-        {
-            get;
-            set;
-        }
     }
 
     /// <summary>
@@ -75,21 +71,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the scripts to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Filter can be used to filter scripts.
@@ -101,11 +88,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
              nameof(GXScript.Logs),
              nameof(GXScript.Creator),
              nameof(GXScript.Module))]
-        public GXScript? Filter
-        {
-            get;
-            set;
-        }
+        public GXScript? Filter { get; set; }
 
         /// <summary>
         /// Admin user can access scripts from all users.
@@ -113,11 +96,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// If true, scripts from all users are retreaved, not just current user. 
         /// </remarks>
-        public bool AllUsers
-        {
-            get;
-            set;
-        }
+        public bool AllUsers { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -125,11 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -138,21 +113,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -160,11 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public Guid[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -172,21 +135,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public Guid[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Exclude { get; set; }
         /// <summary>
         /// Byte assembly is send for the client.
         /// </summary>
         [DataMember]
         [Description("Byte assembly is send for the client.")]
-        public bool Assembly
-        {
-            get;
-            set;
-        }
+        public bool Assembly { get; set; }
     }
 
     /// <summary>
@@ -208,22 +163,14 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.Logs),
             nameof(GXScript.Module))]
         [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
-        public GXScript[]? Scripts
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXScript>? Scripts { get; set; }
 
         /// <summary>
         /// Total count of the scriptrs.
         /// </summary>
         [DataMember]
         [Description("Total count of the scriptrs.")]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 
     /// <summary>
@@ -245,7 +192,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
             nameof(GXScript.Logs),
             nameof(GXScript.Creator),
             nameof(GXScript.Module))]
-        public List<GXScript> Scripts { get; set; } = new List<GXScript>();
+        public IEnumerable<GXScript> Scripts { get; set; } = default!;
     }
 
     /// <summary>
@@ -256,15 +203,11 @@ namespace Gurux.DLMS.AMI.Shared.Rest
     public class UpdateScriptResponse
     {
         /// <summary>
-        /// New script identifiers.
+        /// Script identifiers.
         /// </summary>
         [DataMember]
-        [Description("New script identifiers.")]
-        public Guid[]? ScriptIds
-        {
-            get;
-            set;
-        }
+        [Description("Script identifiers.")]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
     }
 
     /// <summary>
@@ -277,11 +220,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Removed script identifiers.
         /// </summary>
         [DataMember]
-        public Guid[]? Ids
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid> Ids { get; set; } = default!;
 
         /// <summary>
         /// Items are removed from the database.
@@ -291,11 +230,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Required]
-        public bool Delete
-        {
-            get;
-            set;
-        }
+        public bool Delete { get; set; }
     }
 
     /// <summary>
@@ -315,20 +250,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Validated string.
         /// </summary>
-        public string Script
-        {
-            get;
-            set;
-        }
+        public string Script { get; set; } = default!;
 
         /// <summary>
         /// Additional name spaces.
         /// </summary>
-        public string? NameSpaces
-        {
-            get;
-            set;
-        }
+        public string? NameSpaces { get; set; }
     }
 
     /// <summary>
@@ -340,20 +267,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Script errors in JSON, or null if there are no errors.
         /// </summary>
-        public string? Errors
-        {
-            get;
-            set;
-        }
+        public string? Errors { get; set; }
 
         /// <summary>
         /// Compile time.
         /// </summary>
-        public int CompileTime
-        {
-            get;
-            set;
-        }
+        public int CompileTime { get; set; }
     }
 
     /// <summary>
@@ -365,11 +284,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Script method ID.
         /// </summary>
-        public Guid MethodId
-        {
-            get;
-            set;
-        }
+        public Guid MethodId { get; set; }
     }
 
     /// <summary>
@@ -381,11 +296,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Result value.
         /// </summary>
-        public object? Result
-        {
-            get;
-            set;
-        }
+        public object? Result { get; set; }
     }
 
     /// <summary>
@@ -397,11 +308,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Rebuild script IDs.
         /// </summary>
-        public Guid[]? Scripts
-        {
-            get;
-            set;
-        }
+        public IEnumerable<Guid>? Scripts { get; set; }
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -46,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List gateway groups.
         /// </summary>
         /// <returns>User groups.</returns>
-        Task<GXGatewayGroup[]> ListAsync(
-            ListGatewayGroups? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXGatewayGroup>> ListAsync(
+            ListGatewayGroups? request = null,
             ListGatewayGroupsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -55,38 +58,45 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read gateway.
         /// </summary>
         /// <param name="id">Gateway id.</param>
-        /// <returns></returns>
-        Task<GXGatewayGroup> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXGatewayGroup> ReadAsync(Guid id, Expression<Func<GXGatewayGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
 
         /// <summary>
         /// Update gateway groups.
         /// </summary>
         /// <param name="groups">Updated gateway groups.</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXGatewayGroup> groups,
-            Expression<Func<GXGatewayGroup, object?>>? columns = null);
+            Expression<Func<GXGatewayGroup, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete gateway group(s).
         /// </summary>
         /// <param name="groups">Gateway groups to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> groups, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> groups, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this gateway group.
         /// </summary>
         /// <param name="gatewayGroupId">Gateway group id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? gatewayGroupId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? gatewayGroupId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access gateway groups.
         /// </summary>
         /// <param name="gatewayGroupIds">Gateway group ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? gatewayGroupIds);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? gatewayGroupIds, CancellationToken cancellationToken = default);
     }
 }

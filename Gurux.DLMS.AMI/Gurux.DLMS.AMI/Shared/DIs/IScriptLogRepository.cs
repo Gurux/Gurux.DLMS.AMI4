@@ -1,4 +1,5 @@
-﻿//
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,6 +34,7 @@
 using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Script;
 using Gurux.DLMS.AMI.Shared.Rest;
+using System.Linq.Expressions;
 
 namespace Gurux.DLMS.AMI.Shared.DIs
 {
@@ -45,30 +47,38 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List script logs.
         /// </summary>
         /// <returns>List of script logs.</returns>
-        Task<GXScriptLog[]> ListAsync(
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXLog>> ListAsync(
 
-            ListScriptLogs? request,
+            ListScriptLogs? request = null,
             ListScriptLogsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read script log information.
+        /// Read script log details.
         /// </summary>
         /// <param name="id">Script log id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>Script information.</returns>
-        Task<GXScriptLog> ReadAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> ReadAsync(Guid id, Expression<Func<GXLog, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Clear script logs.
         /// </summary>
-        Task ClearAsync(Guid[]? scripts);
+        /// <param name="scripts">Script ids to clear.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ClearAsync(IEnumerable<Guid>? scripts, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add script logs.
         /// </summary>
         /// <param name="type">Script log type.</param>
         /// <param name="errors">New script logs.</param>
-        Task AddAsync(string type, IEnumerable<GXScriptLog> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task AddAsync(string type, IEnumerable<GXLog> errors, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add new exception.
@@ -76,12 +86,14 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="type">Script log type.</param>
         /// <param name="script">Script.</param>
         /// <param name="ex">Exception.</param>
-        Task<GXScriptLog> AddAsync(string type, GXScript script, Exception ex);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXLog> AddAsync(string type, GXScript script, Exception ex, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Close script log(s).
         /// </summary>
         /// <param name="errors">Errors to close.</param>
-        Task CloseAsync(IEnumerable<Guid> errors);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task CloseAsync(IEnumerable<Guid> errors, CancellationToken cancellationToken = default);
     }
 }

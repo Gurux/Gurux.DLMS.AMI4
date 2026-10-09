@@ -43,30 +43,18 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Data type identifier.
         /// </summary>
         [DataMember]
-        public string? Id
-        {
-            get;
-            set;
-        }
+        public string? Id { get; set; }
 
         /// <summary>
         /// Localized name for the data type.
         /// </summary>
         [DataMember]
-        public string? LocalizedName
-        {
-            get;
-            set;
-        }
+        public string? LocalizedName { get; set; }
 
         /// <summary>
         /// Imported item count.
         /// </summary>
         [DataMember]
-        public int? Count
-        {
-            get;
-            set;
-        }
+        public int? Count { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -50,51 +50,61 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <remarks>
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(Guid scriptId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid scriptId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this script.
         /// </summary>
-        /// <param name="scriptIds">Script ids.</param>
+        /// <param name="Ids">Script ids.</param>
         /// <returns>User Ids that can access this scripts.</returns>
         /// <remarks>
         /// If script is null all the users who can access the scripts are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid> scriptIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid> Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// List scripts.
         /// </summary>
         /// <returns>Scripts.</returns>
-        Task<GXScript[]> ListAsync(
-            ListScripts? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXScript>> ListAsync(
+            ListScripts? request = null,
             ListScriptsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Read script information.
+        /// Read script details.
         /// </summary>
         /// <param name="id">Script id.</param>
-        /// <returns></returns>
-        Task<GXScript> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXScript> ReadAsync(Guid id, Expression<Func<GXScript, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add or update scripts.
         /// </summary>
         /// <param name="scripts">Updated script(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXScript> scripts,
-            Expression<Func<GXScript, object?>>? columns = null);
+            Expression<Func<GXScript, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete script(s).
         /// </summary>
         /// <param name="scripts">Deleted script(s).</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
+        /// <param name="notify">If true, users are notified about the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task DeleteAsync(
             IEnumerable<Guid> scripts,
-            bool delete);
+            bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Validate script.
@@ -105,25 +115,28 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <param name="methods">The methods of the script.</param>
         /// <param name="errorJson">Errors as JSON.</param>
         /// <param name="compileTime">Compile time in ms.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Byte assembly if compile succeeded.</returns>
-        public byte[]? Compile(
+        byte[]? Compile(
             string fileName,
             string script,
             string? additionalNamespaces,
             List<GXScriptMethod> methods,
-            out string? errorJson, out int compileTime);
+            out string? errorJson, out int compileTime, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Run script.
         /// </summary>
         /// <param name="methodId">Script method ID to run.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Script output.</returns>
-        public Task<object?> RunAsync(Guid methodId);
+        Task<object?> RunAsync(Guid methodId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Rebuild scripts.
         /// </summary>
         /// <param name="scripts">Rebuild script IDs.</param>
-        public Task RebuildAsync(IEnumerable<Guid>? scripts);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        public Task RebuildAsync(IEnumerable<Guid>? scripts, CancellationToken cancellationToken = default);
     }
 }

@@ -40,20 +40,12 @@ namespace Gurux.DLMS.AMI.Shared
         /// <summary>
         /// Retry after tells when server should be operating again.
         /// </summary>
-        public TimeSpan? RetryAfter
-        {
-            get;
-            set;
-        }
+        public TimeSpan? RetryAfter { get; set; }
 
         /// <summary>
         /// Maintenance end time.
         /// </summary>
-        public DateTimeOffset? EndTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? EndTime { get; set; }
 
         /// <summary>
         /// Constructor.

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         [DataMember]
         [Description("Log item.")]
         [Required]
-        public GXEnumType? Item
-        {
-            get;
-            set;
-        }
+        public GXEnumType? Item { get; set; }
     }
 
     /// <summary>
@@ -75,29 +71,17 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <summary>
         /// Filter can be used to filter enum types.
         /// </summary>
-        public GXEnumType? Filter
-        {
-            get;
-            set;
-        }
-      
+        public GXEnumType? Filter { get; set; }
+
         /// <summary>
         /// Start index.
         /// </summary>
-        public int Index
-        {
-            get;
-            set;
-        }
+        public int Index { get; set; }
 
         /// <summary>
         /// Amount of the enum types to retrieve.
         /// </summary>
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
 
         /// <summary>
         /// Selected extra information.
@@ -105,11 +89,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// This is reserved for later use.
         /// </remarks>
-        public string[]? Select
-        {
-            get;
-            set;
-        }
+        public IEnumerable<string>? Select { get; set; }
 
         /// <summary>
         /// Order by name.
@@ -118,21 +98,13 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// Default order by is used if this is not set.
         /// </remarks>
         /// <seealso cref="Descending"/>
-        public string? OrderBy
-        {
-            get;
-            set;
-        }
+        public string? OrderBy { get; set; }
 
         /// <summary>
         /// Are values shown as descending order.
         /// </summary>
         /// <seealso cref="OrderBy"/>
-        public bool Descending
-        {
-            get;
-            set;
-        }
+        public bool Descending { get; set; }
 
         /// <summary>
         /// Included Ids.
@@ -140,11 +112,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Included Ids can be used to get only part of large data.
         /// </remarks>
-        public int[]? Included
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? Included { get; set; }
 
         /// <summary>
         /// Excluded Ids.
@@ -152,11 +120,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// <remarks>
         /// Excluded Ids can be used to filter data.
         /// </remarks>
-        public int[]? Exclude
-        {
-            get;
-            set;
-        }
+        public IEnumerable<int>? Exclude { get; set; }
     }
 
     /// <summary>
@@ -171,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </summary>
         [DataMember]
         [Description("enum types.")]
-        public GXEnumType[]? Types
-        {
-            get;
-            set;
-        }
+        public IEnumerable<GXEnumType>? Types { get; set; }
 
         /// <summary>
         /// Amount of the enum types.
@@ -186,10 +146,6 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [DataMember]
         [Description("Amount of the enum types.")]
-        public int Count
-        {
-            get;
-            set;
-        }
+        public int Count { get; set; }
     }
 }

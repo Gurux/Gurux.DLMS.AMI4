@@ -48,11 +48,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Key]
         [DataMember(Name = "ID"), Index]
         [AutoIncrement]
-        public int Id
-        {
-            get;
-            set;
-        }
+        public int Id { get; set; }
 
         /// <summary>
         /// Role ID.
@@ -62,30 +58,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(Unique = false)]
         [IsRequired]
         [ForeignKey(typeof(GXRole), OnDelete = ForeignKeyDelete.Cascade)]
-        public string RoleId
-        {
-            get;
-            set;
-        } = "";
+        public string RoleId { get; set; } = "";
 
         /// <summary>
         /// Claim type.
         /// </summary>
         [DataMember]
-        public string? ClaimType
-        {
-            get;
-            set;
-        }
+        public string? ClaimType { get; set; }
 
         /// <summary>
         /// Claim value.
         /// </summary>
         [DataMember]
-        public string? ClaimValue
-        {
-            get;
-            set;
-        }
+        public string? ClaimValue { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
 using Gurux.DLMS.AMI.Shared.Rest;
@@ -47,8 +46,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List gateways.
         /// </summary>
         /// <returns>Gateways.</returns>
-        Task<GXGateway[]> ListAsync(
-            ListGateways? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXGateway>> ListAsync(
+            ListGateways? request = null,
             ListGatewaysResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -56,50 +58,59 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read gateway.
         /// </summary>
         /// <param name="id">Gateway id.</param>
-        /// <returns></returns>
-        Task<GXGateway> ReadAsync(Guid id);
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXGateway> ReadAsync(Guid id, Expression<Func<GXGateway, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update gateway(s).
         /// </summary>
         /// <param name="gateways">Updated gateway(s).</param>
-        /// <param name="columns">Updated column(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXGateway> gateways,
-            Expression<Func<GXGateway, object?>>? columns = null);
+            Expression<Func<GXGateway, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete gateway(s).
         /// </summary>
         /// <param name="gateways">Gateway(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> gateways, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> gateways, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this gateway.
         /// </summary>
         /// <param name="gatewayId">Gateway id.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(Guid? gatewayId);
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? gatewayId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access gateways.
         /// </summary>
-        /// <param name="gatewayIds">Gateway ids.</param>
-        /// <returns></returns>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? gatewayIds);
+        /// <param name="Ids">Gateway ids.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gateway updates the status.
         /// </summary>
         /// <param name="gatewayId">Gateway ID.</param>
         /// <param name="status">Gateway status</param>
-        Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task UpdateStatusAsync(Guid gatewayId, GatewayStatus status, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Reset gateways to offline.
         /// </summary>
         /// <param name="gateways">Resetted gateway(s).</param>
-        Task ResetAsync(IEnumerable<Guid> gateways);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task ResetAsync(IEnumerable<Guid> gateways, CancellationToken cancellationToken = default);
     }
 }

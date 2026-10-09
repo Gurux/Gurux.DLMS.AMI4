@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -44,40 +44,48 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <summary>
         /// List workflows.
         /// </summary>
-        /// <param name="request"></param>
-        /// <param name="response"></param>
-        /// <param name="includeActivity"></param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        /// <param name="includeActivity">If true, includes workflow activity details.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Workflows.</returns>
-        Task<GXWorkflow[]> ListAsync(
-            ListWorkflows? request,
-            ListWorkflowsResponse? response,
-            bool includeActivity);
+        Task<IEnumerable<GXWorkflow>> ListAsync(
+            ListWorkflows? request = null,
+            ListWorkflowsResponse? response = null,
+            bool includeActivity = false,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Read workflow.
         /// </summary>
         /// <param name="id">Workflow id.</param>
         /// <param name="includeScripts">Are script byte assemblies included.</param>
-        /// <returns></returns>
+        /// <param name="columns">Read columns.</param>
+        /// <returns>Operation result.</returns>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task<GXWorkflow> ReadAsync(
             Guid id,
-            bool includeScripts);
+            bool includeScripts,
+            Expression<Func<GXWorkflow, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update workflow(s).
         /// </summary>
         /// <param name="workflows">Updated workflow(s).</param>
-        /// <param name="columns">Updated columns(s).</param>
-        Task<Guid[]> UpdateAsync(
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<IEnumerable<Guid>> UpdateAsync(
             IEnumerable<GXWorkflow> workflows,
-            Expression<Func<GXWorkflow, object?>>? columns = null);
+            Expression<Func<GXWorkflow, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete workflow(s).
         /// </summary>
         /// <param name="workflows">Workflow(s) to delete.</param>
         /// <param name="delete">If true, objects are deleted, not marked as removed.</param>
-        Task DeleteAsync(IEnumerable<Guid> workflows, bool delete);
+        /// <param name="notify">If true, notifications are sent for the deletion.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> workflows, bool delete = true, bool notify = true, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access this workflow.
@@ -87,22 +95,25 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// <remarks>
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(Guid? workflowId);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(Guid? workflowId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Get all users that can access given workflows.
         /// </summary>
-        /// <param name="workflowIds">Workflow ids.</param>
+        /// <param name="Ids">Workflow ids.</param>
         /// <returns>User Ids that can access this workflow.</returns>
         /// <remarks>
         /// If workflowId is null all the users who can access the workflow are returned.
         /// </remarks>
-        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? workflowIds);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<List<string>> GetUsersAsync(IEnumerable<Guid>? Ids, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Run the workflow.
         /// </summary>
         /// <param name="id">Workflow id.</param>
-        Task RunAsync(Guid id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task RunAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }

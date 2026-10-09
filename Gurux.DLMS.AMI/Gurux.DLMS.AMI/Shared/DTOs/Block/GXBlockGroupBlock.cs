@@ -50,12 +50,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DataMember(Name = "BlockGroupId")]
         [ForeignKey(typeof(GXBlockGroup), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid BlockGroupId
-        {
-            //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
+        public Guid BlockGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the block.
@@ -63,11 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [DataMember(Name = "BlockID")]
         [ForeignKey(typeof(GXBlock), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid BlockId
-        {
-            get;
-            set;
-        }
+        public Guid BlockId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -77,11 +69,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when block was removed from block group.
@@ -90,10 +78,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Block
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }       
+        public DateTimeOffset? Removed { get; set; }
     }
 }

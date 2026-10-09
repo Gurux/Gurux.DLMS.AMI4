@@ -49,22 +49,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// </summary>
         [DataMember(Name = "TriggerGroupID")]
         [ForeignKey(typeof(GXTriggerGroup), OnDelete = ForeignKeyDelete.None)]
-        public Guid TriggerGroupId
-        {
-            get;
-            set;
-        }
+        public Guid TriggerGroupId { get; set; }
 
         /// <summary>
         /// The database ID of the trigger.
         /// </summary>
         [DataMember(Name = "TriggerID")]
         [ForeignKey(typeof(GXTrigger), OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid TriggerId
-        {
-            get;
-            set;
-        }
+        public Guid TriggerId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -73,11 +65,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when agent group was removed from user group.
@@ -86,10 +74,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

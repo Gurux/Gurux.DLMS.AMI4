@@ -52,23 +52,15 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [DataMember(Name = "UserID")]
         [ForeignKey(typeof(GXUser), OnDelete = ForeignKeyDelete.None)]
         [StringLength(36)]
-        public string? UserId
-        {
-            //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the block is causing multiple cascade paths error in MSSQL.
+        public string? UserId { get; set; }
 
         /// <summary>
         /// Block ID.
         /// </summary>
-        [DataMember(Name = "BlockID"), ForeignKey(typeof(GXBlock), 
+        [DataMember(Name = "BlockID"), ForeignKey(typeof(GXBlock),
             OnDelete = ForeignKeyDelete.Cascade)]
-        public Guid BlockId
-        {
-            get;
-            set;
-        }
+        public Guid BlockId { get; set; }
 
         /// <summary>
         /// Time when user closed the block.
@@ -80,20 +72,12 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
         [Index(false)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Closed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Closed { get; set; }
 
         /// <summary>
         /// User-dependent block settings.
         /// </summary>
         [DataMember]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -51,11 +51,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Description("System setting category identifier.")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Configuration name.
@@ -66,11 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(128)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Optional configuration User interface path.
@@ -80,21 +72,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(128)]
-        public string? Path
-        {
-            get;
-            set;
-        }
+        public string? Path { get; set; }
 
         /// <summary>
         /// Order number.
         /// </summary>
         [DataMember]
-        public int Order
-        {
-            get;
-            set;
-        }
+        public int Order { get; set; }
 
         /// <summary>
         /// Configuration description.
@@ -103,11 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [StringLength(256)]
         [DefaultValue(null)]
         [Description("Configuration description.")]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Used icon.
@@ -118,22 +98,27 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public string? Icon
-        {
-            get;
-            set;
-        }
+        public string? Icon { get; set; }
 
         /// <summary>
         /// Configuration settings.
         /// </summary>
         [DataMember]
         [DefaultValue(null)]
-        public string? Settings
-        {
-            get;
-            set;
-        }
+        public string? Settings { get; set; }
+
+        /// <summary>
+        /// Configuration UI.
+        /// </summary>
+        /// <remarks>
+        /// Null, if the module doesn't have configuration UI.
+        /// </remarks>
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
+        public string? UI { get; set; }
+        /// <summary>Whether this configuration is available in the configuration list.</summary>
+        [DataMember, DefaultValue(true)]
+        public bool Enabled { get; set; } = true;
 
         /// <summary>
         /// Creation time.
@@ -142,11 +127,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When value is last updated.
@@ -154,11 +135,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When value is last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the configurations.
@@ -166,11 +143,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -181,11 +154,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }     
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Update creation time before update.

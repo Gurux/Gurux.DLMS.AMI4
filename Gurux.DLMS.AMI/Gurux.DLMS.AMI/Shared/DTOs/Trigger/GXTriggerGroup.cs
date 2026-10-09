@@ -73,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the trigger group.
@@ -86,11 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the trigger group.
@@ -100,31 +92,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Trigger group description.
         /// </summary>
 		[DataMember]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -133,11 +107,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when trigger group was removed.
@@ -146,33 +116,21 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the trigger group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
         /// <summary>
         /// User has modified the item.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -183,41 +141,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Trigger
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
         /// <summary>
         /// List of users groups that belongs to this trigger group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupTriggerGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of Triggers that this Trigger group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXTrigger), typeof(GXTriggerGroupTrigger))]
-        public List<GXTrigger>? Triggers
-        {
-            get;
-            set;
-        }
+        public List<GXTrigger>? Triggers { get; set; }
 
         /// <summary>
         /// This is default trigger group where new triggers are added automatically when user creates them.
         /// </summary>
         [IgnoreDataMember]
         [Ignore]
-        public bool Default
-        {
-            get;
-            set;
-        }
+        public bool Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

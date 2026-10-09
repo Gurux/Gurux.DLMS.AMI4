@@ -34,7 +34,6 @@ using Gurux.Service.Orm.Common.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs
 {
@@ -50,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [DefaultValue(null)]
         [AutoIncrement]
-        public int Id
-        {
-            get;
-            set;
-        }
+        public int Id { get; set; }
 
         /// <summary>
         /// Enum type include e.g. System log, User, Device, Agent, 
@@ -65,11 +60,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [StringLength(64)]
         [IsRequired]
-        public string? Type
-        {
-            get;
-            set;
-        }
+        public string? Type { get; set; }
 
         /// <summary>
         /// Enum type name.
@@ -80,21 +71,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false)]
         [StringLength(64)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Enum integer value.
         /// </summary>
         [DataMember]
-        public int? Value
-        {
-            get;
-            set;
-        }
+        public int? Value { get; set; }
 
         /// <inheritdoc/>
         public override string ToString()

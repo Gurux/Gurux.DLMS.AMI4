@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,20 +45,26 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user stamps.
         /// </summary>
         /// <returns>List of user stamps.</returns>
-        Task<GXUserStamp[]> ListAsync(
-            ListUserStamps? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXUserStamp>> ListAsync(
+            ListUserStamps? request = null,
             ListUserStampsResponse? response = null,
             CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete user stamps.
         /// </summary>
-        Task DeleteAsync(IEnumerable<Guid> userStamps);
+        /// <param name="userStamps">User stamps.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<Guid> userStamps, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Add user stamps.
         /// </summary>
         /// <param name="userStamps">New user stamps.</param>
-        Task UpdateAsync(IEnumerable<GXUserStamp> userStamps);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task UpdateAsync(IEnumerable<GXUserStamp> userStamps, CancellationToken cancellationToken = default);
     }
 }

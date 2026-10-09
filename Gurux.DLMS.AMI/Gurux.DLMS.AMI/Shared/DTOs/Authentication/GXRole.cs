@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -32,7 +32,6 @@
 using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.ComponentModel.DataAnnotations;
-using Gurux.DLMS.AMI.Shared.DTOs.Module;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
 using System.Data;
@@ -43,7 +42,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
     /// User roles.
     /// </summary>
     [DataContract(Name = "GXRole"), Serializable]
-    public partial class GXRole : IUnique<string>
+    public class GXRole : IUnique<string>
     {
         /// <summary>
         /// Role Identifier.
@@ -59,42 +58,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// Name of the role.
         /// </summary>
         [DataMember]
+        [Index]
         [StringLength(256)]
         [Filter(FilterType.Equals)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Normalized name.
         /// </summary>
         [DataMember]
-        [Index]
+        [Index(Unique = true)]
         [StringLength(256)]
         [IsRequired]
-        public string? NormalizedName
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Localized role name.
-        /// </summary>
-        /// <remarks>
-        /// Localized role name is not saved to the database.
-        /// </remarks>
-        [DataMember]
-        [Description("Localized role name.")]
-        [Ignore]
-        public string? LocalizedName
-        {
-            get;
-            set;
-        }
+        public string? NormalizedName { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -106,36 +83,44 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [DataMember]
         [StringLength(36)]
         [ConcurrencyCheck]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
-        /// If true, the role is added for the new user as a default role.
+        /// Is user added to this role when new user is created.
         /// </summary>
         [DataMember]
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
-        /// The creator module.
+        /// Notify users when content associated with this role changes.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-        public GXModule? Module
-        {
-            get;
-            set;
-        }
+        [DefaultValue(false)]
+        [IsRequired]
+        public bool? NotifyOnContentChange { get; set; }
+
+        /// <summary>
+        /// Role description.
+        /// </summary>
+        [DataMember]
+        public string? Description { get; set; }
+
+        /// <summary>
+        /// Indicates whether the entity is defined and managed by the system.
+        /// </summary>
+        /// <remarks>
+        /// When set to true, the entity is protected from user modifications,
+        /// including editing and deletion. System-defined entities are controlled
+        /// by the application and are required for core functionality.
+        /// </remarks>
+        [DataMember]
+        [DefaultValue(false)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        public bool? SystemDefined { get; set; }
 
         /// <summary>
         /// Time when role was removed.
@@ -147,24 +132,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
-        /// Role scopes.
+        /// Role permissions.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXScope))]
+        [ForeignKey(typeof(GXPermission), typeof(GXRolePermission))]
         [Filter(FilterType.Contains)]
         [System.ComponentModel.DataAnnotations.Schema.NotMapped]
-        public List<GXScope>? Scopes
-        {
-            get;
-            set;
-        }
+        public List<GXPermission>? Permissions { get; set; }
 
         /// <summary>
         /// Constructor.
@@ -181,8 +158,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         public GXRole(string? name)
         {
             Name = name;
-            NormalizedName = name?.ToUpper();
-            Scopes = new List<GXScope>();
+            NormalizedName = name?.ToUpperInvariant();
+            Permissions = new List<GXPermission>();
         }
 
         /// <summary>
@@ -196,43 +173,30 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                 Id = Id,
                 Name = Name,
                 NormalizedName = NormalizedName,
-                LocalizedName = LocalizedName,
                 ConcurrencyStamp = ConcurrencyStamp,
-                Default = Default,
-                Module = Module,
                 Removed = Removed,
-                Scopes = Scopes
+                Permissions = Permissions
             };
-            if (Scopes != null)
+            if (Permissions != null)
             {
-                item.Scopes = new List<GXScope>();
-                foreach (var it in Scopes)
+                item.Permissions = new List<GXPermission>();
+                foreach (var it in Permissions)
                 {
-                    GXScope s = it.Clone();
-                    s.Role = item;
-                    item.Scopes.Add(s);
+                    GXPermission s = it.Clone();
+                    item.Permissions.Add(s);
                 }
             }
             return item;
         }
 
         /// <summary>
-        /// Get list of role scopes.
+        /// Get list of role permissions.
         /// </summary>
         /// <returns></returns>
-        public string[] GetScopes()
+        public IEnumerable<string> GetPermissions()
         {
-            string? name = Name?.ToLower();
-            string[] roles;
-            if (name != null && Default != true && Scopes?.Any() == true)
-            {
-                roles = Scopes.Select(s => (name + "." + s.Name?.ToLower()) ?? string.Empty).ToArray();
-            }
-            else
-            {
-                roles = [];
-            }
-            return roles;
+            return (Permissions ?? []).Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                .Select(p => p.Name!).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
         /// <summary>
@@ -243,7 +207,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         /// <param name="onlyDefault">Only default roles are returned.</param>
         /// <param name="unknownException">Throw exception if name is unknown.</param>
         /// <returns></returns>
-        public static GXRole[] GetRoles(IEnumerable<GXRole> roles,
+        public static IEnumerable<GXRole> GetRoles(IEnumerable<GXRole> roles,
             IEnumerable<string>? names,
             bool onlyDefault,
             bool unknownException)
@@ -277,17 +241,17 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
 
         /// <summary>
-        /// Returns scopes from the roles.
+        /// Returns permissions from the roles.
         /// </summary>
         /// <param name="roles">List of roles where values are search for.</param>
-        /// <param name="names">Scope names.</param>
+        /// <param name="names">Permission names.</param>
         /// <param name="unknownException">Throw exception if name is unknown.</param>
         /// <returns></returns>
-        public static GXScope[] GetScopes(IEnumerable<GXRole> roles,
+        public static IEnumerable<GXPermission> GetPermissions(IEnumerable<GXRole> roles,
             IEnumerable<string>? names,
             bool unknownException)
         {
-            List<GXScope> list = new List<GXScope>();
+            List<GXPermission> list = new List<GXPermission>();
             if (names != null)
             {
                 foreach (var name in names)
@@ -295,13 +259,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                     bool found = false;
                     foreach (var role in roles)
                     {
-                        string? roleName = role.Name?.ToLower();
-                        foreach (var scope in role.Scopes ?? Enumerable.Empty<GXScope>())
+                        foreach (var permission in role.Permissions ?? Enumerable.Empty<GXPermission>())
                         {
-                            if (string.Compare(roleName + "." + scope.Name, name, true) == 0)
+                            if (string.Equals(permission.Name, name, StringComparison.OrdinalIgnoreCase))
                             {
                                 found = true;
-                                list.Add(scope);
+                                if (!list.Any(p => string.Equals(p.Name, permission.Name, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    list.Add(permission);
+                                }
+
                                 break;
                             }
                         }
@@ -312,7 +279,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
                     }
                     if (unknownException && !found)
                     {
-                        throw new ArgumentException(string.Format("Unknown role '{0}'.", name));
+                        throw new ArgumentException(string.Format("Unknown permission '{0}'.", name));
                     }
                 }
             }
@@ -324,9 +291,9 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         {
             if (!string.IsNullOrEmpty(Name))
             {
-                if (Scopes?.Any() == true)
+                if (Permissions?.Any() == true)
                 {
-                    return Name + " [" + Scopes.Select(s => s.Name).Aggregate((current, next) => current + ", " + next) + "]";
+                    return Name + " [" + Permissions.Select(s => s.Name).Aggregate((current, next) => current + ", " + next) + "]";
                 }
                 return Name;
             }
@@ -334,3 +301,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Authentication
         }
     }
 }
+
+
+

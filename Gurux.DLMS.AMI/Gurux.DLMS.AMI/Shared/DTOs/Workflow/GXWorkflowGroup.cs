@@ -73,11 +73,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// The creator of the workflow group.
@@ -86,11 +82,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
-        public GXUser? Creator
-        {
-            get;
-            set;
-        }
+        public GXUser? Creator { get; set; }
 
         /// <summary>
         /// Name of the schedule group.
@@ -100,31 +92,13 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false)]
         [Filter(FilterType.Contains)]
         [IsRequired]
-        public string? Name
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Url alias.
-        /// </summary>
-        [Ignore]
-        public string? UrlAlias
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Workflow group description.
         /// </summary>
-		[DataMember]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        [DataMember]
+        public string? Description { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -132,11 +106,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DataMember]
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when schedule group was removed.
@@ -145,22 +115,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// When was the workflow group last updated.
         /// </summary>
         [DataMember]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -168,11 +130,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -183,31 +141,20 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// List of users groups that belongs to this schedule group.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXUserGroup), typeof(GXUserGroupWorkflowGroup))]
-        public List<GXUserGroup>? UserGroups
-        {
-            get;
-            set;
-        }
+        public List<GXUserGroup>? UserGroups { get; set; }
 
         /// <summary>
         /// List of schedules that this schedule group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXWorkflow), typeof(GXWorkflowGroupWorkflow))]
-        public List<GXWorkflow>? Workflows
-        {
-            get;
-            set;
-        }
+        public List<GXWorkflow>? Workflows { get; set; }
 
         /// <summary>
         /// This is default workflow group where new workflows are added automatically when user creates them.
@@ -216,11 +163,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Workflow
         [DefaultValue(false)]
         [Filter(FilterType.Exact)]
         [IsRequired]
-        public bool? Default
-        {
-            get;
-            set;
-        }
+        public bool? Default { get; set; }
 
         /// <summary>
         /// Update creation time before update.

@@ -49,11 +49,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DataMember]
         [ForeignKey(typeof(GXDevice), OnDelete = ForeignKeyDelete.Cascade)]
         [IsRequired]
-        public Guid DeviceId
-        {
-            get;
-            set;
-        }
+        public Guid DeviceId { get; set; }
 
         /// <summary>
         /// Gateway ID.
@@ -61,12 +57,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [DataMember]
         [ForeignKey(typeof(GXGateway), OnDelete = ForeignKeyDelete.None)]
         [IsRequired]
-        public Guid GatewayId
-        {
-            //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
-            get;
-            set;
-        }
+        //ForeignKeyDelete is None because creator of the device is causing multiple cascade paths error in MSSQL.
+        public Guid GatewayId { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -76,11 +68,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// Time when device group was removed from gateway group.
@@ -89,10 +77,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Gateway
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
     }
 }

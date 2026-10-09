@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -45,8 +45,11 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// List user settings.
         /// </summary>
         /// <returns>List of user settings.</returns>
-        Task<GXUserSetting[]> ListAsync(
-            ListUserSettings? request,
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <param name="request">The request parameters.</param>
+        /// <param name="response">The response parameters.</param>
+        Task<IEnumerable<GXUserSetting>> ListAsync(
+            ListUserSettings? request = null,
             ListUserSettingsResponse? response = null,
             CancellationToken cancellationToken = default);
 
@@ -54,22 +57,26 @@ namespace Gurux.DLMS.AMI.Shared.DIs
         /// Read user settings.
         /// </summary>
         /// <param name="id">Object id.</param>
+        /// <param name="columns">Read columns.</param>
         /// <returns>User setting.</returns>
-        Task<GXUserSetting> ReadAsync(string id);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task<GXUserSetting> ReadAsync(string id, Expression<Func<GXUserSetting, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Update user settings.
         /// </summary>
         /// <param name="settings">User settings to add.</param>
-        /// <param name="columns">Updated columns(s).</param>
+        /// <param name="columns">Updated columns.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
         Task UpdateAsync(
             IEnumerable<GXUserSetting> settings,
-            Expression<Func<GXUserSetting, object?>>? columns = null);
+            Expression<Func<GXUserSetting, object>>? columns = null, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Delete user settings.
         /// </summary>
         /// <param name="settings">User settings to delete.</param>
-        Task DeleteAsync(IEnumerable<string> settings);
+        /// <param name="cancellationToken">The cancellation token.</param>
+        Task DeleteAsync(IEnumerable<string> settings, CancellationToken cancellationToken = default);
     }
 }

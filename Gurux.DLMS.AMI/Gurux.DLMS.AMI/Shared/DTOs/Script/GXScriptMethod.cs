@@ -34,7 +34,6 @@ using Gurux.Service.Orm.Common.Enums;
 using Gurux.DLMS.AMI.Shared.DTOs.Agent;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Notification;
-using Gurux.DLMS.AMI.Shared.DTOs.Report;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -53,11 +52,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember(Name = "ID")]
         [DefaultValue(null)]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Name of the script method.
@@ -65,42 +60,26 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
 		[DataMember]
         [StringLength(128)]
         [Filter(FilterType.Contains)]
-        public string? Name
-        {
-            get;
-            set;
-        }
+        public string? Name { get; set; }
 
         /// <summary>
         /// Script method description.
         /// </summary>
         [DataMember]
         [Filter(FilterType.Contains)]
-        public string? Description
-        {
-            get;
-            set;
-        }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Is method a function that is returning a value.
         /// </summary>
 		[DataMember]
-        public bool Function
-        {
-            get;
-            set;
-        }
+        public bool IsFunction { get; set; }
 
         /// <summary>
         /// Is method an asyncronous method.
         /// </summary>
         [DataMember]
-        public bool Asyncronous
-        {
-            get;
-            set;
-        }
+        public bool IsAsynchronous { get; set; }
 
         /// <summary>
         /// Parent script.
@@ -108,11 +87,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember, ForeignKey(typeof(GXScript), OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXScript? Script
-        {
-            get;
-            set;
-        }
+        public GXScript? Script { get; set; }
 
         /// <summary>
         /// List of blocks where this script method belongs.
@@ -120,11 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember]
         [ForeignKey(typeof(GXBlock))]
         [Filter(FilterType.Contains)]
-        public List<GXBlock> Blocks
-        {
-            get;
-            set;
-        }
+        public List<GXBlock> Blocks { get; set; }
 
         /// <summary>
         /// List of agents where this script method belongs.
@@ -132,44 +103,23 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Script
         [DataMember]
         [ForeignKey(typeof(GXAgent))]
         [Filter(FilterType.Contains)]
-        public List<GXAgent> Agents
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// List of reports where this script method belongs.
-        /// </summary>
-        [DataMember]
-        [ForeignKey(typeof(GXReport))]
-        [Filter(FilterType.Contains)]
-        public List<GXReport> Reports
-        {
-            get;
-            set;
-        }
+        public List<GXAgent> Agents { get; set; }
 
         /// <summary>
         /// List of notification where this script method belongs.
         /// </summary>
         [DataMember]
-        [ForeignKey(typeof(GXReport))]
+        [ForeignKey(typeof(GXNotification))]
         [Filter(FilterType.Contains)]
-        public List<GXNotification> Notifications
-        {
-            get;
-            set;
-        }
+        public List<GXNotification> Notifications { get; set; }
         /// <summary>
         /// Constructor.
         /// </summary>
         public GXScriptMethod()
         {
-            Blocks = new List<GXBlock>();
-            Agents = new List<GXAgent>();
-            Reports = new List<GXReport>();
-            Notifications = new List<GXNotification>();
+            Blocks = [];
+            Agents = [];
+            Notifications = [];
         }
     }
 }

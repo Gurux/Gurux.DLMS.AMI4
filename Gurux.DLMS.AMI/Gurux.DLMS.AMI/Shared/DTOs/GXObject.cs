@@ -85,11 +85,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </summary>
         [DataMember]
         [Filter(FilterType.Exact)]
-        public Guid Id
-        {
-            get;
-            set;
-        }
+        public Guid Id { get; set; }
 
         /// <summary>
         /// Device identifier.
@@ -98,11 +94,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXDevice? Device
-        {
-            get;
-            set;
-        }
+        public GXDevice? Device { get; set; }
 
 
         /// <summary>
@@ -112,11 +104,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Index(false)]
         [Filter(FilterType.Exact)]
-        public GXObjectTemplate? Template
-        {
-            get;
-            set;
-        }
+        public GXObjectTemplate? Template { get; set; }
 
         /// <summary>
         /// Creation time.
@@ -125,11 +113,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [Filter(FilterType.GreaterOrEqual)]
         [IsRequired]
-        public DateTimeOffset? CreationTime
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
         /// When object is last updated.
@@ -137,11 +121,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When object is last updated.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? Updated
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Updated { get; set; }
 
         /// <summary>
         /// User has modified the item.
@@ -149,11 +129,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [IgnoreDataMember]
         [Ignore]
         [JsonIgnore]
-        public bool Modified
-        {
-            get;
-            set;
-        }
+        public bool Modified { get; set; }
 
         /// <summary>
         /// Object is created only when needed.
@@ -164,11 +140,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// This makes faster to add new devices for the database.
         /// </remarks>
         [Ignore]
-        public bool Latebind
-        {
-            get;
-            set;
-        }
+        public bool Latebind { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
@@ -179,11 +151,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         /// </remarks>
         [DataMember]
         [StringLength(36)]
-        public string? ConcurrencyStamp
-        {
-            get;
-            set;
-        }
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// Remove time.
@@ -192,11 +161,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [Index(false, Descend = true)]
         [DefaultValue(null)]
         [Filter(FilterType.Null)]
-        public DateTimeOffset? Removed
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? Removed { get; set; }
 
         /// <summary>
         /// Object parameters.
@@ -204,11 +169,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey]
         [Filter(FilterType.Contains)]
-        public List<GXObjectParameter>? Parameters
-        {
-            get;
-            set;
-        }
+        public List<GXObjectParameter>? Parameters { get; set; }
 
         /// <summary>
         /// When the object's attribute were last read.
@@ -216,11 +177,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the object's attribute were last read.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastRead
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastRead { get; set; }
 
         /// <summary>
         /// When the object's attribute were last written.
@@ -228,11 +185,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the object's attribute were last written.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastWrite
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastWrite { get; set; }
 
         /// <summary>
         /// When the object's actions were last invoked.
@@ -240,11 +193,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the object's actions were last invoked.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastAction
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastAction { get; set; }
 
         /// <summary>
         /// When the last error was occurred.
@@ -252,11 +201,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("When the last error was occurred.")]
         [Filter(FilterType.GreaterOrEqual)]
-        public DateTimeOffset? LastError
-        {
-            get;
-            set;
-        }
+        public DateTimeOffset? LastError { get; set; }
 
         /// <summary>
         /// Last error message.
@@ -264,11 +209,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [Description("Last error message.")]
         [IsRequired]
-        public string? LastErrorMessage
-        {
-            get;
-            set;
-        }
+        public string? LastErrorMessage { get; set; }
 
         /// <summary>
         /// Attributes.
@@ -276,11 +217,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Contains)]
-        public List<GXAttribute>? Attributes
-        {
-            get;
-            set;
-        }
+        public List<GXAttribute>? Attributes { get; set; }
 
         /// <summary>
         /// Executed tasks.
@@ -288,22 +225,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs
         [DataMember]
         [ForeignKey(typeof(GXTask))]
         [Filter(FilterType.Contains)]
-        public List<GXTask>? Tasks
-        {
-            get;
-            set;
-        }
+        public List<GXTask>? Tasks { get; set; }
 
         /// <summary>
         /// Object errors.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXObjectError))]
         [Filter(FilterType.Contains)]
-        public List<GXObjectError>? Errors
-        {
-            get;
-            set;
-        }
+        public List<GXObjectError>? Errors { get; set; }
 
         /// <summary>
         /// Update creation time before update.
