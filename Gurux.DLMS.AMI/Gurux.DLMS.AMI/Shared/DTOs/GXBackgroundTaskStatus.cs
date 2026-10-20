@@ -1,3 +1,4 @@
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.Text.Json.Serialization;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs;
