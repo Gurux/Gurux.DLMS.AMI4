@@ -29,9 +29,10 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs.Enums;
+using Gurux.DLMS.AMI.Shared.Enums;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
-using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -58,7 +59,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// The parent key management.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [DefaultValue(null)]
         [Index(false)]
         [IsRequired]
@@ -97,6 +98,89 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [DefaultValue(null)]
         [Filter(FilterType.GreaterOrEqual)]
         public DateTimeOffset? Updated { get; set; }
+
+        /// <summary>Returns a detached metadata object without bytes or nested secret lists.</summary>
+        public GXKeyManagementKey ToMetadata()
+        {
+            var copy = (GXKeyManagementKey)MemberwiseClone();
+            copy.Key = null;
+            if (KeyManagement != null)
+                copy.KeyManagement = new GXKeyManagement { Id = KeyManagement.Id, Name = KeyManagement.Name, ProviderId = KeyManagement.ProviderId, ProviderConnectionId = KeyManagement.ProviderConnectionId };
+            return copy;
+        }
+        /// <summary>Lifecycle state. Null is an unmigrated key and denies use.</summary>
+        [DataMember, DefaultValue(null)]
+        public KeyState? State { get; set; }
+
+        /// <summary>Managed object type, separate from the DLMS key role.</summary>
+        [DataMember, DefaultValue(null)]
+        public KeyObjectType? ObjectType { get; set; }
+
+        /// <summary>Cryptographic algorithm.</summary>
+        [DataMember, DefaultValue(null)]
+        public KeyAlgorithm? Algorithm { get; set; }
+
+        /// <summary>Cryptographic key length in bits.</summary>
+        [DataMember, DefaultValue(null)]
+        public int? CryptographicLength { get; set; }
+
+        /// <summary>Encoding of the key material.</summary>
+        [DataMember, DefaultValue(null)]
+        public KeyFormat? Format { get; set; }
+
+        /// <summary>Permitted cryptographic purposes.</summary>
+        [DataMember, DefaultValue(null)]
+        public KeyUsage? UsageMask { get; set; }
+
+        /// <summary>Whether material may leave the provider.</summary>
+        [DataMember, DefaultValue(null)]
+        public bool? Extractable { get; set; }
+
+        /// <summary>Provider override; null inherits the group provider.</summary>
+        [DataMember, DefaultValue(null)]
+        [StringLength(512)]
+        public string? ProviderId { get; set; }
+
+        /// <summary>Named provider connection override.</summary>
+        [DataMember, DefaultValue(null)]
+        [StringLength(512)]
+        public string? ProviderConnectionId { get; set; }
+
+        /// <summary>Opaque provider object identifier.</summary>
+        [DataMember, DefaultValue(null)]
+        [StringLength(512)]
+        public string? ExternalId { get; set; }
+
+        /// <summary>Related public or private key identity.</summary>
+        [DataMember, DefaultValue(null)]
+        public Guid? RelatedKeyId { get; set; }
+        /// <summary>Opaque related-object identifier at an external provider.</summary>
+        [DataMember, DefaultValue(null), StringLength(512)]
+        public string? RelatedExternalId { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? ActivationDate { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? DeactivationDate { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? CompromiseDate { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? DestroyDate { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? ProcessStartDate { get; set; }
+
+        /// <summary>Lifecycle date in UTC.</summary>
+        [DataMember, DefaultValue(null)]
+        public DateTimeOffset? ProtectStopDate { get; set; }
 
         /// <summary>
         /// User has modified the key management key.
@@ -151,10 +235,6 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         {
             if (KeyType != null)
             {
-                if (Key != null)
-                {
-                    return KeyType.ToString() + " " + Convert.ToHexString(Key);
-                }
                 return KeyType.ToString()!;
             }
             return nameof(GXKeyManagementKey);

@@ -29,7 +29,6 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
 using Gurux.DLMS.AMI.Shared.DTOs.Enums;
 using Gurux.Service.Orm.Common;
 using Gurux.Service.Orm.Common.Enums;
@@ -64,7 +63,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         {
             Active = true;
             Name = name;
-            Visibility = 0;//Visibility.All
+            Visibility = 2;//Visibility.All
         }
 
         /// <summary>
@@ -161,6 +160,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         /// values may represent different visibility states depending on the application's logic. The meaning of each
         /// value should be defined by the consuming application.</remarks>
         [DefaultValue(0)]
+        [DataMember, IsRequired]
         public byte? Visibility { get; set; }
 
         /// <summary>

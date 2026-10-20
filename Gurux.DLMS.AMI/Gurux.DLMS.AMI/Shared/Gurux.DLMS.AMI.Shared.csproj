@@ -28,7 +28,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Gurux.Service.Common" Version="3.0.2609.2901" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup>

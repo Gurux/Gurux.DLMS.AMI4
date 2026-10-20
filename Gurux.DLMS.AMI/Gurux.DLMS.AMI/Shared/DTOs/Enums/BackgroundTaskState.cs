@@ -30,9 +30,12 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+namespace Gurux.DLMS.AMI.Shared.DTOs.Enums;
+
 /// <summary>
 /// The lifecycle state of one background execution.
 /// </summary>
+/// 
 public enum BackgroundTaskState
 {
     /// <summary>The execution is queued and has not started.</summary>

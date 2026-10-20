@@ -29,34 +29,22 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-namespace Gurux.DLMS.AMI.Shared.Enums
-{
-    /// <summary>
-    /// Default User roles.
-    /// </summary>
-    public class GXRoles
-    {
-        /// <summary>
-        /// Administrator user.
-        /// </summary>
-        public const string Admin = "admin";
-        /// <summary>
-        /// Authenticated user.
-        /// </summary>
-        public const string Authenticated = "user";
-        /// <summary>
-        /// Anonymous user.
-        /// </summary>
-        public const string Anonymous = "anonymous";
 
-        /// <summary>
-        /// All system roles.
-        /// </summary>
-        public static IEnumerable<string> SystemRoles =
-        [
-            Admin,
-            Authenticated,
-            Anonymous
-        ];
-    }
+namespace Gurux.DLMS.AMI.Shared.Enums;
+
+/// <summary>Managed secret lifecycle. Numeric values are not wire protocol values.</summary>
+public enum KeyState
+{
+    /// <summary>The key has been registered but is not yet active.</summary>
+    PreActive = 1,
+    /// <summary>The key is active and available for permitted operations.</summary>
+    Active,
+    /// <summary>The key has been deactivated and is no longer available for new protection operations.</summary>
+    Deactivated,
+    /// <summary>The key is known or suspected to be compromised.</summary>
+    Compromised,
+    /// <summary>The key material has been destroyed.</summary>
+    Destroyed,
+    /// <summary>The key material has been destroyed after being marked as compromised.</summary>
+    DestroyedCompromised
 }

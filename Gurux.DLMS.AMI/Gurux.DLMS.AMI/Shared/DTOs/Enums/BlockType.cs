@@ -63,5 +63,8 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Enums
         /// <summary>Block contains Markdown read from a server content file.</summary>
         [XmlEnum("5")]
         MarkdownFile = 5,
+        /// <summary>Block contains RSS read.</summary>
+        [XmlEnum("6")]
+        RSS = 6,
     }
 }

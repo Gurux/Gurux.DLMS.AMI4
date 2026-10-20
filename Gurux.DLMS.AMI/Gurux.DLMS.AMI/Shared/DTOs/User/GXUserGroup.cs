@@ -49,6 +49,7 @@ using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
 using Gurux.DLMS.AMI.Shared.DTOs.Block;
 using Gurux.DLMS.AMI.Shared.DTOs.Menu;
+using Gurux.DLMS.AMI.Shared.DTOs.View;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.User
 {
@@ -256,11 +257,18 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.User
 
 
         /// <summary>
-        /// List of content type groups that this user group can access.
+        /// List of menu groups that this user group can access.
         /// </summary>
         [DataMember, ForeignKey(typeof(GXMenuGroup), typeof(GXUserGroupMenuGroup))]
         [DefaultValue(null)]
         public List<GXMenuGroup>? MenuGroups { get; set; }
+
+        /// <summary>
+        /// List of view groups that this user group can access.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXViewGroup), typeof(GXUserGroupViewGroup))]
+        [DefaultValue(null)]
+        public List<GXViewGroup>? ViewGroups { get; set; }
 
         /// <summary>
         /// List of component view groups that this user group can access.

@@ -104,6 +104,12 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         public bool AllUsers { get; set; }
 
         /// <summary>
+        /// Exclude blocks closed by the current user when loading displayed content.
+        /// Management lists leave this false so closed blocks remain editable.
+        /// </summary>
+        public bool ExcludeClosed { get; set; }
+
+        /// <summary>
         /// Selected extra information.
         /// </summary>
         /// <remarks>

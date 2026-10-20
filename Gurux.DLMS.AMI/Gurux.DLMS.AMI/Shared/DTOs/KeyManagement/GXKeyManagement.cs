@@ -95,7 +95,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         /// Target device.
         /// </summary>
         [DataMember]
-        [ForeignKey(OnDelete = ForeignKeyDelete.Cascade)]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         [DefaultValue(null)]
         public GXDevice? Device { get; set; }
@@ -138,6 +138,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
         [Filter(FilterType.Contains)]
         [MaxLength(16)]
         public byte[]? SystemTitle { get; set; }
+
+        /// <summary>Default key provider; null means local storage.</summary>
+        [DataMember, DefaultValue(null), StringLength(512)]
+        public string? ProviderId { get; set; }
+
+        /// <summary>Named provider connection, without credentials.</summary>
+        [DataMember, DefaultValue(null), StringLength(512)]
+        public string? ProviderConnectionId { get; set; }
 
         /// <summary>
         /// Key management keys.

@@ -37,14 +37,14 @@ using System.Runtime.Serialization;
 namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
 {
     /// <summary>
-    /// A data contract class representing content group to content binding object.
+    /// A data contract class representing menu group to menu binding object.
     /// </summary>
     [DataContract(Name = "GXMenuGroupMenu"), Serializable]
     [IndexCollection(true, nameof(MenuGroupId), nameof(MenuId), Clustered = true)]
     public class GXMenuGroupMenu
     {
         /// <summary>
-        /// The database ID of the content group.
+        /// The database ID of the menu group.
         /// </summary>
         [DataMember(Name = "MenuGroupId")]
         [ForeignKey(typeof(GXMenuGroup), OnDelete = ForeignKeyDelete.None)]
@@ -53,7 +53,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         public Guid MenuGroupId { get; set; }
 
         /// <summary>
-        /// The content ID.
+        /// The menu ID.
         /// </summary>
         [DataMember(Name = "MenuId")]
         [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.Cascade)]
@@ -62,7 +62,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
 
         /// <summary>
         /// Creation time.
-        /// The time when the content was added to the content group.
+        /// The time when the menu was added to the menu group.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]
@@ -71,7 +71,7 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         public DateTimeOffset? CreationTime { get; set; }
 
         /// <summary>
-        /// Time when block was removed from content group.
+        /// Time when block was removed from menu group.
         /// </summary>
         [DataMember]
         [Index(false, Descend = true)]

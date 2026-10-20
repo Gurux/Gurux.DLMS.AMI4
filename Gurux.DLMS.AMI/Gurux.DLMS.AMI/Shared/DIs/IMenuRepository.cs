@@ -31,7 +31,6 @@
 //---------------------------------------------------------------------------
 
 using System.Linq.Expressions;
-using System.Security.Claims;
 using Gurux.DLMS.AMI.Shared.DTOs.Menu;
 using Gurux.DLMS.AMI.Shared.Rest;
 

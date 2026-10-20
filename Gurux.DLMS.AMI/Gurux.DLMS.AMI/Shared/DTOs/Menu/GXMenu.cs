@@ -36,6 +36,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Gurux.DLMS.AMI.Shared.DTOs.View;
 
 namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
 {
@@ -87,6 +88,16 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [Filter(FilterType.Exact)]
         [IsRequired]
         public bool? Active { get; set; }
+
+        /// <summary>
+        /// Gets or sets the visibility level for the associated element.
+        /// </summary>
+        /// <remarks>A value of 0 typically indicates that the element is always visible, while higher
+        /// values may represent different visibility states depending on the application's logic. The meaning of each
+        /// value should be defined by the consuming application.</remarks>
+        [DefaultValue(0)]
+        [DataMember, IsRequired]
+        public byte? Visibility { get; set; }
 
         ///<summary>
         ///Used icon.
@@ -192,6 +203,14 @@ namespace Gurux.DLMS.AMI.Shared.DTOs.Menu
         [ForeignKey(typeof(GXMenu), OnDelete = ForeignKeyDelete.None)]
         [Filter(FilterType.Exact)]
         public GXMenu? Parent { get; set; }
+
+        /// <summary>
+        /// Parent view.
+        /// </summary>
+        [DefaultValue(null)]
+        [ForeignKey(typeof(GXView), OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        public GXView? View { get; set; }
 
         /// <summary>
         /// Concurrency stamp.
