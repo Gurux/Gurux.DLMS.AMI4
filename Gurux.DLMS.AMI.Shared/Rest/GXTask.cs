@@ -1,0 +1,345 @@
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.Enums;
+using System.Runtime.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.Rest
+{
+    /// <summary>
+    /// Add new task (Read, write or action) to the device.
+    /// </summary>
+    [DataContract]
+    public class AddTask
+    {
+        /// <summary>
+        /// Tasks to execute.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public IEnumerable<GXTask>? Tasks { get; set; }
+    }
+
+    /// <summary>
+    /// Add task response.
+    /// </summary>
+    [DataContract]
+    public class AddTaskResponse
+    {
+        /// <summary>
+        /// Added task identifiers.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// Get list from the tasks.
+    /// </summary>
+    [DataContract]
+    public class ListTasks
+    {
+        /// <summary>
+        /// Zero-based index of the first item to retrieve.
+        /// </summary>
+        public int Index { get; set; }
+
+        /// <summary>
+        /// Maximum number of tasks to retrieve; zero disables paging.
+        /// </summary>
+        public int Count { get; set; }
+
+        /// <summary>
+        /// Optional criteria used to filter tasks.
+        /// </summary>
+
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public GXTask? Filter { get; set; }
+
+        /// <summary>
+        /// Admin user can access tasks from all users.
+        /// </summary>
+        /// <remarks>
+        /// If true, tasks from all users are retrieved, not just current user.
+        /// </remarks>
+        public bool AllUsers { get; set; }
+
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public IEnumerable<string>? Select { get; set; }
+
+        /// <summary>
+        /// Name of the property to sort by.
+        /// </summary>
+        /// <remarks>
+        /// Uses the endpoint's default ordering when not specified.
+        /// </remarks>
+        /// <seealso cref="Descending"/>
+        public string? OrderBy { get; set; }
+
+        /// <summary>
+        /// Whether to sort results in descending order.
+        /// </summary>
+        /// <seealso cref="OrderBy"/>
+        public bool Descending { get; set; }
+
+        /// <summary>
+        /// Identifiers to include in the results.
+        /// </summary>
+        /// <remarks>
+        /// A nonempty collection restricts the results to these identifiers.
+        /// </remarks>
+        public IEnumerable<Guid>? Included { get; set; }
+
+        /// <summary>
+        /// Identifiers to exclude from the results.
+        /// </summary>
+        /// <remarks>
+        /// Items with these identifiers are omitted from the results.
+        /// </remarks>
+        public IEnumerable<Guid>? Exclude { get; set; }
+    }
+
+    /// <summary>
+    /// List tasks response.
+    /// </summary>
+    [DataContract]
+    public class ListTasksResponse
+    {
+        /// <summary>
+        /// List of tasks.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public IEnumerable<GXTask>? Tasks { get; set; }
+
+        /// <summary>
+        /// Total number of matching tasks before paging.
+        /// </summary>
+        /// <remarks>
+        /// With large databases reading the amount of the data can take a very long time.
+        /// In those cases the count is set to -1.
+        /// </remarks>
+        [DataMember]
+        public int Count { get; set; }
+    }
+
+    /// <summary>
+    /// Reserved for internal use. Get next executed task. Readers use this.
+    /// </summary>
+    [DataContract]
+    public class GetNextTask
+    {
+        /// <summary>
+        /// Agent identifier.
+        /// </summary>
+        [DataMember]
+        public Guid AgentId { get; set; }
+
+        /// <summary>
+        /// Gateway identifier.
+        /// </summary>
+        /// <remarks>
+        /// If gateway identifier is given, all tasks for that gateway are retrieved.
+        /// </remarks>
+        [DataMember]
+        public Guid? GatewayId { get; set; }
+
+        /// <summary>
+        /// Device identifier.
+        /// </summary>
+        /// <remarks>
+        /// If device identifier is given, all tasks for that device are retrieved.
+        /// </remarks>
+        [DataMember]
+        public Guid? DeviceId { get; set; }
+
+        /// <summary>
+        /// Is listener or normal read asking next task.
+        /// </summary>
+        [DataMember]
+        public bool Listener { get; set; }
+
+        /// <summary>
+        /// How long is the new task expected.
+        /// </summary>
+        [DataMember]
+        public int WaitTime { get; set; }
+    }
+
+    /// <summary>
+    /// Get next task response.
+    /// </summary>
+    [DataContract]
+    public class GetNextTaskResponse
+    {
+        /// <summary>
+        /// Executed tasks. Null if there are no operations to execute.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id))]
+        [IncludeOpenApi(typeof(GXObject), nameof(GXObject.Id))]
+        [IncludeOpenApi(typeof(GXAttribute), nameof(GXAttribute.Id))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        [ExcludeOpenApi(typeof(GXTask), nameof(GXTask.TriggerUser), nameof(GXTask.Creator))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id))]
+        public IEnumerable<GXTask>? Tasks { get; set; }
+    }
+
+
+    /// <summary>
+    /// Reserved for internal use. Mark task to executed. Readers use this.
+    /// </summary>
+    [DataContract]
+    public class TaskDone
+    {
+        /// <summary>
+        /// Executed tasks.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id))]
+        public IEnumerable<GXTask>? Tasks { get; set; }
+    }
+
+    /// <summary>
+    /// Reserved for internal use. Task ready reply. Readers use this.
+    /// </summary>
+    [DataContract]
+    public class TaskDoneResponse
+    {
+
+    }
+
+    /// <summary>
+    /// Reserved for internal use. Restart tasks.
+    /// </summary>
+    [DataContract]
+    public class TaskRestart
+    {
+        /// <summary>
+        /// Executed tasks.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXTask), nameof(GXTask.Id))]
+        public IEnumerable<GXTask>? Tasks { get; set; }
+    }
+
+    /// <summary>
+    /// Reserved for internal use. Restart tasks reply.
+    /// </summary>
+    [DataContract]
+    public class TaskRestartResponse
+    {
+
+    }
+
+    /// <summary>
+    /// Delete tasks.
+    /// </summary>
+    [DataContract]
+    public class DeleteTask
+    {
+        /// <summary>
+        /// Removed Tasks identifier(s).
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// Delete tasks response.
+    /// </summary>
+    [DataContract]
+    public class DeleteTaskResponse
+    {
+    }
+
+    /// <summary>
+    /// Clear tasks.
+    /// </summary>
+    [DataContract]
+    public class ClearTask
+    {
+    }
+
+    /// <summary>
+    /// Clear errors response.
+    /// </summary>
+    [DataContract]
+    public class ClearTaskResponse
+    {
+    }
+}

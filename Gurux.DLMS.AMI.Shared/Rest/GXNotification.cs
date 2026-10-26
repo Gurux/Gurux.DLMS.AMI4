@@ -1,0 +1,377 @@
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+using Gurux.DLMS.AMI.Shared.DTOs;
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Block;
+using Gurux.DLMS.AMI.Shared.DTOs.ComponentView;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Gateway;
+using Gurux.DLMS.AMI.Shared.DTOs.KeyManagement;
+using Gurux.DLMS.AMI.Shared.DTOs.Manufacturer;
+using Gurux.DLMS.AMI.Shared.DTOs.Module;
+using Gurux.DLMS.AMI.Shared.DTOs.Notification;
+using Gurux.DLMS.AMI.Shared.DTOs.Schedule;
+using Gurux.DLMS.AMI.Shared.DTOs.Script;
+using Gurux.DLMS.AMI.Shared.DTOs.Trigger;
+using Gurux.DLMS.AMI.Shared.DTOs.User;
+using Gurux.DLMS.AMI.Shared.DTOs.Workflow;
+using Gurux.Service.Orm.Common;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.Rest
+{
+    /// <summary>
+    /// Get notification.
+    /// </summary>
+    public class GetNotificationResponse
+    {
+        /// <summary>
+        /// Device information.
+        /// </summary>        
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id), nameof(GXBlock.Name))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id), nameof(GXModule.Name))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id), nameof(GXModuleGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        public GXNotification? Item { get; set; }
+    }
+
+    /// <summary>
+    /// Get list from notifications.
+    /// </summary>
+    [DataContract]
+    public class ListNotifications : IGXRequest<ListNotificationResponse>
+    {
+        /// <summary>
+        /// Zero-based index of the first item to retrieve.
+        /// </summary>
+        public int Index { get; set; }
+
+        /// <summary>
+        /// Maximum number of notifications to retrieve; zero disables paging.
+        /// </summary>
+        public int Count { get; set; }
+
+        /// <summary>
+        /// Optional criteria used to filter notifications.
+        /// </summary>
+        [ExcludeOpenApi(typeof(GXNotification),
+            nameof(GXNotification.ScriptMethod))]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id), nameof(GXBlock.Name))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id), nameof(GXModule.Name))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id), nameof(GXModuleGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        public GXNotification? Filter { get; set; }
+
+        /// <summary>
+        /// Selected extra information.
+        /// </summary>
+        /// <remarks>
+        /// This is reserved for later use.
+        /// </remarks>
+        public IEnumerable<string>? Select { get; set; }
+
+        /// <summary>
+        /// Name of the property to sort by.
+        /// </summary>
+        /// <remarks>
+        /// Uses the endpoint's default ordering when not specified.
+        /// </remarks>
+        /// <seealso cref="Descending"/>
+        public string? OrderBy { get; set; }
+
+        /// <summary>
+        /// Whether to sort results in descending order.
+        /// </summary>
+        /// <seealso cref="OrderBy"/>
+        public bool Descending { get; set; }
+
+        /// <summary>
+        /// Identifiers to include in the results.
+        /// </summary>
+        /// <remarks>
+        /// A nonempty collection restricts the results to these identifiers.
+        /// </remarks>
+        public IEnumerable<Guid>? Included { get; set; }
+
+        /// <summary>
+        /// Identifiers to exclude from the results.
+        /// </summary>
+        /// <remarks>
+        /// Items with these identifiers are omitted from the results.
+        /// </remarks>
+        public IEnumerable<Guid>? Exclude { get; set; }
+    }
+
+    /// <summary>
+    /// Notification items reply.
+    /// </summary>
+    [DataContract]
+    public class ListNotificationResponse
+    {
+        /// <summary>
+        /// List of notification items.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id), nameof(GXBlock.Name))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id), nameof(GXModule.Name))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id), nameof(GXModuleGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+        public IEnumerable<GXNotification>? Notifications { get; set; }
+
+        /// <summary>
+        /// Total number of matching notificationrs before paging.
+        /// </summary>
+        [DataMember]
+        public int Count { get; set; }
+    }
+
+    /// <summary>
+    /// Update notifications.
+    /// </summary>
+    [DataContract]
+    public class UpdateNotification : IGXRequest<UpdateNotificationResponse>
+    {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public UpdateNotification()
+        {
+            Notifications = new List<GXNotification>();
+        }
+
+        /// <summary>
+        /// Notifications to update.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id), nameof(GXUser.UserName))]
+        [IncludeOpenApi(typeof(GXLanguage), nameof(GXLanguage.Id), nameof(GXLanguage.Resources))]
+        [IncludeOpenApi(typeof(GXUserGroup), nameof(GXUserGroup.Id), nameof(GXUserGroup.Name))]
+        [IncludeOpenApi(typeof(GXComponentView), nameof(GXComponentView.Id))]
+        [IncludeOpenApi(typeof(GXScriptMethod), nameof(GXScriptMethod.Id))]
+        [ExcludeOpenApi(typeof(GXLocalizedResource), nameof(GXLocalizedResource.Language))]
+        [IncludeOpenApi(typeof(GXDevice), nameof(GXDevice.Id), nameof(GXDevice.Name))]
+        [IncludeOpenApi(typeof(GXDeviceGroup), nameof(GXDeviceGroup.Id), nameof(GXDeviceGroup.Name))]
+        [IncludeOpenApi(typeof(GXAttributeTemplate), nameof(GXAttributeTemplate.Id), nameof(GXAttributeTemplate.Name))]
+        [IncludeOpenApi(typeof(GXObjectTemplate), nameof(GXObjectTemplate.Id), nameof(GXObjectTemplate.Name))]
+        [IncludeOpenApi(typeof(GXAgent), nameof(GXAgent.Id), nameof(GXAgent.Name))]
+        [IncludeOpenApi(typeof(GXAgentGroup), nameof(GXAgentGroup.Id), nameof(GXAgentGroup.Name))]
+        [IncludeOpenApi(typeof(GXBlock), nameof(GXBlock.Id), nameof(GXBlock.Name))]
+        [IncludeOpenApi(typeof(GXBlockGroup), nameof(GXBlockGroup.Id), nameof(GXBlockGroup.Name))]
+        [IncludeOpenApi(typeof(GXGateway), nameof(GXGateway.Id), nameof(GXGateway.Name))]
+        [IncludeOpenApi(typeof(GXGatewayGroup), nameof(GXGatewayGroup.Id), nameof(GXGatewayGroup.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagement), nameof(GXKeyManagement.Id), nameof(GXKeyManagement.Name))]
+        [IncludeOpenApi(typeof(GXKeyManagementGroup), nameof(GXKeyManagementGroup.Id), nameof(GXKeyManagementGroup.Name))]
+        [IncludeOpenApi(typeof(GXModule), nameof(GXModule.Id), nameof(GXModule.Name))]
+        [IncludeOpenApi(typeof(GXModuleGroup), nameof(GXModuleGroup.Id), nameof(GXModuleGroup.Name))]
+        [IncludeOpenApi(typeof(GXSchedule), nameof(GXSchedule.Id), nameof(GXSchedule.Name))]
+        [IncludeOpenApi(typeof(GXScheduleGroup), nameof(GXScheduleGroup.Id), nameof(GXScheduleGroup.Name))]
+        [IncludeOpenApi(typeof(GXScript), nameof(GXScript.Id), nameof(GXScript.Name))]
+        [IncludeOpenApi(typeof(GXScriptGroup), nameof(GXScriptGroup.Id), nameof(GXScriptGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXTrigger), nameof(GXTrigger.Id), nameof(GXTrigger.Name))]
+        [IncludeOpenApi(typeof(GXTriggerGroup), nameof(GXTriggerGroup.Id), nameof(GXTriggerGroup.Name))]
+        [IncludeOpenApi(typeof(GXWorkflow), nameof(GXWorkflow.Id), nameof(GXWorkflow.Name))]
+        [IncludeOpenApi(typeof(GXWorkflowGroup), nameof(GXWorkflowGroup.Id), nameof(GXWorkflowGroup.Name))]
+        [IncludeOpenApi(typeof(GXManufacturer), nameof(GXManufacturer.Id), nameof(GXManufacturer.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplate), nameof(GXDeviceTemplate.Id), nameof(GXDeviceTemplate.Name))]
+        [IncludeOpenApi(typeof(GXDeviceTemplateGroup), nameof(GXDeviceTemplateGroup.Id), nameof(GXDeviceTemplateGroup.Name))]
+
+        public List<GXNotification> Notifications { get; set; }
+    }
+
+    /// <summary>
+    /// Update notifications reply.
+    /// </summary>
+    [DataContract]
+    public class UpdateNotificationResponse
+    {
+        /// <summary>
+        /// Notification identifiers.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
+    }
+
+    /// <summary>
+    /// Delete notifications.
+    /// </summary>
+    [DataContract]
+    public class RemoveNotification : IGXRequest<RemoveNotificationResponse>
+    {
+        /// <summary>
+        /// Notification identifiers.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
+
+        /// <summary>
+        /// Whether to permanently delete the items from the database.
+        /// </summary>
+        /// <remarks>
+        /// If false, marks the items as removed and retains their database records.
+        /// </remarks>
+        [DataMember]
+        [Required]
+        public bool Delete { get; set; }
+    }
+
+    /// <summary>
+    /// Reply from Delete notification.
+    /// </summary>
+    [DataContract]
+    public class RemoveNotificationResponse
+    {
+    }
+
+    /// <summary>
+    /// Refresh user notifications.
+    /// </summary>
+    [DataContract]
+    public class RefreshNotification : IGXRequest<RefreshNotificationResponse>
+    {
+        /// <summary>
+        /// User for whom the notifications are being refreshed.
+        /// </summary>
+        [DataMember]
+        [IncludeOpenApi(typeof(GXUser), nameof(GXUser.Id))]
+        public GXUser? User { get; set; }
+
+        /// <summary>
+        /// If true, existing notifications are removed.
+        /// </summary>
+        [DataMember]
+        public bool Delete { get; set; }
+    }
+
+    /// <summary>
+    /// Refresh user notifications response.
+    /// </summary>
+    [DataContract]
+    public class RefreshNotificationResponse
+    {
+        /// <summary>
+        /// Notification identifiers.
+        /// </summary>
+        [DataMember]
+        public IEnumerable<Guid> Ids { get; set; } = default!;
+    }
+}

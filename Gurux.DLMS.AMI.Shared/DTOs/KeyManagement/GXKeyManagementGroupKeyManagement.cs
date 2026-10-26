@@ -1,0 +1,91 @@
+﻿//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
+{
+    /// <summary>Associates a key management configuration with a key management group.</summary>
+    [DataContract(Name = "GXKeyManagementGroupKeyManagement"), Serializable]
+    [IndexCollection(true, nameof(KeyManagementGroupId), nameof(KeyManagementId), Clustered = true)]
+    public class GXKeyManagementGroupKeyManagement : GXTableBase
+    {
+        /// <summary>
+        /// The database ID of the KeyManagement group.
+        /// </summary>
+        [DataMember(Name = "KeyManagementGroupId")]
+        [ForeignKey(typeof(GXKeyManagementGroup), OnDelete = ForeignKeyDelete.None)]
+        //ForeignKeyDelete is None because creator of the key management is causing multiple cascade paths error in MSSQL.
+        public Guid KeyManagementGroupId { get; set; }
+
+        /// <summary>
+        /// The database ID of the key management.
+        /// </summary>
+        [DataMember(Name = "KeyManagementID")]
+        [ForeignKey(typeof(GXKeyManagement), OnDelete = ForeignKeyDelete.Cascade)]
+        [StringLength(36)]
+        public Guid KeyManagementId { get; set; }
+
+        /// <summary>
+        /// Creation time.
+        /// The time when the key management was added to the key management group.
+        /// </summary>
+        [DataMember]
+        [Index(false, Descend = true)]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTimeOffset? CreationTime { get; set; }
+
+        /// <summary>
+        /// Time when key management was removed from key management group.
+        /// </summary>
+        [DataMember]
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed { get; set; }
+
+        /// <summary>
+        /// Initializes the creation timestamp before insertion if it has not been set.
+        /// </summary>
+        public override void BeforeAdd()
+        {
+            if (CreationTime == null)
+            {
+                CreationTime = DateTime.Now;
+            }
+        }
+    }
+}

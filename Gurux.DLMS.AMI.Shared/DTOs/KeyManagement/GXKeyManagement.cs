@@ -1,0 +1,295 @@
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+
+using Gurux.DLMS.AMI.Shared.DTOs.Agent;
+using Gurux.DLMS.AMI.Shared.DTOs.Authentication;
+using Gurux.DLMS.AMI.Shared.DTOs.Device;
+using Gurux.DLMS.AMI.Shared.DTOs.Log;
+using Gurux.Service.Orm.Common;
+using Gurux.Service.Orm.Common.Enums;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics;
+//
+// --------------------------------------------------------------------------
+//  Gurux Ltd
+//
+//
+//
+// Filename:        $HeadURL$
+//
+// Version:         $Revision$,
+//                  $Date$
+//                  $Author$
+//
+// Copyright (c) Gurux Ltd
+//
+//---------------------------------------------------------------------------
+//
+//  DESCRIPTION
+//
+// This file is a part of Gurux Device Framework.
+//
+// Gurux Device Framework is Open Source software; you can redistribute it
+// and/or modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; version 2 of the License.
+// Gurux Device Framework is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+// See the GNU General Public License for more details.
+//
+// This code is licensed under the GNU General Public License v2.
+// Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
+//---------------------------------------------------------------------------
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+
+namespace Gurux.DLMS.AMI.Shared.DTOs.KeyManagement
+{
+    /// <summary>A key management configuration with its provider and associated keys.</summary>
+    [DataContract(Name = "GXKeyManagement"), Serializable]
+    public partial class GXKeyManagement : GXTableBase, IUnique<Guid>
+    {
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        public GXKeyManagement()
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <remarks>
+        /// This constuctor is called when a new key management is created. It will create all needed lists.
+        /// </remarks>
+        /// <param name="systemTitle">System title.</param>
+        public GXKeyManagement(byte[]? systemTitle)
+        {
+            SystemTitle = systemTitle;
+            KeyManagementGroups = new List<GXKeyManagementGroup>();
+            Logs = new List<GXLog>();
+            Keys = new List<GXKeyManagementKey>();
+            TraceLevel = System.Diagnostics.TraceLevel.Error;
+            Properties = new List<GXKeyManagementProperty>();
+        }
+
+        /// <summary>
+        /// Identifier.
+        /// </summary>
+        [Key]
+        [DataMember(Name = "ID")]
+        [DefaultValue(null)]
+        [Filter(FilterType.Exact)]
+        public Guid Id { get; set; }
+
+        /// <summary>
+        /// Key management name.
+        /// </summary>
+        [DataMember]
+        [Description("Key management name")]
+        [StringLength(64, ErrorMessage = "Name is too long.")]
+        [Index(false)]
+        [Filter(FilterType.Contains)]
+        [IsRequired]
+        public string? Name { get; set; }
+
+        /// <summary>
+        /// Target device.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXDevice? Device { get; set; }
+
+        /// <summary>
+        /// Target device group.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        //ForeignKeyDelete is None because Device will handle the deletion.
+        public GXDeviceGroup? DeviceGroup { get; set; }
+
+        /// <summary>
+        /// Target device template.
+        /// </summary>
+        [DataMember]
+        [ForeignKey]
+        [Filter(FilterType.Exact)]
+        [DefaultValue(null)]
+        public GXDeviceTemplate? Template { get; set; }
+
+        /// <summary>
+        /// The creator of the key management.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(OnDelete = ForeignKeyDelete.None)]
+        [Filter(FilterType.Exact)]
+        [IsRequired]
+        //ForeignKeyDelete is None because Device will handle the deletion.
+        public GXUser? Creator { get; set; }
+
+        /// <summary>
+        /// System title.
+        /// </summary>
+        [Index(Unique = false)]
+        [DataMember]
+        [IsRequired]
+        [Filter(FilterType.Contains)]
+        [MaxLength(16)]
+        public byte[]? SystemTitle { get; set; }
+
+        /// <summary>Default key provider; null means local storage.</summary>
+        [DataMember, DefaultValue(null), StringLength(512)]
+        public string? ProviderId { get; set; }
+
+        /// <summary>Named provider connection, without credentials.</summary>
+        [DataMember, DefaultValue(null), StringLength(512)]
+        public string? ProviderConnectionId { get; set; }
+
+        /// <summary>
+        /// Key management keys.
+        /// </summary>
+        [DataMember, ForeignKey(typeof(GXKeyManagementKey))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementKey>? Keys { get; set; }
+
+        /// <summary>Key management groups containing this configuration.</summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagementGroup), typeof(GXKeyManagementGroupKeyManagement))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementGroup>? KeyManagementGroups { get; set; }
+
+        /// <summary>
+        /// Key management logs.
+        /// </summary>
+        [DataMember, Ignore(IgnoreType.Db)]
+        [Filter(FilterType.Contains)]
+        public List<GXLog>? Logs { get; set; }
+
+
+        /// <summary>
+        /// Saved properties belonging to this key management.
+        /// </summary>
+        [DataMember]
+        [ForeignKey(typeof(GXKeyManagementProperty))]
+        [Filter(FilterType.Contains)]
+        public List<GXKeyManagementProperty>? Properties { get; set; }
+
+        /// <summary>
+        /// Creation time.
+        /// </summary>
+        [Index(false, Descend = true)]
+        [DataMember]
+        [Filter(FilterType.GreaterOrEqual)]
+        [IsRequired]
+        public DateTimeOffset? CreationTime { get; set; }
+
+        /// <summary>
+        /// When was the key management last updated.
+        /// </summary>
+        [Description("When was the key management last updated.")]
+        [DataMember]
+        [DefaultValue(null)]
+        [Filter(FilterType.GreaterOrEqual)]
+        public DateTimeOffset? Updated { get; set; }
+
+
+        /// <summary>
+        /// Used trace level.
+        /// </summary>
+        [DataMember]
+        [DefaultValue(System.Diagnostics.TraceLevel.Error)]
+        [Description("Used trace level.")]
+        [IsRequired]
+        public TraceLevel? TraceLevel { get; set; }
+
+        /// <summary>Version token used by the database to detect conflicting updates.</summary>
+        /// <remarks>
+        /// A stale token causes a conflicting update to be rejected instead of overwriting newer changes.
+        /// </remarks>
+        [DataMember]
+        [StringLength(36)]
+        [ConcurrencyCheck]
+        public string? ConcurrencyStamp { get; set; }
+
+        /// <summary>
+        /// Remove time.
+        /// </summary>
+        [DataMember]
+        [Index(false, Descend = true)]
+        [DefaultValue(null)]
+        [Filter(FilterType.Null)]
+        public DateTimeOffset? Removed { get; set; }
+
+        /// <summary>
+        /// Initializes the creation timestamp before insertion if it has not been set.
+        /// </summary>
+        public override void BeforeAdd()
+        {
+            if (CreationTime == null)
+            {
+                CreationTime = DateTime.Now;
+            }
+        }
+
+        /// <summary>
+        /// Updates the last-modified timestamp before persisting changes.
+        /// </summary>
+        public override void BeforeUpdate()
+        {
+            Updated = DateTime.Now;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            string str = string.Empty;
+            if (!string.IsNullOrEmpty(Name))
+            {
+                str = Name;
+            }
+            if (SystemTitle?.Any() == true)
+            {
+                str += " " + Convert.ToHexString(SystemTitle);
+            }
+            if (str == string.Empty)
+            {
+                str = nameof(GXKeyManagement);
+            }
+            return str;
+        }
+    }
+}
