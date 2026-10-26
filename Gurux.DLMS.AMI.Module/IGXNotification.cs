@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,12 +33,24 @@
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// User settings UI interface.
+    /// Displays local notifications and delivers notifications to subscribed user devices.
     /// </summary>
-    /// <remarks>
-    /// This interface is used to customize user settings.
-    /// </remarks>
-    public interface IAmiExtendedUserSettingsUI : IAmiExtendedSettingsUI
+    public interface IGXNotification
     {
+        /// <summary>
+        /// Asynchronously displays a notification in the current client.
+        /// </summary>
+        /// <param name="title">Notification title.</param>
+        /// <param name="message">Notification message.</param>
+        /// <returns>A task that completes when the operation has finished.</returns>
+        Task ShowNotificationAsync(string title, string message);
+
+        /// <summary>Sends a notification to a user's subscribed devices, including when the AMI page is closed.</summary>
+        /// <param name="userId">Recipient user identifier.</param>
+        /// <param name="title">Notification title.</param>
+        /// <param name="message">Notification message.</param>
+        /// <param name="cancellationToken">Cancels delivery.</param>
+        /// <returns>A task that completes when the operation has finished.</returns>
+        Task ShowNotificationAsync(string userId, string title, string message, CancellationToken cancellationToken = default);
     }
 }

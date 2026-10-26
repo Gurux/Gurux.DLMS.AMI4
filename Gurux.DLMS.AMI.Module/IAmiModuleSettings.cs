@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,48 +33,45 @@
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Defines methods for initializing, saving, and managing the settings of an AMI module.
+    /// Defines initialization, serialization, and cancellation operations for a module settings editor.
     /// </summary>
-    /// <remarks>Implement this interface to provide initialization, persistence, and cancellation
-    /// functionality for AMI module settings. Methods support both synchronous and asynchronous initialization, as well
-    /// as saving and discarding changes.</remarks>
+    /// <remarks>Save operations return serialized settings for the caller to persist.</remarks>
     public interface IAmiModuleSettings
     {
         /// <summary>
         /// Initializes the component using the specified settings.
         /// </summary>
-        /// <param name="settings">An optional string containing configuration settings for initialization. If <see langword="null"/> or empty,
-        /// default settings are used.</param>
+        /// <param name="settings">Serialized configuration, or <see langword="null"/> when no saved configuration is supplied.</param>
         void Initialize(string? settings);
 
         /// <summary>
         /// Asynchronously initializes the component using the specified settings.
         /// </summary>
-        /// <param name="settings">An optional string containing initialization settings. If <see langword="null"/> or empty, default settings
-        /// are used.</param>
+        /// <param name="settings">Serialized configuration, or <see langword="null"/> when no saved configuration is supplied.</param>
         /// <returns>A task that represents the asynchronous initialization operation.</returns>
         Task InitializeAsync(string? settings);
 
         /// <summary>
-        /// Saves the current data to the underlying storage.
+        /// Validates the current settings and returns their serialized representation for persistence by the caller.
         /// </summary>
-        /// <returns>A string containing the data of the saved resource.</returns>
+        /// <returns>Serialized settings, or <see langword="null"/> when no save result is produced.</returns>
         string? Save();
 
         /// <summary>
-        /// Saves the current data to the underlying storage.
+        /// Asynchronously validates the current settings and returns their serialized representation for persistence by the caller.
         /// </summary>
-        /// <returns>A string containing the data of the saved resource.</returns>
+        /// <returns>A task containing serialized settings, or <see langword="null"/> when no save result is produced.</returns>
         Task<string?> SaveAsync();
 
         /// <summary>
-        /// Cancel changes.
+        /// Cancels editing without producing settings to save.
         /// </summary>
         void Cancel();
 
         /// <summary>
-        /// Cancel changes.
+        /// Asynchronously cancels editing without producing settings to save.
         /// </summary>
+        /// <returns>A task that completes when the operation has finished.</returns>
         Task CancelAsync();
 
     }

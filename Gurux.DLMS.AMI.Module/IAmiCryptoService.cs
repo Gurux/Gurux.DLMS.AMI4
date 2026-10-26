@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,35 +33,35 @@
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// This interface is used to get crypto service.
+    /// Encrypts module secrets and decrypts values protected by the host cryptographic service.
     /// </summary>
     public interface IAmiCryptoService
     {
         /// <summary>
-        /// Decrypt the byte array.
+        /// Decrypts a protected byte array.
         /// </summary>
-        /// <param name="encrypted">Decrypted byte array.</param>
+        /// <param name="encrypted">Encrypted bytes produced by this service.</param>
         /// <returns>Decrypted byte array.</returns>
         Task<byte[]> DecryptAsync(byte[] encrypted);
 
         /// <summary>
-        /// Decrypt the string.
+        /// Decodes a Base64 encrypted value and decrypts its bytes.
         /// </summary>
-        /// <param name="encrypted">Decrypted string.</param>
+        /// <param name="encrypted">Base64 representation of encrypted bytes.</param>
         /// <returns>Decrypted byte array.</returns>
         Task<byte[]> DecryptAsync(string encrypted);
 
         /// <summary>
-        /// Encrypt the byte array.
+        /// Encrypts plaintext bytes using the host cryptographic service.
         /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
+        /// <param name="plainText">Unencrypted bytes to protect.</param>
         /// <returns>Encrypted byte array.</returns>
         Task<byte[]> EncryptAsync(byte[] plainText);
 
         /// <summary>
-        /// Encrypt the string.
+        /// Encodes plaintext as UTF-8 and encrypts the resulting bytes.
         /// </summary>
-        /// <param name="plainText">Encrypted byte array.</param>
+        /// <param name="plainText">Unencrypted text to protect.</param>
         /// <returns>Encrypted byte array.</returns>
         Task<byte[]> EncryptAsync(string plainText);
     }

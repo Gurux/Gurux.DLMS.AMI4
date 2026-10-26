@@ -29,18 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-namespace Gurux.DLMS.AMI.Module.Enums
-{
-    /// <summary>Supported HTTP methods.</summary>
-    public enum AmiHttpMethod
-    {
-        /// <summary>HTTP GET method.</summary>
-        Get,
-        /// <summary>HTTP POST method.</summary>
-        Post,
-        /// <summary>HTTP PUT method.</summary>
-        Put,
-        /// <summary>HTTP DELETE method.</summary>
-        Delete
-    }
-}
+
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>A named JSON value owned by a user in the calling module.</summary>
+/// <param name="Name">Name of the module-owned user setting.</param>
+/// <param name="Value">Deserialized setting value.</param>
+/// <param name="Version">Concurrency version used to preserve values changed after this read.</param>
+/// <typeparam name="T">Model serialized as JSON for the module-owned user setting.</typeparam>
+public sealed record AmiModuleUserSetting<T>(string Name, T Value, string Version);

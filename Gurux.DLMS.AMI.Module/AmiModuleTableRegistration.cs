@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// User group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize user group settings.
-    /// </remarks>
-    public interface IAmiExtendedUserGroupSettingsUI : IAmiExtendedSettingsUI
-    {
-    }
-}
+using Gurux.DLMS.AMI.Module.Enums;
+
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Database table ownership declaration.</summary>
+/// <param name="Kind">Table data classification.</param>
+/// <param name="Type">Database table type.</param>
+public sealed record AmiModuleTableRegistration(Type Type, AmiModuleTableKind Kind);

@@ -30,6 +30,8 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using Gurux.DLMS.AMI.Module.Enums;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,15 +39,22 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Declarations collected before a module becomes active.</summary>
-public sealed class AmiModuleBuilder(string moduleId, IConfiguration configuration, AmiModuleSettings settings)
+/// <param name="moduleId">Unique identifier of the module being configured.</param>
+/// <param name="configuration">Host configuration exposed during module configuration.</param>
+/// <param name="settings">Host-provided serialized module settings.</param>
+public sealed class AmiModuleBuilder(string moduleId, IConfiguration configuration, IAmiModuleSettingsSnapshot settings)
 {
     /// <summary>Unique module identifier.</summary>
     public string ModuleId { get; } = moduleId;
+
     /// <summary>Host configuration available to the module.</summary>
     public IConfiguration Configuration { get; } = configuration;
+
     /// <summary>Module settings snapshot.</summary>
-    public AmiModuleSettings Settings { get; } = settings;
+
+    public IAmiModuleSettingsSnapshot Settings { get; } = settings;
     /// <summary>Services registered in the module scope.</summary>
+
     public IServiceCollection Services { get; } = new ServiceCollection();
     /// <summary>HTTP endpoints declared by the module.</summary>
     public List<AmiEndpointDefinition> Endpoints { get; } = [];
@@ -54,22 +63,32 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
     /// <summary>Database tables owned by the module.</summary>
     public List<AmiModuleTableRegistration> OwnedTables { get; } = [];
     /// <summary>Registers a database table owned by the module.</summary>
+    /// <param name="kind">Ownership category used by the host when managing the module's table.</param>
+    /// <typeparam name="T">Database table type owned by the module.</typeparam>
     public void OwnTable<T>(AmiModuleTableKind kind = AmiModuleTableKind.Data) => OwnedTables.Add(new(typeof(T), kind));
     /// <summary>Externally owned host singleton types shared with the module.</summary>
     public List<Type> HostSingletonTypes { get; } = [];
     /// <summary>Shares an externally owned host singleton without transferring disposal ownership.</summary>
+    /// <typeparam name="TService">Service contract shared with or exported by the module.</typeparam>
     public void AddHostSingleton<TService>() where TService : class => HostSingletonTypes.Add(typeof(TService));
     /// <summary>Declares a module-owned ASP.NET endpoint source, validated by the host at startup.</summary>
+    /// <typeparam name="TSource">Module-owned endpoint source type.</typeparam>
     public void AddEndpointSource<TSource>() where TSource : class => EndpointSourceTypes.Add(typeof(TSource));
     /// <summary>Middleware declared by the module.</summary>
     public List<AmiMiddlewareDefinition> Middleware { get; } = [];
     /// <summary>Service types exported to other modules.</summary>
     public HashSet<Type> Exports { get; } = [];
-    /// <summary>User and configuration tabs declared by the module.</summary>
-    public List<AmiModuleTab> Tabs { get; } = [];
+    /// <summary>Registered UI components.</summary>
+    public List<AmiModuleView> Views { get; } = [];
     /// <summary>Pages declared by the module.</summary>
     public List<AmiModulePage> Pages { get; } = [];
+
     /// <summary>Registers a component at a unique module page route with an access policy.</summary>
+    /// <param name="route">Unique URL segment identifying the module page.</param>
+    /// <param name="policy">Access policy required to use the endpoint or view.</param>
+    /// <param name="title">Optional display title for the page or view.</param>
+    /// <param name="navigation">Whether the module page is exposed as a navigation entry.</param>
+    /// <typeparam name="TComponent">Component type displayed by the host.</typeparam>
     public void AddPage<TComponent>(string route, string policy, string? title = null, bool navigation = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(policy);
@@ -84,27 +103,49 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
             Navigation = navigation
         });
     }
-    /// <summary>Registers a component in the User or Config tab area with an access policy.</summary>
-    public void AddTab<TComponent>(string area, string title, string policy)
+    /// <summary>Registers a policy-protected component for a host UI location.</summary>
+    /// <param name="area">Host UI area in which the view is displayed.</param>
+    /// <param name="policy">Access policy required to use the endpoint or view.</param>
+    /// <param name="key">Optional view key, unique within the module and UI area.</param>
+    /// <param name="title">Optional display title for the page or view.</param>
+    /// <param name="icon">Icon identifier displayed for the registered view.</param>
+    /// <param name="order">Execution or display order; lower values are processed first.</param>
+    /// <param name="display">How the host presents the registered view.</param>
+    /// <typeparam name="TComponent">Component type displayed by the host.</typeparam>
+    public void AddView<TComponent>(AmiViewArea area, string policy, string? key = null,
+        string? title = null, string? icon = null, int order = 0, AmiViewDisplay display = AmiViewDisplay.Tab)
+        where TComponent : IComponent
     {
-        if (area is not ("User" or "Config"))
-        {
-            throw new ArgumentException("Unknown tab area.", nameof(area));
-        }
-
-        ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(policy);
-        Tabs.Add(new(area, title, typeof(TComponent).FullName!, policy));
+        if (typeof(TComponent).IsAbstract || typeof(TComponent).ContainsGenericParameters)
+            throw new ArgumentException("A view must be a concrete component.");
+        if (!Enum.IsDefined(area) || !Enum.IsDefined(display))
+            throw new ArgumentOutOfRangeException(nameof(area));
+        if (Views.Any(v => v.Area == area && string.Equals(v.Key, key, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("A view for this area and key is already registered.", nameof(key));
+        Views.Add(new(area, typeof(TComponent).FullName!, policy, key, title, icon, order, display));
     }
+
     /// <summary>Declares a service type available through the host dispatcher.</summary>
+    /// <typeparam name="TService">Service contract shared with or exported by the module.</typeparam>
     public void Export<TService>() where TService : class => Exports.Add(typeof(TService));
     /// <summary>Registers a handler for HTTP GET requests.</summary>
+    /// <param name="pattern">Route pattern for the module's HTTP endpoint.</param>
+    /// <param name="handler">Asynchronous handler executed for the matched HTTP request.</param>
+    /// <returns>The endpoint definition for further configuration.</returns>
     public AmiEndpointDefinition MapGet(string pattern, Func<AmiModuleRequest, CancellationToken, Task> handler)
         => MapMethods(pattern, ["GET"], handler);
     /// <summary>Registers a handler for HTTP POST requests.</summary>
+    /// <param name="pattern">Route pattern for the module's HTTP endpoint.</param>
+    /// <param name="handler">Asynchronous handler executed for the matched HTTP request.</param>
+    /// <returns>The endpoint definition for further configuration.</returns>
     public AmiEndpointDefinition MapPost(string pattern, Func<AmiModuleRequest, CancellationToken, Task> handler)
         => MapMethods(pattern, ["POST"], handler);
     /// <summary>Registers a handler for the specified HTTP methods.</summary>
+    /// <param name="pattern">Route pattern for the module's HTTP endpoint.</param>
+    /// <param name="methods">HTTP methods accepted by the endpoint.</param>
+    /// <param name="handler">Asynchronous handler executed for the matched HTTP request.</param>
+    /// <returns>The endpoint definition for further configuration.</returns>
     public AmiEndpointDefinition MapMethods(string pattern, string[] methods, Func<AmiModuleRequest, CancellationToken, Task> handler)
     {
         var endpoint = new AmiEndpointDefinition(pattern, methods, handler);
@@ -112,46 +153,8 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
         return endpoint;
     }
     /// <summary>Registers module middleware with the specified execution order.</summary>
+    /// <param name="handler">Asynchronous handler executed for the matched HTTP request.</param>
+    /// <param name="order">Execution or display order; lower values are processed first.</param>
     public void Use(Func<AmiModuleRequest, RequestDelegate, CancellationToken, Task> handler, int order = 0)
         => Middleware.Add(new(order, handler));
 }
-
-/// <summary>HTTP endpoint declared by a module.</summary>
-public sealed class AmiEndpointDefinition(string pattern, string[] methods, Func<AmiModuleRequest, CancellationToken, Task> handler)
-{
-    /// <summary>URL pattern matched by the endpoint.</summary>
-    public string Pattern { get; } = pattern;
-    /// <summary>HTTP methods accepted by the endpoint.</summary>
-    public string[] Methods { get; } = methods;
-    /// <summary>Asynchronous request handler.</summary>
-    public Func<AmiModuleRequest, CancellationToken, Task> Handler { get; } = handler;
-    /// <summary>Access policies required by the endpoint.</summary>
-    public List<string> Policies { get; } = [];
-    /// <summary>Adds a required access policy and returns this endpoint.</summary>
-    public AmiEndpointDefinition RequirePolicy(string policy)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(policy);
-        Policies.Add(policy);
-        return this;
-    }
-}
-
-/// <summary>Module middleware and its execution order.</summary>
-/// <param name="Handler">Asynchronous middleware handler.</param>
-/// <param name="Order">Middleware execution order.</param>
-public sealed record AmiMiddlewareDefinition(int Order, Func<AmiModuleRequest, RequestDelegate, CancellationToken, Task> Handler);
-
-/// <summary>Host-owned dispatcher; exported implementations cannot be retained after the callback.</summary>
-public interface IAmiModuleServices
-{
-    /// <summary>Invokes an exported service within its owning module for the duration of the callback.</summary>
-    Task InvokeAsync<TService>(Func<TService, CancellationToken, Task> operation, CancellationToken cancellationToken = default) where TService : class;
-    /// <summary>Invokes an exported service within its owning module for the duration of the callback.</summary>
-    Task<TResult> InvokeAsync<TService, TResult>(Func<TService, CancellationToken, Task<TResult>> operation, CancellationToken cancellationToken = default) where TService : class;
-}
-
-
-/// <summary>Identifies a root route owned by an active module.</summary>
-public sealed record AmiModuleRouteOwner(string ModuleId);
-
-

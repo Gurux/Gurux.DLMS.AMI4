@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,27 +30,18 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// AMI Navigation interface.
-    /// </summary>
-    public interface IAMINavigation
-    {
-        /// <summary>
-        /// Name of the module.
-        /// </summary>
-        string Name
-        {
-            get;
-        }
+namespace Gurux.DLMS.AMI.Module;
 
-        /// <summary>
-        /// Navication items.
-        /// </summary>
-        AmiNavItem[]? NavItems
-        {
-            get;
-        }
-    }
+/// <summary>Optional module observer for successfully dispatched SignalR messages.</summary>
+public interface IGXAmiSignalRRecorder
+{
+    /// <summary>Records a successfully dispatched SignalR message and its addressed users.</summary>
+    /// <remarks>Dispatch does not imply that clients acknowledged receipt.</remarks>
+    /// <param name="method">SignalR client method invoked by the host.</param>
+    /// <param name="arguments">Arguments sent to the client method.</param>
+    /// <param name="recipients">User identifiers addressed by the notification.</param>
+    /// <param name="cancellationToken">Token used to cancel recording.</param>
+    /// <returns>A task that completes when the operation has finished.</returns>
+    Task RecordSentAsync(string method, object?[] arguments, IReadOnlyList<string> recipients,
+        CancellationToken cancellationToken);
 }

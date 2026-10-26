@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,16 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Object settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize object settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedObjectUI : IAmiExtendedUI
-    {
+namespace Gurux.DLMS.AMI.Module;
 
-    }
-}
+/// <summary>Defaults for a module's protected capture view.</summary>
+/// <param name="Policy">Access policy for the module's capture view.</param>
+/// <param name="TargetType">Target type identifying the module's capture view.</param>
+/// <param name="Icon">Icon identifier displayed for the module's log menu entry.</param>
+/// <param name="DefaultCategory">Optional log category to create when capture defaults are initialized.</param>
+public sealed record AmiModuleCapture(string Policy, string TargetType, string Icon, string? DefaultCategory = null);

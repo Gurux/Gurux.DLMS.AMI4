@@ -30,7 +30,7 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Shared.Enums
+namespace Gurux.DLMS.AMI.Module.Enums
 {
     /// <summary>
     /// Specifies the lifecycle states of an Ami module.

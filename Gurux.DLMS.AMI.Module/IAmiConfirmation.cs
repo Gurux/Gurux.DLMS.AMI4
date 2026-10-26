@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,14 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Displays the host UI confirmation dialog and awaits the user's answer.</summary>
+public interface IAmiConfirmation
 {
-    /// <summary>
-    /// Attribute settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize attribute settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedAttributeUI : IAmiExtendedUI
-    {
-    }
+    /// <summary>Returns true only when the user approves; cancel and close return false.</summary>
+    /// <param name="title">Title displayed by the host's confirmation dialog.</param>
+    /// <param name="message">Message describing the action that requires user confirmation.</param>
+    /// <returns>A task whose result is true when the user confirms, or false when the dialog is canceled or unavailable.</returns>
+    Task<bool> ConfirmAsync(string title, string message);
 }

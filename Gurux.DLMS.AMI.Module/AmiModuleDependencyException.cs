@@ -33,4 +33,5 @@
 namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>A safe, user-facing dependency conflict for module lifecycle operations.</summary>
+/// <param name="message">Description of the missing, incompatible, or blocking dependency.</param>
 public sealed class AmiModuleDependencyException(string message) : InvalidOperationException(message);

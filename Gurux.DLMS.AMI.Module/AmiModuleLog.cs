@@ -32,9 +32,14 @@
 
 namespace Gurux.DLMS.AMI.Module;
 
-/// <summary>Tab component exposed by a module.</summary>
-/// <param name="Area">User or Config tab area.</param>
-/// <param name="Component">Fully qualified component type name.</param>
-/// <param name="Policy">Required access policy.</param>
-/// <param name="Title">Displayed tab title.</param>
-public sealed record AmiModuleTab(string Area, string Title, string Component, string Policy);
+/// <summary>Log data; the host assigns source, identity, log type and enum membership.</summary>
+/// <param name="Category">Category identifying the kind of recorded event.</param>
+/// <param name="UserId">Optional identifier of the user associated with the event; null represents a system event.</param>
+/// <param name="Message">Human-readable event message.</param>
+/// <param name="Data">Optional serialized details associated with the log entry.</param>
+/// <param name="Level">Trace severity of the recorded event.</param>
+/// <param name="Closable">Whether the log entry supports being marked as closed.</param>
+/// <param name="Duration">Optional operation duration in milliseconds.</param>
+/// <param name="CreationTime">Optional event time; the host supplies the time when omitted.</param>
+public sealed record AmiModuleLog(string Category, string? UserId, string Message, string? Data = null,
+    int Level = 4, bool Closable = true, int? Duration = null, DateTimeOffset? CreationTime = null);

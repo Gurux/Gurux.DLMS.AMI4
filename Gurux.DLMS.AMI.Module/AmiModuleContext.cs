@@ -30,77 +30,65 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace Gurux.DLMS.AMI.Module;
-
-/// <summary>
-/// A module-owned settings snapshot; serializer metadata is not shared across modules.
-/// </summary>
-public sealed class AmiModuleSettings
-{
-    private string? value;
-    private readonly JsonSerializerOptions json = new() { PropertyNameCaseInsensitive = true };
-    /// <summary>Creates a settings snapshot from an optional serialized value.</summary>
-    public AmiModuleSettings(string? value = null) => this.value = value;
-    /// <summary>Serialized module settings, read and written atomically.</summary>
-    public string? Value
-    {
-        get => Volatile.Read(ref value); set => Volatile.Write(ref this.value, value);
-    }
-    /// <summary>Deserializes the settings or creates default settings when no value is available.</summary>
-    public T Read<T>() where T : new()
-    {
-        string? snapshot = Value;
-        return string.IsNullOrWhiteSpace(snapshot) ? new T() : JsonSerializer.Deserialize<T>(snapshot, json) ?? new T();
-    }
-}
 
 /// <summary>Services and cancellation owned by one module operation.</summary>
 public sealed class AmiModuleContext
 {
+    /// <summary>Validated operations on AMI-owned resources for this module.</summary>
+    public IAmiModuleResources Resources { get; init; } = null!;
+    /// <summary>Host-managed user data restricted to this module.</summary>
+    public IAmiModuleUserSettings UserSettings { get; init; } = null!;
     /// <summary>Unique module identifier.</summary>
     public required string ModuleId
     {
         get; init;
     }
-    /// <summary>Data removal options for module uninstallation.</summary>
+ 
+    /// <summary>Data removal options supplied to uninstallation; defaults to preserving module data.</summary>
     public AmiModuleUninstallOptions UninstallOptions { get; set; } = new();
+  
     /// <summary>Services registered in the module scope.</summary>
     public required IServiceProvider Services
     {
         get; init;
     }
+ 
     /// <summary>Services provided by the host.</summary>
     public required IServiceProvider HostServices
     {
         get; init;
     }
+  
     /// <summary>Module settings snapshot.</summary>
-    public required AmiModuleSettings Settings
+    public required IAmiModuleSettingsSnapshot Settings
     {
         get; init;
     }
+  
     /// <summary>Cancellation token for the current module operation.</summary>
     public required CancellationToken CancellationToken
     {
         get; init;
     }
+  
     /// <summary>Serializer options for the current module operation.</summary>
     public required JsonSerializerOptions JsonOptions
     {
         get; init;
     }
-    /// <summary>Package location; stream-loaded assemblies do not expose a usable Assembly.Location.</summary>
+  
+    /// <summary>Module package directory, or <see langword="null"/> when unavailable; use this instead of the location of a stream-loaded assembly.</summary>
     public string? PackageDirectory
     {
         get; init;
     }
-    /// <summary>Tracks externally created subscriptions/timers for disposal at module stop.</summary>
+   
+    /// <summary>Registers resources for disposal at module stop; the default delegate throws when no host resource owner is configured.</summary>
     public Action<IDisposable> Track { get; init; } = _ => throw new InvalidOperationException("This context has no resource owner.");
+   
     /// <summary>Tracks a resource for disposal when the module stops.</summary>
+    /// <param name="resource">Resource whose disposal is owned by the module context.</param>
     public void Own(IDisposable resource) => Track(resource);
 }
-
-/// <summary>HTTP context plus the module's own service scope.</summary>
-public sealed record AmiModuleRequest(HttpContext HttpContext, AmiModuleContext Module);

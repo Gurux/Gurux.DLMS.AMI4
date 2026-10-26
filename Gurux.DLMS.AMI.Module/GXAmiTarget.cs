@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,16 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Meter settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize meter settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedDeviceUI : IAmiExtendedUI
-    {
+using Gurux.DLMS.AMI.Shared;
+using System.Data;
+using System.Security.Claims;
+using System.Text.Json;
+namespace Gurux.DLMS.AMI.Module;
 
-    }
-}
+/// <summary>Projection returned by a module after checking access to its target.</summary>
+/// <param name="Name">Display name of the accessible target.</param>
+/// <param name="Path">Navigation path used to open the target in the application.</param>
+public sealed record GXAmiTarget(string Name, string Path);

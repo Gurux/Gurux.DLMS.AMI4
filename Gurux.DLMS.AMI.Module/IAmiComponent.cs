@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -35,12 +35,12 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Components that are derived from IAmiComponent can be used inside of the UI blocks.
+    /// Describes a component that can be displayed inside an AMI UI block.
     /// </summary>
     public interface IAmiComponent
     {
         /// <summary>
-        /// Name of the component view.
+        /// Gets the display name of the component view.
         /// </summary>
         string Name
         {
@@ -48,7 +48,7 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
-        /// Optional configuration UI.
+        /// Gets the configuration component type, or <see langword="null"/> when no configuration UI is provided.
         /// </summary>
         [JsonIgnore]
         Type? ConfigurationUI
@@ -57,7 +57,7 @@ namespace Gurux.DLMS.AMI.Module
         }
 
         /// <summary>
-        /// Css icon name or Base64 image.
+        /// Gets a CSS icon name or Base64 image, or <see langword="null"/> when no icon is provided.
         /// </summary>
         [JsonIgnore]
         string? Icon

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,11 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// User group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize user group settings.
-    /// </remarks>
-    public interface IAmiExtendedUserGroupUI : IAmiExtendedUI
-    {
-    }
-}
+using Microsoft.AspNetCore.Http;
+
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Module middleware and its execution order.</summary>
+/// <param name="Handler">Asynchronous middleware handler.</param>
+/// <param name="Order">Middleware execution order.</param>
+public sealed record AmiMiddlewareDefinition(int Order, Func<AmiModuleRequest, RequestDelegate, CancellationToken, Task> Handler);

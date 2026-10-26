@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,15 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Module.Enums;
+
+/// <summary>How a registered view participates in its host.</summary>
+public enum AmiViewDisplay
 {
-    /// <summary>
-    /// User group settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize user group settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedUserUI : IAmiExtendedUI
-    {
-    }
+    /// <summary>Displays the view as a tab in the host location.</summary>
+    Tab,
+    /// <summary>Displays the view after the host's existing content.</summary>
+    Append,
+    /// <summary>Displays the view in place of the host's fallback content.</summary>
+    Replace
 }

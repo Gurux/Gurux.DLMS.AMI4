@@ -38,12 +38,12 @@ namespace Gurux.DLMS.AMI.Module;
 /// <param name="Route">Unique module page URL segment.</param>
 public sealed record AmiModulePage(string Route, string Component, string Policy)
 {
-    /// <summary>Optional title displayed for the module page.</summary>
+    /// <summary>Optional page title; <see langword="null"/> when no title was supplied.</summary>
     public string? Title
     {
         get; init;
     }
-    /// <summary>Whether the page appears in module navigation.</summary>
+    /// <summary>Whether the page appears in module navigation; defaults to <see langword="false"/>.</summary>
     public bool Navigation
     {
         get; init;

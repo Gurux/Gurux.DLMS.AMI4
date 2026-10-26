@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,15 +30,26 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
+namespace Gurux.DLMS.AMI.Client.Internal
 {
     /// <summary>
-    /// Attribute settings UI interface.
+    /// Carries the target, method index, and input value for an AMI action.
     /// </summary>
-    /// <remarks>
-    /// This interface is used to customize attribute settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedAttributeSettingsUI : IAmiExtendedSettingsUI
+    public class AMIActionArgument
     {
+        /// <summary>
+        /// Gets or sets the COSEM object on which the method is invoked; initially <see langword="null"/>.
+        /// </summary>
+        public object? Target { get; set; }
+
+        /// <summary>
+        /// Gets or sets the input value passed to the method; initially <see langword="null"/>.
+        /// </summary>
+        public object? Value { get; set; }
+
+        /// <summary>
+        /// Gets or sets the COSEM method index to invoke.
+        /// </summary>
+        public byte Index { get; set; }
     }
 }

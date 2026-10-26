@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -56,7 +56,7 @@ namespace Gurux.DLMS.AMI.Module
         /// Removes the authorization policy associated with the specified name.
         /// </summary>
         /// <param name="name">The name of the authorization policy to remove.</param>
-        /// <returns></returns>
+        /// <returns><see langword="true"/> if the named policy was removed; otherwise, <see langword="false"/>.</returns>
         bool Remove(string name);
 
         /// <summary>

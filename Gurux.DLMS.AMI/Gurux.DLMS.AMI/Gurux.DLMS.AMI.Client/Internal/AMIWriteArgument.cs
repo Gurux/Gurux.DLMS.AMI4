@@ -1,4 +1,4 @@
-@*
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,22 +29,22 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-*@
 
-@if (visible)
+namespace Gurux.DLMS.AMI.Client.Internal
 {
-<div class="text-info alert-info alert-dismissible fade show" role="alert">
-    <hr>
-    <p>@ChildContent</p>
-</div>
-}
-@code {
-    [Parameter]
-    public RenderFragment? ChildContent { get; set; }
-
-    bool visible = true;
-    void Close()
+    /// <summary>
+    /// Carries the target attribute and value for an AMI write operation.
+    /// </summary>
+    public class AMIWriteArgument
     {
-        visible = false;
+        /// <summary>
+        /// Gets or sets the attribute to write; initially <see langword="null"/>.
+        /// </summary>
+        public object? Target { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value to assign to the attribute; initially <see langword="null"/>.
+        /// </summary>
+        public object? Value { get; set; }
     }
 }

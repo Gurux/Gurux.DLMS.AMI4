@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,16 +30,20 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
+using Gurux.DLMS.AMI.Shared;
+using System.Data;
+using System.Security.Claims;
+using System.Text.Json;
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>Resolves module targets after checking user access.</summary>
+public interface IAmiTargetProvider
 {
-    /// <summary>
-    /// Gurux DLMS AMI read argument.
-    /// </summary>
-    public class AMIReadArgument
-    {
-        /// <summary>
-        /// Read object.
-        /// </summary>
-        public object? Target { get; set; }
-    }
+    /// <summary>Resolves an accessible target for the specified user, or returns null.</summary>
+    /// <param name="user">User whose access to the target must be checked.</param>
+    /// <param name="target">Module-defined target category.</param>
+    /// <param name="targetId">Identifier of the requested target.</param>
+    /// <param name="cancellationToken">Token used to cancel target resolution.</param>
+    /// <returns>The target's display name and navigation path, or <see langword="null"/> when unavailable to the user.</returns>
+    Task<GXAmiTarget?> ResolveAsync(ClaimsPrincipal user, string target, string targetId, CancellationToken cancellationToken);
 }

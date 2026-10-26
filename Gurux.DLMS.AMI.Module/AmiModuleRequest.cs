@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,28 +29,12 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-namespace Gurux.DLMS.AMI.Module.Enums
-{
-    /// <summary>
-    /// Visible type defines how extended UI is handled on the UI.
-    /// </summary>
-    public enum ExtendedlUIType
-    {
-        /// <summary>
-        /// Extended UI is not shown to the target.
-        /// </summary>
-        None,
-        /// <summary>
-        /// Extended UI is append after the target default settings.
-        /// </summary>
-        Append,
-        /// <summary>
-        /// The default UI is replaced with extended UI.
-        /// </summary>
-        /// <remarks>
-        /// If there are multiple extended UIs all must replace 
-        /// the default UI or default UI is shown. 
-        /// </remarks>
-        Replace
-    }
-}
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>HTTP context plus the module's own service scope.</summary>
+/// <param name="HttpContext">Current HTTP request and response context.</param>
+/// <param name="Module">Module services, settings, and cancellation for this request.</param>
+public sealed record AmiModuleRequest(HttpContext HttpContext, AmiModuleContext Module);

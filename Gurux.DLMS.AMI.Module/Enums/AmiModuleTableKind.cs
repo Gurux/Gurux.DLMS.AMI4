@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,16 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Extended setting interface for the parameters.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize parameters for the module.
-    /// </remarks>
-    public interface IAmiExtendedParameterUI : IAmiExtendedUI
-    {
+namespace Gurux.DLMS.AMI.Module.Enums;
 
-    }
+/// <summary>Classifies a database table owned by a module.</summary>
+public enum AmiModuleTableKind
+{
+    /// <summary>Table whose rows are cleared by data-only uninstallation.</summary>
+    Data,
+    /// <summary>Table preserved by data-only uninstallation and removed when owned tables are dropped.</summary>
+    Metadata
 }

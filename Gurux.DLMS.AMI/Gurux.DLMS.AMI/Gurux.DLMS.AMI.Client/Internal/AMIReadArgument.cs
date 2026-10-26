@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -29,30 +29,17 @@
 // This code is licensed under the GNU General Public License v2.
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
-namespace Gurux.DLMS.AMI.Module
+
+namespace Gurux.DLMS.AMI.Client.Internal
 {
     /// <summary>
-    /// Gurux DLMS AMI user UI extension.
+    /// Carries the target of an AMI read operation.
     /// </summary>
-    /// <remarks>
-    /// Framework calls this after all settings
-    /// are retreaved from the database.
-    /// UI can be updated after this.
-    /// </remarks>
-    public interface IAmiUIExtension
+    public class AMIReadArgument
     {
         /// <summary>
-        /// UI is initialized async.
+        /// Gets or sets the object or attribute to read; initially <see langword="null"/>.
         /// </summary>
-        Task InitializedAsync();
-
-        /// <summary>
-        /// UI settings are saved to Settings property.
-        /// </summary>
-        /// <remarks>
-        /// Only schedule UI calls this method.
-        /// </remarks>
-        Task SaveAsync();
-
+        public object? Target { get; set; }
     }
 }

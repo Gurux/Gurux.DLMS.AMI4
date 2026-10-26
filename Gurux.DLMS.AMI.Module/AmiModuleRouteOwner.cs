@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -30,16 +30,8 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Module
-{
-    /// <summary>
-    /// Object settings UI interface.
-    /// </summary>
-    /// <remarks>
-    /// This interface is used to customize object settings for the module.
-    /// </remarks>
-    public interface IAmiExtendedObjectSettingsUI : IAmiExtendedSettingsUI
-    {
+namespace Gurux.DLMS.AMI.Module;
 
-    }
-}
+/// <summary>Identifies a root route owned by an active module.</summary>
+/// <param name="ModuleId">Identifier of the module that owns the route.</param>
+public sealed record AmiModuleRouteOwner(string ModuleId);

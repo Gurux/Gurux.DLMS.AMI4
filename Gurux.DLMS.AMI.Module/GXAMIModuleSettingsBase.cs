@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -36,8 +36,9 @@ using System.Text.Json;
 namespace Gurux.DLMS.AMI.Module
 {
     /// <summary>
-    /// Gurux DLMS AMI module settings base class.
+    /// Provides a Blazor settings editor with JSON initialization, validation hooks, and serialized save results.
     /// </summary>
+    /// <typeparam name="TSettings">Settings model with a public parameterless constructor.</typeparam>
     public abstract class GXAMIModuleSettingsBase<TSettings> : ComponentBase, IAmiModuleSettings
         where TSettings : class, new()
     {
@@ -52,19 +53,23 @@ namespace Gurux.DLMS.AMI.Module
             Settings = new TSettings();
         }
 
+        /// <summary>Tracks whether serialized settings have already been initialized.</summary>
         private bool _initialized = false;
+        /// <summary>Tracks whether the current settings have already been saved.</summary>
         private bool _saved = false;
-        /// <inheritdoc/>
+        /// <summary>Discards changes when overridden; the default implementation does nothing.</summary>
         public virtual void Cancel()
         {
         }
-        /// <inheritdoc/>
+        /// <summary>Discards changes asynchronously when overridden; the default implementation completes without changes.</summary>
+        /// <returns>A task that completes when the operation has finished.</returns>
         public virtual Task CancelAsync()
         {
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
+        /// <summary>Loads nonempty JSON settings and invokes the synchronous initialization hook.</summary>
+        /// <param name="settings">JSON settings, or <see langword="null"/> or empty to retain the current settings model.</param>
         public virtual void Initialize(string? settings)
         {
             _initialized = true;
@@ -80,7 +85,9 @@ namespace Gurux.DLMS.AMI.Module
             Initialize();
         }
 
-        /// <inheritdoc/>
+        /// <summary>Loads nonempty JSON settings and invokes the asynchronous hook only if initialization has not already occurred.</summary>
+        /// <param name="settings">JSON settings, or <see langword="null"/> or empty to retain the current settings model.</param>
+        /// <returns>The initialization task, or a completed task when already initialized.</returns>
         public Task InitializeAsync(string? settings)
         {
             if (!_initialized)
@@ -100,18 +107,21 @@ namespace Gurux.DLMS.AMI.Module
             return Task.CompletedTask;
         }
 
-        /// <inheritdoc/>
+        /// <summary>Runs custom initialization after loading settings; the default implementation does nothing.</summary>
         public virtual void Initialize()
         {
         }
 
-        /// <inheritdoc/>
+        /// <summary>Runs custom asynchronous initialization after loading settings; the default implementation completes immediately.</summary>
+        /// <returns>A task that completes when the operation has finished.</returns>
         public virtual Task InitializeAsync()
         {
             return Task.CompletedTask;
         }
 
         /// <inheritdoc/>
+        /// <summary>Validates and serializes settings once, resetting the saved flag when validation or serialization fails.</summary>
+        /// <returns>Serialized settings, or null when this instance has already saved its settings or exposes no readable settings property.</returns>
         string? IAmiModuleSettings.Save()
         {
             try
@@ -141,13 +151,16 @@ namespace Gurux.DLMS.AMI.Module
             return null;
         }
 
-        /// <inheritdoc/>
+        /// <summary>Validates or prepares settings before serialization; override to allow saving.</summary>
+        /// <returns><see langword="true"/> when settings may be saved; the default is <see langword="false"/>.</returns>
         public virtual bool Save()
         {
             return false;
         }
 
         /// <inheritdoc/>
+        /// <summary>Asynchronously validates and serializes settings once, resetting the saved flag when the operation fails.</summary>
+        /// <returns>A task containing serialized settings, or null when this instance has already saved its settings or exposes no readable settings property.</returns>
         async Task<string?> IAmiModuleSettings.SaveAsync()
         {
             if (!_saved)
@@ -176,14 +189,15 @@ namespace Gurux.DLMS.AMI.Module
             }
             return null;
         }
-        /// <inheritdoc/>
+        /// <summary>Validates or prepares settings asynchronously by invoking <see cref="Save()"/>.</summary>
+        /// <returns>Whether the current settings may be serialized for saving.</returns>
         public virtual Task<bool> SaveAsync()
         {
             return Task.FromResult(Save());
         }
 
         /// <summary>
-        /// Configuration settings.
+        /// Gets or sets the settings model edited by the component and serialized when saving succeeds.
         /// </summary>
         public TSettings Settings { get; set; } = default!;
     }
