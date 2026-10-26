@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,16 +33,16 @@
 namespace Gurux.DLMS.AMI.Services
 {
     /// <summary>
-    /// This interface is used to send MQTT messages.
+    /// Publishes application messages to MQTT topics.
     /// </summary>
     public interface IMqttSender
     {
         /// <summary>
-        /// This method is used to send MQTT. 
+        /// Asynchronously publishes a text message to an MQTT topic.
         /// </summary>
-        /// <param name="sender">Sender.</param>
+        /// <param name="sender">Sender identity supplied to the MQTT service.</param>
         /// <param name="topic">MQTT topic.</param>
-        /// <param name="message">Message.</param>
+        /// <param name="message">Text payload to publish.</param>
         Task SendMqttAsync(string sender, string topic, string message);
     }
 }

@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -37,49 +37,49 @@ namespace Gurux.DLMS.AMI.Services
     /// </summary>
     /// <remarks>This class is used to store or transfer geolocation data, 
     /// such as that obtained from a GPS sensor or location service. 
-    /// All properties use the WGS 84 coordinate system. 
-    /// Optional properties may be null if the corresponding data is unavailable.</remarks>
+    /// Latitude and longitude identify the position; the remaining properties describe measurement quality and movement. 
+    /// Nullable properties are null when the provider does not supply the corresponding data.</remarks>
     public class GXGeoLocation
     {
         /// <summary>
-        /// Latitude.
+        /// Gets or sets the latitude reported by the location provider.
         /// </summary>
         public double Latitude { get; set; }
         /// <summary>
-        /// Longitude.
+        /// Gets or sets the longitude reported by the location provider.
         /// </summary>
         public double Longitude { get; set; }
         /// <summary>
-        /// Altitude.
+        /// Gets or sets the reported altitude, or null when unavailable.
         /// </summary>
         public double? Altitude { get; set; }
         /// <summary>
-        /// Accuracy.
+        /// Gets or sets the reported horizontal position accuracy.
         /// </summary>
         public double Accuracy { get; set; }
         /// <summary>
-        /// Altitude accuracy.
+        /// Gets or sets the reported vertical position accuracy, or null when unavailable.
         /// </summary>
         public double? AltitudeAccuracy { get; set; }
         /// <summary>
-        /// Heading.
+        /// Gets or sets the reported direction of travel, or null when unavailable.
         /// </summary>
         public double? Heading { get; set; }
         /// <summary>
-        /// Speed.
+        /// Gets or sets the reported travel speed, or null when unavailable.
         /// </summary>
         public double? Speed { get; set; }
     }
 
     /// <summary>
-    /// This interface is used to send SMS messages.
+    /// Provides the current geographic position from a location service.
     /// </summary>
     public interface IGeolocation
     {
         /// <summary>
-        /// Returns coordinates of the current position.
+        /// Asynchronously obtains the current position and available measurement details.
         /// </summary>
-        /// <returns>Location info.</returns>
+        /// <returns>A task whose result contains the position reported by the provider.</returns>
         Task<GXGeoLocation> GetCurrentPosition();
     }
 }

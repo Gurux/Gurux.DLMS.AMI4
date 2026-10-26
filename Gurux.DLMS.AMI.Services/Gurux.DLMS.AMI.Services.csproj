@@ -30,3 +30,4 @@
     <None Include="gurux_dlms_ami.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>
+

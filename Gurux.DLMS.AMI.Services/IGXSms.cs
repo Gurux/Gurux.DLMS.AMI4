@@ -1,4 +1,4 @@
-﻿//
+//
 // --------------------------------------------------------------------------
 //  Gurux Ltd
 //
@@ -33,14 +33,14 @@
 namespace Gurux.DLMS.AMI.Services
 {
     /// <summary>
-    /// This interface is used to send SMS messages.
+    /// Sends text messages through an SMS service.
     /// </summary>
     public interface ISmsSender
     {
         /// <summary>
-        /// This method is used to send SMS. 
+        /// Asynchronously sends a text message to a phone number.
         /// </summary>
-        /// <param name="number">Phone number.</param>
+        /// <param name="number">Destination phone number.</param>
         /// <param name="message">SMS message.</param>
         Task SendSmsAsync(string number, string message);
     }
