@@ -37,72 +37,82 @@ using System.Text.Json.Serialization;
 namespace Gurux.DLMS.AMI.Agent.Shared
 {
     /// <summary>
-    /// Agent settings.
+    /// Defines connection and worker settings for a Gurux DLMS AMI agent.
     /// </summary>
     public class AgentOptions
     {
         /// <summary>
-        /// Unique agent ID.
+        /// Gets or sets the unique identifier of the agent.
         /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
-        /// Gurux.DLMS.AMI server address. Agent is connecting to this address.
+        /// Gets or sets the base address of the Gurux DLMS AMI server.
         /// </summary>
+        /// <value>The server address. The default is <c>https://ami.gurux.fi</c>.</value>
         public string Address { get; set; } = "https://ami.gurux.fi";
 
         /// <summary>
-        /// Personal Access Token.
+        /// Gets or sets the personal access token used to authenticate with the server.
         /// </summary>
         /// <remarks>
-        /// Agent can access meters that belongs for token owner.
+        /// The agent can access meters that belong to the token owner.
+        /// Treat this value as a secret.
         /// </remarks>
         public string Token { get; set; } = "";
 
         /// <summary>
-        /// Trace level.
+        /// Gets or sets the diagnostic trace level for the agent.
         /// </summary>
         public TraceLevel TraceLevel { get; set; }
 
         /// <summary>
-        /// Agent version to run.
+        /// Gets or sets the agent version to run.
         /// </summary>
         /// <remarks>
-        /// If version is null the default agent is used.
+        /// If the value is <see langword="null"/>, the default agent version is used.
         /// </remarks>
         public string? Version { get; set; }
 
         /// <summary>
-        /// Reader settings.
+        /// Gets or sets the settings for the meter reader worker.
         /// </summary>
         public ReaderSettings? ReaderSettings { get; set; }
 
         /// <summary>
-        /// Listener settings. Agent waits server to connect for the listener.
+        /// Gets or sets the listener settings for incoming meter connections.
         /// </summary>
         public ListenerSettings? ListenerSettings { get; set; }
 
         /// <summary>
-        /// Notify settings. Agent waits notify, event or push messages to this port.
+        /// Gets or sets the settings for receiving notification, event, or push messages.
         /// </summary>
         public NotifySettings? NotifySettings { get; set; }
 
         /// <summary>
-        /// Gateway settings. Agent waits gateway connections.
+        /// Gets or sets the settings for the worker that retrieves and parses stored raw notifications.
+        /// </summary>
+        public RawNotificationSettings? RawNotificationSettings { get; set; }
+
+        /// <summary>
+        /// Gets or sets the settings for accepting gateway connections.
         /// </summary>
         public GatewaySettings? GatewaySettings { get; set; }
 
         /// <summary>
-        /// Available serial ports.
+        /// Gets or sets the available serial ports reported by the agent.
         /// </summary>
         public string? SerialPorts { get; set; }
 
         /// <summary>
-        /// Selected serial port.
+        /// Gets or sets the serial port selected for meter communication.
         /// </summary>
         public string? SerialPort { get; set; }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Returns a textual representation of the agent settings.
+        /// </summary>
+        /// <returns>The property descriptions produced by <see cref="Helpers.GetProperties"/>.</returns>
         public override string ToString()
         {
             return Helpers.GetProperties(this);

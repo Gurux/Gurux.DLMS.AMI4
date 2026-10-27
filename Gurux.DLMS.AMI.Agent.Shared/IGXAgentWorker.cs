@@ -35,44 +35,47 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Gurux.DLMS.AMI.Agent.Shared
 {
     /// <summary>
-    /// This interface is used to handle agent worker.
+    /// Defines initialization, registration, and lifecycle operations for an agent worker.
     /// </summary>
     public interface IGXAgentWorker
     {
         /// <summary>
-        /// Initialize agent worker.
+        /// Initializes the agent worker with services, settings, and change signals.
         /// </summary>
-        /// <param name="services">Services.</param>
-        /// <param name="options">Agent options.</param>
-        /// <param name="newVersion">New version is released.</param>
-        /// <param name="updated">Agent settings are changed.</param>
+        /// <param name="services">The service collection used to configure worker dependencies.</param>
+        /// <param name="options">The connection and worker settings for the agent.</param>
+        /// <param name="newVersion">The event signaled when a new agent version is available.</param>
+        /// <param name="updated">The event signaled when agent settings change.</param>
         void Init(IServiceCollection services,
             AgentOptions options,
             AutoResetEvent newVersion,
             AutoResetEvent updated);
 
         /// <summary>
-        /// Add new agent.
+        /// Registers a new agent with the server.
         /// </summary>
-        /// <param name="name">Agent name.</param>
-        /// <returns>Agent ID.</returns>
+        /// <param name="name">The name of the agent to register.</param>
+        /// <returns>A task whose result is the identifier of the registered agent.</returns>
         Task<Guid> AddAgentAsync(string name);
 
         /// <summary>
-        /// Start the worker agent.
+        /// Starts the agent worker.
         /// </summary>
+        /// <returns>A task that represents the asynchronous start operation.</returns>
         Task StartAsync();
 
         /// <summary>
-        /// Stop the worker agent.
+        /// Stops the agent worker.
         /// </summary>
+        /// <returns>A task that represents the asynchronous stop operation.</returns>
         Task StopAsync();
 
         /// <summary>
-        /// Are taks poll.
+        /// Gets or sets whether the agent polls the server for tasks.
         /// </summary>
         /// <remarks>
-        /// If true, tasks are polled. If false, the server sends notification from the new tasks.
+        /// If <see langword="true"/>, the agent polls for tasks.
+        /// If <see langword="false"/>, the server notifies the agent when new tasks are available.
         /// </remarks>
         bool PollTasks { get; set; }
     }
