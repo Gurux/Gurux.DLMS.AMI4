@@ -266,7 +266,7 @@ namespace Gurux.DLMS.AMI.Shared.Rest
         /// </remarks>
         [Description("Whether to permanently delete the items from the database. If false, marks the items as removed and retains their records.")]
         [DataMember]
-        public bool Delete { get; set; } = true;
+        public bool Delete { get; set; }
     }
 
     /// <summary>Response to deleting the selected agents.</summary>

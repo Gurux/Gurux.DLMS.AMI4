@@ -238,10 +238,30 @@ if (await Confirmation.ConfirmAsync(localizedTitle, localizedMessage))
 }
 ```
 
-The host renders the same Confirm component used by SystemLog, with its standard
-buttons and localized cancel/OK labels. Titles and messages are plain text.
+The layout owns a single confirmation dialog with localized cancel/OK labels.
+Titles and messages are plain text.
 Only explicit approval returns true; cancel, close, missing host and host disposal
 return false. Concurrent requests are queued, and stale answers cannot approve
 another request. This is a UI service, separate from background notifications.
 Module code must recheck that its view/source still exists before performing the
 action after awaiting confirmation. Server-side action policies still apply.
+
+Use the options overload to display selected item names, customize the action
+button, or let the user choose disabling versus permanent deletion:
+
+```csharp
+var answer = await Confirmation.ConfirmAsync(title, message, new AmiConfirmationOptions
+{
+    ConfirmText = localizedRemove,
+    Items = selectedNames,
+    AllowDelete = true
+});
+if (answer.Confirm)
+{
+    await RemoveAsync(deletePermanently: answer.Delete);
+}
+```
+
+Disabling is selected initially for every dialog. `Delete` is true only when the
+user approves permanent deletion in a dialog that offers that choice. Selected
+item names are copied when queued and displayed as encoded text.

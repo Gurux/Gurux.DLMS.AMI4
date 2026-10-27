@@ -40,4 +40,11 @@ public interface IAmiConfirmation
     /// <param name="message">Message describing the action that requires user confirmation.</param>
     /// <returns>A task whose result is true when the user confirms, or false when the dialog is canceled or unavailable.</returns>
     Task<bool> ConfirmAsync(string title, string message);
+
+    /// <summary>Displays a confirmation with action text, selected items and an optional permanent deletion choice.</summary>
+    /// <param name="title">Dialog title.</param>
+    /// <param name="message">Description of the action.</param>
+    /// <param name="options">Action text, selected items and available choices.</param>
+    /// <returns>The user's approval and permanent deletion choice. Cancel and unavailable UI never approve.</returns>
+    Task<AmiConfirmationResult> ConfirmAsync(string title, string message, AmiConfirmationOptions options);
 }
