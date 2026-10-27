@@ -41,7 +41,7 @@ namespace Gurux.DLMS.AMI.Services.Database;
 /// <typeparam name="T">The primary entity type to select.</typeparam>
 /// <param name="columns">The initial column selector, or <see langword="null"/> to select all columns.</param>
 /// <param name="where">The initial filter, or <see langword="null"/> for no initial filter.</param>
-public sealed class AmiSelectQuery<T>(Expression<Func<T, object>>? columns, Expression<Func<T, bool>>? where)
+public sealed class GXAmiSelectQuery<T>(Expression<Func<T, object>>? columns, Expression<Func<T, bool>>? where)
 {
     /// <summary>
     /// Gets the initial column selector, or <see langword="null"/> to select all columns.
@@ -49,29 +49,29 @@ public sealed class AmiSelectQuery<T>(Expression<Func<T, object>>? columns, Expr
     public Expression<Func<T, object>>? Projection { get; } = columns;
 
     /// <summary>
-    /// Gets the initial filter, which can be replaced by calling <see cref="AmiQueryConditions.Clear"/> on <see cref="Where"/>.
+    /// Gets the initial filter, which can be replaced by calling <see cref="GXAmiQueryConditions.Clear"/> on <see cref="Where"/>.
     /// </summary>
     public Expression<Func<T, bool>>? Predicate { get; } = where;
 
     /// <summary>
     /// Gets additional column projections, including columns from joined entities.
     /// </summary>
-    public AmiColumnSelection Columns { get; } = new();
+    public GXAmiColumnSelection Columns { get; } = new();
 
     /// <summary>
     /// Gets the joins to apply to the query.
     /// </summary>
-    public AmiJoinSelection Joins { get; } = new();
+    public GXAmiJoinSelection Joins { get; } = new();
 
     /// <summary>
     /// Gets additional conditions combined with AND and controls replacement of the initial filter.
     /// </summary>
-    public AmiQueryConditions Where { get; } = new();
+    public GXAmiQueryConditions Where { get; } = new();
 
     /// <summary>
     /// Gets the column selectors used to order the results.
     /// </summary>
-    public AmiColumnSelection OrderBy { get; } = new();
+    public GXAmiColumnSelection OrderBy { get; } = new();
 
     /// <summary>
     /// Gets or sets the zero-based starting row index for result pagination; defaults to zero.

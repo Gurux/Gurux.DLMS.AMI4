@@ -37,7 +37,7 @@ namespace Gurux.DLMS.AMI.Services
     /// <remarks>Implementations of this interface are responsible for delivering email messages to the
     /// specified recipient. The method is asynchronous and returns a <see cref="Task"/> that completes when the email
     /// has been sent or the operation has failed.</remarks>
-    public interface IAmiEmailSender
+    public interface IGXAmiEmailSender
     {
         /// <summary>
         /// Sends an email message asynchronously to the specified recipient with the given subject and HTML content.

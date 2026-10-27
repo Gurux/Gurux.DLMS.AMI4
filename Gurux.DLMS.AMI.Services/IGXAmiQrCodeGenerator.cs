@@ -30,18 +30,13 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Services
+namespace Gurux.DLMS.AMI.Module;
+
+/// <summary>QR image generation exported by an optional runtime module.</summary>
+public interface IGXAmiQrCodeGenerator
 {
-    /// <summary>
-    /// Sends text messages through an SMS service.
-    /// </summary>
-    public interface ISmsSender
-    {
-        /// <summary>
-        /// Asynchronously sends a text message to a phone number.
-        /// </summary>
-        /// <param name="number">Destination phone number.</param>
-        /// <param name="message">SMS message.</param>
-        Task SendSmsAsync(string number, string message);
-    }
+    /// <summary>Encodes the supplied text as a PNG image, including the QR quiet zone.</summary>
+    /// <param name="text">Text to encode. Callers must not log authenticator secrets.</param>
+    /// <returns>PNG bytes owned by the caller, independent of the module lifetime.</returns>
+    byte[] GeneratePng(string text);
 }

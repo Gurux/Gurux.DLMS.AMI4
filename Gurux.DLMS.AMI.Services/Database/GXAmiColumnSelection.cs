@@ -35,24 +35,25 @@ using System.Linq.Expressions;
 namespace Gurux.DLMS.AMI.Services.Database;
 
 /// <summary>
-/// Provides factory methods for AMI select query descriptions.
+/// Collects column selections for query projections or ordering.
 /// </summary>
-public static class AmiSelect
+public sealed class GXAmiColumnSelection
 {
     /// <summary>
-    /// Creates a query that selects all columns of an entity type.
+    /// Gets the column selections in the order they were added.
     /// </summary>
-    /// <typeparam name="T">The entity type to select.</typeparam>
-    /// <param name="where">The optional initial filter.</param>
-    /// <returns>A select query that can be configured with additional query options.</returns>
-    public static AmiSelectQuery<T> SelectAll<T>(Expression<Func<T, bool>>? where = null) => new(null, where);
+    public List<GXAmiDatabaseColumns> Items { get; } = [];
 
     /// <summary>
-    /// Creates a query that selects specified columns of an entity type.
+    /// Adds selected columns from an entity type.
     /// </summary>
-    /// <typeparam name="T">The entity type to select.</typeparam>
+    /// <typeparam name="T">The entity type that owns the columns.</typeparam>
     /// <param name="columns">The expression that selects the columns.</param>
-    /// <param name="where">The optional initial filter.</param>
-    /// <returns>A select query that can be configured with additional query options.</returns>
-    public static AmiSelectQuery<T> Select<T>(Expression<Func<T, object>> columns, Expression<Func<T, bool>>? where = null) => new(columns, where);
+    public void Add<T>(Expression<Func<T, object>> columns) => Items.Add(new(typeof(T), columns));
+
+    /// <summary>
+    /// Adds all columns from an entity type to the projection.
+    /// </summary>
+    /// <typeparam name="T">The entity type whose columns are selected.</typeparam>
+    public void Add<T>() => Items.Add(new(typeof(T), null));
 }

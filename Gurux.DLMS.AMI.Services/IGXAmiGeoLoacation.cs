@@ -39,7 +39,7 @@ namespace Gurux.DLMS.AMI.Services
     /// such as that obtained from a GPS sensor or location service. 
     /// Latitude and longitude identify the position; the remaining properties describe measurement quality and movement. 
     /// Nullable properties are null when the provider does not supply the corresponding data.</remarks>
-    public class GXGeoLocation
+    public class GXAmiGeoLocation
     {
         /// <summary>
         /// Gets or sets the latitude reported by the location provider.
@@ -72,14 +72,16 @@ namespace Gurux.DLMS.AMI.Services
     }
 
     /// <summary>
-    /// Provides the current geographic position from a location service.
+    /// Resolves an IP address using an optional geolocation module.
     /// </summary>
-    public interface IGeolocation
+    public interface IGXAmiGeolocation
     {
         /// <summary>
-        /// Asynchronously obtains the current position and available measurement details.
+        /// Resolves a public IP address; returns null when no location is available.
         /// </summary>
-        /// <returns>A task whose result contains the position reported by the provider.</returns>
-        Task<GXGeoLocation> GetCurrentPosition();
+        /// <param name="ipAddress">IPv4 or IPv6 address to resolve.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The approximate position, or null.</returns>
+        Task<GXAmiGeoLocation?> GetPositionAsync(string ipAddress, CancellationToken cancellationToken = default);
     }
 }

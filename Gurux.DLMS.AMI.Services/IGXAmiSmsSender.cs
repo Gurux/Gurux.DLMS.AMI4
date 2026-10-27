@@ -30,14 +30,19 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Services.Database;
-
-/// <summary>One completed database command; parameter values are not expanded.</summary>
-/// <param name="Sql">Command text as executed, retaining parameter placeholders.</param>
-/// <param name="DurationMilliseconds">Elapsed command execution time in milliseconds.</param>
-/// <param name="CreationTime">UTC time at which the host created the completion notification.</param>
-/// <param name="UserId">Identifier of the current HTTP user, or <see langword="null"/> when unavailable.</param>
-/// <param name="Path">Current HTTP request path, or <see langword="null"/> outside an HTTP request.</param>
-/// <param name="Provider">Database provider identifier supplied by the command executor.</param>
-public sealed record AmiSqlCommand(string Sql, double DurationMilliseconds, DateTimeOffset CreationTime,
-    string? UserId, string? Path, string Provider);
+namespace Gurux.DLMS.AMI.Services
+{
+    /// <summary>
+    /// Sends text messages through an SMS service.
+    /// </summary>
+    public interface IGXAmiSmsSender
+    {
+        /// <summary>
+        /// Asynchronously sends a text message to a phone number.
+        /// </summary>
+        /// <param name="number">Destination phone number.</param>
+        /// <param name="message">SMS message.</param>
+        /// <returns>A task representing the asynchronous send operation.</returns>
+        Task SendSmsAsync(string number, string message);
+    }
+}

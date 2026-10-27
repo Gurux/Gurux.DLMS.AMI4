@@ -30,19 +30,14 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-namespace Gurux.DLMS.AMI.Services
-{
-    /// <summary>
-    /// Publishes application messages to MQTT topics.
-    /// </summary>
-    public interface IMqttSender
-    {
-        /// <summary>
-        /// Asynchronously publishes a text message to an MQTT topic.
-        /// </summary>
-        /// <param name="sender">Sender identity supplied to the MQTT service.</param>
-        /// <param name="topic">MQTT topic.</param>
-        /// <param name="message">Text payload to publish.</param>
-        Task SendMqttAsync(string sender, string topic, string message);
-    }
-}
+namespace Gurux.DLMS.AMI.Services.Database;
+
+/// <summary>One completed database command; parameter values are not expanded.</summary>
+/// <param name="Sql">Command text as executed, retaining parameter placeholders.</param>
+/// <param name="DurationMilliseconds">Elapsed command execution time in milliseconds.</param>
+/// <param name="CreationTime">UTC time at which the host created the completion notification.</param>
+/// <param name="UserId">Identifier of the current HTTP user, or <see langword="null"/> when unavailable.</param>
+/// <param name="Path">Current HTTP request path, or <see langword="null"/> outside an HTTP request.</param>
+/// <param name="Provider">Database provider identifier supplied by the command executor.</param>
+public sealed record GXAmiSqlCommand(string Sql, double DurationMilliseconds, DateTimeOffset CreationTime,
+    string? UserId, string? Path, string Provider);

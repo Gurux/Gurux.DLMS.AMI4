@@ -37,12 +37,12 @@ namespace Gurux.DLMS.AMI.Services.Database;
 /// <summary>
 /// Collects joins to apply to a select query.
 /// </summary>
-public sealed class AmiJoinSelection
+public sealed class GXAmiJoinSelection
 {
     /// <summary>
     /// Gets the joins in the order they were added.
     /// </summary>
-    public List<AmiDatabaseJoin> Items { get; } = [];
+    public List<GXAmiDatabaseJoin> Items { get; } = [];
 
     /// <summary>
     /// Adds a left join, retaining source rows that have no matching target row.

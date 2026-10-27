@@ -30,14 +30,16 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
+using System.Linq.Expressions;
+
 namespace Gurux.DLMS.AMI.Services.Database;
 
-/// <summary>Host SQL command notifications shared with recording modules.</summary>
-public interface IAmiSqlEvents
-{
-    /// <summary>Raised when a database command has completed.</summary>
-    event Action<AmiSqlCommand> Executed;
-    /// <summary>Suppresses recording in the current asynchronous operation, including its children.</summary>
-    /// <returns>A scope that restores the previous suppression level when disposed.</returns>
-    IDisposable Suppress();
-}
+/// <summary>
+/// Describes a left or inner join between two entity types.
+/// </summary>
+/// <param name="From">The entity type that owns the foreign key.</param>
+/// <param name="To">The entity type that owns the referenced key.</param>
+/// <param name="ForeignKey">The foreign-key column selector.</param>
+/// <param name="Key">The referenced-key column selector.</param>
+/// <param name="Inner">Whether to use an inner join instead of a left join.</param>
+public sealed record GXAmiDatabaseJoin(Type From, Type To, LambdaExpression ForeignKey, LambdaExpression Key, bool Inner = false);

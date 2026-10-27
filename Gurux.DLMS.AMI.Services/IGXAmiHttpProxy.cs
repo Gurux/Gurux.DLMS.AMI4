@@ -33,17 +33,23 @@
 namespace Gurux.DLMS.AMI.Services;
 
 /// <summary>Module access to the host's allowlisted, credential-free HTTP transport.</summary>
-public interface IAmiHttpProxy
+public interface IGXAmiHttpProxy
 {
     /// <summary>Downloads public content using the host network policy and optional scoped cache.</summary>
-    Task<AmiHttpProxyContent> GetAsync(string url, AmiHttpProxyOptions options, string? referer = null, CancellationToken cancellationToken = default);
+    /// <param name="url">The public content URL to request through the host network policy.</param>
+    /// <param name="options">Cache preferences for this request; these do not override host network restrictions.</param>
+    /// <param name="referer">Optional Referer header value supplied to the upstream server.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>A task whose result contains the downloaded body, content type, and source URL.</returns>
+    Task<GXAmiHttpProxyContent> GetAsync(string url, GXAmiHttpProxyOptions options, string? referer = null, CancellationToken cancellationToken = default);
 
     /// <summary>Invalidates cached responses and pending cache writes for the specified scope.</summary>
+    /// <param name="cacheScope">The cache namespace to invalidate, matching the request options.</param>
     void ClearCache(string cacheScope);
 }
 
 /// <summary>Cache preferences; host allowlists and request limits cannot be overridden.</summary>
-public sealed class AmiHttpProxyOptions
+public sealed class GXAmiHttpProxyOptions
 {
     /// <summary>Stable module-specific cache namespace.</summary>
     public string CacheScope { get; set; } = string.Empty;
@@ -54,10 +60,15 @@ public sealed class AmiHttpProxyOptions
 }
 
 /// <summary>Content downloaded by the AMI server.</summary>
-public sealed record AmiHttpProxyContent(byte[] Body, string ContentType, string SourceUrl);
+/// <param name="Body">The downloaded response body as bytes.</param>
+/// <param name="ContentType">The response media type reported by the proxy.</param>
+/// <param name="SourceUrl">The source URL reported by the proxy.</param>
+public sealed record GXAmiHttpProxyContent(byte[] Body, string ContentType, string SourceUrl);
 
 /// <summary>A safe public error from an outbound proxy request.</summary>
-public sealed class AmiHttpProxyException(int statusCode, string message) : Exception(message)
+/// <param name="statusCode">HTTP status code describing the proxy failure.</param>
+/// <param name="message">Public error description suitable for the caller.</param>
+public sealed class GXAmiHttpProxyException(int statusCode, string message) : Exception(message)
 {
     /// <summary>HTTP status describing the failure.</summary>
     public int StatusCode { get; } = statusCode;

@@ -35,8 +35,24 @@ using System.Linq.Expressions;
 namespace Gurux.DLMS.AMI.Services.Database;
 
 /// <summary>
-/// Describes a column projection for an entity or a joined entity without depending on a host ORM.
+/// Provides factory methods for AMI select query descriptions.
 /// </summary>
-/// <param name="EntityType">The entity type that owns the columns.</param>
-/// <param name="Expression">The column selector, or <see langword="null"/> to select all columns.</param>
-public sealed record AmiDatabaseColumns(Type EntityType, LambdaExpression? Expression);
+public static class GXAmiSelect
+{
+    /// <summary>
+    /// Creates a query that selects all columns of an entity type.
+    /// </summary>
+    /// <typeparam name="T">The entity type to select.</typeparam>
+    /// <param name="where">The optional initial filter.</param>
+    /// <returns>A select query that can be configured with additional query options.</returns>
+    public static GXAmiSelectQuery<T> SelectAll<T>(Expression<Func<T, bool>>? where = null) => new(null, where);
+
+    /// <summary>
+    /// Creates a query that selects specified columns of an entity type.
+    /// </summary>
+    /// <typeparam name="T">The entity type to select.</typeparam>
+    /// <param name="columns">The expression that selects the columns.</param>
+    /// <param name="where">The optional initial filter.</param>
+    /// <returns>A select query that can be configured with additional query options.</returns>
+    public static GXAmiSelectQuery<T> Select<T>(Expression<Func<T, object>> columns, Expression<Func<T, bool>>? where = null) => new(columns, where);
+}

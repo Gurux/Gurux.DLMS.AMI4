@@ -35,34 +35,8 @@ using System.Linq.Expressions;
 namespace Gurux.DLMS.AMI.Services.Database;
 
 /// <summary>
-/// Collects additional conditions combined with AND and controls replacement of a query's initial filter.
+/// Describes a column projection for an entity or a joined entity without depending on a host ORM.
 /// </summary>
-public sealed class AmiQueryConditions
-{
-    /// <summary>
-    /// Gets whether the database provider must remove the initial predicate or default entity-key filter.
-    /// </summary>
-    public bool ReplaceKeyFilter { get; private set; }
-
-    /// <summary>
-    /// Gets the additional predicates to combine with AND.
-    /// </summary>
-    public List<LambdaExpression> Predicates { get; } = [];
-
-    /// <summary>
-    /// Removes all additional predicates and requests removal of the query's initial or default key filter.
-    /// Conditions added after this call become the replacement filter.
-    /// </summary>
-    public void Clear()
-    {
-        ReplaceKeyFilter = true;
-        Predicates.Clear();
-    }
-
-    /// <summary>
-    /// Adds a predicate to combine with the other query conditions using AND.
-    /// </summary>
-    /// <typeparam name="T">The entity type evaluated by the predicate.</typeparam>
-    /// <param name="predicate">The condition to add.</param>
-    public void And<T>(Expression<Func<T, bool>> predicate) => Predicates.Add(predicate);
-}
+/// <param name="EntityType">The entity type that owns the columns.</param>
+/// <param name="Expression">The column selector, or <see langword="null"/> to select all columns.</param>
+public sealed record GXAmiDatabaseColumns(Type EntityType, LambdaExpression? Expression);

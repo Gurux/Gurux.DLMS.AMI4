@@ -325,32 +325,84 @@ namespace Gurux.DLMS.AMI.Services.Database
         void Truncate<T>();
 
         /// <summary>Opens this database instance's connection and returns the same instance.</summary>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <returns>A task whose result is this database instance with its connection open.</returns>
         Task<IGXDatabase> OpenAsync(CancellationToken cancellationToken = default);
         /// <summary>Returns the existing table's column names.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <returns>The column names reported by the database provider.</returns>
         IReadOnlyList<string> GetColumns<T>();
         /// <summary>Creates the entity table with explicit relationship and overwrite options.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="relations">Whether related tables are included in table creation.</param>
+        /// <param name="overwrite">Whether existing tables may be overwritten.</param>
         void CreateTable<T>(bool relations, bool overwrite);
         /// <summary>Creates the runtime entity type's table.</summary>
+        /// <param name="type">The entity type mapped to the database table.</param>
+        /// <param name="relations">Whether related tables are included in table creation.</param>
+        /// <param name="overwrite">Whether existing tables may be overwritten.</param>
         void CreateTable(Type type, bool relations, bool overwrite);
         /// <summary>Updates the entity schema with explicit foreign-key and column-removal options.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="updateForeignKeys">Whether foreign-key definitions are updated.</param>
+        /// <param name="removeUnusedColumns">Whether columns no longer mapped by the entity may be removed.</param>
         void UpdateTable<T>(bool updateForeignKeys, bool removeUnusedColumns);
         /// <summary>Updates the runtime entity type's schema.</summary>
+        /// <param name="type">The entity type mapped to the database table.</param>
+        /// <param name="updateForeignKeys">Whether foreign-key definitions are updated.</param>
+        /// <param name="removeUnusedColumns">Whether columns no longer mapped by the entity may be removed.</param>
         void UpdateTable(Type type, bool updateForeignKeys, bool removeUnusedColumns);
         /// <summary>Selects entities using an AMI query description.</summary>
-        Task<List<T>> SelectAsync<T>(AmiSelectQuery<T> query, CancellationToken token = default);
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="query">The query description containing projections, filters, joins, ordering, and pagination.</param>
+        /// <returns>A task whose result contains the matching entities.</returns>
+        Task<List<T>> SelectAsync<T>(GXAmiSelectQuery<T> query, CancellationToken token = default);
         /// <summary>Selects entities within this connection's transaction.</summary>
-        Task<List<T>> SelectAsync<T>(IDbTransaction? transaction, AmiSelectQuery<T> query, CancellationToken token = default);
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="transaction">A transaction belonging to this database connection, or <see langword="null"/> to execute without an explicit transaction.</param>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="query">The query description containing projections, filters, joins, ordering, and pagination.</param>
+        /// <returns>A task whose result contains the matching entities.</returns>
+        Task<List<T>> SelectAsync<T>(IDbTransaction? transaction, GXAmiSelectQuery<T> query, CancellationToken token = default);
         /// <summary>Returns the matching entity or its default value.</summary>
-        Task<T> SingleOrDefaultAsync<T>(AmiSelectQuery<T> query, CancellationToken token = default);
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="query">The query description containing projections, filters, joins, ordering, and pagination.</param>
+        /// <returns>A task whose result is the matching entity, or the default value of <typeparamref name="T"/> when none is found.</returns>
+        Task<T> SingleOrDefaultAsync<T>(GXAmiSelectQuery<T> query, CancellationToken token = default);
         /// <summary>Returns the matching entity within a transaction or its default value.</summary>
-        Task<T> SingleOrDefaultAsync<T>(IDbTransaction? transaction, AmiSelectQuery<T> query, CancellationToken token = default);
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="transaction">A transaction belonging to this database connection, or <see langword="null"/> to execute without an explicit transaction.</param>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="query">The query description containing projections, filters, joins, ordering, and pagination.</param>
+        /// <returns>A task whose result is the matching entity, or the default value of <typeparamref name="T"/> when none is found.</returns>
+        Task<T> SingleOrDefaultAsync<T>(IDbTransaction? transaction, GXAmiSelectQuery<T> query, CancellationToken token = default);
         /// <summary>Counts matching entities within a transaction.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="transaction">A transaction belonging to this database connection, or <see langword="null"/> to execute without an explicit transaction.</param>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="where">The predicate identifying the rows affected by the operation.</param>
+        /// <returns>A task whose result is the number of matching entities.</returns>
         Task<int> CountAsync<T>(IDbTransaction? transaction, Expression<Func<T, bool>> where, CancellationToken token = default);
         /// <summary>Counts entities using the query filters, without ordering or paging.</summary>
-        Task<int> CountAsync<T>(AmiSelectQuery<T> query, CancellationToken token = default);
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="token">Token used to cancel the operation.</param>
+        /// <param name="query">The query description containing projections, filters, joins, ordering, and pagination.</param>
+        /// <returns>A task whose result is the number of matching entities.</returns>
+        Task<int> CountAsync<T>(GXAmiSelectQuery<T> query, CancellationToken token = default);
         /// <summary>Deletes rows matching the required filter.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <param name="where">The predicate identifying the rows affected by the operation.</param>
+        /// <returns>A task representing completion of the deletion.</returns>
         Task DeleteAsync<T>(Expression<Func<T, bool>> where, CancellationToken cancellationToken = default);
         /// <summary>Deletes matching rows within this connection's transaction.</summary>
+        /// <typeparam name="T">The entity type mapped to the database table.</typeparam>
+        /// <param name="transaction">The transaction belonging to this database connection.</param>
+        /// <param name="cancellationToken">Token used to cancel the operation.</param>
+        /// <param name="where">The predicate identifying the rows affected by the operation.</param>
+        /// <returns>A task representing completion of the deletion.</returns>
         Task DeleteAsync<T>(IDbTransaction transaction, Expression<Func<T, bool>> where, CancellationToken cancellationToken = default);
     }
 }

@@ -30,16 +30,20 @@
 // Full text may be retrieved at http://www.gnu.org/licenses/gpl-2.0.txt
 //---------------------------------------------------------------------------
 
-using System.Linq.Expressions;
-
-namespace Gurux.DLMS.AMI.Services.Database;
-
-/// <summary>
-/// Describes a left or inner join between two entity types.
-/// </summary>
-/// <param name="From">The entity type that owns the foreign key.</param>
-/// <param name="To">The entity type that owns the referenced key.</param>
-/// <param name="ForeignKey">The foreign-key column selector.</param>
-/// <param name="Key">The referenced-key column selector.</param>
-/// <param name="Inner">Whether to use an inner join instead of a left join.</param>
-public sealed record AmiDatabaseJoin(Type From, Type To, LambdaExpression ForeignKey, LambdaExpression Key, bool Inner = false);
+namespace Gurux.DLMS.AMI.Services
+{
+    /// <summary>
+    /// Publishes application messages to MQTT topics.
+    /// </summary>
+    public interface IGXMqttSender
+    {
+        /// <summary>
+        /// Asynchronously publishes a text message to an MQTT topic.
+        /// </summary>
+        /// <param name="sender">Sender identity supplied to the MQTT service.</param>
+        /// <param name="topic">MQTT topic.</param>
+        /// <param name="message">Text payload to publish.</param>
+        /// <returns>A task representing the asynchronous send operation.</returns>
+        Task SendMqttAsync(string sender, string topic, string message);
+    }
+}
