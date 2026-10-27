@@ -77,10 +77,7 @@ namespace Gurux.DLMS.AMI.Module
             if (!string.IsNullOrEmpty(settings) && s != null && s.CanRead && s.CanWrite)
             {
                 Settings = JsonSerializer.Deserialize<TSettings>(settings)!;
-                if (Settings == null)
-                {
-                    Settings = new TSettings();
-                }
+                Settings ??= new TSettings();
             }
             Initialize();
         }
@@ -97,10 +94,7 @@ namespace Gurux.DLMS.AMI.Module
                 if (!string.IsNullOrEmpty(settings) && s != null && s.CanRead && s.CanWrite)
                 {
                     Settings = JsonSerializer.Deserialize<TSettings>(settings)!;
-                    if (Settings == null)
-                    {
-                        Settings = new TSettings();
-                    }
+                    Settings ??= new TSettings();
                 }
                 return InitializeAsync();
             }

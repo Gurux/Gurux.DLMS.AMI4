@@ -58,4 +58,6 @@ public interface IAmiModuleResources
     /// <param name="cancellationToken">Token used to cancel the operation.</param>
     /// <returns>A task that completes when the operation has finished.</returns>
     Task EnsureNotificationDefaultsAsync(CancellationToken cancellationToken = default);
+    /// <summary>Removes only the notification channel created by this module and its subscriptions.</summary>
+    Task RemoveNotificationDefaultsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

@@ -42,7 +42,7 @@ namespace Gurux.DLMS.AMI.Module;
 /// <param name="moduleId">Unique identifier of the module being configured.</param>
 /// <param name="configuration">Host configuration exposed during module configuration.</param>
 /// <param name="settings">Host-provided serialized module settings.</param>
-public sealed class AmiModuleBuilder(string moduleId, IConfiguration configuration, IAmiModuleSettingsSnapshot settings)
+public sealed partial class AmiModuleBuilder(string moduleId, IConfiguration configuration, IAmiModuleSettingsSnapshot settings)
 {
     /// <summary>Unique module identifier.</summary>
     public string ModuleId { get; } = moduleId;
@@ -92,7 +92,7 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
     public void AddPage<TComponent>(string route, string policy, string? title = null, bool navigation = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(policy);
-        if (!System.Text.RegularExpressions.Regex.IsMatch(route, "^[A-Za-z0-9][A-Za-z0-9_-]*$") || Pages.Any(p => p.Route.Equals(route, StringComparison.OrdinalIgnoreCase)))
+        if (!MyRegex().IsMatch(route) || Pages.Any(p => p.Route.Equals(route, StringComparison.OrdinalIgnoreCase)))
         {
             throw new ArgumentException("Module page route must be a unique URL segment.", nameof(route));
         }
@@ -118,11 +118,20 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(policy);
         if (typeof(TComponent).IsAbstract || typeof(TComponent).ContainsGenericParameters)
+        {
             throw new ArgumentException("A view must be a concrete component.");
+        }
+
         if (!Enum.IsDefined(area) || !Enum.IsDefined(display))
+        {
             throw new ArgumentOutOfRangeException(nameof(area));
+        }
+
         if (Views.Any(v => v.Area == area && string.Equals(v.Key, key, StringComparison.OrdinalIgnoreCase)))
+        {
             throw new ArgumentException("A view for this area and key is already registered.", nameof(key));
+        }
+
         Views.Add(new(area, typeof(TComponent).FullName!, policy, key, title, icon, order, display));
     }
 
@@ -157,4 +166,6 @@ public sealed class AmiModuleBuilder(string moduleId, IConfiguration configurati
     /// <param name="order">Execution or display order; lower values are processed first.</param>
     public void Use(Func<AmiModuleRequest, RequestDelegate, CancellationToken, Task> handler, int order = 0)
         => Middleware.Add(new(order, handler));
+    [System.Text.RegularExpressions.GeneratedRegex("^[A-Za-z0-9][A-Za-z0-9_-]*$")]
+    private static partial System.Text.RegularExpressions.Regex MyRegex();
 }

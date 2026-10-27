@@ -45,49 +45,49 @@ public sealed class AmiModuleContext
     {
         get; init;
     }
- 
+
     /// <summary>Data removal options supplied to uninstallation; defaults to preserving module data.</summary>
     public AmiModuleUninstallOptions UninstallOptions { get; set; } = new();
-  
+
     /// <summary>Services registered in the module scope.</summary>
     public required IServiceProvider Services
     {
         get; init;
     }
- 
+
     /// <summary>Services provided by the host.</summary>
     public required IServiceProvider HostServices
     {
         get; init;
     }
-  
+
     /// <summary>Module settings snapshot.</summary>
     public required IAmiModuleSettingsSnapshot Settings
     {
         get; init;
     }
-  
+
     /// <summary>Cancellation token for the current module operation.</summary>
     public required CancellationToken CancellationToken
     {
         get; init;
     }
-  
+
     /// <summary>Serializer options for the current module operation.</summary>
     public required JsonSerializerOptions JsonOptions
     {
         get; init;
     }
-  
+
     /// <summary>Module package directory, or <see langword="null"/> when unavailable; use this instead of the location of a stream-loaded assembly.</summary>
     public string? PackageDirectory
     {
         get; init;
     }
-   
+
     /// <summary>Registers resources for disposal at module stop; the default delegate throws when no host resource owner is configured.</summary>
     public Action<IDisposable> Track { get; init; } = _ => throw new InvalidOperationException("This context has no resource owner.");
-   
+
     /// <summary>Tracks a resource for disposal when the module stops.</summary>
     /// <param name="resource">Resource whose disposal is owned by the module context.</param>
     public void Own(IDisposable resource) => Track(resource);

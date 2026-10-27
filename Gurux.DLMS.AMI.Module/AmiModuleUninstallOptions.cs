@@ -35,7 +35,7 @@ namespace Gurux.DLMS.AMI.Module;
 
 /// <summary>Controls data removal when uninstalling a module.</summary>
 /// <param name="Mode">Data removal scope; defaults to preserving owned tables and their contents.</param>
-public sealed record AmiModuleUninstallOptions(AmiModuleDataRemoval Mode = AmiModuleDataRemoval.Preserve)
+public sealed record AmiModuleUninstallOptions(ModuleDataRemoval Mode = ModuleDataRemoval.Preserve)
 {
     /// <summary>Rejects an undefined data removal mode.</summary>
     public void Validate()
